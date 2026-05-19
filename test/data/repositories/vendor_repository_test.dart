@@ -106,6 +106,22 @@ void main() {
       },
     );
 
+    test('vendor contact cc_only round-trips (defaults false)', () {
+      final api = VendorApi.fromJson({
+        'id': 'v_1',
+        'name': 'Acme Co',
+        'contacts': [
+          {'id': 'vc_1', 'email': 'a@acme.test', 'cc_only': true},
+          {'id': 'vc_2', 'email': 'b@acme.test'},
+        ],
+      });
+      final domain = Vendor.fromApi(api);
+      expect(domain.contacts[0].ccOnly, isTrue);
+      expect(domain.contacts[1].ccOnly, isFalse, reason: 'defaults false');
+      expect(domain.contacts[0].toApiJson()['cc_only'], isTrue);
+      expect(domain.contacts[1].toApiJson()['cc_only'], isFalse);
+    });
+
     test(
       'VendorContact.toApiJson omits tmp_ ids by default but keeps them with '
       'preserveTempId — the create flow needs the server to allocate the id, '

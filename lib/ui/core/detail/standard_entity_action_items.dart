@@ -41,6 +41,7 @@ EntityActionItem<A>? archiveActionItem<A>({
     icon: Icons.archive_outlined,
     label: context.tr('archive'),
     enabled: true,
+    isLifecycle: true,
     onTap: onTap,
   );
 }
@@ -58,6 +59,7 @@ EntityActionItem<A>? restoreActionItem<A>({
     icon: Icons.unarchive_outlined,
     label: context.tr('restore'),
     enabled: true,
+    isLifecycle: true,
     onTap: onTap,
   );
 }
@@ -76,6 +78,7 @@ EntityActionItem<A>? deleteActionItem<A>({
     icon: Icons.delete_outline,
     label: context.tr('delete'),
     enabled: true,
+    isLifecycle: true,
     onTap: onTap,
   );
 }
@@ -96,6 +99,7 @@ EntityActionItem<A>? purgeActionItem<A>({
     icon: Icons.delete_forever_outlined,
     label: context.tr('purge'),
     enabled: true,
+    isLifecycle: true,
     onTap: onTap,
   );
 }

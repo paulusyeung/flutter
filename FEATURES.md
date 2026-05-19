@@ -136,6 +136,7 @@ the honest default.
 | Client — custom fields | ✅ | ✅ | ✅ | ✅ | |
 | Client — group assignment | ✅ | ✅ | ✅ | ✅ | |
 | Client — multiple contacts | ✅ | ✅ | ✅ | ✅ | |
+| Client/Vendor — contact CC-only | ✅ | ✅ | ✅ | — | — |
 | Client — multiple shipping / billing locations | ✅ | ✅ | ✅ | ✅ | |
 | Client — payment terms override | ✅ | ✅ | ✅ | ✅ | |
 | Client — currency override (cascade) | ✅ | ✅ | ✅ | ✅ | |

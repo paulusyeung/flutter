@@ -439,6 +439,12 @@ class QuoteRepository extends BaseEntityRepository<Quote, QuoteApi> {
   // ── Apply* response handlers ───────────────────────────────────────
 
   @override
+  Future<void> deleteLocalById({
+    required String companyId,
+    required String id,
+  }) => db.quoteDao.deleteById(companyId: companyId, id: id);
+
+  @override
   Future<void> applyCreateResponse({
     required String companyId,
     required String tempId,

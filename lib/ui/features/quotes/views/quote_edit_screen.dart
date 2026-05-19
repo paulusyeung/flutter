@@ -53,9 +53,17 @@ class QuoteEditScreen extends StatelessWidget {
             services.projects
                 .watch(companyId: companyId, id: seedId)
                 .first
-                .then((project) {
-                  if (project != null) {
-                    vm.setProjectId(project.id);
+                .then((project) async {
+                  if (project == null) return;
+                  vm.setProjectId(project.id);
+                  // Resolve the client so its "add to invoices" contacts
+                  // seed invitations, same as picking it in the dropdown.
+                  final client = await services.clients
+                      .watch(companyId: companyId, id: project.clientId)
+                      .first;
+                  if (client != null) {
+                    vm.selectClient(client.id, client.contacts);
+                  } else {
                     vm.setClientId(project.clientId);
                   }
                 })

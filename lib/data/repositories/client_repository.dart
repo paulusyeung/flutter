@@ -466,6 +466,12 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
   /// Concrete handler for the `create` round-trip. See base class for
   /// the steps that run inside the transaction.
   @override
+  Future<void> deleteLocalById({
+    required String companyId,
+    required String id,
+  }) => db.clientDao.deleteById(companyId: companyId, id: id);
+
+  @override
   Future<void> applyCreateResponse({
     required String companyId,
     required String tempId,

@@ -88,6 +88,27 @@ void main() {
       );
     });
 
+    test('round-trips contact cc_only (defaults false, written back)', () {
+      final api = ClientApi.fromJson({
+        'id': 'a',
+        'name': 'Acme',
+        'contacts': [
+          {'id': 'c1', 'email': 'a@x.test', 'cc_only': true},
+          {'id': 'c2', 'email': 'b@x.test'},
+        ],
+      });
+
+      final c = Client.fromApi(api);
+      expect(c.contacts[0].ccOnly, isTrue);
+      expect(c.contacts[1].ccOnly, isFalse, reason: 'defaults false');
+
+      final json = c.toApiJson();
+      final contactsJson =
+          (json['contacts'] as List).cast<Map<String, dynamic>>();
+      expect(contactsJson[0]['cc_only'], isTrue);
+      expect(contactsJson[1]['cc_only'], isFalse);
+    });
+
     test('embeds locations read-side; toApiJson omits them (written via '
         'the standalone /api/v1/locations resource)', () {
       final api = ClientApi.fromJson({

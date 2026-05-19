@@ -827,7 +827,8 @@ class _ClientPicker extends StatelessWidget {
           initialValue: selected,
           displayString: (c) => c.displayName.isEmpty ? c.name : c.displayName,
           idOf: (c) => c.id,
-          onChanged: (c) => vm.setClientId(c?.id ?? ''),
+          onChanged: (c) =>
+              vm.selectClient(c?.id ?? '', c?.contacts ?? const []),
           errorText: vm.fieldErrorFor('client_id'),
         );
       },

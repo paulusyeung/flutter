@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
@@ -142,16 +143,25 @@ class _EntityEditScreenScaffoldState<T, VM extends GenericEditViewModel<T>>
     extends State<EntityEditScreenScaffold<T, VM>> {
   VM? _vm;
   bool _ready = false;
+  bool _bootstrapped = false;
   late final String _companyId;
 
+  // Bootstrap runs in didChangeDependencies (not initState) so the
+  // create-mode `buildVm` closure may legally read inherited widgets —
+  // e.g. InvoiceEditScreen's `buildVm` calls `ctx.tr(...)`, which
+  // registers a Localizations dependency and asserts if done in initState.
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_bootstrapped) return;
+    _bootstrapped = true;
     final services = context.read<Services>();
     _companyId = services.auth.session.value!.currentCompanyId;
     if (widget.existingId == null) {
-      _vm = widget.buildVm(context, services, _companyId, null);
-      _ready = true;
+      setState(() {
+        _vm = widget.buildVm(context, services, _companyId, null);
+        _ready = true;
+      });
     } else {
       _load(services, _companyId, widget.existingId!);
     }
@@ -234,8 +244,14 @@ class _EntityEditScreenScaffoldState<T, VM extends GenericEditViewModel<T>>
       vm.clearFailedSync();
       return;
     }
-    await services.db.outboxDao.deleteRow(rowId);
+    final removedLocal = await services.sync.discardOutboxRow(rowId);
     vm.clearFailedSync();
+    // A never-synced offline create just had its local record hard-deleted —
+    // this screen now points at an entity that no longer exists. Leave it.
+    // Embedded mode has no route of its own to pop.
+    if (removedLocal && !widget.embedded && mounted && context.canPop()) {
+      context.pop();
+    }
   }
 
   @override

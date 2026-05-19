@@ -23,7 +23,7 @@ import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/list/entity_list_footer.dart';
 import 'package:admin/ui/core/list/deep_link_filter_intent.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart'
-    show MasterDetailNavScope;
+    show MasterDetailNavScope, goToCreateRoute;
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/widgets/confirm_password_sheet.dart';
@@ -612,7 +612,7 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
               final w = focus?.context?.widget;
               if (w is EditableText) return null;
               if (!widget.canCreate) return null;
-              context.go(widget.newRoute);
+              goToCreateRoute(context, widget.newRoute);
               return null;
             },
           ),
@@ -809,7 +809,7 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
                   ? null
                   : FloatingActionButton(
                       tooltip: context.tr(widget.newLabelKey),
-                      onPressed: () => context.go(widget.newRoute),
+                      onPressed: () => goToCreateRoute(context, widget.newRoute),
                       child: const Icon(Icons.add),
                     ),
               // endFloat lifts the FAB above the bottom filter bar on mobile.

@@ -38,6 +38,14 @@ class UserSyncDispatcher implements SyncDispatcher {
   final UserRepository repo;
   final AuthRepository auth;
 
+  // No offline create-with-tmp-id flow → a discarded ghost create can
+  // never route here. See SyncDispatcher.deleteLocalRecord.
+  @override
+  Future<void> deleteLocalRecord({
+    required String companyId,
+    required String id,
+  }) async {}
+
   @override
   Future<void> dispatch({
     required OutboxRow row,
@@ -178,6 +186,19 @@ class CompositeUserDispatcher implements SyncDispatcher {
 
   final SyncDispatcher userSettings;
   final SyncDispatcher user;
+
+  // Both sub-dispatchers are user/settings (no tmp-id create flow), so
+  // this is effectively a no-op; delegate anyway to stay correct if a
+  // sub-dispatcher ever gains one. The wire name isn't known here, so
+  // fan out to both — each is a no-op for ids it doesn't own.
+  @override
+  Future<void> deleteLocalRecord({
+    required String companyId,
+    required String id,
+  }) async {
+    await userSettings.deleteLocalRecord(companyId: companyId, id: id);
+    await user.deleteLocalRecord(companyId: companyId, id: id);
+  }
 
   @override
   Future<void> dispatch({required OutboxRow row, required MutationKind kind}) {

@@ -998,4 +998,12 @@ class DisabledEntityDispatcher implements SyncDispatcher {
       'Drop EntityModuleSpec.disabled=true and supply a real dispatcher.',
     );
   }
+
+  // Disabled entities have no UI to enqueue a create, so no ghost can
+  // exist. See SyncDispatcher.deleteLocalRecord.
+  @override
+  Future<void> deleteLocalRecord({
+    required String companyId,
+    required String id,
+  }) async {}
 }

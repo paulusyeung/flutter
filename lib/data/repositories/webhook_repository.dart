@@ -186,6 +186,12 @@ class WebhookRepository extends BaseEntityRepository<Webhook, WebhookApi> {
   }
 
   @override
+  Future<void> deleteLocalById({
+    required String companyId,
+    required String id,
+  }) => db.webhookDao.deleteById(companyId: companyId, id: id);
+
+  @override
   Future<void> applyCreateResponse({
     required String companyId,
     required String tempId,

@@ -252,6 +252,12 @@ class BankAccountRepository
   }
 
   @override
+  Future<void> deleteLocalById({
+    required String companyId,
+    required String id,
+  }) => db.bankAccountDao.deleteById(companyId: companyId, id: id);
+
+  @override
   Future<void> applyCreateResponse({
     required String companyId,
     required String tempId,

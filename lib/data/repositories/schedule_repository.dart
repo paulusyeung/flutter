@@ -216,6 +216,12 @@ class ScheduleRepository extends BaseEntityRepository<Schedule, ScheduleApi> {
   }
 
   @override
+  Future<void> deleteLocalById({
+    required String companyId,
+    required String id,
+  }) => db.scheduleDao.deleteById(companyId: companyId, id: id);
+
+  @override
   Future<void> applyCreateResponse({
     required String companyId,
     required String tempId,

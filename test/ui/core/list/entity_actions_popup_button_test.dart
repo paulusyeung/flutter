@@ -128,6 +128,105 @@ void main() {
     );
   });
 
+  testWidgets('a divider is inserted before the first lifecycle action, '
+      'positioned between the entity action and Archive', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildInTheme(InTheme.light),
+        localizationsDelegates: kTestLocalizationsDelegates,
+        supportedLocales: kTestSupportedLocales,
+        home: Scaffold(
+          body: Center(
+            child: EntityActionsPopupButton<String>(
+              items: [
+                EntityActionItem(
+                  kind: 'email',
+                  icon: Icons.email_outlined,
+                  label: 'Email',
+                  enabled: true,
+                  onTap: () {},
+                ),
+                EntityActionItem(
+                  kind: 'archive',
+                  icon: Icons.archive_outlined,
+                  label: 'Archive',
+                  enabled: true,
+                  isLifecycle: true,
+                  onTap: () {},
+                ),
+                EntityActionItem(
+                  kind: 'delete',
+                  icon: Icons.delete_outline,
+                  label: 'Delete',
+                  enabled: true,
+                  isLifecycle: true,
+                  onTap: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithIcon(IconButton, Icons.more_vert));
+    await tester.pumpAndSettle();
+
+    // Exactly one divider, between the lone non-lifecycle item and the
+    // first lifecycle item.
+    expect(find.byType(Divider), findsOneWidget);
+    final emailY = tester.getCenter(find.text('Email')).dy;
+    final dividerY = tester.getCenter(find.byType(Divider)).dy;
+    final archiveY = tester.getCenter(find.text('Archive')).dy;
+    expect(emailY, lessThan(dividerY));
+    expect(dividerY, lessThan(archiveY));
+  });
+
+  testWidgets('no leading divider when the menu is lifecycle-only', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildInTheme(InTheme.light),
+        localizationsDelegates: kTestLocalizationsDelegates,
+        supportedLocales: kTestSupportedLocales,
+        home: Scaffold(
+          body: Center(
+            child: EntityActionsPopupButton<String>(
+              items: [
+                EntityActionItem(
+                  kind: 'restore',
+                  icon: Icons.unarchive_outlined,
+                  label: 'Restore',
+                  enabled: true,
+                  isLifecycle: true,
+                  onTap: () {},
+                ),
+                EntityActionItem(
+                  kind: 'delete',
+                  icon: Icons.delete_outline,
+                  label: 'Delete',
+                  enabled: true,
+                  isLifecycle: true,
+                  onTap: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithIcon(IconButton, Icons.more_vert));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Divider), findsNothing);
+    expect(find.text('Restore'), findsOneWidget);
+    expect(find.text('Delete'), findsOneWidget);
+  });
+
   testWidgets('split mode + editEnabled:false: pencil renders disabled and '
       'does nothing when tapped', (tester) async {
     var edited = 0;

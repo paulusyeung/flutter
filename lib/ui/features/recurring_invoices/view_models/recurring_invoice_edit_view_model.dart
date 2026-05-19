@@ -99,6 +99,13 @@ class RecurringInvoiceEditViewModel
       draft.copyWith(invitations: invitations);
 
   @override
+  String clientIdOf(RecurringInvoice draft) => draft.clientId;
+
+  @override
+  RecurringInvoice copyWithClientId(RecurringInvoice draft, String clientId) =>
+      draft.copyWith(clientId: clientId);
+
+  @override
   Map<String, dynamic>? eInvoiceOf(RecurringInvoice draft) => draft.eInvoice;
 
   @override

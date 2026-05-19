@@ -37,6 +37,14 @@ class CompanySyncDispatcher implements SyncDispatcher {
     }
   }
 
+  // No offline create-with-tmp-id flow → a discarded ghost create can
+  // never route here. See SyncDispatcher.deleteLocalRecord.
+  @override
+  Future<void> deleteLocalRecord({
+    required String companyId,
+    required String id,
+  }) async {}
+
   @override
   Future<void> dispatch({
     required OutboxRow row,

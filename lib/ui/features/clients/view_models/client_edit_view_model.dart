@@ -129,6 +129,12 @@ class ClientEditViewModel extends GenericEditViewModel<Client> {
       _updateContactAt(i, (c) => c.copyWith(phone: v));
   void setContactSendEmailAt(int i, bool v) =>
       _updateContactAt(i, (c) => c.copyWith(sendEmail: v));
+  // CC-only and send_email are mutually exclusive: turning CC-only on
+  // forces send_email off (mirrors the React web client).
+  void setContactCcOnlyAt(int i, bool v) => _updateContactAt(
+        i,
+        (c) => c.copyWith(ccOnly: v, sendEmail: v ? false : c.sendEmail),
+      );
   void setContactPasswordAt(int i, String v) =>
       _updateContactAt(i, (c) => c.copyWith(password: v));
 

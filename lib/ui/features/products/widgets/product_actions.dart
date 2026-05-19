@@ -24,6 +24,7 @@ import 'package:admin/ui/features/quotes/view_models/quote_edit_view_model.dart'
 /// list-row popup.
 enum ProductAction {
   edit,
+  newGroup,
   newInvoice,
   newQuote,
   newPurchaseOrder,
@@ -73,29 +74,40 @@ class ProductActions {
         kind: ProductAction.edit,
         onTap: () => onTap(ProductAction.edit),
       ),
-      if (me?.moduleEnabled(EntityType.invoice) ?? false)
-        EntityActionItem(
-          kind: ProductAction.newInvoice,
-          icon: Icons.receipt_long_outlined,
-          label: context.tr('new_invoice'),
-          enabled: notTmp,
-          onTap: () => onTap(ProductAction.newInvoice),
-        ),
-      if (me?.moduleEnabled(EntityType.quote) ?? false)
-        EntityActionItem(
-          kind: ProductAction.newQuote,
-          icon: Icons.request_quote_outlined,
-          label: context.tr('new_quote'),
-          enabled: notTmp,
-          onTap: () => onTap(ProductAction.newQuote),
-        ),
-      if (me?.moduleEnabled(EntityType.purchaseOrder) ?? false)
-        EntityActionItem(
-          kind: ProductAction.newPurchaseOrder,
-          icon: Icons.shopping_cart_outlined,
-          label: context.tr('new_purchase_order'),
-          enabled: notTmp,
-          onTap: () => onTap(ProductAction.newPurchaseOrder),
+      // The "New X" items collapse into one fly-out submenu (like Client)
+      // so they stop burying the rest of the actions menu.
+      if ((me?.moduleEnabled(EntityType.invoice) ?? false) ||
+          (me?.moduleEnabled(EntityType.quote) ?? false) ||
+          (me?.moduleEnabled(EntityType.purchaseOrder) ?? false))
+        newGroupActionItem(
+          context: context,
+          kind: ProductAction.newGroup,
+          children: [
+            if (me?.moduleEnabled(EntityType.invoice) ?? false)
+              EntityActionItem(
+                kind: ProductAction.newInvoice,
+                icon: Icons.receipt_long_outlined,
+                label: context.tr('new_invoice'),
+                enabled: notTmp,
+                onTap: () => onTap(ProductAction.newInvoice),
+              ),
+            if (me?.moduleEnabled(EntityType.quote) ?? false)
+              EntityActionItem(
+                kind: ProductAction.newQuote,
+                icon: Icons.request_quote_outlined,
+                label: context.tr('new_quote'),
+                enabled: notTmp,
+                onTap: () => onTap(ProductAction.newQuote),
+              ),
+            if (me?.moduleEnabled(EntityType.purchaseOrder) ?? false)
+              EntityActionItem(
+                kind: ProductAction.newPurchaseOrder,
+                icon: Icons.shopping_cart_outlined,
+                label: context.tr('new_purchase_order'),
+                enabled: notTmp,
+                onTap: () => onTap(ProductAction.newPurchaseOrder),
+              ),
+          ],
         ),
       EntityActionItem(
         kind: ProductAction.setTaxCategory,
@@ -140,6 +152,8 @@ class ProductActions {
     ProductAction action,
   ) async {
     switch (action) {
+      case ProductAction.newGroup:
+        break; // Submenu parent — never dispatched; children carry the action.
       case ProductAction.edit:
         goEntityEdit(context, '/products', product.id);
       case ProductAction.archive:

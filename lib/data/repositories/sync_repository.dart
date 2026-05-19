@@ -90,10 +90,62 @@ class SyncRepository {
   Future<int> pendingCountFor(String companyId) =>
       db.outboxDao.pendingCountForCompany(companyId);
 
-  /// Delete every non-`dead` outbox row for [companyId]. Used by the
-  /// "Discard" branch of the confirm-before-switch dialog.
-  Future<int> discardPendingFor(String companyId) =>
-      db.outboxDao.deletePendingForCompany(companyId);
+  /// Discard one outbox row. If it's a never-synced offline `create`
+  /// (`tmp_` id, no `id_remap` entry yet) the orphaned local Drift record
+  /// is also hard-deleted — with no outbox row it could never reach the
+  /// server, so it would otherwise linger forever as a ghost. A row that's
+  /// currently `in_flight` only has its outbox row dropped: its network
+  /// attempt may be landing concurrently and would re-create the local row
+  /// + write an `id_remap`, so ghost-deleting it would race that (TOCTOU).
+  ///
+  /// Returns `true` when the ghost path was taken (the local record was
+  /// hard-deleted), so a caller showing that entity can navigate away.
+  Future<bool> discardOutboxRow(int id) async {
+    final row = await db.outboxDao.byId(id);
+    if (row == null) return false;
+    if (row.state == 'in_flight') {
+      await db.outboxDao.deleteRow(id);
+      return false;
+    }
+    final isGhostCreate =
+        MutationKind.tryParse(row.mutationKind) == MutationKind.create &&
+        row.entityId.startsWith('tmp_') &&
+        await db.idRemapDao.resolve(
+              entityType: row.entityType,
+              tempId: row.entityId,
+            ) ==
+            null;
+    if (!isGhostCreate) {
+      await db.outboxDao.deleteRow(id);
+      return false;
+    }
+    // Never synced: drop the ghost local row, then every outbox row for
+    // that tmp entity (queued follow-up update/delete rows are meaningless
+    // once the entity is gone). `deleteAllForEntity` also removes `row`.
+    await registry
+        .byWireName(row.entityType)
+        ?.dispatcher
+        .deleteLocalRecord(companyId: row.companyId, id: row.entityId);
+    await db.outboxDao.deleteAllForEntity(
+      companyId: row.companyId,
+      entityType: row.entityType,
+      entityId: row.entityId,
+    );
+    return true;
+  }
+
+  /// Discard every `pending` outbox row for [companyId] — the "Discard"
+  /// branch of the confirm-before-switch / logout dialog and the 409
+  /// "discard mine" path. Each row routes through [discardOutboxRow] so a
+  /// never-synced offline `create` also removes its orphaned local record;
+  /// non-ghost rows behave exactly as the old blanket delete (dead /
+  /// in_flight rows are untouched, matching `deletePendingForCompany`).
+  Future<void> discardPendingFor(String companyId) async {
+    final rows = await db.outboxDao.pendingRowsForCompany(companyId);
+    for (final row in rows) {
+      await discardOutboxRow(row.id);
+    }
+  }
 
   /// Synchronous-ish entry point for the shell: drain whatever is due now
   /// for [companyId]. Returns the number of rows successfully dispatched.

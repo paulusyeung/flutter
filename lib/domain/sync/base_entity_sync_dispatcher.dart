@@ -44,6 +44,12 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
   final Map<MutationKind, CustomMutationHandler<TInner>> customActions;
 
   @override
+  Future<void> deleteLocalRecord({
+    required String companyId,
+    required String id,
+  }) => repo.deleteLocalById(companyId: companyId, id: id);
+
+  @override
   Future<void> dispatch({
     required OutboxRow row,
     required MutationKind kind,

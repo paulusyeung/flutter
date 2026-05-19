@@ -125,6 +125,8 @@ class VendorEditViewModel extends GenericEditViewModel<Vendor> {
       _updateContactAt(i, (c) => c.copyWith(email: v));
   void setContactPhoneAt(int i, String v) =>
       _updateContactAt(i, (c) => c.copyWith(phone: v));
+  void setContactCcOnlyAt(int i, bool v) =>
+      _updateContactAt(i, (c) => c.copyWith(ccOnly: v));
 
   void _updateContactAt(int index, VendorContact Function(VendorContact) edit) {
     if (index < 0 || index >= draft.contacts.length) return;

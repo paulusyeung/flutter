@@ -401,7 +401,7 @@ class _RowMenu extends StatelessWidget {
             );
             unawaited(services.sync.drainOnce(companyId: row.companyId));
           case 'discard':
-            await services.db.outboxDao.deleteRow(row.id);
+            await services.sync.discardOutboxRow(row.id);
           case 'open':
             if (handlers != null && context.mounted) {
               context.go(_destinationFor(handlers!, row));

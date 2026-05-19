@@ -97,6 +97,16 @@ class PurchaseOrderEditViewModel
   ) =>
       draft.copyWith(invitations: invitations);
 
+  // Satisfies the base contract. Purchase orders use vendor contacts and
+  // their client picker keeps calling `setClientId`, so `selectClient`
+  // (the client-contact auto-invitation path) is never reached here.
+  @override
+  String clientIdOf(PurchaseOrder draft) => draft.clientId;
+
+  @override
+  PurchaseOrder copyWithClientId(PurchaseOrder draft, String clientId) =>
+      draft.copyWith(clientId: clientId);
+
   @override
   Map<String, dynamic>? eInvoiceOf(PurchaseOrder draft) => draft.eInvoice;
 

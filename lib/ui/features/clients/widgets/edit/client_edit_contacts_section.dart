@@ -60,6 +60,7 @@ class ClientEditContactsSection extends StatelessWidget {
                 onEmail: (v) => vm.setContactEmailAt(i, v),
                 onPhone: (v) => vm.setContactPhoneAt(i, v),
                 onSendEmail: (v) => vm.setContactSendEmailAt(i, v),
+                onCcOnly: (v) => vm.setContactCcOnlyAt(i, v),
                 onPassword: (v) => vm.setContactPasswordAt(i, v),
               ),
             ],
@@ -102,6 +103,7 @@ class _ContactEditor extends StatelessWidget {
     required this.onEmail,
     required this.onPhone,
     required this.onSendEmail,
+    required this.onCcOnly,
     required this.onPassword,
   });
 
@@ -115,6 +117,7 @@ class _ContactEditor extends StatelessWidget {
   final ValueChanged<String> onEmail;
   final ValueChanged<String> onPhone;
   final ValueChanged<bool> onSendEmail;
+  final ValueChanged<bool> onCcOnly;
   final ValueChanged<String> onPassword;
 
   @override
@@ -198,8 +201,17 @@ class _ContactEditor extends StatelessWidget {
           contentPadding: EdgeInsets.zero,
           dense: true,
           value: contact.sendEmail,
-          onChanged: onSendEmail,
+          // CC-only and send_email are mutually exclusive; greyed out
+          // (onChanged: null) while CC-only is on.
+          onChanged: contact.ccOnly ? null : onSendEmail,
           title: Text(context.tr('add_to_invoices')),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+          value: contact.ccOnly,
+          onChanged: onCcOnly,
+          title: Text(context.tr('cc_only')),
         ),
       ],
     );

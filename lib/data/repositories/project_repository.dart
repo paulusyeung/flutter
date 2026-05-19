@@ -304,6 +304,12 @@ class ProjectRepository extends BaseEntityRepository<Project, ProjectApi>    imp
   }
 
   @override
+  Future<void> deleteLocalById({
+    required String companyId,
+    required String id,
+  }) => db.projectDao.deleteById(companyId: companyId, id: id);
+
+  @override
   Future<void> applyCreateResponse({
     required String companyId,
     required String tempId,

@@ -322,6 +322,12 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
   }
 
   @override
+  Future<void> deleteLocalById({
+    required String companyId,
+    required String id,
+  }) => db.taskDao.deleteById(companyId: companyId, id: id);
+
+  @override
   Future<void> applyCreateResponse({
     required String companyId,
     required String tempId,

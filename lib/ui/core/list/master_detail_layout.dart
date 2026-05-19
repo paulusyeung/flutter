@@ -752,6 +752,16 @@ void _toggleFullScreenInUrl(
   GoRouter.of(context).go(next.toString());
 }
 
+/// Navigate to an entity's create route. No-op when the create route is
+/// already the active screen — re-issuing a bare `go(route)` would strip
+/// the auto-applied `?view=full` and degrade the full-screen editor to the
+/// slide-over panel (the redirect dedup won't re-promote it). `route`
+/// carries no query, so compare against `matchedLocation`.
+void goToCreateRoute(BuildContext context, String route) {
+  if (GoRouterState.of(context).matchedLocation == route) return;
+  GoRouter.of(context).go(route);
+}
+
 // ─── Width math + pane scope marker ──────────────────────────────────────
 
 double _lerp(double a, double b, double t) => a + (b - a) * t;

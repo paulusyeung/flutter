@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:go_router/go_router.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
@@ -13,6 +12,8 @@ import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart'
+    show goToCreateRoute;
 import 'package:admin/ui/core/list/saved_view_dialogs.dart';
 import 'package:admin/ui/core/list/saved_view_icons.dart';
 import 'package:admin/ui/features/shell/widgets/command_palette.dart';
@@ -547,7 +548,7 @@ class _HoverAddButton extends StatelessWidget {
         final guard = context.read<Services>().unsavedChangesGuard;
         if (!await guard.confirmIfDirty(context)) return;
         if (!context.mounted) return;
-        context.go(route);
+        goToCreateRoute(context, route);
       },
     );
   }

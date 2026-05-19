@@ -570,6 +570,12 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
   // -------------------- apply* response handlers --------------------
 
   @override
+  Future<void> deleteLocalById({
+    required String companyId,
+    required String id,
+  }) => db.invoiceDao.deleteById(companyId: companyId, id: id);
+
+  @override
   Future<void> applyCreateResponse({
     required String companyId,
     required String tempId,

@@ -24,6 +24,7 @@ import 'package:admin/ui/features/quotes/view_models/quote_edit_view_model.dart'
 /// branches are wired.
 enum ProjectAction {
   edit,
+  newGroup,
   newTask,
   newInvoice,
   newQuote,
@@ -71,37 +72,49 @@ class ProjectActions {
       ),
       // Wired in Phase 3.5 via the Tasks card "Add task" affordance, but
       // also surfaced here so the action menu mirrors React/admin-portal.
-      if (me?.moduleEnabled(EntityType.task) ?? false)
-        EntityActionItem(
-          kind: ProjectAction.newTask,
-          icon: Icons.task_outlined,
-          label: context.tr('new_task'),
-          enabled: true,
-          onTap: () => onTap(ProjectAction.newTask),
-        ),
-      if (me?.moduleEnabled(EntityType.invoice) ?? false)
-        EntityActionItem(
-          kind: ProjectAction.newInvoice,
-          icon: Icons.receipt_long_outlined,
-          label: context.tr('new_invoice'),
-          enabled: !project.id.startsWith('tmp_'),
-          onTap: () => onTap(ProjectAction.newInvoice),
-        ),
-      if (me?.moduleEnabled(EntityType.quote) ?? false)
-        EntityActionItem(
-          kind: ProjectAction.newQuote,
-          icon: Icons.request_quote_outlined,
-          label: context.tr('new_quote'),
-          enabled: !project.id.startsWith('tmp_'),
-          onTap: () => onTap(ProjectAction.newQuote),
-        ),
-      if (me?.moduleEnabled(EntityType.expense) ?? false)
-        EntityActionItem(
-          kind: ProjectAction.newExpense,
-          icon: Icons.account_balance_wallet_outlined,
-          label: context.tr('new_expense'),
-          enabled: !project.id.startsWith('tmp_'),
-          onTap: () => onTap(ProjectAction.newExpense),
+      // The four "New X" items collapse into one fly-out submenu (like
+      // Client) so they stop burying the rest of the actions menu.
+      if ((me?.moduleEnabled(EntityType.task) ?? false) ||
+          (me?.moduleEnabled(EntityType.invoice) ?? false) ||
+          (me?.moduleEnabled(EntityType.quote) ?? false) ||
+          (me?.moduleEnabled(EntityType.expense) ?? false))
+        newGroupActionItem(
+          context: context,
+          kind: ProjectAction.newGroup,
+          children: [
+            if (me?.moduleEnabled(EntityType.task) ?? false)
+              EntityActionItem(
+                kind: ProjectAction.newTask,
+                icon: Icons.task_outlined,
+                label: context.tr('new_task'),
+                enabled: true,
+                onTap: () => onTap(ProjectAction.newTask),
+              ),
+            if (me?.moduleEnabled(EntityType.invoice) ?? false)
+              EntityActionItem(
+                kind: ProjectAction.newInvoice,
+                icon: Icons.receipt_long_outlined,
+                label: context.tr('new_invoice'),
+                enabled: !project.id.startsWith('tmp_'),
+                onTap: () => onTap(ProjectAction.newInvoice),
+              ),
+            if (me?.moduleEnabled(EntityType.quote) ?? false)
+              EntityActionItem(
+                kind: ProjectAction.newQuote,
+                icon: Icons.request_quote_outlined,
+                label: context.tr('new_quote'),
+                enabled: !project.id.startsWith('tmp_'),
+                onTap: () => onTap(ProjectAction.newQuote),
+              ),
+            if (me?.moduleEnabled(EntityType.expense) ?? false)
+              EntityActionItem(
+                kind: ProjectAction.newExpense,
+                icon: Icons.account_balance_wallet_outlined,
+                label: context.tr('new_expense'),
+                enabled: !project.id.startsWith('tmp_'),
+                onTap: () => onTap(ProjectAction.newExpense),
+              ),
+          ],
         ),
       if (me?.moduleEnabled(EntityType.invoice) ?? false)
         EntityActionItem(
@@ -154,6 +167,8 @@ class ProjectActions {
     ProjectAction action,
   ) async {
     switch (action) {
+      case ProjectAction.newGroup:
+        break; // Submenu parent — never dispatched; children carry the action.
       case ProjectAction.edit:
         goEntityEdit(context, '/projects', project.id);
       case ProjectAction.newTask:

@@ -25,6 +25,10 @@ class _FakeVm extends GenericBillingDocEditViewModel<_Doc> {
   @override
   _Doc copyWithInvitations(_Doc d, List<Invitation> inv) => d;
   @override
+  String clientIdOf(_Doc d) => '';
+  @override
+  _Doc copyWithClientId(_Doc d, String clientId) => d;
+  @override
   Map<String, dynamic>? eInvoiceOf(_Doc d) => d.eInvoice;
   @override
   _Doc copyWithEInvoice(_Doc d, Map<String, dynamic>? e) => _Doc(e);

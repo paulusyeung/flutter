@@ -1,0 +1,188 @@
+import 'package:decimal/decimal.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:admin/data/models/domain/billing/invitation.dart';
+import 'package:admin/data/models/domain/billing/line_item.dart';
+import 'package:admin/data/models/domain/contact.dart';
+import 'package:admin/domain/billing/totals_calculator.dart';
+import 'package:admin/ui/features/billing_shared/view_models/billing_doc_edit_view_model.dart';
+
+/// Minimal billing doc carrying just the client id + invitations array
+/// that `selectClient` reads and rewrites.
+class _Doc {
+  const _Doc({this.clientId = '', this.invitations = const []});
+  final String clientId;
+  final List<Invitation> invitations;
+}
+
+/// Concrete VM to exercise `selectClient` in isolation.
+class _Vm extends GenericBillingDocEditViewModel<_Doc> {
+  _Vm(_Doc seed) : super(initialDraft: seed);
+
+  @override
+  List<LineItem> lineItemsOf(_Doc d) => const [];
+  @override
+  _Doc copyWithLineItems(_Doc d, List<LineItem> items) => d;
+  @override
+  List<Invitation> invitationsOf(_Doc d) => d.invitations;
+  @override
+  _Doc copyWithInvitations(_Doc d, List<Invitation> inv) =>
+      _Doc(clientId: d.clientId, invitations: inv);
+  @override
+  String clientIdOf(_Doc d) => d.clientId;
+  @override
+  _Doc copyWithClientId(_Doc d, String clientId) =>
+      _Doc(clientId: clientId, invitations: d.invitations);
+  @override
+  Map<String, dynamic>? eInvoiceOf(_Doc d) => null;
+  @override
+  _Doc copyWithEInvoice(_Doc d, Map<String, dynamic>? e) => d;
+  @override
+  BillingTotalsInput totalsInputOf(_Doc d) => BillingTotalsInput(
+        lineItems: const [],
+        discount: Decimal.zero,
+        isAmountDiscount: false,
+        usesInclusiveTaxes: false,
+      );
+  @override
+  Future<_Doc> performSave() async => draft;
+}
+
+Contact _contact(
+  String id, {
+  bool sendEmail = false,
+  bool ccOnly = false,
+  bool isPrimary = false,
+  bool isDeleted = false,
+}) =>
+    Contact(
+      id: id,
+      firstName: 'F$id',
+      lastName: 'L$id',
+      email: '$id@example.com',
+      phone: '',
+      isPrimary: isPrimary,
+      sendEmail: sendEmail,
+      ccOnly: ccOnly,
+      isDeleted: isDeleted,
+      updatedAt: DateTime.utc(2026),
+    );
+
+void main() {
+  group('selectClient auto-invitations', () {
+    test('seeds one invitation per sendEmail contact, skipping opt-outs', () {
+      final vm = _Vm(const _Doc());
+      vm.selectClient('client-1', [
+        _contact('a', sendEmail: true),
+        _contact('b', sendEmail: false),
+        _contact('c', sendEmail: true, isPrimary: true),
+      ]);
+
+      expect(vm.draft.clientId, 'client-1');
+      expect(
+        vm.draft.invitations.map((i) => i.clientContactId),
+        ['a', 'c'],
+      );
+    });
+
+    test('CC-only contacts still get an invitation (emailed as CC)', () {
+      final vm = _Vm(const _Doc());
+      vm.selectClient('client-1', [
+        _contact('a', sendEmail: true),
+        _contact('b', ccOnly: true, sendEmail: false),
+        _contact('c'),
+      ]);
+
+      expect(
+        vm.draft.invitations.map((i) => i.clientContactId),
+        ['a', 'b'],
+        reason: 'CC-only auto-clears sendEmail but must keep an invitation',
+      );
+    });
+
+    test('falls back to the primary contact when none opt in', () {
+      final vm = _Vm(const _Doc());
+      vm.selectClient('client-1', [
+        _contact('a'),
+        _contact('b', isPrimary: true),
+      ]);
+
+      expect(
+        vm.draft.invitations.map((i) => i.clientContactId),
+        ['b'],
+      );
+    });
+
+    test('falls back to the first contact when no primary and none opt in',
+        () {
+      final vm = _Vm(const _Doc());
+      vm.selectClient('client-1', [_contact('a'), _contact('b')]);
+
+      expect(
+        vm.draft.invitations.map((i) => i.clientContactId),
+        ['a'],
+      );
+    });
+
+    test('ignores deleted contacts entirely', () {
+      final vm = _Vm(const _Doc());
+      vm.selectClient('client-1', [
+        _contact('a', sendEmail: true, isDeleted: true),
+        _contact('b', sendEmail: true),
+      ]);
+
+      expect(
+        vm.draft.invitations.map((i) => i.clientContactId),
+        ['b'],
+      );
+    });
+
+    test('switching to a different client replaces invitations', () {
+      final vm = _Vm(
+        _Doc(
+          clientId: 'client-1',
+          invitations: [
+            const Invitation(clientContactId: 'old'),
+          ],
+        ),
+      );
+      vm.selectClient('client-2', [_contact('new', sendEmail: true)]);
+
+      expect(vm.draft.clientId, 'client-2');
+      expect(
+        vm.draft.invitations.map((i) => i.clientContactId),
+        ['new'],
+      );
+    });
+
+    test('re-selecting the same client preserves manual invitations', () {
+      final vm = _Vm(
+        _Doc(
+          clientId: 'client-1',
+          invitations: [
+            const Invitation(clientContactId: 'manual'),
+          ],
+        ),
+      );
+      vm.selectClient('client-1', [_contact('other', sendEmail: true)]);
+
+      expect(
+        vm.draft.invitations.map((i) => i.clientContactId),
+        ['manual'],
+      );
+    });
+
+    test('clearing the client yields no invitations and does not throw', () {
+      final vm = _Vm(
+        _Doc(
+          clientId: 'client-1',
+          invitations: [const Invitation(clientContactId: 'a')],
+        ),
+      );
+      vm.selectClient('', const []);
+
+      expect(vm.draft.clientId, '');
+      expect(vm.draft.invitations, isEmpty);
+    });
+  });
+}

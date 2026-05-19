@@ -305,6 +305,12 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi>    implem
   }
 
   @override
+  Future<void> deleteLocalById({
+    required String companyId,
+    required String id,
+  }) => db.vendorDao.deleteById(companyId: companyId, id: id);
+
+  @override
   Future<void> applyCreateResponse({
     required String companyId,
     required String tempId,

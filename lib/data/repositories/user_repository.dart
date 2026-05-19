@@ -315,6 +315,12 @@ class UserRepository extends BaseEntityRepository<User, UserApi> {
   // ── Sync engine entry points ────────────────────────────────────────
 
   @override
+  Future<void> deleteLocalById({
+    required String companyId,
+    required String id,
+  }) => db.userDao.deleteById(companyId: companyId, id: id);
+
+  @override
   Future<void> applyCreateResponse({
     required String companyId,
     required String tempId,

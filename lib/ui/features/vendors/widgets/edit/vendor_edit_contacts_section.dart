@@ -59,6 +59,7 @@ class VendorEditContactsSection extends StatelessWidget {
                 onLastName: (v) => vm.setContactLastNameAt(i, v),
                 onEmail: (v) => vm.setContactEmailAt(i, v),
                 onPhone: (v) => vm.setContactPhoneAt(i, v),
+                onCcOnly: (v) => vm.setContactCcOnlyAt(i, v),
               ),
             ],
           SizedBox(height: InSpacing.md(context)),
@@ -98,6 +99,7 @@ class _ContactEditor extends StatelessWidget {
     required this.onLastName,
     required this.onEmail,
     required this.onPhone,
+    required this.onCcOnly,
   });
 
   final int index;
@@ -109,6 +111,7 @@ class _ContactEditor extends StatelessWidget {
   final ValueChanged<String> onLastName;
   final ValueChanged<String> onEmail;
   final ValueChanged<String> onPhone;
+  final ValueChanged<bool> onCcOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -181,6 +184,13 @@ class _ContactEditor extends StatelessWidget {
           initial: contact.phone,
           onChanged: onPhone,
           keyboardType: TextInputType.phone,
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+          value: contact.ccOnly,
+          onChanged: onCcOnly,
+          title: Text(context.tr('cc_only')),
         ),
       ],
     );

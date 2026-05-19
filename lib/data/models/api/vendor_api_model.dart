@@ -72,6 +72,7 @@ abstract class VendorContactApi with _$VendorContactApi {
     @Default('') String phone,
     @Default('') String password,
     @JsonKey(name: 'send_email') @Default(true) bool sendEmail,
+    @JsonKey(name: 'cc_only') @Default(false) bool ccOnly,
     @JsonKey(name: 'is_primary') @Default(false) bool isPrimary,
     @JsonKey(name: 'custom_value1') @Default('') String customValue1,
     @JsonKey(name: 'custom_value2') @Default('') String customValue2,

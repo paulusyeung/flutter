@@ -92,6 +92,13 @@ class QuoteEditViewModel extends GenericBillingDocEditViewModel<Quote> {
       draft.copyWith(invitations: invitations);
 
   @override
+  String clientIdOf(Quote draft) => draft.clientId;
+
+  @override
+  Quote copyWithClientId(Quote draft, String clientId) =>
+      draft.copyWith(clientId: clientId);
+
+  @override
   Map<String, dynamic>? eInvoiceOf(Quote draft) => draft.eInvoice;
 
   @override

@@ -37,8 +37,10 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
     return row.read(count) ?? 0;
   }
 
-  /// Delete every non-`dead` row for [companyId]. Used by the "Discard" branch
-  /// of the confirm-before-switch dialog.
+  /// Delete every `pending` row for [companyId] in one statement. The
+  /// "Discard" flows now route through [pendingRowsForCompany] +
+  /// `SyncRepository.discardOutboxRow` (so ghost creates also drop their
+  /// local record); this stays as the equivalent bulk primitive.
   Future<int> deletePendingForCompany(String companyId) =>
       (delete(outbox)..where(
             (o) => o.companyId.equals(companyId) & o.state.equals('pending'),
@@ -138,6 +140,31 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
 
   Future<void> deleteRow(int id) =>
       (delete(outbox)..where((o) => o.id.equals(id))).go();
+
+  /// Delete every outbox row (any state) for one entity. Used when a
+  /// never-synced offline `create` is discarded: queued follow-up
+  /// update/delete/action rows against the same `tmp_` id are meaningless
+  /// once the entity is gone, so they go with it.
+  Future<int> deleteAllForEntity({
+    required String companyId,
+    required String entityType,
+    required String entityId,
+  }) => (delete(outbox)..where(
+        (o) =>
+            o.companyId.equals(companyId) &
+            o.entityType.equals(entityType) &
+            o.entityId.equals(entityId),
+      )).go();
+
+  /// Snapshot of `pending` rows for [companyId] (excludes `dead` and
+  /// `in_flight`) — same predicate as [deletePendingForCompany], but
+  /// returns the rows so a caller can apply per-row discard logic. Used by
+  /// `SyncRepository.discardPendingFor`.
+  Future<List<OutboxRow>> pendingRowsForCompany(String companyId) =>
+      (select(outbox)..where(
+            (o) => o.companyId.equals(companyId) & o.state.equals('pending'),
+          ))
+          .get();
 
   Future<void> scheduleRetry({
     required int id,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:overflow_view/overflow_view.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
 
 /// One row item in an [EntityDetailActionsRow].
@@ -26,6 +27,7 @@ class EntityActionItem<A> {
     this.onTap,
     this.children,
     this.disabledTooltipKey = 'coming_soon',
+    this.isLifecycle = false,
   });
 
   final A kind;
@@ -34,6 +36,14 @@ class EntityActionItem<A> {
   final bool enabled;
   final bool isPrimary;
   final VoidCallback? onTap;
+
+  /// True for the universal lifecycle actions (Archive / Restore / Delete /
+  /// Purge), set only by the standard factories in
+  /// `standard_entity_action_items.dart`. [menuChildrenFor] auto-inserts a
+  /// single divider before the first visible lifecycle item so the
+  /// destructive group reads as separate from the entity-specific actions
+  /// above it.
+  final bool isLifecycle;
 
   /// Controls how a disabled (`enabled: false`) item is treated.
   ///
@@ -69,30 +79,53 @@ class EntityActionItem<A> {
     BuildContext context,
     List<EntityActionItem<A>> items,
   ) {
-    return [
-      for (final item in items)
-        if (item.isVisible)
-          if (item.hasChildren)
-            SubmenuButton(
-              leadingIcon: Icon(item.icon, size: 18),
-              menuChildren: menuChildrenFor<A>(context, item.children!),
-              child: Text(item.label),
-            )
-          else if (item.enabled)
-            MenuItemButton(
-              leadingIcon: Icon(item.icon, size: 18),
-              onPressed: item.onTap,
-              child: Text(item.label),
-            )
-          else
-            // Only reachable for a transient-busy disable
-            // (disabledTooltipKey == null); no tooltip by design.
-            MenuItemButton(
-              leadingIcon: Icon(item.icon, size: 18),
-              onPressed: null,
-              child: Text(item.label),
-            ),
-    ];
+    // Auto-divider: emit one separator before the first visible lifecycle
+    // item (Archive/Restore/Delete/Purge), but only if a visible
+    // non-lifecycle item preceded it in this pass. That single guard also
+    // suppresses a stray leading divider when the slice is lifecycle-only
+    // (e.g. an overflow "More" menu whose hidden tail is all lifecycle).
+    final children = <Widget>[];
+    var sawNonLifecycle = false;
+    var dividerEmitted = false;
+    for (final item in items) {
+      if (!item.isVisible) continue;
+      if (item.isLifecycle) {
+        if (sawNonLifecycle && !dividerEmitted) {
+          children.add(Divider(height: 9, color: context.inTheme.border));
+          dividerEmitted = true;
+        }
+      } else {
+        sawNonLifecycle = true;
+      }
+      if (item.hasChildren) {
+        children.add(
+          SubmenuButton(
+            leadingIcon: Icon(item.icon, size: 18),
+            menuChildren: menuChildrenFor<A>(context, item.children!),
+            child: Text(item.label),
+          ),
+        );
+      } else if (item.enabled) {
+        children.add(
+          MenuItemButton(
+            leadingIcon: Icon(item.icon, size: 18),
+            onPressed: item.onTap,
+            child: Text(item.label),
+          ),
+        );
+      } else {
+        // Only reachable for a transient-busy disable
+        // (disabledTooltipKey == null); no tooltip by design.
+        children.add(
+          MenuItemButton(
+            leadingIcon: Icon(item.icon, size: 18),
+            onPressed: null,
+            child: Text(item.label),
+          ),
+        );
+      }
+    }
+    return children;
   }
 }
 

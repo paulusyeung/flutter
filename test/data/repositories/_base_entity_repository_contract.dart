@@ -295,6 +295,27 @@ void runEntityRepositoryContract<TDomain, TApi>(
       expect(fixture.isDirtyOf(fromDb as TDomain), isTrue);
     });
 
+    test('deleteLocalById hard-deletes the local row (the discard-ghost '
+        'seam — SyncRepository.discardOutboxRow)', () async {
+      final draft = fixture.fromApi(
+        fixture.buildApiModel(id: '', displayValue: 'A'),
+      );
+      final created = await fixture.create(repo, companyId: 'co', draft: draft);
+      final tmpId = fixture.idOf(created);
+      expect(
+        await fixture.watch(repo, companyId: 'co', id: tmpId).first,
+        isNotNull,
+      );
+
+      await repo.deleteLocalById(companyId: 'co', id: tmpId);
+
+      expect(
+        await fixture.watch(repo, companyId: 'co', id: tmpId).first,
+        isNull,
+        reason: 'discarding a never-synced ghost create must remove the row',
+      );
+    });
+
     test('create enqueues a create outbox row with a fresh idempotency key '
         'and the entity\'s wireName', () async {
       final draft = fixture.fromApi(

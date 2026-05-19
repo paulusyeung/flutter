@@ -14,7 +14,9 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$VendorContact {
 
- String get id; String get firstName; String get lastName; String get email; String get phone; String get password; bool get sendEmail; bool get isPrimary; String get customValue1; String get customValue2; String get customValue3; String get customValue4; DateTime get updatedAt; bool get isDeleted;
+ String get id; String get firstName; String get lastName; String get email; String get phone; String get password; bool get sendEmail;// Lone non-`required` field: a server-managed boolean defaulting false,
+// mirrors `Contact.isLocked` so call sites that don't care can omit it.
+ bool get ccOnly; bool get isPrimary; String get customValue1; String get customValue2; String get customValue3; String get customValue4; DateTime get updatedAt; bool get isDeleted;
 /// Create a copy of VendorContact
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +27,16 @@ $VendorContactCopyWith<VendorContact> get copyWith => _$VendorContactCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is VendorContact&&(identical(other.id, id) || other.id == id)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.password, password) || other.password == password)&&(identical(other.sendEmail, sendEmail) || other.sendEmail == sendEmail)&&(identical(other.isPrimary, isPrimary) || other.isPrimary == isPrimary)&&(identical(other.customValue1, customValue1) || other.customValue1 == customValue1)&&(identical(other.customValue2, customValue2) || other.customValue2 == customValue2)&&(identical(other.customValue3, customValue3) || other.customValue3 == customValue3)&&(identical(other.customValue4, customValue4) || other.customValue4 == customValue4)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is VendorContact&&(identical(other.id, id) || other.id == id)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.password, password) || other.password == password)&&(identical(other.sendEmail, sendEmail) || other.sendEmail == sendEmail)&&(identical(other.ccOnly, ccOnly) || other.ccOnly == ccOnly)&&(identical(other.isPrimary, isPrimary) || other.isPrimary == isPrimary)&&(identical(other.customValue1, customValue1) || other.customValue1 == customValue1)&&(identical(other.customValue2, customValue2) || other.customValue2 == customValue2)&&(identical(other.customValue3, customValue3) || other.customValue3 == customValue3)&&(identical(other.customValue4, customValue4) || other.customValue4 == customValue4)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,firstName,lastName,email,phone,password,sendEmail,isPrimary,customValue1,customValue2,customValue3,customValue4,updatedAt,isDeleted);
+int get hashCode => Object.hash(runtimeType,id,firstName,lastName,email,phone,password,sendEmail,ccOnly,isPrimary,customValue1,customValue2,customValue3,customValue4,updatedAt,isDeleted);
 
 @override
 String toString() {
-  return 'VendorContact(id: $id, firstName: $firstName, lastName: $lastName, email: $email, phone: $phone, password: $password, sendEmail: $sendEmail, isPrimary: $isPrimary, customValue1: $customValue1, customValue2: $customValue2, customValue3: $customValue3, customValue4: $customValue4, updatedAt: $updatedAt, isDeleted: $isDeleted)';
+  return 'VendorContact(id: $id, firstName: $firstName, lastName: $lastName, email: $email, phone: $phone, password: $password, sendEmail: $sendEmail, ccOnly: $ccOnly, isPrimary: $isPrimary, customValue1: $customValue1, customValue2: $customValue2, customValue3: $customValue3, customValue4: $customValue4, updatedAt: $updatedAt, isDeleted: $isDeleted)';
 }
 
 
@@ -45,7 +47,7 @@ abstract mixin class $VendorContactCopyWith<$Res>  {
   factory $VendorContactCopyWith(VendorContact value, $Res Function(VendorContact) _then) = _$VendorContactCopyWithImpl;
 @useResult
 $Res call({
- String id, String firstName, String lastName, String email, String phone, String password, bool sendEmail, bool isPrimary, String customValue1, String customValue2, String customValue3, String customValue4, DateTime updatedAt, bool isDeleted
+ String id, String firstName, String lastName, String email, String phone, String password, bool sendEmail, bool ccOnly, bool isPrimary, String customValue1, String customValue2, String customValue3, String customValue4, DateTime updatedAt, bool isDeleted
 });
 
 
@@ -62,7 +64,7 @@ class _$VendorContactCopyWithImpl<$Res>
 
 /// Create a copy of VendorContact
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? firstName = null,Object? lastName = null,Object? email = null,Object? phone = null,Object? password = null,Object? sendEmail = null,Object? isPrimary = null,Object? customValue1 = null,Object? customValue2 = null,Object? customValue3 = null,Object? customValue4 = null,Object? updatedAt = null,Object? isDeleted = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? firstName = null,Object? lastName = null,Object? email = null,Object? phone = null,Object? password = null,Object? sendEmail = null,Object? ccOnly = null,Object? isPrimary = null,Object? customValue1 = null,Object? customValue2 = null,Object? customValue3 = null,Object? customValue4 = null,Object? updatedAt = null,Object? isDeleted = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,firstName: null == firstName ? _self.firstName : firstName // ignore: cast_nullable_to_non_nullable
@@ -71,6 +73,7 @@ as String,email: null == email ? _self.email : email // ignore: cast_nullable_to
 as String,phone: null == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
 as String,password: null == password ? _self.password : password // ignore: cast_nullable_to_non_nullable
 as String,sendEmail: null == sendEmail ? _self.sendEmail : sendEmail // ignore: cast_nullable_to_non_nullable
+as bool,ccOnly: null == ccOnly ? _self.ccOnly : ccOnly // ignore: cast_nullable_to_non_nullable
 as bool,isPrimary: null == isPrimary ? _self.isPrimary : isPrimary // ignore: cast_nullable_to_non_nullable
 as bool,customValue1: null == customValue1 ? _self.customValue1 : customValue1 // ignore: cast_nullable_to_non_nullable
 as String,customValue2: null == customValue2 ? _self.customValue2 : customValue2 // ignore: cast_nullable_to_non_nullable
@@ -163,10 +166,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String firstName,  String lastName,  String email,  String phone,  String password,  bool sendEmail,  bool isPrimary,  String customValue1,  String customValue2,  String customValue3,  String customValue4,  DateTime updatedAt,  bool isDeleted)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String firstName,  String lastName,  String email,  String phone,  String password,  bool sendEmail,  bool ccOnly,  bool isPrimary,  String customValue1,  String customValue2,  String customValue3,  String customValue4,  DateTime updatedAt,  bool isDeleted)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _VendorContact() when $default != null:
-return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,_that.password,_that.sendEmail,_that.isPrimary,_that.customValue1,_that.customValue2,_that.customValue3,_that.customValue4,_that.updatedAt,_that.isDeleted);case _:
+return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,_that.password,_that.sendEmail,_that.ccOnly,_that.isPrimary,_that.customValue1,_that.customValue2,_that.customValue3,_that.customValue4,_that.updatedAt,_that.isDeleted);case _:
   return orElse();
 
 }
@@ -184,10 +187,10 @@ return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String firstName,  String lastName,  String email,  String phone,  String password,  bool sendEmail,  bool isPrimary,  String customValue1,  String customValue2,  String customValue3,  String customValue4,  DateTime updatedAt,  bool isDeleted)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String firstName,  String lastName,  String email,  String phone,  String password,  bool sendEmail,  bool ccOnly,  bool isPrimary,  String customValue1,  String customValue2,  String customValue3,  String customValue4,  DateTime updatedAt,  bool isDeleted)  $default,) {final _that = this;
 switch (_that) {
 case _VendorContact():
-return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,_that.password,_that.sendEmail,_that.isPrimary,_that.customValue1,_that.customValue2,_that.customValue3,_that.customValue4,_that.updatedAt,_that.isDeleted);case _:
+return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,_that.password,_that.sendEmail,_that.ccOnly,_that.isPrimary,_that.customValue1,_that.customValue2,_that.customValue3,_that.customValue4,_that.updatedAt,_that.isDeleted);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -204,10 +207,10 @@ return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String firstName,  String lastName,  String email,  String phone,  String password,  bool sendEmail,  bool isPrimary,  String customValue1,  String customValue2,  String customValue3,  String customValue4,  DateTime updatedAt,  bool isDeleted)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String firstName,  String lastName,  String email,  String phone,  String password,  bool sendEmail,  bool ccOnly,  bool isPrimary,  String customValue1,  String customValue2,  String customValue3,  String customValue4,  DateTime updatedAt,  bool isDeleted)?  $default,) {final _that = this;
 switch (_that) {
 case _VendorContact() when $default != null:
-return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,_that.password,_that.sendEmail,_that.isPrimary,_that.customValue1,_that.customValue2,_that.customValue3,_that.customValue4,_that.updatedAt,_that.isDeleted);case _:
+return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,_that.password,_that.sendEmail,_that.ccOnly,_that.isPrimary,_that.customValue1,_that.customValue2,_that.customValue3,_that.customValue4,_that.updatedAt,_that.isDeleted);case _:
   return null;
 
 }
@@ -219,7 +222,7 @@ return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,
 
 
 class _VendorContact implements VendorContact {
-  const _VendorContact({required this.id, required this.firstName, required this.lastName, required this.email, required this.phone, required this.password, required this.sendEmail, required this.isPrimary, required this.customValue1, required this.customValue2, required this.customValue3, required this.customValue4, required this.updatedAt, required this.isDeleted});
+  const _VendorContact({required this.id, required this.firstName, required this.lastName, required this.email, required this.phone, required this.password, required this.sendEmail, this.ccOnly = false, required this.isPrimary, required this.customValue1, required this.customValue2, required this.customValue3, required this.customValue4, required this.updatedAt, required this.isDeleted});
   
 
 @override final  String id;
@@ -229,6 +232,9 @@ class _VendorContact implements VendorContact {
 @override final  String phone;
 @override final  String password;
 @override final  bool sendEmail;
+// Lone non-`required` field: a server-managed boolean defaulting false,
+// mirrors `Contact.isLocked` so call sites that don't care can omit it.
+@override@JsonKey() final  bool ccOnly;
 @override final  bool isPrimary;
 @override final  String customValue1;
 @override final  String customValue2;
@@ -247,16 +253,16 @@ _$VendorContactCopyWith<_VendorContact> get copyWith => __$VendorContactCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _VendorContact&&(identical(other.id, id) || other.id == id)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.password, password) || other.password == password)&&(identical(other.sendEmail, sendEmail) || other.sendEmail == sendEmail)&&(identical(other.isPrimary, isPrimary) || other.isPrimary == isPrimary)&&(identical(other.customValue1, customValue1) || other.customValue1 == customValue1)&&(identical(other.customValue2, customValue2) || other.customValue2 == customValue2)&&(identical(other.customValue3, customValue3) || other.customValue3 == customValue3)&&(identical(other.customValue4, customValue4) || other.customValue4 == customValue4)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _VendorContact&&(identical(other.id, id) || other.id == id)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.password, password) || other.password == password)&&(identical(other.sendEmail, sendEmail) || other.sendEmail == sendEmail)&&(identical(other.ccOnly, ccOnly) || other.ccOnly == ccOnly)&&(identical(other.isPrimary, isPrimary) || other.isPrimary == isPrimary)&&(identical(other.customValue1, customValue1) || other.customValue1 == customValue1)&&(identical(other.customValue2, customValue2) || other.customValue2 == customValue2)&&(identical(other.customValue3, customValue3) || other.customValue3 == customValue3)&&(identical(other.customValue4, customValue4) || other.customValue4 == customValue4)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,firstName,lastName,email,phone,password,sendEmail,isPrimary,customValue1,customValue2,customValue3,customValue4,updatedAt,isDeleted);
+int get hashCode => Object.hash(runtimeType,id,firstName,lastName,email,phone,password,sendEmail,ccOnly,isPrimary,customValue1,customValue2,customValue3,customValue4,updatedAt,isDeleted);
 
 @override
 String toString() {
-  return 'VendorContact(id: $id, firstName: $firstName, lastName: $lastName, email: $email, phone: $phone, password: $password, sendEmail: $sendEmail, isPrimary: $isPrimary, customValue1: $customValue1, customValue2: $customValue2, customValue3: $customValue3, customValue4: $customValue4, updatedAt: $updatedAt, isDeleted: $isDeleted)';
+  return 'VendorContact(id: $id, firstName: $firstName, lastName: $lastName, email: $email, phone: $phone, password: $password, sendEmail: $sendEmail, ccOnly: $ccOnly, isPrimary: $isPrimary, customValue1: $customValue1, customValue2: $customValue2, customValue3: $customValue3, customValue4: $customValue4, updatedAt: $updatedAt, isDeleted: $isDeleted)';
 }
 
 
@@ -267,7 +273,7 @@ abstract mixin class _$VendorContactCopyWith<$Res> implements $VendorContactCopy
   factory _$VendorContactCopyWith(_VendorContact value, $Res Function(_VendorContact) _then) = __$VendorContactCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String firstName, String lastName, String email, String phone, String password, bool sendEmail, bool isPrimary, String customValue1, String customValue2, String customValue3, String customValue4, DateTime updatedAt, bool isDeleted
+ String id, String firstName, String lastName, String email, String phone, String password, bool sendEmail, bool ccOnly, bool isPrimary, String customValue1, String customValue2, String customValue3, String customValue4, DateTime updatedAt, bool isDeleted
 });
 
 
@@ -284,7 +290,7 @@ class __$VendorContactCopyWithImpl<$Res>
 
 /// Create a copy of VendorContact
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? firstName = null,Object? lastName = null,Object? email = null,Object? phone = null,Object? password = null,Object? sendEmail = null,Object? isPrimary = null,Object? customValue1 = null,Object? customValue2 = null,Object? customValue3 = null,Object? customValue4 = null,Object? updatedAt = null,Object? isDeleted = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? firstName = null,Object? lastName = null,Object? email = null,Object? phone = null,Object? password = null,Object? sendEmail = null,Object? ccOnly = null,Object? isPrimary = null,Object? customValue1 = null,Object? customValue2 = null,Object? customValue3 = null,Object? customValue4 = null,Object? updatedAt = null,Object? isDeleted = null,}) {
   return _then(_VendorContact(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,firstName: null == firstName ? _self.firstName : firstName // ignore: cast_nullable_to_non_nullable
@@ -293,6 +299,7 @@ as String,email: null == email ? _self.email : email // ignore: cast_nullable_to
 as String,phone: null == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
 as String,password: null == password ? _self.password : password // ignore: cast_nullable_to_non_nullable
 as String,sendEmail: null == sendEmail ? _self.sendEmail : sendEmail // ignore: cast_nullable_to_non_nullable
+as bool,ccOnly: null == ccOnly ? _self.ccOnly : ccOnly // ignore: cast_nullable_to_non_nullable
 as bool,isPrimary: null == isPrimary ? _self.isPrimary : isPrimary // ignore: cast_nullable_to_non_nullable
 as bool,customValue1: null == customValue1 ? _self.customValue1 : customValue1 // ignore: cast_nullable_to_non_nullable
 as String,customValue2: null == customValue2 ? _self.customValue2 : customValue2 // ignore: cast_nullable_to_non_nullable

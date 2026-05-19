@@ -235,6 +235,12 @@ class CompanyGatewayRepository
       api.verifyStripeCustomers();
 
   @override
+  Future<void> deleteLocalById({
+    required String companyId,
+    required String id,
+  }) => db.companyGatewayDao.deleteById(companyId: companyId, id: id);
+
+  @override
   Future<void> applyCreateResponse({
     required String companyId,
     required String tempId,

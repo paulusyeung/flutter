@@ -92,6 +92,13 @@ class CreditEditViewModel extends GenericBillingDocEditViewModel<Credit> {
       draft.copyWith(invitations: invitations);
 
   @override
+  String clientIdOf(Credit draft) => draft.clientId;
+
+  @override
+  Credit copyWithClientId(Credit draft, String clientId) =>
+      draft.copyWith(clientId: clientId);
+
+  @override
   Map<String, dynamic>? eInvoiceOf(Credit draft) => draft.eInvoice;
 
   @override

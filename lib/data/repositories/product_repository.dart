@@ -288,6 +288,12 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi>
   /// Concrete handler for the `create` round-trip. See base class for
   /// the steps that run inside the transaction.
   @override
+  Future<void> deleteLocalById({
+    required String companyId,
+    required String id,
+  }) => db.productDao.deleteById(companyId: companyId, id: id);
+
+  @override
   Future<void> applyCreateResponse({
     required String companyId,
     required String tempId,

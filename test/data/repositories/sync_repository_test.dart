@@ -51,6 +51,32 @@ class _ProgrammableDispatcher implements SyncDispatcher {
       throw outcome;
     }
   }
+
+  @override
+  Future<void> deleteLocalRecord({
+    required String companyId,
+    required String id,
+  }) async {}
+}
+
+/// Dispatcher that forwards `deleteLocalRecord` to a repo, the way
+/// `BaseEntitySyncDispatcher` does — used by the discard tests to observe
+/// that the ghost path reaches the repository.
+class _RepoDeleteDispatcher implements SyncDispatcher {
+  _RepoDeleteDispatcher(this.repo);
+  final BaseEntityRepository<dynamic, dynamic> repo;
+
+  @override
+  Future<void> dispatch({
+    required OutboxRow row,
+    required MutationKind kind,
+  }) async {}
+
+  @override
+  Future<void> deleteLocalRecord({
+    required String companyId,
+    required String id,
+  }) => repo.deleteLocalById(companyId: companyId, id: id);
 }
 
 EntityRegistry _registryWith(SyncDispatcher dispatcher) => EntityRegistry({
@@ -565,6 +591,128 @@ void main() {
       );
     });
   });
+
+  group('discard', () {
+    Future<OutboxRow?> rawRow(int id) => (db.select(
+      db.outbox,
+    )..where((o) => o.id.equals(id))).getSingleOrNull();
+
+    SyncRepository engineWith(_TestRepo repo) => SyncRepository(
+      db: db,
+      registry: _registryWith(_RepoDeleteDispatcher(repo)),
+      now: () => DateTime.fromMillisecondsSinceEpoch(1000),
+    );
+
+    test(
+      'discardOutboxRow on a never-synced ghost create deletes the local '
+      'record AND every outbox row for that tmp entity',
+      () async {
+        final repo = _TestRepo(db: db);
+        final engine = engineWith(repo);
+        final createId = await enqueueClient(
+          entityId: 'tmp_g',
+          kind: MutationKind.create,
+        );
+        // A queued follow-up edit against the same tmp entity.
+        final updateId = await enqueueClient(
+          entityId: 'tmp_g',
+          idempotencyKey: 'k2',
+        );
+
+        final removed = await engine.discardOutboxRow(createId);
+
+        expect(removed, isTrue);
+        expect(repo.localDeletes, [('co', 'tmp_g')]);
+        expect(await rawRow(createId), isNull);
+        expect(
+          await rawRow(updateId),
+          isNull,
+          reason: 'follow-up rows for the gone entity go too',
+        );
+      },
+    );
+
+    test('discardOutboxRow on an in_flight ghost create only drops the '
+        'outbox row — the network attempt may still be landing', () async {
+      final repo = _TestRepo(db: db);
+      final engine = engineWith(repo);
+      final id = await enqueueClient(
+        entityId: 'tmp_g',
+        kind: MutationKind.create,
+      );
+      await db.outboxDao.markInFlight(id);
+
+      final removed = await engine.discardOutboxRow(id);
+
+      expect(removed, isFalse);
+      expect(repo.localDeletes, isEmpty, reason: 'no TOCTOU ghost delete');
+      expect(await rawRow(id), isNull);
+    });
+
+    test('discardOutboxRow on a failed update of a real entity keeps the '
+        'local record — discarding must not nuke a server-known row', () async {
+      final repo = _TestRepo(db: db);
+      final engine = engineWith(repo);
+      final id = await enqueueClient(entityId: 'c1'); // update, real id
+      await db.outboxDao.markDead(id: id, error: 'boom', statusCode: 422);
+
+      final removed = await engine.discardOutboxRow(id);
+
+      expect(removed, isFalse);
+      expect(repo.localDeletes, isEmpty);
+      expect(await rawRow(id), isNull);
+    });
+
+    test('discardOutboxRow on a create whose id_remap exists (already '
+        'synced) keeps the local record', () async {
+      final repo = _TestRepo(db: db);
+      final engine = engineWith(repo);
+      final id = await enqueueClient(
+        entityId: 'tmp_s',
+        kind: MutationKind.create,
+      );
+      await db.idRemapDao.remember(
+        entityType: 'client',
+        tempId: 'tmp_s',
+        realId: 'real_s',
+        now: 0,
+      );
+
+      final removed = await engine.discardOutboxRow(id);
+
+      expect(removed, isFalse);
+      expect(repo.localDeletes, isEmpty);
+      expect(await rawRow(id), isNull);
+    });
+
+    test('discardPendingFor cleans a ghost create, drops a real pending '
+        'update, and leaves dead rows untouched', () async {
+      final repo = _TestRepo(db: db);
+      final engine = engineWith(repo);
+      final ghostId = await enqueueClient(
+        entityId: 'tmp_g',
+        kind: MutationKind.create,
+      );
+      final realUpdateId = await enqueueClient(
+        entityId: 'c1',
+        idempotencyKey: 'k2',
+      );
+      final deadId = await enqueueClient(entityId: 'c2', idempotencyKey: 'k3');
+      await db.outboxDao.markDead(id: deadId, error: 'x', statusCode: 422);
+
+      await engine.discardPendingFor('co');
+
+      expect(repo.localDeletes, [('co', 'tmp_g')]);
+      expect(await rawRow(ghostId), isNull);
+      expect(await rawRow(realUpdateId), isNull);
+      final dead = await rawRow(deadId);
+      expect(
+        dead?.state,
+        'dead',
+        reason: 'dead rows are not "pending" — discardPendingFor skips them',
+      );
+    });
+  });
 }
 
 class _GatedDispatcher implements SyncDispatcher {
@@ -580,6 +728,12 @@ class _GatedDispatcher implements SyncDispatcher {
     dispatches++;
     if (dispatches == 1) await firstBlocker;
   }
+
+  @override
+  Future<void> deleteLocalRecord({
+    required String companyId,
+    required String id,
+  }) async {}
 }
 
 /// Minimal concrete repository for `BaseEntityRepository` tests — the real
@@ -592,6 +746,19 @@ class _TestRepo extends BaseEntityRepository<Object, Object> {
 
   @override
   String get entityTypeName => 'client';
+
+  /// Captured `(companyId, id)` pairs for every `deleteLocalById` call so
+  /// the discard tests can assert the ghost path reached the repo (and the
+  /// non-ghost path did not).
+  final List<(String, String)> localDeletes = [];
+
+  @override
+  Future<void> deleteLocalById({
+    required String companyId,
+    required String id,
+  }) async {
+    localDeletes.add((companyId, id));
+  }
 
   @override
   Stream<Object?> watchByRealId({

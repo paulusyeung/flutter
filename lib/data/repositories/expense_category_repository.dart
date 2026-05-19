@@ -219,6 +219,12 @@ class ExpenseCategoryRepository
   /// Hard-delete on the server. Password-gated per [requiresPasswordFor]; the
   /// outbox handler attaches the cached password header before POST.
   @override
+  Future<void> deleteLocalById({
+    required String companyId,
+    required String id,
+  }) => db.expenseCategoryDao.deleteById(companyId: companyId, id: id);
+
+  @override
   Future<void> applyCreateResponse({
     required String companyId,
     required String tempId,

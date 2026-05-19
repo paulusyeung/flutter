@@ -303,6 +303,24 @@ abstract class BaseEntityRepository<TDomain, TApi> {
     'not wired the purge flow.',
   );
 
+  /// Hard-delete the local Drift row for [id] without enqueuing any server
+  /// mutation. Called when a never-synced offline `create` is discarded from
+  /// the outbox (see `SyncRepository.discardOutboxRow`): the `tmp_` row would
+  /// otherwise linger forever as a ghost with no outbox row to ever sync it.
+  ///
+  /// Concrete CRUD repos override with the one-line DAO call (the same
+  /// `deleteById` they already pass into [applyCreateResponseTemplate]).
+  /// Settings-only / create-less entities (e.g. company) leave this as the
+  /// default — they can never produce a `tmp_` ghost create, so the discard
+  /// path never reaches here for them.
+  Future<void> deleteLocalById({
+    required String companyId,
+    required String id,
+  }) => throw UnsupportedError(
+    '$runtimeType does not support deleteLocalById — entity $entityTypeName '
+    'is settings-only or has no offline create flow.',
+  );
+
   /// Translate the requested UI [EntityState]s into server query params for
   /// the list endpoint, e.g. `{'status': 'archived,deleted'}`.
   ///

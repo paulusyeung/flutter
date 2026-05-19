@@ -1,5 +1,6 @@
 import 'package:admin/data/models/domain/billing/invitation.dart';
 import 'package:admin/data/models/domain/billing/line_item.dart';
+import 'package:admin/data/models/domain/contact.dart';
 import 'package:admin/domain/billing/totals_calculator.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 
@@ -54,6 +55,12 @@ abstract class GenericBillingDocEditViewModel<T> extends GenericEditViewModel<T>
 
   /// Return a new draft with [invitations] swapped in.
   T copyWithInvitations(T draft, List<Invitation> invitations);
+
+  /// Read the client id off the draft.
+  String clientIdOf(T draft);
+
+  /// Return a new draft with [clientId] swapped in.
+  T copyWithClientId(T draft, String clientId);
 
   /// Read the open-ended `eInvoice` map. Null when unset.
   Map<String, dynamic>? eInvoiceOf(T draft);
@@ -229,6 +236,57 @@ abstract class GenericBillingDocEditViewModel<T> extends GenericEditViewModel<T>
           .toList(growable: false);
       updateDraft(copyWithInvitations(draft, next));
     }
+  }
+
+  /// Set the client and, when it actually changed, rebuild the
+  /// invitations array from the new client's [contacts]: one invitation
+  /// per contact with `sendEmail == true`, falling back to the primary
+  /// contact (then the first contact) when none opt in. Mirrors
+  /// admin-portal's `UpdateInvoiceClient` reducer + `emailContacts`.
+  ///
+  /// Re-selecting the same client id is a no-op for invitations, so
+  /// manual Contacts-tab selections survive an incidental re-fire.
+  /// Vendor-contact docs (PurchaseOrder) keep calling `setClientId`
+  /// directly and never reach this path.
+  void selectClient(String clientId, Iterable<Contact> contacts) {
+    final changed = clientIdOf(draft) != clientId;
+    var next = copyWithClientId(draft, clientId);
+    if (changed) {
+      next = copyWithInvitations(next, _autoInvitations(contacts));
+    }
+    updateDraft(next);
+  }
+
+  /// The invitations to seed when a client is (re)selected: every
+  /// non-deleted contact with `sendEmail` or `ccOnly`, or — when none opt
+  /// in — the primary contact, or the first contact as a last resort.
+  /// Empty when the client has no contacts at all. `ccOnly` contacts are
+  /// still emailed (the server demotes them to CC), so they must keep an
+  /// invitation even though CC-only auto-clears `sendEmail`.
+  List<Invitation> _autoInvitations(Iterable<Contact> contacts) {
+    final live = contacts.where((c) => !c.isDeleted).toList(growable: false);
+    var chosen =
+        live.where((c) => c.sendEmail || c.ccOnly).toList(growable: false);
+    if (chosen.isEmpty && live.isNotEmpty) {
+      final primary = live.where((c) => c.isPrimary).toList(growable: false);
+      chosen = primary.isNotEmpty ? primary : [live.first];
+    }
+    return [
+      for (final c in chosen)
+        Invitation(
+          id: '',
+          key: '',
+          link: '',
+          clientContactId: c.id,
+          vendorContactId: '',
+          sentDate: '',
+          viewedDate: '',
+          openedDate: '',
+          emailStatus: '',
+          emailError: '',
+          messageId: '',
+        ),
+    ];
   }
 
   /// Update one key in the open-ended `eInvoice` map. Pass null to

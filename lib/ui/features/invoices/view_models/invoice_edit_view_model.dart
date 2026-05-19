@@ -119,6 +119,13 @@ class InvoiceEditViewModel extends GenericBillingDocEditViewModel<Invoice> {
       draft.copyWith(invitations: invitations);
 
   @override
+  String clientIdOf(Invoice draft) => draft.clientId;
+
+  @override
+  Invoice copyWithClientId(Invoice draft, String clientId) =>
+      draft.copyWith(clientId: clientId);
+
+  @override
   Map<String, dynamic>? eInvoiceOf(Invoice draft) => draft.eInvoice;
 
   @override
