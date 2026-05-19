@@ -72,4 +72,51 @@ class QuickbooksRepository {
     // snapshot so `company.quickbooks` is unambiguously authoritative.
     await _auth.refresh(fullSync: true);
   }
+
+  /// Re-authorize an expired connection. Mirrors React
+  /// `useQuickbooksReconnect`: `POST /api/v1/quickbooks/reconnect_url {}` →
+  /// `{ data: { reconnect_url: '<url>' } }`. The caller launches the URL;
+  /// the hosted page redirects back like the initial connect. Tolerant
+  /// parse (nested `data` or flat) matching [buildAuthorizeUrl].
+  Future<Uri> reconnectUrl() async {
+    final raw = await _api.postJson(
+      '/api/v1/quickbooks/reconnect_url',
+      body: const {},
+    );
+    if (raw is! Map<String, dynamic>) {
+      throw StateError(
+        'Unexpected /quickbooks/reconnect_url response shape: '
+        '${raw.runtimeType}',
+      );
+    }
+    String? url;
+    final data = raw['data'];
+    if (data is Map<String, dynamic>) {
+      url = data['reconnect_url'] as String?;
+    }
+    url ??= raw['reconnect_url'] as String?;
+    if (url == null || url.isEmpty) {
+      throw StateError('reconnect_url response missing reconnect_url');
+    }
+    return Uri.parse(url);
+  }
+
+  /// Trigger a one-shot import of QuickBooks entities into Invoice Ninja.
+  /// Mirrors React `QuickBooksImportTab`: `POST /api/v1/quickbooks/sync`
+  /// with the per-entity booleans. The server runs the import async; the
+  /// next `/refresh` (or a manual "Refresh status") reflects results.
+  Future<void> triggerImport({
+    required bool client,
+    required bool product,
+    required bool invoice,
+  }) async {
+    await _api.postJson(
+      '/api/v1/quickbooks/sync',
+      body: {
+        'client': client,
+        'product': product,
+        'invoice': invoice,
+      },
+    );
+  }
 }

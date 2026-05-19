@@ -193,4 +193,105 @@ void main() {
       expect(disconnectReq!.headers['X-API-PASSWORD-BASE64'], isNull);
     });
   });
+
+  group('QuickbooksRepository.reconnectUrl', () {
+    test('POSTs /quickbooks/reconnect_url and returns the parsed url',
+        () async {
+      http.Request? captured;
+      final fakeHttp = MockClient((req) async {
+        captured = req;
+        if (req.method == 'POST' &&
+            req.url.path == '/api/v1/quickbooks/reconnect_url') {
+          return http.Response(
+            jsonEncode({
+              'data': {'reconnect_url': 'https://qb.example/reauth/xyz'},
+            }),
+            200,
+          );
+        }
+        return http.Response('not found', 404);
+      });
+      final apiClient = ApiClient(
+        credentials: auth.credentials,
+        passwordCache: PasswordCache(),
+        onUnauthorized: () async {},
+        httpClient: fakeHttp,
+      );
+      auth.apiClient = apiClient;
+      final quickbooks = QuickbooksRepository(
+        apiClient: apiClient,
+        auth: auth,
+      );
+
+      final url = await quickbooks.reconnectUrl();
+
+      expect(captured!.method, 'POST');
+      expect(captured!.url.path, '/api/v1/quickbooks/reconnect_url');
+      expect(jsonDecode(captured!.body), <String, dynamic>{});
+      expect(url.toString(), 'https://qb.example/reauth/xyz');
+    });
+
+    test('tolerates a flat {reconnect_url}; throws when absent', () async {
+      ApiClient mk(Object body) {
+        final c = ApiClient(
+          credentials: auth.credentials,
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: MockClient(
+            (_) async => http.Response(jsonEncode(body), 200),
+          ),
+        );
+        auth.apiClient = c;
+        return c;
+      }
+
+      expect(
+        (await QuickbooksRepository(
+          apiClient: mk({'reconnect_url': 'https://flat/u'}),
+          auth: auth,
+        ).reconnectUrl())
+            .toString(),
+        'https://flat/u',
+      );
+      await expectLater(
+        QuickbooksRepository(
+          apiClient: mk({'data': <String, dynamic>{}}),
+          auth: auth,
+        ).reconnectUrl(),
+        throwsStateError,
+      );
+    });
+  });
+
+  group('QuickbooksRepository.triggerImport', () {
+    test('POSTs /quickbooks/sync with the per-entity booleans', () async {
+      http.Request? captured;
+      final fakeHttp = MockClient((req) async {
+        captured = req;
+        if (req.method == 'POST' &&
+            req.url.path == '/api/v1/quickbooks/sync') {
+          return http.Response('{}', 200);
+        }
+        return http.Response('not found', 404);
+      });
+      final apiClient = ApiClient(
+        credentials: auth.credentials,
+        passwordCache: PasswordCache(),
+        onUnauthorized: () async {},
+        httpClient: fakeHttp,
+      );
+      auth.apiClient = apiClient;
+
+      await QuickbooksRepository(apiClient: apiClient, auth: auth)
+          .triggerImport(client: true, product: false, invoice: true);
+
+      expect(captured!.method, 'POST');
+      expect(captured!.url.path, '/api/v1/quickbooks/sync');
+      expect(jsonDecode(captured!.body), {
+        'client': true,
+        'product': false,
+        'invoice': true,
+      });
+    });
+  });
 }

@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:admin/app/router.dart'
-    show highlightSelectedIdFromRoute, selectedIdFromRoute;
+    show entityRecordPath, highlightSelectedIdFromRoute, selectedIdFromRoute;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -599,6 +599,8 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
     return Shortcuts(
       shortcuts: const <ShortcutActivator, Intent>{
         SingleActivator(LogicalKeyboardKey.keyN): _NewRecordIntent(),
+        SingleActivator(LogicalKeyboardKey.arrowDown): _NextRowIntent(),
+        SingleActivator(LogicalKeyboardKey.arrowUp): _PrevRowIntent(),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
@@ -614,10 +616,72 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
               return null;
             },
           ),
+          _NextRowIntent: CallbackAction<_NextRowIntent>(
+            onInvoke: (_) => _stepSelection(context, forward: true),
+          ),
+          _PrevRowIntent: CallbackAction<_PrevRowIntent>(
+            onInvoke: (_) => _stepSelection(context, forward: false),
+          ),
         },
         child: _buildBody(context),
       ),
     );
+  }
+
+  /// Move the URL-selected row one step (↓ / ↑). Mirrors the pane's
+  /// `MasterDetailLayout._navigateRelative` + `MasterDetailNavController`
+  /// prev/next math, but computed locally — the nav controller is null
+  /// when the list renders standalone (no detail pane open).
+  ///
+  /// Always returns a non-null result so the keystroke is *consumed*:
+  /// that's what keeps Flutter's default `DirectionalFocusAction` from
+  /// running, which otherwise asserts on an unlaid-out off-screen row
+  /// (`RenderSemanticsAnnotations` NEEDS-LAYOUT) and swallows the key.
+  Object? _stepSelection(BuildContext context, {required bool forward}) {
+    // Typing in the search box (or any inline field): consume + no-op so
+    // the arrow neither navigates nor falls through to the crashing
+    // default focus traversal. Single-line caret movement isn't needed.
+    final w = FocusManager.instance.primaryFocus?.context?.widget;
+    if (w is EditableText) return const Object();
+    // Don't fight checkbox bulk-select mode.
+    if (_vm.isInMultiselect) return const Object();
+
+    final ids = [for (final item in _vm.items) _vm.idOf(item)];
+    if (ids.isEmpty) return const Object();
+    final cur = selectedIdFromRoute(context);
+    final String? target;
+    if (cur == null) {
+      target = forward ? ids.first : ids.last;
+    } else {
+      final i = ids.indexOf(cur);
+      if (forward) {
+        target = (i < 0 || i >= ids.length - 1) ? null : ids[i + 1];
+      } else {
+        target = (i <= 0) ? null : ids[i - 1];
+      }
+    }
+    if (target == null) return const Object();
+
+    // Resolve the entity's base route from the registry, exactly like
+    // `goEntityRecord` does for a row tap.
+    final handlers = _services.entityRegistry[_vm.entityType];
+    final routePath = handlers?.routePath ?? '';
+    if (routePath.isEmpty) return const Object();
+
+    // Preserve edit-vs-detail mode while stepping (mirrors
+    // MasterDetailLayout._navigateRelative): an `/edit` route steps to
+    // the next row's edit form, not its read-only detail. `uri.replace`
+    // carries query params (e.g. `?view=full`).
+    final uri = GoRouterState.of(context).uri;
+    final newPath = uri.path.endsWith('/edit')
+        ? '$routePath/$target/edit'
+        : entityRecordPath(
+            routePath: routePath,
+            id: target,
+            hasDetailScreen: handlers?.detailBuilder != null,
+          );
+    GoRouter.of(context).go(uri.replace(path: newPath).toString());
+    return const Object();
   }
 
   Widget _buildBody(BuildContext context) {
@@ -1040,4 +1104,12 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
 
 class _NewRecordIntent extends Intent {
   const _NewRecordIntent();
+}
+
+class _NextRowIntent extends Intent {
+  const _NextRowIntent();
+}
+
+class _PrevRowIntent extends Intent {
+  const _PrevRowIntent();
 }
