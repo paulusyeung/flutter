@@ -120,6 +120,7 @@ class _InvoiceEditLayoutState extends State<InvoiceEditLayout>
                 _PdfTab(vm: widget.vm),
                 EInvoiceFieldsTab<Invoice>(
                   vm: widget.vm,
+                  entityKind: EInvoiceEntityKind.invoice,
                   documentType: _invoiceDocType(widget.vm.draft),
                   formatter: context.read<Services>().formatterIfReady(
                     widget.vm.companyId,
@@ -651,6 +652,7 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
                 ),
                 EInvoiceFieldsTab<Invoice>(
                   vm: vm,
+                  entityKind: EInvoiceEntityKind.invoice,
                   documentType: _invoiceDocType(vm.draft),
                   formatter: context.read<Services>().formatterIfReady(
                     vm.companyId,

@@ -27,6 +27,13 @@ const double _kHeaderVerticalPad = 10;
 const double _kTrailingColWidth = 40;
 const double _kDragColWidth = 24;
 
+// Shared minimum content height for every line-item row. Keeps the drag
+// handle, item / description / numeric / tax fields, and the line total on
+// one centerline (the suffix-bearing cells would otherwise inflate to the
+// 48 px `kMinInteractiveDimension`). A `minHeight` rather than a fixed
+// height so a row can still grow to show an inline `errorText`.
+const double _kRowContentHeight = 34;
+
 /// Controller for [LineItemTableDesktop]. Hosted by the per-entity edit
 /// layout so it can register [flushPending] as a `beforeSave` hook on
 /// the VM — guarantees in-flight debounced cell edits land on the
@@ -216,7 +223,8 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
 
   void _addBlankRow() {
     _flushAll();
-    final next = List<LineItem>.from(widget.items)..add(widget.newItemFactory());
+    final next = List<LineItem>.from(widget.items)
+      ..add(widget.newItemFactory());
     _emit(next);
     // Focus the new row's product cell after the frame settles.
     final newIndex = next.length - 1;
@@ -294,14 +302,16 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
         ? ''
         : '${item.taxName1} ${dec(item.taxRate1)}%';
 
-    final gross = item == null
-        ? Decimal.zero
-        : item.cost * item.quantity;
+    final gross = item == null ? Decimal.zero : item.cost * item.quantity;
     final total = gross == Decimal.zero
         ? '—'
         : (_formatter?.money(gross, zeroIsNull: true) ?? gross.toString());
 
-    Widget cell(String text, {int flex = 1, Alignment align = Alignment.centerLeft}) {
+    Widget cell(
+      String text, {
+      int flex = 1,
+      Alignment align = Alignment.centerLeft,
+    }) {
       return Expanded(
         flex: flex,
         child: Padding(
@@ -325,37 +335,46 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
         vertical: _kRowVerticalPad,
       ),
       color: tokens.surface,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(Icons.drag_indicator, color: tokens.ink3, size: 20),
-          const SizedBox(width: _kDragColWidth - 20),
-          cell(item?.productKey ?? '', flex: 3),
-          cell(item?.notes ?? '', flex: 3),
-          cell(item == null ? '' : dec(item.cost),
-              align: Alignment.centerRight),
-          cell(item == null ? '' : dec(item.quantity),
-              align: Alignment.centerRight),
-          if (widget.config.showDiscount)
-            cell(item == null ? '' : dec(item.discount),
-                align: Alignment.centerRight),
-          if (widget.config.taxColumnCount >= 1)
-            cell(tax, align: Alignment.centerRight),
-          Expanded(
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                total,
-                style: GoogleFonts.jetBrainsMono(
-                  color: tokens.ink,
-                  fontSize: 13,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: _kRowContentHeight),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(Icons.drag_indicator, color: tokens.ink3, size: 20),
+            const SizedBox(width: _kDragColWidth - 20),
+            cell(item?.productKey ?? '', flex: 3),
+            cell(item?.notes ?? '', flex: 3),
+            cell(
+              item == null ? '' : dec(item.cost),
+              align: Alignment.centerRight,
+            ),
+            cell(
+              item == null ? '' : dec(item.quantity),
+              align: Alignment.centerRight,
+            ),
+            if (widget.config.showDiscount)
+              cell(
+                item == null ? '' : dec(item.discount),
+                align: Alignment.centerRight,
+              ),
+            if (widget.config.taxColumnCount >= 1)
+              cell(tax, align: Alignment.centerRight),
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  total,
+                  style: GoogleFonts.jetBrainsMono(
+                    color: tokens.ink,
+                    fontSize: 13,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: _kTrailingColWidth),
-        ],
+            const SizedBox(width: _kTrailingColWidth),
+          ],
+        ),
       ),
     );
   }
@@ -579,14 +598,24 @@ class _ColumnHeader extends StatelessWidget {
       String label, {
       int flex = 1,
       AlignmentGeometry align = Alignment.centerLeft,
-    }) =>
-        Expanded(
-          flex: flex,
-          child: Align(
-            alignment: align,
-            child: Text(label.toUpperCase(), style: style),
+    }) => Expanded(
+      flex: flex,
+      child: Align(
+        alignment: align,
+        // Left-aligned data cells inset their text by the field's
+        // `contentPadding.horizontal` (`_kCellPadH`); match it so the
+        // ITEM / DESCRIPTION headers sit directly over their columns.
+        // Right-aligned columns are left as-is (the prominent LINE
+        // TOTAL already flushes with its data; nudging it would
+        // desync it from the other right-flushed labels).
+        child: Padding(
+          padding: EdgeInsetsDirectional.only(
+            start: align == Alignment.centerLeft ? _kCellPadH : 0,
           ),
-        );
+          child: Text(label.toUpperCase(), style: style),
+        ),
+      ),
+    );
     return Padding(
       padding: EdgeInsets.symmetric(
         horizontal: InSpacing.lg(context),
@@ -681,14 +710,15 @@ class _RowState {
     return base.copyWith(
       productKey: product.text.trim(),
       notes: notes.text,
-      cost: parseDecimal(cost.text, useCommaAsDecimalPlace: useComma) ??
+      cost:
+          parseDecimal(cost.text, useCommaAsDecimalPlace: useComma) ??
           Decimal.zero,
       quantity:
           parseDecimal(quantity.text, useCommaAsDecimalPlace: useComma) ??
-              Decimal.one,
+          Decimal.one,
       discount:
           parseDecimal(discount.text, useCommaAsDecimalPlace: useComma) ??
-              Decimal.zero,
+          Decimal.zero,
     );
   }
 
@@ -825,10 +855,10 @@ class _RowStateW extends State<_Row> {
     Widget endTotalCell() {
       final cost =
           parseDecimal(row.cost.text, useCommaAsDecimalPlace: useComma) ??
-              Decimal.zero;
+          Decimal.zero;
       final qty =
           parseDecimal(row.quantity.text, useCommaAsDecimalPlace: useComma) ??
-              Decimal.one;
+          Decimal.one;
       final gross = cost * qty;
       // Display via the company Formatter when available so the line
       // total honors currency, thousands separator, and decimal place
@@ -864,140 +894,143 @@ class _RowStateW extends State<_Row> {
               ? null
               : Border(bottom: BorderSide(color: tokens.border)),
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            isGhost
-                ? const SizedBox(width: _kDragColWidth)
-                : MouseRegion(
-                    cursor: SystemMouseCursors.grab,
-                    child: ReorderableDragStartListener(
-                      index: index,
-                      child: Semantics(
-                        label: context.tr('reorder'),
-                        child: Tooltip(
-                          message: context.tr('reorder'),
-                          child: Icon(
-                            Icons.drag_indicator,
-                            color: tokens.ink3,
-                            size: 20,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: _kRowContentHeight),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              isGhost
+                  ? const SizedBox(width: _kDragColWidth)
+                  : MouseRegion(
+                      cursor: SystemMouseCursors.grab,
+                      child: ReorderableDragStartListener(
+                        index: index,
+                        child: Semantics(
+                          label: context.tr('reorder'),
+                          child: Tooltip(
+                            message: context.tr('reorder'),
+                            child: Icon(
+                              Icons.drag_indicator,
+                              color: tokens.ink3,
+                              size: 20,
+                            ),
                           ),
                         ),
                       ),
                     ),
+              Expanded(
+                flex: 3,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: _kCellPadH),
+                  child: _ProductCell(
+                    companyId: companyId,
+                    controller: row.product,
+                    focusNode: row.productFocus,
+                    hintKey: isGhost ? 'add_an_item' : 'product',
+                    onSelected: onProductSelected,
+                    onCreateRequested: onCreateProduct,
+                    onCommitText: scheduleCommit,
                   ),
-            Expanded(
-              flex: 3,
-              child: Padding(
-                padding: const EdgeInsets.only(right: _kCellPadH),
-                child: _ProductCell(
-                  companyId: companyId,
-                  controller: row.product,
-                  focusNode: row.productFocus,
-                  hintKey: isGhost ? 'add_an_item' : 'product',
-                  onSelected: onProductSelected,
-                  onCreateRequested: onCreateProduct,
-                  onCommitText: scheduleCommit,
                 ),
               ),
-            ),
-            Expanded(
-              flex: 3,
-              child: Padding(
-                padding: const EdgeInsets.only(right: _kCellPadH),
-                child: _TextCell(
-                  controller: row.notes,
-                  focusNode: row.notesFocus,
-                  onChanged: scheduleCommit,
-                  hintKey: 'description',
-                  errorText: errors?['notes'],
+              Expanded(
+                flex: 3,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: _kCellPadH),
+                  child: _TextCell(
+                    controller: row.notes,
+                    focusNode: row.notesFocus,
+                    onChanged: scheduleCommit,
+                    hintKey: 'description',
+                    errorText: errors?['notes'],
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(right: _kCellPadH),
-                child: _NumericCell(
-                  controller: row.cost,
-                  focusNode: row.costFocus,
-                  onChanged: scheduleCommit,
-                  errorText: errors?['cost'],
-                ),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(right: _kCellPadH),
-                child: _NumericCell(
-                  controller: row.quantity,
-                  focusNode: row.quantityFocus,
-                  onChanged: scheduleCommit,
-                  errorText: errors?['quantity'],
-                  // Quantity is the last typing cell when discount is
-                  // hidden — tab forward then promotes the ghost.
-                  onTabForward: !config.showDiscount && isGhost
-                      ? onTabFromLastCell
-                      : null,
-                ),
-              ),
-            ),
-            if (config.showDiscount)
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.only(right: _kCellPadH),
                   child: _NumericCell(
-                    controller: row.discount,
-                    focusNode: row.discountFocus,
+                    controller: row.cost,
+                    focusNode: row.costFocus,
                     onChanged: scheduleCommit,
-                    errorText: errors?['discount'],
-                    // Discount is the last typing cell when shown.
-                    onTabForward: isGhost ? onTabFromLastCell : null,
+                    errorText: errors?['cost'],
                   ),
                 ),
               ),
-            if (config.taxColumnCount >= 1)
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.only(right: _kCellPadH),
-                  child: _TaxCell(
-                    companyId: companyId,
-                    services: services,
-                    useComma: useComma,
-                    initialName: currentItem.taxName1,
-                    initialRate: currentItem.taxRate1,
-                    onSelected: (taxRate) {
-                      onCellCommit(
-                        row
-                            .buildItem(currentItem, useComma: useComma)
-                            .copyWith(
-                              taxName1: taxRate?.name ?? '',
-                              taxRate1: taxRate == null
-                                  ? Decimal.zero
-                                  : Decimal.parse(taxRate.rate.toString()),
-                            ),
-                      );
-                    },
+                  child: _NumericCell(
+                    controller: row.quantity,
+                    focusNode: row.quantityFocus,
+                    onChanged: scheduleCommit,
+                    errorText: errors?['quantity'],
+                    // Quantity is the last typing cell when discount is
+                    // hidden — tab forward then promotes the ghost.
+                    onTabForward: !config.showDiscount && isGhost
+                        ? onTabFromLastCell
+                        : null,
                   ),
                 ),
               ),
-            endTotalCell(),
-            SizedBox(
-              width: _kTrailingColWidth,
-              child: isGhost
-                  ? const SizedBox.shrink()
-                  : AnimatedOpacity(
-                      duration: const Duration(milliseconds: 120),
-                      opacity: _hovered ? 1.0 : 0.0,
-                      child: ExcludeFocus(
-                        child: _RowMenu(
-                          onSelected: onMenuAction,
-                          canMoveUp: index > 0,
-                          canMoveDown: index < lastRealIndex,
+              if (config.showDiscount)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: _kCellPadH),
+                    child: _NumericCell(
+                      controller: row.discount,
+                      focusNode: row.discountFocus,
+                      onChanged: scheduleCommit,
+                      errorText: errors?['discount'],
+                      // Discount is the last typing cell when shown.
+                      onTabForward: isGhost ? onTabFromLastCell : null,
+                    ),
+                  ),
+                ),
+              if (config.taxColumnCount >= 1)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: _kCellPadH),
+                    child: _TaxCell(
+                      companyId: companyId,
+                      services: services,
+                      useComma: useComma,
+                      initialName: currentItem.taxName1,
+                      initialRate: currentItem.taxRate1,
+                      onSelected: (taxRate) {
+                        onCellCommit(
+                          row
+                              .buildItem(currentItem, useComma: useComma)
+                              .copyWith(
+                                taxName1: taxRate?.name ?? '',
+                                taxRate1: taxRate == null
+                                    ? Decimal.zero
+                                    : Decimal.parse(taxRate.rate.toString()),
+                              ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              endTotalCell(),
+              SizedBox(
+                width: _kTrailingColWidth,
+                child: isGhost
+                    ? const SizedBox.shrink()
+                    : AnimatedOpacity(
+                        duration: const Duration(milliseconds: 120),
+                        opacity: _hovered ? 1.0 : 0.0,
+                        child: ExcludeFocus(
+                          child: _RowMenu(
+                            onSelected: onMenuAction,
+                            canMoveUp: index > 0,
+                            canMoveDown: index < lastRealIndex,
+                          ),
                         ),
                       ),
-                    ),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1022,8 +1055,7 @@ class _RowStateW extends State<_Row> {
   /// Right-click context menu with the same actions as the per-row
   /// overflow menu. Anchored at the cursor position.
   Future<void> _showContextMenu(BuildContext ctx, Offset position) async {
-    final overlay =
-        Overlay.of(ctx).context.findRenderObject() as RenderBox?;
+    final overlay = Overlay.of(ctx).context.findRenderObject() as RenderBox?;
     if (overlay == null) return;
     final action = await showMenu<_RowAction>(
       context: ctx,
@@ -1032,10 +1064,7 @@ class _RowStateW extends State<_Row> {
         Offset.zero & overlay.size,
       ),
       items: [
-        PopupMenuItem(
-          value: _RowAction.clone,
-          child: Text(ctx.tr('clone')),
-        ),
+        PopupMenuItem(value: _RowAction.clone, child: Text(ctx.tr('clone'))),
         PopupMenuItem(
           value: _RowAction.insertBelow,
           child: Text(ctx.tr('insert_below')),
@@ -1052,10 +1081,7 @@ class _RowStateW extends State<_Row> {
             child: Text(ctx.tr('move_down')),
           ),
         const PopupMenuDivider(),
-        PopupMenuItem(
-          value: _RowAction.remove,
-          child: Text(ctx.tr('remove')),
-        ),
+        PopupMenuItem(value: _RowAction.remove, child: Text(ctx.tr('remove'))),
       ],
     );
     if (action != null) onMenuAction(action);
@@ -1145,6 +1171,7 @@ class _TextCell extends StatelessWidget {
       controller: controller,
       focusNode: focusNode,
       onChanged: (_) => onChanged(),
+      textAlignVertical: TextAlignVertical.center,
       style: const TextStyle(fontSize: 13),
       decoration: InputDecoration(
         hintText: hintKey == null ? null : context.tr(hintKey!),
@@ -1190,6 +1217,7 @@ class _NumericCell extends StatelessWidget {
       onChanged: (_) => onChanged(),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       textAlign: TextAlign.right,
+      textAlignVertical: TextAlignVertical.center,
       style: GoogleFonts.jetBrainsMono(
         color: tokens.ink,
         fontSize: 13,
@@ -1295,23 +1323,23 @@ class _ProductCellState extends State<_ProductCell> {
             loadedPages: 1,
           )
           .listen(
-        (rows) {
-          if (!mounted) return;
-          setState(() {
-            _query = query;
-            _results = rows;
-            _searching = false;
-            _searchFailed = false;
-          });
-        },
-        onError: (_) {
-          if (!mounted) return;
-          setState(() {
-            _searching = false;
-            _searchFailed = true;
-          });
-        },
-      );
+            (rows) {
+              if (!mounted) return;
+              setState(() {
+                _query = query;
+                _results = rows;
+                _searching = false;
+                _searchFailed = false;
+              });
+            },
+            onError: (_) {
+              if (!mounted) return;
+              setState(() {
+                _searching = false;
+                _searchFailed = true;
+              });
+            },
+          );
     });
   }
 
@@ -1330,12 +1358,12 @@ class _ProductCellState extends State<_ProductCell> {
         borderSide: BorderSide(color: tokens.accent, width: 2),
       ),
       suffixIcon: ExcludeSemantics(
-        child: Icon(
-          Icons.arrow_drop_down,
-          size: 18,
-          color: tokens.ink3,
-        ),
+        child: Icon(Icons.arrow_drop_down, size: 18, color: tokens.ink3),
       ),
+      // Without this the suffix icon imposes the 48 px
+      // `kMinInteractiveDimension` and this cell rides taller than the
+      // no-suffix cells, breaking the row's centerline.
+      suffixIconConstraints: const BoxConstraints(minWidth: 28, minHeight: 28),
     );
   }
 
@@ -1353,8 +1381,9 @@ class _ProductCellState extends State<_ProductCell> {
           for (final p in _results.take(20)) _ProductExisting(p),
         ];
         if (query.isNotEmpty &&
-            !_results.any((p) =>
-                p.productKey.toLowerCase() == query.toLowerCase())) {
+            !_results.any(
+              (p) => p.productKey.toLowerCase() == query.toLowerCase(),
+            )) {
           list.add(_ProductCreate(query));
         }
         return list;
@@ -1372,6 +1401,7 @@ class _ProductCellState extends State<_ProductCell> {
           focusNode: focusNode,
           onChanged: (_) => widget.onCommitText(),
           onSubmitted: (_) => onFieldSubmitted(),
+          textAlignVertical: TextAlignVertical.center,
           style: const TextStyle(fontSize: 13),
           decoration: _decoration(context),
         );
@@ -1392,8 +1422,7 @@ class _ProductCellState extends State<_ProductCell> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (_searching)
-                    const LinearProgressIndicator(minHeight: 2),
+                  if (_searching) const LinearProgressIndicator(minHeight: 2),
                   if (_searchFailed)
                     Padding(
                       padding: EdgeInsets.symmetric(
@@ -1410,73 +1439,77 @@ class _ProductCellState extends State<_ProductCell> {
                       shrinkWrap: true,
                       padding: EdgeInsets.zero,
                       itemCount: options.length,
-                itemBuilder: (context, i) {
-                  final opt = options.elementAt(i);
-                  if (opt is _ProductCreate) {
-                    return InkWell(
-                      onTap: () => onSelected(opt),
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: InSpacing.md(context),
-                          vertical: 10,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.add, size: 16, color: tokens.accent),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                '${context.tr('create')} "${opt.label}"',
-                                style: TextStyle(
-                                  color: tokens.accent,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                      itemBuilder: (context, i) {
+                        final opt = options.elementAt(i);
+                        if (opt is _ProductCreate) {
+                          return InkWell(
+                            onTap: () => onSelected(opt),
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: InSpacing.md(context),
+                                vertical: 10,
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.add,
+                                    size: 16,
+                                    color: tokens.accent,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      '${context.tr('create')} "${opt.label}"',
+                                      style: TextStyle(
+                                        color: tokens.accent,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-                  final product = (opt as _ProductExisting).product;
-                  return InkWell(
-                    onTap: () => onSelected(opt),
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: InSpacing.md(context),
-                        vertical: 8,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            product.productKey,
-                            style: TextStyle(
-                              color: tokens.ink,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
+                          );
+                        }
+                        final product = (opt as _ProductExisting).product;
+                        return InkWell(
+                          onTap: () => onSelected(opt),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: InSpacing.md(context),
+                              vertical: 8,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  product.productKey,
+                                  style: TextStyle(
+                                    color: tokens.ink,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                if (product.notes.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2),
+                                    child: Text(
+                                      product.notes.split('\n').first,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: tokens.ink3,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
-                          if (product.notes.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 2),
-                              child: Text(
-                                product.notes.split('\n').first,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: tokens.ink3,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
                   ),
                 ],
               ),
@@ -1536,7 +1569,11 @@ class _TaxCellState extends State<_TaxCell> {
   void initState() {
     super.initState();
     _controller = TextEditingController(
-      text: _displayFor(widget.initialName, widget.initialRate, widget.useComma),
+      text: _displayFor(
+        widget.initialName,
+        widget.initialRate,
+        widget.useComma,
+      ),
     );
     _focusNode = FocusNode();
   }
@@ -1548,8 +1585,11 @@ class _TaxCellState extends State<_TaxCell> {
         (widget.initialName != oldWidget.initialName ||
             widget.initialRate != oldWidget.initialRate ||
             widget.useComma != oldWidget.useComma)) {
-      _controller.text =
-          _displayFor(widget.initialName, widget.initialRate, widget.useComma);
+      _controller.text = _displayFor(
+        widget.initialName,
+        widget.initialRate,
+        widget.useComma,
+      );
     }
   }
 
@@ -1582,12 +1622,12 @@ class _TaxCellState extends State<_TaxCell> {
         borderSide: BorderSide(color: tokens.accent, width: 2),
       ),
       suffixIcon: ExcludeSemantics(
-        child: Icon(
-          Icons.arrow_drop_down,
-          size: 18,
-          color: tokens.ink3,
-        ),
+        child: Icon(Icons.arrow_drop_down, size: 18, color: tokens.ink3),
       ),
+      // Without this the suffix icon imposes the 48 px
+      // `kMinInteractiveDimension` and this cell rides taller than the
+      // no-suffix cells, breaking the row's centerline.
+      suffixIconConstraints: const BoxConstraints(minWidth: 28, minHeight: 28),
     );
   }
 
@@ -1615,13 +1655,13 @@ class _TaxCellState extends State<_TaxCell> {
           onSelected: (opt) {
             widget.onSelected(opt.rate);
           },
-          fieldViewBuilder:
-              (context, controller, focusNode, onFieldSubmitted) {
+          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
             return TextField(
               controller: controller,
               focusNode: focusNode,
               onSubmitted: (_) => onFieldSubmitted(),
               textAlign: TextAlign.right,
+              textAlignVertical: TextAlignVertical.center,
               readOnly: rates.isEmpty,
               style: const TextStyle(fontSize: 13),
               decoration: _decoration(context),
@@ -1658,10 +1698,7 @@ class _TaxCellState extends State<_TaxCell> {
                           opt.displayLocalized(widget.useComma).isEmpty
                               ? context.tr('none')
                               : opt.displayLocalized(widget.useComma),
-                          style: TextStyle(
-                            color: tokens.ink,
-                            fontSize: 13,
-                          ),
+                          style: TextStyle(color: tokens.ink, fontSize: 13),
                         ),
                       ),
                     );
@@ -1691,4 +1728,3 @@ class _TaxOption {
     return '${rate!.name} $localized%';
   }
 }
-

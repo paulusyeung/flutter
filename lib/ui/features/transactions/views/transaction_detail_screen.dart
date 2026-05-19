@@ -9,6 +9,7 @@ import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/generic_detail_view_model.dart';
 import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/widgets/bank_account_name_label.dart';
+import 'package:admin/ui/core/widgets/transaction_rule_matched_chip.dart';
 import 'package:admin/ui/features/transactions/widgets/transaction_actions.dart';
 import 'package:admin/ui/features/transactions/widgets/transaction_match_panel.dart';
 import 'package:admin/ui/features/transactions/widgets/transaction_matched_entities.dart';
@@ -120,6 +121,16 @@ class _Header extends StatelessWidget {
               ),
             ],
           ),
+          if (tx.transactionRuleId.isNotEmpty &&
+              (tx.isMatched || tx.isConverted)) ...[
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TransactionRuleMatchedChip(
+                transactionRuleId: tx.transactionRuleId,
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           if (tx.participantName.isNotEmpty) ...[
             Text(

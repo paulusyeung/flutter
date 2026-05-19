@@ -67,8 +67,7 @@ class MainFlutterWindow: NSWindow {
   private var themeChannel: FlutterMethodChannel?
   private var splashChannel: FlutterMethodChannel?
   private var splashView: NSView?
-  private var splashLogoView: NSImageView?
-  private var splashHaloLayer: CAGradientLayer?
+  private var splashLogoLayer: CALayer?
   private var splashStartTime: CFTimeInterval = 0
   // Until Flutter pushes its first `apply`, we honor live OS-appearance
   // changes natively so `ThemeMode.system` users who flip Dark Mode during
@@ -87,14 +86,9 @@ class MainFlutterWindow: NSWindow {
   private static let splashFadeInDuration: CFTimeInterval = 0.35
   private static let splashExitDuration: CFTimeInterval = 0.35
   private static let splashReducedExitDuration: CFTimeInterval = 0.20
-  // Glow pulse: 350 ms fade-in → 250 ms hold → 350 ms fade-out.
-  private static let splashGlowDuration: CFTimeInterval = 0.95
-  private static let splashGlowPeakLight: Float = 0.22
-  private static let splashGlowPeakDark: Float = 0.28
   private static let splashEntryTransformKey = "ninja.splash.entryTransform"
   private static let splashEntryOpacityKey = "ninja.splash.entryOpacity"
   private static let splashExitScaleKey = "ninja.splash.exitScale"
-  private static let splashHaloKey = "ninja.splash.halo"
 
   override func awakeFromNib() {
     let initial = NinjaWindowTheme.resolve(self.effectiveAppearance)
@@ -209,12 +203,13 @@ class MainFlutterWindow: NSWindow {
   // main window (not a floating NSWindow) so there's no flicker between
   // splash dismissal and the first Flutter paint.
   //
-  // The logo spring-settles on entry (subtle, near-critical damping — no
-  // overshoot) with a single soft accent-blue radial halo glow pulse behind
-  // it (350 ms fade-in → 250 ms hold → 350 ms fade-out, in parallel with the
-  // entry), then scale-ups + crossfades out on dismiss. All animation is
-  // suppressed under `accessibilityDisplayShouldReduceMotion` — reduced path
-  // is a static logo + plain 0.2 s alpha fade.
+  // The logo is an owned CALayer (sublayer of splash.layer, not an AppKit
+  // layer-backed NSImageView) so every transform scales about its (0.5, 0.5)
+  // anchor with no AppKit-driven drift. It zooms in from center (scale
+  // 0.90 → 1.0, plain ease-out, no spring/overshoot) while fading in, then
+  // expands from center (scale → 1.30) as it crossfades out on dismiss. All
+  // animation is suppressed under `accessibilityDisplayShouldReduceMotion` —
+  // reduced path is a static logo + plain 0.2 s alpha fade.
   //
   // Dismissal: Dart calls `dismiss` on the `invoice_ninja/splash` channel
   // from a post-frame callback in `_InvoiceNinjaAppState.initState`. A 6 s
@@ -239,63 +234,30 @@ class MainFlutterWindow: NSWindow {
       x: (splash.bounds.width - logoSize.width) / 2,
       y: (splash.bounds.height - logoSize.height) / 2)
 
-    // Halo first so it sits behind the logo image view's layer. Padded out
-    // 60 pt around the wordmark so the soft falloff extends visibly beyond
-    // every glyph edge. Lives directly on `splash.layer` (no wrapper NSView)
-    // — the splash view's `alphaValue` fade at exit composites over it.
-    let haloPadding: CGFloat = 60
-    let haloSize = NSSize(
-      width: logoSize.width + haloPadding * 2,
-      height: logoSize.height + haloPadding * 2)
-    let halo = CAGradientLayer()
-    halo.type = .radial
-    halo.frame = NSRect(
-      x: (splash.bounds.width - haloSize.width) / 2,
-      y: (splash.bounds.height - haloSize.height) / 2,
-      width: haloSize.width, height: haloSize.height)
-    let peak = theme.isDark
-      ? Self.splashGlowPeakDark : Self.splashGlowPeakLight
-    let accent = NSColor(red: 0x2F/255.0, green: 0x7D/255.0,
-                         blue: 0xC3/255.0, alpha: 1.0)
-    halo.colors = [
-      accent.withAlphaComponent(CGFloat(peak)).cgColor,
-      accent.withAlphaComponent(CGFloat(peak) * 0.5).cgColor,
-      accent.withAlphaComponent(0).cgColor,
-    ]
-    halo.locations = [
-      NSNumber(value: 0.0),
-      NSNumber(value: 0.6),
-      NSNumber(value: 1.0),
-    ]
-    halo.startPoint = CGPoint(x: 0.5, y: 0.5)
-    halo.endPoint = CGPoint(x: 1.0, y: 1.0)
-    halo.opacity = 0   // glow keyframe drives it from 0 → peak → 0
-    halo.autoresizingMask = [
+    // The logo is a plain CALayer we own, parented to the (self-managed)
+    // splash.layer — NOT an AppKit layer-backed NSImageView. AppKit never
+    // relayouts a sublayer we add and its anchorPoint stays (0.5, 0.5), so
+    // every scale animation is guaranteed to grow/shrink about the exact
+    // visual center (no drift). Flexible margins keep it centered if the
+    // window resizes during the (short) splash.
+    let logoLayer = CALayer()
+    logoLayer.frame = NSRect(origin: logoOrigin, size: logoSize)
+    logoLayer.contentsGravity = .resizeAspect
+    logoLayer.contentsScale = self.backingScaleFactor
+    logoLayer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+    logoLayer.autoresizingMask = [
       .layerMinXMargin, .layerMaxXMargin,
       .layerMinYMargin, .layerMaxYMargin]
-    splash.layer?.addSublayer(halo)
-    splashHaloLayer = halo
-
-    var loadedImageView: NSImageView?
-    if let logo = NSImage(named: "LogoSplash") {
-      let imageView = NSImageView(
-        frame: NSRect(origin: logoOrigin, size: logoSize))
-      // All four margins flexible → AppKit keeps the fixed-size logo centered
-      // as the splash autoresizes with the window. No Auto Layout → the
-      // layer's frame is set once and the spring transform won't fight a
-      // later layout pass.
-      imageView.autoresizingMask = [
-        .minXMargin, .maxXMargin, .minYMargin, .maxYMargin]
-      imageView.image = logo
-      imageView.imageScaling = .scaleProportionallyUpOrDown
-      imageView.wantsLayer = true
-      splash.addSubview(imageView)
-      loadedImageView = imageView
+    if let logo = NSImage(named: "LogoSplash"),
+       let cg = logo.cgImage(
+         forProposedRect: nil, context: nil, hints: nil) {
+      logoLayer.contents = cg
     }
+    splash.layer?.addSublayer(logoLayer)
 
     contentView.addSubview(splash)
     splashView = splash
-    splashLogoView = loadedImageView
+    splashLogoLayer = logoLayer
 
     let channel = FlutterMethodChannel(
       name: "invoice_ninja/splash", binaryMessenger: messenger)
@@ -317,7 +279,7 @@ class MainFlutterWindow: NSWindow {
   }
 
   private func playSplashEntry() {
-    guard let logo = splashLogoView, let layer = logo.layer else { return }
+    guard let layer = splashLogoLayer else { return }
 
     if reduceMotion() {
       layer.opacity = 1.0
@@ -326,17 +288,16 @@ class MainFlutterWindow: NSWindow {
     }
 
     layer.opacity = 0
-    layer.transform = CATransform3DMakeScale(0.95, 0.95, 1.0)
+    layer.transform = CATransform3DMakeScale(0.90, 0.90, 1.0)
 
-    let spring = CASpringAnimation(keyPath: "transform")
-    spring.damping = 22
-    spring.mass = 1
-    spring.stiffness = 180
-    spring.initialVelocity = 0
-    spring.fromValue = NSValue(
-      caTransform3D: CATransform3DMakeScale(0.95, 0.95, 1.0))
-    spring.toValue = NSValue(caTransform3D: CATransform3DIdentity)
-    spring.duration = spring.settlingDuration
+    // Clean centered zoom-in — plain ease-out, no spring/overshoot — matching
+    // the iOS Flutter overlay exactly. Scales about the layer's (0.5, 0.5)
+    // anchor, so the wordmark grows in place with no apparent movement.
+    let scale = CABasicAnimation(keyPath: "transform.scale")
+    scale.fromValue = 0.90
+    scale.toValue = 1.0
+    scale.duration = Self.splashFadeInDuration
+    scale.timingFunction = CAMediaTimingFunction(name: .easeOut)
 
     let fade = CABasicAnimation(keyPath: "opacity")
     fade.fromValue = 0.0
@@ -349,41 +310,8 @@ class MainFlutterWindow: NSWindow {
     layer.transform = CATransform3DIdentity
     layer.opacity = 1.0
 
-    layer.add(spring, forKey: Self.splashEntryTransformKey)
+    layer.add(scale, forKey: Self.splashEntryTransformKey)
     layer.add(fade, forKey: Self.splashEntryOpacityKey)
-
-    playGlowPulse()
-  }
-
-  // Soft accent-blue radial halo glow behind the logo. Runs once on entry in
-  // parallel with the spring/fade — no looping. Suppressed under reduced
-  // motion. The model opacity stays at 0; the keyframe drives the
-  // presentation through peak and back, then removes itself.
-  private func playGlowPulse() {
-    guard let halo = splashHaloLayer else { return }
-    if reduceMotion() { return }
-
-    let glow = CAKeyframeAnimation(keyPath: "opacity")
-    glow.values   = [0.0, 1.0, 1.0, 0.0]
-    glow.keyTimes = [
-      NSNumber(value: 0.0),
-      NSNumber(value: 350.0 / 950.0),
-      NSNumber(value: 600.0 / 950.0),
-      NSNumber(value: 1.0),
-    ]
-    glow.duration = Self.splashGlowDuration
-    glow.timingFunctions = [
-      CAMediaTimingFunction(name: .easeOut),
-      CAMediaTimingFunction(name: .linear),
-      CAMediaTimingFunction(name: .easeIn),
-    ]
-    glow.isRemovedOnCompletion = true
-    // Peak alpha is baked into the gradient's center color at install time
-    // (`splashGlowPeak{Light,Dark}` × accent), so the keyframe drives the
-    // layer's own `opacity` 0 → 1 → 0 — multiplied against the peak-colored
-    // gradient that gives the visible glow strength.
-    halo.opacity = 0
-    halo.add(glow, forKey: Self.splashHaloKey)
   }
 
   private func dismissSplash() {
@@ -405,12 +333,6 @@ class MainFlutterWindow: NSWindow {
 
     splashView = nil
 
-    // The halo continues animating until it self-removes or the splash view
-    // is torn down in the completion handler — the wrapping `alphaValue → 0`
-    // composites cleanly over it. Resetting model opacity here would snap
-    // the presentation to 0 one frame before the fade starts, producing a
-    // visible halo blip on dismiss at typical glow phases.
-
     let reduce = reduceMotion()
     let duration =
       reduce ? Self.splashReducedExitDuration : Self.splashExitDuration
@@ -419,10 +341,10 @@ class MainFlutterWindow: NSWindow {
       ctx.duration = duration
       ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
       splash.animator().alphaValue = 0
-      if !reduce, let logo = splashLogoView, let layer = logo.layer {
+      if !reduce, let layer = splashLogoLayer {
         let scaleUp = CABasicAnimation(keyPath: "transform.scale")
         scaleUp.fromValue = 1.0
-        scaleUp.toValue = 1.04
+        scaleUp.toValue = 1.30
         scaleUp.duration = duration
         scaleUp.timingFunction = CAMediaTimingFunction(name: .easeOut)
         scaleUp.fillMode = .forwards
@@ -435,8 +357,7 @@ class MainFlutterWindow: NSWindow {
       // dismiss() and finds no handler if we tear it down. The early
       // `guard let splash = splashView` above makes the second call a
       // cheap no-op; [weak self] in the handler prevents a retain cycle.
-      self?.splashLogoView = nil
-      self?.splashHaloLayer = nil
+      self?.splashLogoLayer = nil
     })
   }
 

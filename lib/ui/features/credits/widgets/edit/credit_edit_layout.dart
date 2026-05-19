@@ -19,6 +19,7 @@ import 'package:admin/ui/features/billing_shared/contacts/billing_doc_contacts_s
 import 'package:admin/ui/features/billing_shared/edit/billing_doc_edit_desktop_shell.dart';
 import 'package:admin/ui/features/billing_shared/edit/billing_edit_field_decoration.dart';
 import 'package:admin/ui/features/billing_shared/edit/billing_doc_settings_tab.dart';
+import 'package:admin/ui/features/billing_shared/edit/credit_billing_reference_field.dart';
 import 'package:admin/ui/features/billing_shared/edit/e_invoice_fields_tab.dart';
 import 'package:admin/ui/features/billing_shared/edit/save_default_helper.dart';
 import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_column_config.dart';
@@ -129,8 +130,16 @@ class _CreditEditLayoutState extends State<CreditEditLayout>
               _PdfTab(vm: widget.vm),
               EInvoiceFieldsTab<Credit>(
                 vm: widget.vm,
+                entityKind: EInvoiceEntityKind.credit,
                 formatter: context.read<Services>().formatterIfReady(
                   widget.vm.companyId,
+                ),
+                leading: CreditBillingReferenceField(
+                  vm: widget.vm,
+                  companyId: widget.vm.companyId,
+                  formatter: context.read<Services>().formatterIfReady(
+                    widget.vm.companyId,
+                  ),
                 ),
               ),
             ],
@@ -557,8 +566,16 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
                 ),
                 EInvoiceFieldsTab<Credit>(
                   vm: vm,
+                  entityKind: EInvoiceEntityKind.credit,
                   formatter: context.read<Services>().formatterIfReady(
                     vm.companyId,
+                  ),
+                  leading: CreditBillingReferenceField(
+                    vm: vm,
+                    companyId: vm.companyId,
+                    formatter: context.read<Services>().formatterIfReady(
+                      vm.companyId,
+                    ),
                   ),
                 ),
               ],

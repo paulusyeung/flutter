@@ -184,19 +184,26 @@ class _SearchableDropdownFieldState<T extends Object>
     if (widget.items.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: InSpacing.xs),
-        child: TextField(
-          enabled: false,
-          decoration: InputDecoration(
-            labelText: widget.label,
-            hintText: context.tr(widget.emptyHintKey ?? 'loading'),
-            errorText: widget.errorText,
-            isDense: true,
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: InSpacing.md(context),
-              vertical: 14,
+        // RawAutocomplete (below) provides no Material around its field,
+        // unlike Flutter's Autocomplete — so this widget supplies its own
+        // so hosts without a Material ancestor don't throw "No Material
+        // widget found". Transparency = no visual change.
+        child: Material(
+          type: MaterialType.transparency,
+          child: TextField(
+            enabled: false,
+            decoration: InputDecoration(
+              labelText: widget.label,
+              hintText: context.tr(widget.emptyHintKey ?? 'loading'),
+              errorText: widget.errorText,
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: InSpacing.md(context),
+                vertical: 14,
+              ),
+              border: border,
+              disabledBorder: border,
             ),
-            border: border,
-            disabledBorder: border,
           ),
         ),
       );
@@ -221,11 +228,17 @@ class _SearchableDropdownFieldState<T extends Object>
         },
         fieldViewBuilder:
             (context, textController, focusNode, onFieldSubmitted) {
-              return TextField(
-                controller: textController,
-                focusNode: focusNode,
-                onSubmitted: (_) => onFieldSubmitted(),
-                decoration: InputDecoration(
+              // Own Material — RawAutocomplete (unlike Autocomplete) wraps
+              // its field in none, so a host without a Material ancestor
+              // throws "No Material widget found". Transparency = no visual
+              // change.
+              return Material(
+                type: MaterialType.transparency,
+                child: TextField(
+                  controller: textController,
+                  focusNode: focusNode,
+                  onSubmitted: (_) => onFieldSubmitted(),
+                  decoration: InputDecoration(
                   labelText: widget.label,
                   errorText: widget.errorText,
                   labelStyle: theme.textTheme.bodyMedium?.copyWith(
@@ -257,7 +270,10 @@ class _SearchableDropdownFieldState<T extends Object>
                           },
                         ),
                 ),
-                style: theme.textTheme.bodyMedium?.copyWith(color: tokens.ink),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: tokens.ink,
+                  ),
+                ),
               );
             },
         optionsViewBuilder: (context, onSelected, options) {

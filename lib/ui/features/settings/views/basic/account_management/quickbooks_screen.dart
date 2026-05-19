@@ -10,6 +10,7 @@ import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
@@ -23,14 +24,19 @@ const kAccountManagementQuickbooksSearchKeys = <String>[
   'disconnect',
   'company_name',
   'realm_id',
+  'import',
+  'quickbooks_sync_settings',
+  'income_account',
 ];
 
 /// Settings → Account Management → Integrations → QuickBooks.
 ///
-/// Connect / disconnect surface only. The actual import + sync-direction UI
-/// is deferred until live API probing can verify the `quickbooks.settings.*`
-/// payload shape; until then this screen routes users to the
-/// already-validated server-side OAuth flow.
+/// Connect/disconnect + import + ten-entity sync directions + income-account
+/// mapping + read-only QB reference tables. The connected-state
+/// `quickbooks.settings.*` payload can't be live-verified (the demo account
+/// has no QB integration), so the contract source of truth is React's
+/// `react/src/common/interfaces/quickbooks.ts`; every `settings.*` sub-key
+/// is read defensively (treated as nullable / absent).
 class QuickbooksScreen extends StatefulWidget {
   const QuickbooksScreen({super.key});
 
@@ -282,9 +288,41 @@ class _Connected extends StatefulWidget {
   State<_Connected> createState() => _ConnectedState();
 }
 
-/// React surfaces these four entities as editable sync directions.
-const _kQbSyncEntities = <String>['client', 'invoice', 'product', 'payment'];
+/// React surfaces ten editable sync directions, grouped here so the screen
+/// doesn't read as a flat wall of ten controls. Group keys are pending
+/// localization keys; the entity keys reuse existing entity strings
+/// (`sales` is the lone app-pending addition).
+const _kQbSyncGroups = <String, List<String>>{
+  'qb_group_contacts_catalog': ['client', 'vendor', 'product'],
+  'qb_group_sales_documents': ['invoice', 'quote', 'sales', 'payment'],
+  'qb_group_purchasing_expenses': [
+    'purchase_order',
+    'expense',
+    'expense_category',
+  ],
+};
+const _kQbSyncEntities = <String>[
+  'client',
+  'vendor',
+  'product',
+  'invoice',
+  'quote',
+  'sales',
+  'payment',
+  'purchase_order',
+  'expense',
+  'expense_category',
+];
 const _kQbDirections = <String>['none', 'push', 'pull', 'bidirectional'];
+
+/// One entry from `quickbooks.settings.income_account_map`, plus the
+/// synthetic "QuickBooks default" sentinel (empty id) so the picker is
+/// clearable (mirrors React's `withBlank`).
+class _QbAccount {
+  const _QbAccount({required this.id, required this.name});
+  final String id;
+  final String name;
+}
 
 class _ConnectedState extends State<_Connected> {
   // Import toggles (one-shot).
@@ -295,11 +333,20 @@ class _ConnectedState extends State<_Connected> {
 
   // Sync settings draft.
   final Map<String, String> _dir = {};
+  String? _incomeAccountId;
   bool _automaticTaxes = false;
   final _taxable = TextEditingController();
   final _exempt = TextEditingController();
   bool _settingsDirty = false;
   bool _saving = false;
+
+  // Which sync-entity rows are expanded (collapsed = one-line summary).
+  final Set<String> _expandedSync = <String>{};
+  // Read-only QB reference tables collapsed by default (can be long).
+  bool _refExpanded = false;
+  // Set after a successful import trigger so the card shows an honest
+  // "running in the background" terminal state instead of a vanishing toast.
+  bool _importStarted = false;
 
   Map<String, dynamic> get _qb =>
       (widget.company.quickbooks ?? const <String, dynamic>{});
@@ -330,9 +377,40 @@ class _ConnectedState extends State<_Connected> {
       final d = entry is Map ? entry['direction'] : null;
       _dir[e] = (d is String && _kQbDirections.contains(d)) ? d : 'none';
     }
+    final acct = s['qb_income_account_id'];
+    _incomeAccountId = (acct is String && acct.isNotEmpty) ? acct : null;
     _automaticTaxes = s['automatic_taxes'] == true;
     _taxable.text = (s['default_taxable_code'] as String?) ?? '';
     _exempt.text = (s['default_exempt_code'] as String?) ?? '';
+  }
+
+  /// Parsed (defensive) read-only `income_account_map`. Empty until an
+  /// import populates it server-side.
+  List<_QbAccount> get _incomeAccounts {
+    final raw = _settings['income_account_map'];
+    if (raw is! List) return const [];
+    return [
+      for (final e in raw)
+        if (e is Map)
+          _QbAccount(
+            id: (e['id'] ?? '').toString(),
+            name: (e['fully_qualified_name'] ?? e['name'] ?? '').toString(),
+          ),
+    ];
+  }
+
+  /// Parsed (defensive) read-only `tax_rate_map`.
+  List<({String name, String rate})> get _taxRates {
+    final raw = _settings['tax_rate_map'];
+    if (raw is! List) return const [];
+    return [
+      for (final e in raw)
+        if (e is Map)
+          (
+            name: (e['name'] ?? '').toString(),
+            rate: (e['rate'] ?? '').toString(),
+          ),
+    ];
   }
 
   @override
@@ -362,6 +440,7 @@ class _ConnectedState extends State<_Connected> {
         _impClients = false;
         _impProducts = false;
         _impInvoices = false;
+        _importStarted = true;
       });
     } catch (e) {
       if (!mounted) return;
@@ -395,6 +474,11 @@ class _ConnectedState extends State<_Connected> {
       m['direction'] = _dir[e] ?? 'none';
       settings[e] = m;
     }
+    if (_incomeAccountId == null || _incomeAccountId!.isEmpty) {
+      settings.remove('qb_income_account_id');
+    } else {
+      settings['qb_income_account_id'] = _incomeAccountId;
+    }
     settings['automatic_taxes'] = _automaticTaxes;
     settings['default_taxable_code'] = _taxable.text.trim();
     settings['default_exempt_code'] = _exempt.text.trim();
@@ -419,6 +503,70 @@ class _ConnectedState extends State<_Connected> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  /// One sync entity: a collapsed one-line summary (name + current
+  /// direction) that expands to a 4-choice radio. Keeps ten entities
+  /// scannable instead of a wall of forty radio targets.
+  Widget _syncEntityTile(BuildContext context, String e) {
+    final tokens = context.inTheme;
+    final dir = _dir[e] ?? 'none';
+    final expanded = _expandedSync.contains(e);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        InkWell(
+          onTap: () => setState(() {
+            if (expanded) {
+              _expandedSync.remove(e);
+            } else {
+              _expandedSync.add(e);
+            }
+          }),
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: InSpacing.sm),
+            child: Row(
+              children: [
+                Expanded(child: Text(context.tr(e))),
+                Text(
+                  context.tr(dir),
+                  style: TextStyle(color: tokens.ink3, fontSize: 13),
+                ),
+                Icon(
+                  expanded ? Icons.expand_less : Icons.expand_more,
+                  size: 18,
+                  color: tokens.ink3,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (expanded)
+          Padding(
+            padding: EdgeInsets.only(bottom: InSpacing.sm),
+            child: RadioGroup<String>(
+              groupValue: dir,
+              onChanged: _saving
+                  ? (_) {}
+                  : (v) => setState(() {
+                      _dir[e] = v ?? 'none';
+                      _settingsDirty = true;
+                    }),
+              child: Column(
+                children: [
+                  for (final d in _kQbDirections)
+                    RadioListTile<String>(
+                      value: d,
+                      title: Text(context.tr(d)),
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                    ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
   }
 
   @override
@@ -470,85 +618,168 @@ class _ConnectedState extends State<_Connected> {
         ),
         FormSection(
           title: context.tr('import'),
-          children: [
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              value: _impClients,
-              onChanged: _importing
-                  ? null
-                  : (v) => setState(() => _impClients = v),
-              title: Text(context.tr('clients')),
-            ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              value: _impProducts,
-              onChanged: _importing
-                  ? null
-                  : (v) => setState(() => _impProducts = v),
-              title: Text(context.tr('products')),
-            ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              value: _impInvoices,
-              onChanged: _importing
-                  ? null
-                  : (v) => setState(() => _impInvoices = v),
-              title: Text(context.tr('invoices')),
-            ),
-            SizedBox(height: InSpacing.sm),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(160, 44),
-                ),
-                icon: _importing
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.sync, size: 18),
-                label: Text(context.tr('sync')),
-                onPressed:
-                    (_importing || !anyImport) ? null : _import,
-              ),
-            ),
-          ],
+          children: _importStarted
+              ? [
+                  Container(
+                    padding: EdgeInsets.all(InSpacing.md(context)),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: tokens.border),
+                      borderRadius: BorderRadius.circular(InRadii.r2),
+                      color: tokens.surface,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.schedule,
+                          size: 18,
+                          color: tokens.ink3,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            context.tr('quickbooks_import_started'),
+                            style: TextStyle(
+                              color: tokens.ink2,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: InSpacing.sm),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      icon: const Icon(Icons.refresh, size: 18),
+                      label: Text(context.tr('import')),
+                      onPressed: () =>
+                          setState(() => _importStarted = false),
+                    ),
+                  ),
+                ]
+              : [
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    value: _impClients,
+                    onChanged: _importing
+                        ? null
+                        : (v) => setState(() => _impClients = v),
+                    title: Text(context.tr('clients')),
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    value: _impProducts,
+                    onChanged: _importing
+                        ? null
+                        : (v) => setState(() => _impProducts = v),
+                    title: Text(context.tr('products')),
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    value: _impInvoices,
+                    onChanged: _importing
+                        ? null
+                        : (v) => setState(() => _impInvoices = v),
+                    title: Text(context.tr('invoices')),
+                  ),
+                  SizedBox(height: InSpacing.sm),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(160, 44),
+                      ),
+                      icon: _importing
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Icon(Icons.download, size: 18),
+                      label: Text(context.tr('import')),
+                      onPressed:
+                          (_importing || !anyImport) ? null : _import,
+                    ),
+                  ),
+                ],
         ),
         FormSection(
           title: context.tr('quickbooks_sync_settings'),
           children: [
-            for (final e in _kQbSyncEntities)
+            Padding(
+              padding: EdgeInsets.only(bottom: InSpacing.md(context)),
+              child: Text(
+                context.tr('quickbooks_sync_direction_help'),
+                style: TextStyle(color: tokens.ink3, fontSize: 12),
+              ),
+            ),
+            for (final group in _kQbSyncGroups.entries) ...[
               Padding(
-                padding: EdgeInsets.symmetric(
-                  vertical: InSpacing.sm,
+                padding: EdgeInsets.only(
+                  top: InSpacing.sm,
+                  bottom: 4,
                 ),
-                child: Row(
-                  children: [
-                    Expanded(child: Text(context.tr(e))),
-                    DropdownButton<String>(
-                      value: _dir[e] ?? 'none',
-                      onChanged: _saving
-                          ? null
-                          : (v) => setState(() {
-                                _dir[e] = v ?? 'none';
-                                _settingsDirty = true;
-                              }),
-                      items: [
-                        for (final d in _kQbDirections)
-                          DropdownMenuItem(
-                            value: d,
-                            child: Text(context.tr(d)),
-                          ),
-                      ],
-                    ),
-                  ],
+                child: Text(
+                  context.tr(group.key).toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                    color: tokens.ink3,
+                  ),
                 ),
               ),
+              for (final e in group.value) _syncEntityTile(context, e),
+            ],
+            SizedBox(height: InSpacing.md(context)),
+            if (_incomeAccounts.isEmpty)
+              SearchableDropdownField<_QbAccount>(
+                label: context.tr('income_account'),
+                items: const [],
+                initialValue: null,
+                displayString: (a) => a.name,
+                idOf: (a) => a.id,
+                onChanged: (_) {},
+                emptyHintKey: 'quickbooks_run_import_to_load_accounts',
+              )
+            else
+              Builder(
+                builder: (context) {
+                  final items = <_QbAccount>[
+                    _QbAccount(id: '', name: context.tr('default')),
+                    ..._incomeAccounts,
+                  ];
+                  _QbAccount selected = items.first;
+                  for (final a in items) {
+                    if (a.id == (_incomeAccountId ?? '')) {
+                      selected = a;
+                      break;
+                    }
+                  }
+                  return SearchableDropdownField<_QbAccount>(
+                    label: context.tr('income_account'),
+                    items: items,
+                    initialValue: selected,
+                    displayString: (a) => a.name,
+                    idOf: (a) => a.id,
+                    onChanged: _saving
+                        ? (_) {}
+                        : (a) => setState(() {
+                            _incomeAccountId =
+                                (a == null || a.id.isEmpty) ? null : a.id;
+                            _settingsDirty = true;
+                          }),
+                  );
+                },
+              ),
+            SizedBox(height: InSpacing.md(context)),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               dense: true,
@@ -600,6 +831,61 @@ class _ConnectedState extends State<_Connected> {
             ),
           ],
         ),
+        if (_incomeAccounts.isNotEmpty || _taxRates.isNotEmpty)
+          FormSection(
+            title: context.tr('quickbooks_read_only_data'),
+            spacing: 0,
+            children: [
+              InkWell(
+                onTap: () =>
+                    setState(() => _refExpanded = !_refExpanded),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: InSpacing.sm),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${context.tr('income_account')} '
+                          '(${_incomeAccounts.length})  ·  '
+                          '${context.tr('tax_rates')} '
+                          '(${_taxRates.length})',
+                          style: TextStyle(
+                            color: tokens.ink3,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        _refExpanded
+                            ? Icons.expand_less
+                            : Icons.expand_more,
+                        size: 18,
+                        color: tokens.ink3,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (_refExpanded) ...[
+                if (_incomeAccounts.isNotEmpty) ...[
+                  Divider(color: tokens.border, height: 1),
+                  for (final a in _incomeAccounts)
+                    _InfoRow(
+                      label: a.name.isEmpty ? a.id : a.name,
+                      value: a.id,
+                    ),
+                ],
+                if (_taxRates.isNotEmpty) ...[
+                  Divider(color: tokens.border, height: 1),
+                  for (final r in _taxRates)
+                    _InfoRow(
+                      label: r.name.isEmpty ? '—' : r.name,
+                      value: '${r.rate}%',
+                    ),
+                ],
+              ],
+            ],
+          ),
         FormSection(
           title: context.tr('disconnect'),
           children: [

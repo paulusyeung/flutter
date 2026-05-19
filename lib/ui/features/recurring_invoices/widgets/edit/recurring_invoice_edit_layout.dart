@@ -122,23 +122,47 @@ class _RecurringInvoiceEditLayoutState extends State<RecurringInvoiceEditLayout>
           ),
         ),
         Divider(height: 1, color: tokens.border),
+        // `Material` so every tab body's TextFields have a Material
+        // ancestor (the TabBar above is already wrapped; the bodies were
+        // not — that's the `No Material widget found` cluster).
+        // Transparency = no visual change.
         Expanded(
-          child: TabBarView(
-            controller: _tab,
-            children: [
-              _DetailsTab(vm: widget.vm),
-              _ScheduleTab(vm: widget.vm),
-              _ContactsTab(vm: widget.vm),
-              _ItemsTab(vm: widget.vm),
-              _NotesTab(vm: widget.vm),
-              _PdfTab(vm: widget.vm),
-              EInvoiceFieldsTab<RecurringInvoice>(
-                vm: widget.vm,
-                formatter: context.read<Services>().formatterIfReady(
-                  widget.vm.companyId,
-                ),
-              ),
-            ],
+          child: Material(
+            type: MaterialType.transparency,
+            // Rebuild children on tab change so inactive tabs are excluded
+            // from directional (arrow-key) focus traversal — a kept-alive
+            // off-stage tab whose RenderObject is NEEDS-LAYOUT otherwise
+            // crashes `findFirstFocusInDirection` (the `hasSize` cluster).
+            child: AnimatedBuilder(
+              animation: _tab,
+              builder: (context, _) {
+                Widget tab(int i, Widget child) => ExcludeFocusTraversal(
+                      excluding: i != _tab.index,
+                      child: child,
+                    );
+                return TabBarView(
+                  controller: _tab,
+                  children: [
+                    tab(0, _DetailsTab(vm: widget.vm)),
+                    tab(1, _ScheduleTab(vm: widget.vm)),
+                    tab(2, _ContactsTab(vm: widget.vm)),
+                    tab(3, _ItemsTab(vm: widget.vm)),
+                    tab(4, _NotesTab(vm: widget.vm)),
+                    tab(5, _PdfTab(vm: widget.vm)),
+                    tab(
+                      6,
+                      EInvoiceFieldsTab<RecurringInvoice>(
+                        vm: widget.vm,
+                        entityKind: EInvoiceEntityKind.recurringInvoice,
+                        formatter: context
+                            .read<Services>()
+                            .formatterIfReady(widget.vm.companyId),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ),
         Divider(height: 1, color: tokens.border),
@@ -625,6 +649,7 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
               ),
               EInvoiceFieldsTab<RecurringInvoice>(
                 vm: vm,
+                entityKind: EInvoiceEntityKind.recurringInvoice,
                 formatter: context.read<Services>().formatterIfReady(
                   vm.companyId,
                 ),

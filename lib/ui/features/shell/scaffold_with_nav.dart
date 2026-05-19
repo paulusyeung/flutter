@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/entity_modules.dart';
 import 'package:admin/app/nav_history_controller.dart';
 import 'package:admin/app/services.dart';
@@ -345,34 +346,77 @@ class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   if (Breakpoints.isWide(constraints)) {
-                    return Scaffold(
-                      body: Row(
+                    final services = context.read<Services>();
+                    // Built once; passed through the ValueListenableBuilder's
+                    // `child` so a collapse toggle re-runs only the Positioned
+                    // wrapper (snapping the inset) and never rebuilds the page
+                    // body / RunningTimerPill subtree.
+                    final content = RepaintBoundary(
+                      child: Column(
                         children: [
-                          InSidebar(
-                            currentBranch: widget.navigationShell.currentIndex,
-                            onSelectBranch: _goBranch,
-                          ),
+                          const OfflineBanner(),
                           Expanded(
-                            child: Column(
+                            child: Stack(
                               children: [
-                                const OfflineBanner(),
-                                Expanded(
-                                  child: Stack(
-                                    children: [
-                                      widget.navigationShell,
-                                      // Pinned bottom-right above the active
-                                      // route's body. Hidden when no task is
-                                      // running — see `RunningTimerPill`.
-                                      const Positioned(
-                                        right: 16,
-                                        bottom: 16,
-                                        child: RunningTimerPill(),
-                                      ),
-                                    ],
-                                  ),
+                                widget.navigationShell,
+                                // Pinned bottom-right above the active route's
+                                // body. Hidden when no task is running — see
+                                // `RunningTimerPill`.
+                                const Positioned(
+                                  right: 16,
+                                  bottom: 16,
+                                  child: RunningTimerPill(),
                                 ),
-                                _DebugPanelBand(),
                               ],
+                            ),
+                          ),
+                          _DebugPanelBand(),
+                        ],
+                      ),
+                    );
+                    return Scaffold(
+                      body: Stack(
+                        children: [
+                          // Surface backstop behind the rail: during an
+                          // expand the content inset has already snapped to
+                          // 232 while the sidebar is still mid-grow, so this
+                          // strip reads as sidebar chrome rather than blank
+                          // page for the ≤150 ms tween.
+                          Positioned(
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: kInSidebarWidth,
+                            child: ColoredBox(color: context.inTheme.surface),
+                          ),
+                          // Content layer — its left inset SNAPS to the
+                          // target rail width (one relayout per toggle, never
+                          // per animation frame). The sidebar animates on top
+                          // of it.
+                          ValueListenableBuilder<bool>(
+                            valueListenable: services.sidebar,
+                            child: content,
+                            builder: (context, collapsed, child) {
+                              final targetWidth = collapsed
+                                  ? kInSidebarCollapsedWidth
+                                  : kInSidebarWidth;
+                              return Positioned.fill(
+                                left: targetWidth,
+                                child: child!,
+                              );
+                            },
+                          ),
+                          // Sidebar layer — overlays the content; its own
+                          // RepaintBoundary + AnimatedContainer run the
+                          // 150 ms width tween in isolation.
+                          Positioned(
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                            child: InSidebar(
+                              currentBranch:
+                                  widget.navigationShell.currentIndex,
+                              onSelectBranch: _goBranch,
                             ),
                           ),
                         ],

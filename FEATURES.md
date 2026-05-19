@@ -926,6 +926,7 @@ Field-level breakdown of every option under each settings panel. Source of truth
 | API Docs (link) | ✅ | ✅ | ✅ | ✅ | |
 | Zapier integration | ✅ | ✅ | ✅ | ✅ | |
 | QuickBooks integration | ✅ | ❌ | ✅ | ✅ | |
+| QuickBooks — 10-entity sync directions + import + income/tax mapping | ✅ | ❌ | ✅ | | |
 
 #### Account Management — Security
 
@@ -1190,6 +1191,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Transaction rules list | ✅ | 🟡 | ✅ | ✅ | |
 | Create transaction rule (auto-match) | ✅ | 🟡 | ✅ | ✅ | |
 | Transaction rule — live "matches N" preview (debit, local) | — | — | ✅ | ✅ | |
+| Bank transaction — matched-rule chip on detail (deep-link) | — | — | ✅ | | |
 | Reconnect (Yodlee / Nordigen OAuth) | ✅ | 🟡 | ✅ | ✅ | |
 | Plan / feature gating (enterprise) | ✅ | 🟡 | ✅ | ✅ | |
 
@@ -1206,6 +1208,8 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Payment means (IBAN / BIC / card) | ✅ | ❌ | ✅ | ✅ | |
 | Additional tax identifiers | ✅ | ❌ | ✅ | ✅ | |
 | E-invoice compliance fields per entity | ✅ | ❌ | ✅ | ✅ | |
+| Credit — Peppol billing reference (origin invoice + issue date) | ✅ | ❌ | ✅ | | |
+| Recurring invoice — Peppol period (Description encoding) | ✅ | ❌ | ✅ | | |
 
 ### Group Settings
 

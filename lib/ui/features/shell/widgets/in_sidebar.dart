@@ -45,7 +45,7 @@ const double kInSidebarCollapsedWidth = 64.0;
 /// `Services.sidebar` and persists across restarts. Inside `AppDrawer` the
 /// collapse mode never engages — the drawer passes its own `width` and the
 /// `ValueListenableBuilder` simply doesn't constrain anything in that case.
-class InSidebar extends StatelessWidget {
+class InSidebar extends StatefulWidget {
   const InSidebar({
     required this.currentBranch,
     required this.onSelectBranch,
@@ -68,6 +68,99 @@ class InSidebar extends StatelessWidget {
   final VoidCallback? onBeforeCompanyPicker;
 
   @override
+  State<InSidebar> createState() => _InSidebarState();
+}
+
+class _InSidebarState extends State<InSidebar> {
+  // --- Cached Drift watch streams ------------------------------------------
+  //
+  // The streams the sidebar listens to (`watchActiveView`, `watchAll`, and
+  // every entity / outbox badge `.watch()`) used to be rebuilt on *every*
+  // `build()` — including the collapse toggle — which tore down and
+  // re-subscribed each `StreamBuilder` (waiting-state flicker, the
+  // saved-views section collapsing to nothing mid-animation, and N+2
+  // redundant DB queries per click).
+  //
+  // They're now memoized here and only rebuilt when the cache key actually
+  // changes: company, the active branch's entity type (drives the
+  // active-view highlight), enabled-modules bitmask, or the `view_reports`
+  // capability (the last two change which rows — and thus which badge
+  // StreamBuilders — exist for the *same* company). The collapse toggle
+  // touches none of those, so toggling reuses these instances and the
+  // StreamBuilders keep their subscriptions.
+  //
+  // Every cached stream is broadcast: `_combineOutboxCounts` and
+  // `watchActiveView`'s `_combineLatest` are single-subscription, so a
+  // StreamBuilder that drops and reacquires its element (any non-collapse
+  // rebuild) would otherwise throw "Stream has already been listened to".
+  String? _keyCompanyId;
+  EntityType? _keyEntityType;
+  int? _keyEnabledModules;
+  bool? _keyCanViewReports;
+
+  Stream<SavedView?>? _activeView;
+  Stream<List<SavedView>>? _savedViews;
+  final Map<Object, Stream<int>> _badgeStreams = <Object, Stream<int>>{};
+
+  /// The entity owning the active branch, or `null` for a fixed branch
+  /// (Dashboard / Settings / Outbox / Reports). Drives the active-view
+  /// highlight scope.
+  EntityType? _currentEntityType(EntityRegistry registry) {
+    final order = registry.branchOrder;
+    final b = widget.currentBranch;
+    if (b < 0 || b >= order.length) return null;
+    final spec = order[b];
+    return spec is EntityBranch ? spec.type : null;
+  }
+
+  /// Stream of the saved view currently reflected by the list state of the
+  /// active branch's entity (or a constant `null` on a fixed branch). The
+  /// sidebar highlights that row instead of the entity row.
+  Stream<SavedView?> _buildActiveViewStream(
+    Services services,
+    String companyId,
+  ) {
+    final entityType = _currentEntityType(services.entityRegistry);
+    if (entityType == null) return Stream<SavedView?>.value(null);
+    return services.savedViews.watchActiveView(
+      companyId: companyId,
+      entityType: entityType,
+    );
+  }
+
+  /// Rebuild the cached streams when (and only when) the key changes.
+  /// Called during `build` inside the session `ValueListenableBuilder` —
+  /// pure memoization keyed on its inputs, so it never calls `setState`.
+  void _syncCache(Services services, AuthSession session) {
+    final companyId = session.currentCompanyId;
+    final entityType = _currentEntityType(services.entityRegistry);
+    final enabledModules = session.currentCompany?.enabledModules ?? 0;
+    final canViewReports =
+        session.currentCompany?.can('view_reports') ?? false;
+    if (companyId == _keyCompanyId &&
+        entityType == _keyEntityType &&
+        enabledModules == _keyEnabledModules &&
+        canViewReports == _keyCanViewReports) {
+      return;
+    }
+    _keyCompanyId = companyId;
+    _keyEntityType = entityType;
+    _keyEnabledModules = enabledModules;
+    _keyCanViewReports = canViewReports;
+    _activeView = _buildActiveViewStream(
+      services,
+      companyId,
+    ).asBroadcastStream();
+    _savedViews = services.savedViews.watchAll(companyId).asBroadcastStream();
+    _badgeStreams.clear();
+  }
+
+  /// Memoize a badge stream within the current cache generation. Cleared
+  /// wholesale by [_syncCache] when the key changes.
+  Stream<int> _cachedBadge(Object key, Stream<int> Function() factory) =>
+      _badgeStreams.putIfAbsent(key, () => factory().asBroadcastStream());
+
+  @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final services = context.read<Services>();
@@ -75,95 +168,91 @@ class InSidebar extends StatelessWidget {
       valueListenable: services.auth.session,
       builder: (context, session, _) {
         if (session == null) return const SizedBox.shrink();
+        _syncCache(services, session);
         return ValueListenableBuilder<bool>(
           valueListenable: services.sidebar,
           builder: (context, collapsedPref, _) {
             // The drawer passes `width: null` to fill its own container —
             // the collapse toggle is wide-layout-only, so ignore the
             // preference when there's no fixed width.
-            final canCollapse = width != null;
+            final canCollapse = widget.width != null;
             final collapsed = canCollapse && collapsedPref;
             final effectiveWidth = canCollapse
                 ? (collapsed ? kInSidebarCollapsedWidth : kInSidebarWidth)
                 : null;
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              curve: Curves.easeOut,
-              width: effectiveWidth,
-              decoration: BoxDecoration(
-                color: tokens.surface,
-                border: Border(right: BorderSide(color: tokens.border)),
-              ),
-              // ClipRect swallows the brief mid-tween overflow when children
-              // re-layout at their final-state size.
-              child: ClipRect(
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-                      child: CompanySwitcherButton(
-                        session: session,
-                        onBeforeOpen: onBeforeCompanyPicker,
-                        compact: collapsed,
-                      ),
-                    ),
-                    Container(height: 1, color: tokens.border),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 14),
-                        child: StreamBuilder<SavedView?>(
-                          stream: _activeViewStream(
-                            services,
-                            session.currentCompanyId,
-                          ),
-                          builder: (context, snap) => Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: _buildItems(
-                              context,
-                              services,
-                              session.currentCompanyId,
-                              compact: collapsed,
-                              activeViewId: snap.data?.id,
-                            ),
-                          ),
+            final column = Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                  child: CompanySwitcherButton(
+                    session: session,
+                    onBeforeOpen: widget.onBeforeCompanyPicker,
+                    compact: collapsed,
+                  ),
+                ),
+                Container(height: 1, color: tokens.border),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 14),
+                    child: StreamBuilder<SavedView?>(
+                      stream: _activeView,
+                      builder: (context, snap) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: _buildItems(
+                          context,
+                          services,
+                          session.currentCompanyId,
+                          compact: collapsed,
+                          activeViewId: snap.data?.id,
                         ),
                       ),
                     ),
-                    Container(height: 1, color: tokens.border),
-                    SidebarFooterActions(
-                      compact: collapsed,
-                      showCollapseToggle: canCollapse,
-                    ),
-                    TrialFooter(compact: collapsed),
-                  ],
+                  ),
+                ),
+                Container(height: 1, color: tokens.border),
+                SidebarFooterActions(
+                  compact: collapsed,
+                  showCollapseToggle: canCollapse,
+                ),
+                TrialFooter(compact: collapsed),
+              ],
+            );
+            // RepaintBoundary isolates the 150 ms width-tween repaint from
+            // the content area (the Stack sibling in scaffold_with_nav).
+            return RepaintBoundary(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                curve: Curves.easeOut,
+                width: effectiveWidth,
+                decoration: BoxDecoration(
+                  color: tokens.surface,
+                  border: Border(right: BorderSide(color: tokens.border)),
+                ),
+                // The AnimatedContainer box + ClipRect animate the visible
+                // reveal; OverflowBox pins the content to the *destination*
+                // width (`effectiveWidth` — snapped, only changes when the
+                // collapse bool toggles) so the rows lay out once at their
+                // final width with the matching `compact`, never at an
+                // intermediate width. Without this the `compact:false` rows
+                // re-layout every tween frame at a narrower width and the
+                // RenderFlex reports a (ClipRect-hidden but still logged)
+                // right overflow. `width == null` (AppDrawer) keeps the
+                // original fills-the-drawer behaviour untouched.
+                child: ClipRect(
+                  child: effectiveWidth == null
+                      ? column
+                      : OverflowBox(
+                          alignment: Alignment.centerLeft,
+                          minWidth: effectiveWidth,
+                          maxWidth: effectiveWidth,
+                          child: column,
+                        ),
                 ),
               ),
             );
           },
         );
       },
-    );
-  }
-
-  /// The entity owning the active branch, or `null` for a fixed branch
-  /// (Dashboard / Settings / Outbox / Reports). Drives the active-view
-  /// highlight scope.
-  EntityType? _currentEntityType(EntityRegistry registry) {
-    final order = registry.branchOrder;
-    if (currentBranch < 0 || currentBranch >= order.length) return null;
-    final spec = order[currentBranch];
-    return spec is EntityBranch ? spec.type : null;
-  }
-
-  /// Stream of the saved view currently reflected by the list state of the
-  /// active branch's entity (or a constant `null` on a fixed branch). The
-  /// sidebar highlights that row instead of the entity row.
-  Stream<SavedView?> _activeViewStream(Services services, String companyId) {
-    final entityType = _currentEntityType(services.entityRegistry);
-    if (entityType == null) return Stream.value(null);
-    return services.savedViews.watchActiveView(
-      companyId: companyId,
-      entityType: entityType,
     );
   }
 
@@ -243,10 +332,11 @@ class InSidebar extends StatelessWidget {
       // Saved views — reactive section that disappears when empty.
       _SavedViewsSection(
         companyId: companyId,
-        currentBranch: currentBranch,
-        onSelectBranch: onSelectBranch,
+        currentBranch: widget.currentBranch,
+        onSelectBranch: widget.onSelectBranch,
         compact: compact,
         activeViewId: activeViewId,
+        savedViewsStream: _savedViews!,
       ),
       // Visual spacer between the saved list and the bottom row.
       const SidebarSectionHeader(null),
@@ -286,7 +376,9 @@ class InSidebar extends StatelessWidget {
     // saved view when one matches the live list state. Non-current-branch
     // rows are never active regardless.
     final isActive =
-        branch != null && branch == currentBranch && activeViewId == null;
+        branch != null &&
+        branch == widget.currentBranch &&
+        activeViewId == null;
     final label = context.tr(handlers.effectiveLabelKey);
     // Hover affordance — `+` shortcut to the entity's /new route. Only
     // surfaces on rows that have a `newRoute` configured AND in expanded
@@ -311,7 +403,7 @@ class InSidebar extends StatelessWidget {
               entityType: handlers.type,
             );
             if (!context.mounted) return;
-            onSelectBranch(branch);
+            widget.onSelectBranch(branch);
           };
     final tile = SidebarNavItem(
       label: label,
@@ -325,7 +417,7 @@ class InSidebar extends StatelessWidget {
     final badge = handlers.badgeStream;
     if (badge == null) return tile;
     return StreamBuilder<int>(
-      stream: badge(services, companyId),
+      stream: _cachedBadge(handlers.type, () => badge(services, companyId)),
       builder: (context, snap) => SidebarNavItem(
         label: label,
         icon: handlers.effectiveOutlinedIcon,
@@ -352,7 +444,7 @@ class InSidebar extends StatelessWidget {
     Widget? trailing,
   }) {
     final branch = _findFixedBranch(services.entityRegistry, kind);
-    final isActive = branch != null && branch == currentBranch;
+    final isActive = branch != null && branch == widget.currentBranch;
     final label = context.tr(labelKey);
     Widget tile({int? count}) => SidebarNavItem(
       label: label,
@@ -362,13 +454,13 @@ class InSidebar extends StatelessWidget {
       count: count,
       trailing: trailing,
       trailingHover: trailingHover,
-      onTap: branch == null ? null : () => onSelectBranch(branch),
+      onTap: branch == null ? null : () => widget.onSelectBranch(branch),
     );
     if (badgeStream == null) return tile();
     final companyId = services.auth.session.value?.currentCompanyId ?? '';
     if (companyId.isEmpty) return tile();
     return StreamBuilder<int>(
-      stream: badgeStream(services, companyId),
+      stream: _cachedBadge(kind, () => badgeStream(services, companyId)),
       builder: (context, snap) {
         final count = snap.data ?? 0;
         if (hideWhenZero && count == 0) return const SizedBox.shrink();
@@ -470,6 +562,7 @@ class _SavedViewsSection extends StatelessWidget {
     required this.onSelectBranch,
     required this.compact,
     required this.activeViewId,
+    required this.savedViewsStream,
   });
 
   final String companyId;
@@ -481,11 +574,15 @@ class _SavedViewsSection extends StatelessWidget {
   /// state of the active branch's entity (`null` when none / fixed branch).
   final String? activeViewId;
 
+  /// Cached (broadcast) `watchAll` stream owned by `_InSidebarState` — kept
+  /// stable across collapse toggles so this section doesn't blink to
+  /// `SizedBox.shrink()` and back mid-animation.
+  final Stream<List<SavedView>> savedViewsStream;
+
   @override
   Widget build(BuildContext context) {
-    final services = context.read<Services>();
     return StreamBuilder<List<SavedView>>(
-      stream: services.savedViews.watchAll(companyId),
+      stream: savedViewsStream,
       builder: (context, snap) {
         final views = snap.data ?? const <SavedView>[];
         if (views.isEmpty) {

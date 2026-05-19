@@ -8,27 +8,36 @@ import 'package:admin/ui/core/widgets/in_date_field.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/billing_shared/view_models/billing_doc_edit_view_model.dart';
 
+/// Which billing-doc type owns this tab. Drives the small per-entity
+/// branches: only credits show the billing-reference [leading] card, and
+/// only recurring invoices serialize the period as the React-style
+/// pipe-delimited `Invoice.InvoicePeriod.0.Description` string.
+enum EInvoiceEntityKind { invoice, credit, recurringInvoice }
+
 /// Reusable e-invoice (PEPPOL/UBL) edit tab, shared by invoice / credit /
 /// recurring-invoice edit layouts.
 ///
 /// `eInvoice` is an open-ended `Map<String, dynamic>` on the wire rather
-/// than a typed model. This surfaces the three fields most commonly edited
-/// (invoice period start + end, actual delivery date — parity with the
-/// React per-invoice e-invoice tab) and, when the caller passes one, the
-/// document-type read-out (F1 / R1 / R2 for Verifactu — only invoices
-/// carry that today via their `backup` map). The generic
-/// [GenericBillingDocEditViewModel] already owns `eInvoiceOf` + `setEInvoiceField`,
-/// so every billing-doc type works through the same path with no
-/// per-entity code.
+/// than a typed model. This surfaces the period (start + end) + actual
+/// delivery date, an optional [leading] card (credit billing reference),
+/// and the document-type read-out (F1 / R1 / R2 for Verifactu — only
+/// invoices carry that today via their `backup` map). The generic
+/// [GenericBillingDocEditViewModel] owns `eInvoiceOf` / `setEInvoiceField`
+/// / `setEInvoicePath`, so every billing-doc type works through the same
+/// path with only the [entityKind] branch.
 class EInvoiceFieldsTab<T> extends StatelessWidget {
   const EInvoiceFieldsTab({
     required this.vm,
+    required this.entityKind,
     this.documentType,
     this.formatter,
+    this.leading,
     super.key,
   });
 
   final GenericBillingDocEditViewModel<T> vm;
+
+  final EInvoiceEntityKind entityKind;
 
   /// Optional Verifactu document-type chip (invoice-only today). Null hides
   /// the chip — credit / recurring don't carry a `backup` map.
@@ -39,10 +48,62 @@ class EInvoiceFieldsTab<T> extends StatelessWidget {
   /// company date format instead of raw ISO. Null falls back to ISO.
   final Formatter? formatter;
 
-  Date? _readDate(String key) {
+  /// Optional card rendered at the top of the tab (the credit
+  /// billing-reference picker). Null for invoice / recurring.
+  final Widget? leading;
+
+  /// React serializes the recurring-invoice period as a single
+  /// pipe-delimited string here rather than the two flat keys
+  /// invoices/credits use.
+  static const _recurringPeriodPath = <Object>[
+    'Invoice',
+    'InvoicePeriod',
+    0,
+    'Description',
+  ];
+
+  Date? _readFlatDate(String key) {
     final raw = vm.eInvoiceOf(vm.draft)?[key];
     if (raw is String) return Date.tryParse(raw);
     return null;
+  }
+
+  ({Date? start, Date? end}) _readPeriod() {
+    if (entityKind == EInvoiceEntityKind.recurringInvoice) {
+      final desc = vm.readEInvoicePath(vm.draft, _recurringPeriodPath);
+      if (desc is String && desc.contains('|')) {
+        final parts = desc.split('|');
+        return (
+          start: Date.tryParse(parts[0]),
+          end: parts.length > 1 ? Date.tryParse(parts[1]) : null,
+        );
+      }
+      // Legacy fallback: recurring records saved before the reconcile still
+      // carry the flat keys — keep reading them so the period isn't lost.
+    }
+    return (
+      start: _readFlatDate('invoice_period_start'),
+      end: _readFlatDate('invoice_period_end'),
+    );
+  }
+
+  void _commitPeriod(Date? start, Date? end) {
+    if (entityKind == EInvoiceEntityKind.recurringInvoice) {
+      // Only emit a valid UBL period when both bounds are present; never
+      // ship a malformed "2026-01-01|".
+      vm.setEInvoicePath(
+        _recurringPeriodPath,
+        (start != null && end != null)
+            ? '${start.toIso()}|${end.toIso()}'
+            : null,
+      );
+      // Drop any legacy flat keys so we never ship both encodings.
+      vm.setEInvoiceField('invoice_period_start', null);
+      vm.setEInvoiceField('invoice_period_end', null);
+      return;
+    }
+    vm.setEInvoiceField('invoice_period_start', start?.toIso());
+    vm.setEInvoiceField('invoice_period_end', end?.toIso());
   }
 
   @override
@@ -80,24 +141,29 @@ class EInvoiceFieldsTab<T> extends StatelessWidget {
               ],
             ),
           ),
+        if (leading != null) ...[
+          leading!,
+          SizedBox(height: InSpacing.lg(context)),
+        ],
         LayoutBuilder(
           builder: (context, constraints) {
+            final period = _readPeriod();
             final start = InDateField(
-              value: _readDate('invoice_period_start')?.toDateTime(),
+              value: period.start?.toDateTime(),
               formatter: formatter,
-              onChanged: (d) => vm.setEInvoiceField(
-                'invoice_period_start',
-                d == null ? null : Date(d.year, d.month, d.day).toIso(),
+              onChanged: (d) => _commitPeriod(
+                d == null ? null : Date(d.year, d.month, d.day),
+                _readPeriod().end,
               ),
               labelText: context.tr('invoice_period_start'),
               clearable: true,
             );
             final end = InDateField(
-              value: _readDate('invoice_period_end')?.toDateTime(),
+              value: period.end?.toDateTime(),
               formatter: formatter,
-              onChanged: (d) => vm.setEInvoiceField(
-                'invoice_period_end',
-                d == null ? null : Date(d.year, d.month, d.day).toIso(),
+              onChanged: (d) => _commitPeriod(
+                _readPeriod().start,
+                d == null ? null : Date(d.year, d.month, d.day),
               ),
               labelText: context.tr('invoice_period_end'),
               clearable: true,
@@ -124,7 +190,7 @@ class EInvoiceFieldsTab<T> extends StatelessWidget {
         ),
         SizedBox(height: InSpacing.md(context)),
         InDateField(
-          value: _readDate('actual_delivery_date')?.toDateTime(),
+          value: _readFlatDate('actual_delivery_date')?.toDateTime(),
           formatter: formatter,
           onChanged: (d) => vm.setEInvoiceField(
             'actual_delivery_date',

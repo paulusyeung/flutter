@@ -246,4 +246,135 @@ abstract class GenericBillingDocEditViewModel<T> extends GenericEditViewModel<T>
       copyWithEInvoice(draft, current.isEmpty ? null : current),
     );
   }
+
+  /// Read a nested value out of the `eInvoice` structure. [path] mixes
+  /// `String` map keys and `int` list indices (UBL arrays serialize as
+  /// JSON arrays, e.g. `['CreditNote', 'BillingReference', 0, ...]`).
+  /// Returns null when any segment is missing.
+  dynamic readEInvoicePath(T draft, List<Object> path) {
+    dynamic node = eInvoiceOf(draft);
+    for (final key in path) {
+      if (key is int) {
+        if (node is List && key >= 0 && key < node.length) {
+          node = node[key];
+        } else {
+          return null;
+        }
+      } else {
+        if (node is Map && node.containsKey(key)) {
+          node = node[key];
+        } else {
+          return null;
+        }
+      }
+    }
+    return node;
+  }
+
+  /// Write a nested value into the `eInvoice` structure, creating
+  /// intermediate `Map`s / `List`s as needed. [path] mixes `String` map
+  /// keys and `int` list indices. Pass null to remove the leaf. After the
+  /// write, empty maps/lists are pruned and an empty root collapses to
+  /// null — same omit-when-empty convention as [setEInvoiceField], so an
+  /// unedited draft never ships `{}` or a partial UBL skeleton.
+  void setEInvoicePath(List<Object> path, dynamic value) {
+    assert(path.isNotEmpty);
+    final root =
+        _deepCloneJson(eInvoiceOf(draft) ?? const <String, dynamic>{})
+            as Map<String, dynamic>;
+    if (value == null) {
+      _removeAtPath(root, path);
+    } else {
+      _setAtPath(root, path, value);
+    }
+    _pruneEmpty(root);
+    updateDraft(copyWithEInvoice(draft, root.isEmpty ? null : root));
+  }
+
+  static dynamic _deepCloneJson(dynamic v) {
+    if (v is Map) {
+      return <String, dynamic>{
+        for (final e in v.entries) e.key as String: _deepCloneJson(e.value),
+      };
+    }
+    if (v is List) return <dynamic>[for (final e in v) _deepCloneJson(e)];
+    return v;
+  }
+
+  static void _setAtPath(dynamic container, List<Object> path, dynamic value) {
+    final key = path.first;
+    if (path.length == 1) {
+      if (key is int) {
+        final list = container as List;
+        while (list.length <= key) {
+          list.add(null);
+        }
+        list[key] = value;
+      } else {
+        (container as Map)[key as String] = value;
+      }
+      return;
+    }
+    final nextKey = path[1];
+    dynamic child;
+    if (key is int) {
+      final list = container as List;
+      while (list.length <= key) {
+        list.add(null);
+      }
+      child = list[key];
+      if (child is! Map && child is! List) {
+        child = nextKey is int ? <dynamic>[] : <String, dynamic>{};
+        list[key] = child;
+      }
+    } else {
+      final map = container as Map;
+      child = map[key as String];
+      if (child is! Map && child is! List) {
+        child = nextKey is int ? <dynamic>[] : <String, dynamic>{};
+        map[key] = child;
+      }
+    }
+    _setAtPath(child, path.sublist(1), value);
+  }
+
+  static void _removeAtPath(dynamic container, List<Object> path) {
+    if (container == null) return;
+    final key = path.first;
+    if (path.length == 1) {
+      if (key is int && container is List) {
+        if (key >= 0 && key < container.length) container.removeAt(key);
+      } else if (container is Map) {
+        container.remove(key);
+      }
+      return;
+    }
+    dynamic child;
+    if (key is int && container is List) {
+      if (key < 0 || key >= container.length) return;
+      child = container[key];
+    } else if (container is Map) {
+      child = container[key];
+    } else {
+      return;
+    }
+    _removeAtPath(child, path.sublist(1));
+  }
+
+  static bool _isEmptyNode(dynamic v) =>
+      v == null || (v is Map && v.isEmpty) || (v is List && v.isEmpty);
+
+  static void _pruneEmpty(dynamic node) {
+    if (node is Map) {
+      for (final k in node.keys.toList()) {
+        _pruneEmpty(node[k]);
+        if (_isEmptyNode(node[k])) node.remove(k);
+      }
+    } else if (node is List) {
+      for (var i = node.length - 1; i >= 0; i--) {
+        _pruneEmpty(node[i]);
+        if (_isEmptyNode(node[i])) node.removeAt(i);
+      }
+    }
+  }
 }
