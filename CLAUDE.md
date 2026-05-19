@@ -278,6 +278,8 @@ The four widgets in `lib/ui/core/widgets/` (`EmptyState`, `ErrorView`, `StatusPi
 
 **Never run integration tests locally.** They steal focus from the developer's session. CI runs them on every PR via `.github/workflows/ci.yaml` against macOS desktop.
 
+**Local runs can't use the CI command.** `flutter test integration_test/ -d macos` only ever works for the *first* file on desktop — [flutter/flutter#135673](https://github.com/flutter/flutter/issues/135673): the tool reuses a debug-connection stream that breaks on the second app launch, so every later file dies with `Error waiting for a debug connection: The log reader stopped unexpectedly, or never started.` → `Unable to start the app on the device.` CI survives the same command only because its runner can't reach `demo.invoiceninja.com`, so the `demo/*` live files self-skip (`skipIfUnreachable`, `integration_test/support/demo_harness.dart`) and `app_smoke_test.dart` is the lone app launch. Locally the demo server *is* reachable, so it bites. For deliberate local verification use `tools/run_integration_local.sh` (one `flutter test` invocation per file = the upstream workaround; mocked suite only by default, `--include-demo` adds the live `demo/*` files). Same focus-stealing caveat applies — not during a focused session.
+
 Stable widget keys (`login_submit`, `lock_unlock`, `lock_sign_out`) keep assertions locale-independent. Add similar keys when extending the test.
 
 When adding scenarios, mock both `/api/v1/login` and `/api/v1/refresh` if the flow authenticates — `_persistAndActivate` calls refresh after a successful login, and `restore()` fires a best-effort refresh too. The shared `_silentNetwork()` helper returns a 500-MockClient for scenarios that don't care about the wire.

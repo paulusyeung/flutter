@@ -14,13 +14,18 @@ final _log = Logger('RecentlyViewedController');
 /// Owns the "recently-viewed entities" list backing the command palette's
 /// "Recent" group.
 ///
-/// Company-scoped, same contract as [NavHistoryController]: the list clears
-/// when the active company changes or on logout — you must not be able to
-/// jump back into another company's records. Persists to the single-row
-/// `nav_state.recent_entities_json` (partial write, same pattern as
-/// [SidebarController]) so recents survive an app restart for the company the
-/// user left off in. Writes are debounced — opening a detail screen is a hot
-/// path and we don't want a DB round-trip per navigation.
+/// **Per-company.** Recents are kept keyed by `companyId`
+/// (`_byCompany`) and persisted as a `{ "<companyId>": [records…] }` JSON
+/// object in the single-row `nav_state.recent_entities_json` (partial
+/// write, same pattern as [SidebarController]). Switching company swaps to
+/// that company's own list (the previous company's recents are preserved,
+/// not cleared); logging back into a company restores its list — across
+/// app restarts too.
+///
+/// Cross-tenant isolation is *structural*: [items] / [record] always read
+/// and write `_byCompany[_currentCompanyId]`, so one company can never see
+/// another's recents (no clear-on-switch/logout machinery needed). Writes
+/// are debounced — opening a detail screen is a hot path.
 class RecentlyViewedController extends ChangeNotifier {
   RecentlyViewedController({
     required AppDatabase db,
@@ -28,11 +33,11 @@ class RecentlyViewedController extends ChangeNotifier {
     this.maxEntries = 12,
     DateTime Function()? now,
     Duration persistDebounce = const Duration(milliseconds: 400),
-  }) : _db = db,
-       _session = session,
-       _now = now ?? DateTime.now,
-       _persistDebounce = persistDebounce {
-    _lastCompanyId = _session.value?.currentCompanyId;
+  })  : _db = db,
+        _session = session,
+        _now = now ?? DateTime.now,
+        _persistDebounce = persistDebounce {
+    _currentCompanyId = _session.value?.currentCompanyId;
     _session.addListener(_onSession);
   }
 
@@ -41,57 +46,74 @@ class RecentlyViewedController extends ChangeNotifier {
   final DateTime Function() _now;
   final Duration _persistDebounce;
 
-  /// Cap on retained entries so the blob (and the palette list) stay small.
+  /// Cap on retained entries **per company** so the blob (and the palette
+  /// list) stay small.
   final int maxEntries;
 
-  final List<RecentRecord> _items = <RecentRecord>[];
-  String? _lastCompanyId;
+  /// Recents keyed by `companyId`. Newest-first within each list.
+  final Map<String, List<RecentRecord>> _byCompany =
+      <String, List<RecentRecord>>{};
+  String? _currentCompanyId;
   Timer? _persistTimer;
 
-  /// Newest first.
-  List<RecentRecord> get items => List.unmodifiable(_items);
+  /// Newest first, scoped to the active company. Empty when logged out
+  /// (no current company) or before the session resolves.
+  List<RecentRecord> get items {
+    final c = _currentCompanyId;
+    if (c == null) return const <RecentRecord>[];
+    return List.unmodifiable(_byCompany[c] ?? const <RecentRecord>[]);
+  }
 
-  /// Load the persisted list on launch. Best-effort: a malformed/legacy blob
-  /// yields an empty list rather than throwing into boot.
+  /// Load the persisted per-company map on launch. Best-effort: a
+  /// malformed blob yields no recents rather than throwing into boot. A
+  /// legacy *array* blob (the pre-per-company single-company shape) can't
+  /// be attributed to a company here — the session hasn't resolved yet at
+  /// boot — so it's dropped (a one-time, low-value loss on upgrade).
   Future<void> restore() async {
     try {
       final raw = (await _db.navStateDao.current())?.recentEntitiesJson;
       if (raw == null || raw.isEmpty) return;
       final decoded = jsonDecode(raw);
-      if (decoded is! List) return;
-      _items
-        ..clear()
-        ..addAll(
-          decoded
-              .map(RecentRecord.tryFromJson)
-              .whereType<RecentRecord>()
-              .take(maxEntries),
-        );
+      if (decoded is! Map) return; // legacy List shape → dropped
+      _byCompany.clear();
+      decoded.forEach((companyId, list) {
+        if (companyId is! String || list is! List) return;
+        final records = list
+            .map(RecentRecord.tryFromJson)
+            .whereType<RecentRecord>()
+            .take(maxEntries)
+            .toList();
+        if (records.isNotEmpty) _byCompany[companyId] = records;
+      });
       notifyListeners();
     } catch (e, st) {
       _log.warning('Failed to restore recently-viewed', e, st);
     }
   }
 
-  /// Record (or refresh) a visited entity. De-dupes by (type, id): an
-  /// already-present entity moves to the front with a fresh timestamp +
-  /// the latest label (names change). No-ops on an empty id.
+  /// Record (or refresh) a visited entity for the **active company**.
+  /// De-dupes by (type, id): an already-present entity moves to the front
+  /// with a fresh timestamp + the latest label (names change). No-ops on
+  /// an empty id or when there's no active company (logged out).
   void record({
     required EntityType type,
     required String id,
     required String label,
   }) {
-    if (id.isEmpty) return;
+    final company = _currentCompanyId;
+    if (id.isEmpty || company == null) return;
     final entry = RecentRecord(
       type: type,
       id: id,
       label: label,
       viewedAt: _now(),
     );
-    _items.removeWhere(entry.sameEntity);
-    _items.insert(0, entry);
-    if (_items.length > maxEntries) {
-      _items.removeRange(maxEntries, _items.length);
+    final list = _byCompany.putIfAbsent(company, () => <RecentRecord>[]);
+    list
+      ..removeWhere(entry.sameEntity)
+      ..insert(0, entry);
+    if (list.length > maxEntries) {
+      list.removeRange(maxEntries, list.length);
     }
     notifyListeners();
     _schedulePersist();
@@ -104,46 +126,31 @@ class RecentlyViewedController extends ChangeNotifier {
 
   Future<void> _persist() async {
     try {
+      final payload = <String, dynamic>{
+        for (final entry in _byCompany.entries)
+          if (entry.value.isNotEmpty)
+            entry.key: entry.value.map((r) => r.toJson()).toList(),
+      };
       await _db.navStateDao.saveRecentEntities(
-        recentEntitiesJson: _items.isEmpty
-            ? null
-            : jsonEncode(_items.map((r) => r.toJson()).toList()),
+        recentEntitiesJson: payload.isEmpty ? null : jsonEncode(payload),
         now: _now().millisecondsSinceEpoch,
       );
     } catch (e, st) {
-      // A failed write doesn't roll back the in-memory list — the user still
-      // sees their recents until next launch.
+      // A failed write doesn't roll back the in-memory map — the user
+      // still sees their recents until next launch.
       _log.warning('Failed to persist recently-viewed', e, st);
     }
   }
 
+  /// Active company changed (switch / login / logout). Just swap which
+  /// company's list [items] reflects — no clearing, no scrub: storage is
+  /// keyed by company, so the previous company's recents stay intact and
+  /// resurface when the user returns to it.
   void _onSession() {
     final companyId = _session.value?.currentCompanyId;
-    if (companyId == _lastCompanyId) return;
-    final previous = _lastCompanyId;
-    _lastCompanyId = companyId;
-    // Skip ONLY the initial `null → firstCompany` resolution at boot: this
-    // controller is constructed before `auth.restore()`, so `_lastCompanyId`
-    // is null on first run — treating that as a switch would wipe (and
-    // persist-null over) the blob `restore()` just loaded.
-    //
-    // Every other transition with a non-null `previous` clears in-memory,
-    // including logout (A → null). `restore()` runs once at boot only, so a
-    // logout-then-login-to-a-different-company within one app run would
-    // otherwise leave A's recents in `_items` and surface them in B's
-    // command palette (the persisted blob is wiped by `db.wipe()` on
-    // logout, but the in-memory list is not). After logout clears it, the
-    // following null → B is the harmless boot-style adopt with `_items`
-    // already empty.
-    if (previous == null) return;
-    // Real switch / logout: drop the previous company's recents and scrub
-    // the shared single-row blob so they can't resurface on the next
-    // restart while the new company is active.
-    if (_items.isNotEmpty) {
-      _items.clear();
-      notifyListeners();
-    }
-    _schedulePersist();
+    if (companyId == _currentCompanyId) return;
+    _currentCompanyId = companyId;
+    notifyListeners();
   }
 
   @override

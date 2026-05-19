@@ -7,19 +7,19 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/repositories/auth/auth_session.dart';
 import 'package:admin/domain/entity_type.dart';
 
-/// Targets RecentlyViewedController's contract: de-dupe + move-to-front +
-/// cap, company-scoped clear off the session notifier (same guarantee as
-/// NavHistoryController), and a persistence round-trip through the single-row
-/// nav_state table. Debounce is set to zero so a single event-loop turn
-/// flushes the write.
+/// Targets RecentlyViewedController's per-company contract: de-dupe +
+/// move-to-front + per-company cap, `items`/`record` scoped to the active
+/// company (switching swaps lists, previous company preserved), and a
+/// keyed `{companyId: [...]}` persistence round-trip through the single-row
+/// nav_state blob. Debounce is zero so one event-loop turn flushes.
 
 AuthSession _session(String companyId) => AuthSession(
-  baseUrl: 'https://example.com',
-  isHosted: true,
-  accountId: 'acc',
-  companies: const [],
-  currentCompanyId: companyId,
-);
+      baseUrl: 'https://example.com',
+      isHosted: true,
+      accountId: 'acc',
+      companies: const [],
+      currentCompanyId: companyId,
+    );
 
 void main() {
   late AppDatabase db;
@@ -57,8 +57,6 @@ void main() {
     c.record(type: EntityType.invoice, id: 'i1', label: '#1001');
     expect(c.items.map((r) => r.id), ['i1', 'c1']);
 
-    // Re-visiting an existing entity moves it to the front with the new
-    // label, not a duplicate.
     c.record(type: EntityType.client, id: 'c1', label: 'Acme Inc');
     expect(c.items.map((r) => r.id), ['c1', 'i1']);
     expect(c.items.length, 2);
@@ -72,7 +70,15 @@ void main() {
     expect(c.items, isEmpty);
   });
 
-  test('caps at maxEntries, dropping the oldest', () {
+  test('record is a no-op when logged out (no active company)', () {
+    final c = build();
+    addTearDown(c.dispose);
+    session.value = null;
+    c.record(type: EntityType.client, id: 'c1', label: 'Acme');
+    expect(c.items, isEmpty);
+  });
+
+  test('caps at maxEntries per company, dropping the oldest', () {
     final c = build(maxEntries: 3);
     addTearDown(c.dispose);
     for (var i = 0; i < 5; i++) {
@@ -81,111 +87,125 @@ void main() {
     expect(c.items.map((r) => r.id), ['t4', 't3', 't2']);
   });
 
-  test('clears on company switch', () {
-    final c = build();
-    addTearDown(c.dispose);
-    c.record(type: EntityType.client, id: 'c1', label: 'Acme');
-    expect(c.items, isNotEmpty);
-
-    session.value = _session('co_2');
-    expect(c.items, isEmpty);
-  });
-
-  test('logout (real company -> null) clears in-memory', () {
-    // `restore()` runs once at boot only; logout wipes the persisted blob
-    // but not `_items`. If logout didn't clear in-memory, a
-    // logout→login-to-a-different-company within one app run would surface
-    // company A's recents in company B's palette.
-    final c = build();
-    addTearDown(c.dispose);
-    c.record(type: EntityType.client, id: 'c1', label: 'Acme');
-
-    session.value = null;
-    expect(c.items, isEmpty);
-  });
-
-  test('logout then login to a DIFFERENT company does not leak recents', () {
-    final c = build(); // session starts at co_1
+  test('each company keeps its own list; switching swaps, not clears', () {
+    final c = build(); // co_1
     addTearDown(c.dispose);
     c.record(type: EntityType.client, id: 'a1', label: 'A Co');
 
-    session.value = null; // logout → clears in-memory
-    session.value = _session('co_2'); // login to a different company
-    expect(c.items, isEmpty);
+    session.value = _session('co_2'); // switch
+    expect(c.items, isEmpty); // co_2 has none yet
+    c.record(type: EntityType.invoice, id: 'b1', label: '#B');
+
+    session.value = _session('co_1'); // switch back
+    expect(c.items.map((r) => r.id), ['a1']); // co_1 preserved
+
+    session.value = _session('co_2');
+    expect(c.items.map((r) => r.id), ['b1']); // co_2 preserved
   });
 
-  test(
-    'null→company resolution at boot does not clear restored items',
-    () async {
-      // Reproduces the real boot ordering: the controller is constructed
-      // before auth.restore(), so the session starts null; restore() loads
-      // the blob; THEN the session resolves to a company. That null→company
-      // transition must be adopt-not-switch or recents never survive restart.
-      final boot = ValueNotifier<AuthSession?>(null);
-      addTearDown(boot.dispose);
+  test('logout hides recents; relogin restores that company list', () {
+    final c = build(); // co_1
+    addTearDown(c.dispose);
+    c.record(type: EntityType.client, id: 'c1', label: 'Acme');
 
-      // Seed a persisted blob, then build a fresh null-session controller.
-      final seed = build();
-      seed.record(type: EntityType.invoice, id: 'i1', label: '#1001');
-      await flush();
-      seed.dispose();
+    session.value = null; // logout
+    expect(c.items, isEmpty);
 
-      final c = RecentlyViewedController(
-        db: db,
-        session: boot,
-        now: () => clock,
-        persistDebounce: Duration.zero,
-      );
-      addTearDown(c.dispose);
-      await c.restore();
-      expect(c.items.map((r) => r.id), ['i1']);
+    session.value = _session('co_1'); // log back into the same company
+    expect(c.items.map((r) => r.id), ['c1']);
+  });
 
-      // Auth restore now activates the company — must NOT wipe the restored
-      // list.
-      boot.value = _session('co_1');
-      expect(c.items.map((r) => r.id), ['i1']);
-    },
-  );
+  test('logout then login to a DIFFERENT company shows only its recents',
+      () {
+    final c = build(); // co_1
+    addTearDown(c.dispose);
+    c.record(type: EntityType.client, id: 'a1', label: 'A Co');
 
-  test('persists and restores across a fresh controller', () async {
-    final c1 = build();
+    session.value = null;
+    session.value = _session('co_2');
+    expect(c.items, isEmpty); // co_2's own (empty) list — no leak
+
+    session.value = _session('co_1');
+    expect(c.items.map((r) => r.id), ['a1']); // co_1 still intact
+  });
+
+  test('boot: restore loads the keyed map; session resolve shows it',
+      () async {
+    // Controller is constructed before auth.restore(); session starts null.
+    final seed = build(); // records under co_1
+    seed.record(type: EntityType.invoice, id: 'i1', label: '#1001');
+    await flush();
+    seed.dispose();
+
+    final boot = ValueNotifier<AuthSession?>(null);
+    addTearDown(boot.dispose);
+    final c = RecentlyViewedController(
+      db: db,
+      session: boot,
+      now: () => clock,
+      persistDebounce: Duration.zero,
+    );
+    addTearDown(c.dispose);
+    await c.restore();
+    expect(c.items, isEmpty); // no active company yet
+
+    boot.value = _session('co_1'); // auth resolves
+    expect(c.items.map((r) => r.id), ['i1']);
+  });
+
+  test('persists + restores per company across a fresh controller',
+      () async {
+    final c1 = build(); // co_1
     c1.record(type: EntityType.invoice, id: 'i1', label: '#1001');
     c1.record(type: EntityType.client, id: 'c1', label: 'Acme');
+    session.value = _session('co_2');
+    c1.record(type: EntityType.task, id: 't1', label: 'Task');
     await flush();
     c1.dispose();
 
+    session.value = _session('co_1'); // a fresh boot starts at co_1
     final c2 = build();
     addTearDown(c2.dispose);
     expect(c2.items, isEmpty); // not loaded until restore()
     await c2.restore();
 
-    expect(c2.items.map((r) => r.id), ['c1', 'i1']);
-    expect(c2.items.first.type, EntityType.client);
-    expect(c2.items.first.label, 'Acme');
+    expect(c2.items.map((r) => r.id), ['c1', 'i1']); // co_1's list
+    session.value = _session('co_2');
+    expect(c2.items.map((r) => r.id), ['t1']); // co_2's list
   });
 
-  test('a malformed/legacy blob restores to empty, not a throw', () async {
+  test('a malformed blob restores to empty, not a throw', () async {
     await db.navStateDao.saveRecentEntities(
       recentEntitiesJson: '{not valid json',
       now: clock.millisecondsSinceEpoch,
     );
     final c = build();
     addTearDown(c.dispose);
-
     await c.restore();
     expect(c.items, isEmpty);
   });
 
-  test('an unknown entity-type name is dropped, valid entries kept', () async {
+  test('a legacy array blob (pre-per-company) is dropped', () async {
     await db.navStateDao.saveRecentEntities(
-      recentEntitiesJson:
-          '[{"t":"client","i":"c1","l":"Acme","v":0},'
-          '{"t":"not_an_entity","i":"x","l":"X","v":0}]',
+      recentEntitiesJson: '[{"t":"client","i":"c1","l":"Acme","v":0}]',
       now: clock.millisecondsSinceEpoch,
     );
     final c = build();
     addTearDown(c.dispose);
+    await c.restore();
+    expect(c.items, isEmpty); // can't attribute to a company at boot
+  });
 
+  test('unknown entity-type names are dropped, valid entries kept',
+      () async {
+    await db.navStateDao.saveRecentEntities(
+      recentEntitiesJson:
+          '{"co_1":[{"t":"client","i":"c1","l":"Acme","v":0},'
+          '{"t":"not_an_entity","i":"x","l":"X","v":0}]}',
+      now: clock.millisecondsSinceEpoch,
+    );
+    final c = build(); // co_1
+    addTearDown(c.dispose);
     await c.restore();
     expect(c.items.map((r) => r.id), ['c1']);
   });
