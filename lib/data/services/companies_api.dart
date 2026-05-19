@@ -1,9 +1,8 @@
-import 'package:http/http.dart' as http;
-
 import 'package:admin/data/models/api/company_api_model.dart';
 import 'package:admin/data/services/api_client.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/base_entity_api.dart';
+import 'package:admin/data/services/upload_source.dart';
 
 /// Concrete API for `/api/v1/companies`. Companies are a singleton-per-tenant
 /// (no list/create/delete from this app) but we still extend [BaseEntityApi]
@@ -34,10 +33,10 @@ class CompaniesApi extends BaseEntityApi<CompanyItemApi, CompanyItemApi> {
   /// the new URL.
   Future<CompanyItemApi> uploadLogo({
     required String companyId,
-    required String filePath,
+    required UploadSource source,
     required String idempotencyKey,
   }) async {
-    final file = await http.MultipartFile.fromPath('company_logo', filePath);
+    final file = await source.toMultipartFile('company_logo');
     final raw = await client.uploadMultipart(
       path: '$basePath/$companyId/upload',
       fields: const {'_method': 'POST'},
@@ -51,10 +50,10 @@ class CompaniesApi extends BaseEntityApi<CompanyItemApi, CompanyItemApi> {
   /// refreshed company envelope (documents nested inside).
   Future<CompanyItemApi> uploadDocument({
     required String companyId,
-    required String filePath,
+    required UploadSource source,
     required String idempotencyKey,
   }) async {
-    final file = await http.MultipartFile.fromPath('documents[]', filePath);
+    final file = await source.toMultipartFile('documents[]');
     final raw = await client.uploadMultipart(
       path: '$basePath/$companyId/upload',
       fields: const {'_method': 'POST'},
@@ -123,13 +122,10 @@ class CompaniesApi extends BaseEntityApi<CompanyItemApi, CompanyItemApi> {
   /// to true and returns the refreshed envelope.
   Future<CompanyItemApi> uploadEInvoiceCertificate({
     required String companyId,
-    required String filePath,
+    required UploadSource source,
     required String idempotencyKey,
   }) async {
-    final file = await http.MultipartFile.fromPath(
-      'e_invoice_certificate',
-      filePath,
-    );
+    final file = await source.toMultipartFile('e_invoice_certificate');
     final raw = await client.uploadMultipart(
       path: '$basePath/$companyId/upload',
       fields: const {'_method': 'POST'},
@@ -167,7 +163,7 @@ class CompaniesApi extends BaseEntityApi<CompanyItemApi, CompanyItemApi> {
   /// no `corppass_url` → `corppassUrl` is null and registration is
   /// immediate (identical to [peppolSetup]).
   Future<({CompanyItemApi company, String? corppassUrl})>
-      peppolSetupWithRedirect({
+  peppolSetupWithRedirect({
     required Map<String, dynamic> payload,
     required String idempotencyKey,
   }) async {

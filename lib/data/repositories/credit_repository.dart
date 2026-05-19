@@ -15,6 +15,7 @@ import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/credits_api.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
+import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/domain/sync/mutation.dart';
 
 final _log = Logger('CreditRepository');
@@ -364,13 +365,13 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
   Future<void> uploadDocument({
     required String companyId,
     required String entityId,
-    required String localPath,
+    required UploadSource source,
   }) =>
       enqueueMutation(
         companyId: companyId,
         entityId: entityId,
         kind: MutationKind.documentUpload,
-        payload: {'entity_id': entityId, 'local_path': localPath},
+        payload: {'entity_id': entityId, ...source.toPayload()},
       );
 
   Future<void> deleteDocument({

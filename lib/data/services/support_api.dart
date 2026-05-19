@@ -1,5 +1,3 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter/foundation.dart';
 
 import 'package:admin/data/services/api_client.dart';
@@ -41,12 +39,19 @@ class SupportApi {
   /// `admin-portal/lib/utils/platforms.dart:183-200`.
   static String _platformLetter() {
     if (kIsWeb) return 'C';
-    if (Platform.isIOS) return 'I';
-    if (Platform.isAndroid) return 'A';
-    if (Platform.isMacOS) return 'M';
-    if (Platform.isWindows) return 'W';
-    if (Platform.isLinux) return 'L';
-    if (Platform.isFuchsia) return 'F';
-    return 'U';
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.iOS:
+        return 'I';
+      case TargetPlatform.android:
+        return 'A';
+      case TargetPlatform.macOS:
+        return 'M';
+      case TargetPlatform.windows:
+        return 'W';
+      case TargetPlatform.linux:
+        return 'L';
+      case TargetPlatform.fuchsia:
+        return 'F';
+    }
   }
 }

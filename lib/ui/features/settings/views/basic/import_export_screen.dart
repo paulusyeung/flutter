@@ -2,11 +2,13 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/data/models/domain/bank_account.dart';
 import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/data/models/domain/import_preview.dart';
@@ -80,7 +82,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
   final Map<int, String> _map = {};
 
   // Company-migration (import_json) state — independent of the CSV flow.
-  File? _migrationFile;
+  UploadSource? _migrationSource;
   String? _migrationFileName;
   bool _migrationImportSettings = true;
   bool _migrationBusy = false;
@@ -109,7 +111,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     if (picked == null || picked.files.isEmpty) return;
     final f = picked.files.first;
     var bytes = f.bytes;
-    if (bytes == null && f.path != null) {
+    if (bytes == null && !kIsWeb && f.path != null) {
       bytes = await File(f.path!).readAsBytes();
     }
     if (bytes == null) {
@@ -230,33 +232,39 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       type: FileType.custom,
       allowedExtensions: const ['zip', 'json'],
       allowMultiple: false,
+      withData: kIsWeb,
     );
     if (picked == null || picked.files.isEmpty) return;
     final f = picked.files.first;
     final path = f.path;
-    if (path == null) {
+    final UploadSource source;
+    if (!kIsWeb && path != null) {
+      source = fileUploadSource(path);
+    } else if (f.bytes != null) {
+      source = BytesUploadSource(f.bytes!, f.name);
+    } else {
       if (mounted) Notify.error(context, context.tr('no_file_selected'));
       return;
     }
     setState(() {
-      _migrationFile = File(path);
+      _migrationSource = source;
       _migrationFileName = f.name;
     });
   }
 
   Future<void> _runMigration() async {
-    final file = _migrationFile;
-    if (file == null) return;
+    final source = _migrationSource;
+    if (source == null) return;
     setState(() => _migrationBusy = true);
     try {
       await _api.runMigration(
-        file: file,
+        source: source,
         importSettings: _migrationImportSettings,
       );
       if (!mounted) return;
       Notify.success(context, context.tr('import_started'));
       setState(() {
-        _migrationFile = null;
+        _migrationSource = null;
         _migrationFileName = null;
       });
     } on Object catch (e) {
@@ -297,7 +305,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
           alignment: Alignment.centerRight,
           child: FilledButton(
             style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
-            onPressed: (_migrationFile == null || _migrationBusy)
+            onPressed: (_migrationSource == null || _migrationBusy)
                 ? null
                 : _runMigration,
             child: _migrationBusy

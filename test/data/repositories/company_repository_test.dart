@@ -10,6 +10,7 @@ import 'package:admin/data/models/api/client_registration_field_api_model.dart';
 import 'package:admin/data/models/api/company_api_model.dart';
 import 'package:admin/data/repositories/company_repository.dart';
 import 'package:admin/data/services/companies_api.dart';
+import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/domain/sync/mutation.dart';
 
 class _FakeCompaniesApi implements CompaniesApi {
@@ -399,7 +400,10 @@ void main() {
       await seedCompany(companyId);
       final repo = makeRepo();
 
-      await repo.uploadLogo(companyId: companyId, localPath: '/tmp/logo.png');
+      await repo.uploadLogo(
+        companyId: companyId,
+        source: fileUploadSource('/tmp/logo.png'),
+      );
 
       final pending = await db.outboxDao.nextReady(
         companyId: companyId,

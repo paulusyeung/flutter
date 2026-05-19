@@ -63,6 +63,14 @@ jobs:
             exit 1
           fi
 
+      # Web compile gate. Cheap, and the authoritative check for web-platform
+      # regressions: `flutter analyze` runs against the VM target and won't
+      # catch a native-only API leaking into the reachable web tree. The
+      # native-assets hook (`hooks: user_defines: sqlite3: source: sqlite3mc`)
+      # targets native builds and is inert here.
+      - name: Build web (compile gate)
+        run: flutter build web --release
+
       - name: Build iOS (no codesign)
         run: flutter build ios --no-codesign
 
@@ -111,3 +119,46 @@ jobs:
           path: build/integration-failures/
           if-no-files-found: ignore
           retention-days: 14
+
+  # Web integration smoke. Separate job (cheap Ubuntu runner, headless
+  # Chrome) so it runs in parallel with the macOS suite. Only the mocked
+  # app_smoke_test.dart runs here — it uses in-memory Drift +
+  # InMemoryTokenStorage + MockClient, all web-compatible. The live demo/*
+  # suite and filesystem/secure-storage unit tests are @TestOn('vm') /
+  # macOS-only and intentionally don't run on web. Non-blocking for now
+  # (continue-on-error) until the headless-Chrome path proves stable; flip
+  # to blocking once it has a green track record. See CLAUDE.md §
+  # Integration tests.
+  integration-web:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Enable web
+        run: flutter config --enable-web
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - uses: nanasess/setup-chromedriver@v2
+
+      - name: Start chromedriver
+        run: chromedriver --port=4444 &
+
+      - name: Integration smoke (Chrome, headless)
+        timeout-minutes: 20
+        run: |
+          flutter drive \
+            --driver=test_driver/integration_test.dart \
+            --target=integration_test/app_smoke_test.dart \
+            -d web-server \
+            --browser-name=chrome \
+            --headless

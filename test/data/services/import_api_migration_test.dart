@@ -5,6 +5,7 @@ import 'package:admin/data/services/api_client.dart';
 import 'package:admin/data/services/api_credentials.dart';
 import 'package:admin/data/services/import_api.dart';
 import 'package:admin/data/services/password_cache.dart';
+import 'package:admin/data/services/upload_source.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -51,7 +52,7 @@ void main() {
         }),
       );
 
-      await ImportApi(client).runMigration(file: file, importSettings: true);
+      await ImportApi(client).runMigration(source: fileUploadSource(file.path), importSettings: true);
 
       expect(requests, hasLength(1), reason: 'tiny file → single chunk');
       final req = requests.single;
@@ -84,7 +85,7 @@ void main() {
         }),
       );
 
-      await ImportApi(client).runMigration(file: file, importSettings: false);
+      await ImportApi(client).runMigration(source: fileUploadSource(file.path), importSettings: false);
 
       expect(_multipartField(captured.bodyBytes, 'import_settings'), 'false');
     });

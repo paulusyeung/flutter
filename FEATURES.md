@@ -305,7 +305,7 @@ the honest default.
 | Project — list | ✅ | ✅ | ✅ | ✅ | 🟡 |
 | Project — detail | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Project — edit | ✅ | ✅ | ✅ | ✅ | |
-| Project — create | ✅ | ✅ | ✅ | ✅ | |
+| Project — create | ✅ | ✅ | ✅ | ✅ | 🟡 |
 | Project — clone | ✅ | ✅ | ✅ | ✅ | |
 | Project — "New task" shortcut (prefills project) | ✅ | ✅ | ✅ | ✅ | |
 | Project — view project tasks | ✅ | ✅ | ✅ | ✅ | |
@@ -329,7 +329,7 @@ the honest default.
 | Task — kanban board view | ✅ | ✅ | ✅ | ✅ | |
 | Task — detail | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Task — edit | ✅ | ✅ | ✅ | ✅ | |
-| Task — create | ✅ | ✅ | ✅ | ✅ | |
+| Task — create | ✅ | ✅ | ✅ | ✅ | 🟡 |
 | Task — clone | ✅ | ✅ | ✅ | ✅ | |
 | Task — timer start | ✅ | ✅ | ✅ | ✅ | |
 | Task — timer stop | ✅ | ✅ | ✅ | ✅ | |
@@ -1183,7 +1183,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Bank account list | ✅ | 🟡 | ✅ | ✅ | |
+| Bank account list | ✅ | 🟡 | ✅ | ✅ | 🟡 |
 | Connect bank (Yodlee / Plaid) | ✅ | 🟡 | ✅ | ✅ | |
 | Manual bank account fields | ✅ | ✅ | ✅ | ✅ | |
 | Edit / archive / delete bank account | ✅ | ✅ | ✅ | ✅ | |
@@ -1224,7 +1224,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Payment link list | ✅ | ✅ | ✅ | ✅ | |
+| Payment link list | ✅ | ✅ | ✅ | ✅ | 🟡 |
 | Create recurring payment link | ✅ | ✅ | ✅ | ✅ | |
 | Subscription pricing / frequency | ✅ | ✅ | ✅ | ✅ | |
 | Edit / cancel subscription | ✅ | ✅ | ✅ | ✅ | |
@@ -1235,7 +1235,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Schedule list | ✅ | ✅ | ✅ | ✅ | |
+| Schedule list | ✅ | ✅ | ✅ | ✅ | 🟡 |
 | Create email schedule | ✅ | ✅ | ✅ | ✅ | |
 | Schedule frequency / timing | ✅ | ✅ | ✅ | ✅ | |
 | Report-delivery schedule | ✅ | ✅ | ✅ | ✅ | |
@@ -1271,7 +1271,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Task status list | ✅ | ✅ | ✅ | ✅ | |
+| Task status list | ✅ | ✅ | ✅ | ✅ | 🟡 |
 | Create / edit task status (Name) | ✅ | ✅ | ✅ | ✅ | |
 | Task status color picker | ✅ | ✅ | ✅ | ✅ | |
 | Task status reordering | ✅ | ✅ | ✅ | ✅ | |
@@ -1281,7 +1281,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Expense category list | ✅ | ✅ | ✅ | ✅ | |
+| Expense category list | ✅ | ✅ | ✅ | ✅ | 🟡 |
 | Create / edit expense category (Name) | ✅ | ✅ | ✅ | ✅ | |
 | Expense category color | ✅ | ✅ | ✅ | ✅ | |
 | Expense category archive / restore / delete / purge | ✅ | ✅ | ✅ | ✅ | |
@@ -1306,8 +1306,8 @@ Field-level breakdown of every option under each advanced settings panel. Source
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Gateway list | ✅ | ✅ | ✅ | ✅ | |
-| Gateway detail | ✅ | ✅ | ✅ | ✅ | |
+| Gateway list | ✅ | ✅ | ✅ | ✅ | 🟡 |
+| Gateway detail | ✅ | ✅ | ✅ | ✅ | 🟡 |
 | Gateway edit | ✅ | ✅ | ✅ | ✅ | |
 | Gateway create / add | ✅ | ✅ | ✅ | ✅ | |
 | Gateway disconnect / deactivate | ✅ | ✅ | ✅ | ✅ | |
@@ -1410,3 +1410,8 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | OS deep links / universal links | — | ✅ | ✅ | ✅ | |
 | Native window-state persistence (macOS) | — | ❌ | ✅ | ✅ | |
 | OAuth deep-link handler (callback URL) | — | ✅ | ✅ | ✅ | |
+| Web platform support (`flutter build web`) | ✅ | — | ✅ | | |
+| Web persistence (drift WASM / IndexedDB, unencrypted) | — | — | ✅ | | |
+| Web auth token storage (localStorage) | — | — | ✅ | | |
+| Web data writes (blocked on server `Idempotency-Key` CORS — see BACKEND.md) | — | — | 🟡 | | |
+| Biometric / IAP / native-window / OAuth-login on web | — | — | — | | |

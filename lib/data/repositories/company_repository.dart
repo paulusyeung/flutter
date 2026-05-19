@@ -13,6 +13,7 @@ import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/companies_api.dart';
 import 'package:admin/domain/entity_type.dart';
+import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/domain/sync/mutation.dart';
 
 final _log = Logger('CompanyRepository');
@@ -239,26 +240,26 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
   /// network availability.
   Future<void> uploadLogo({
     required String companyId,
-    required String localPath,
+    required UploadSource source,
   }) async {
     await enqueueMutation(
       companyId: companyId,
       entityId: companyId,
       kind: MutationKind.update,
-      payload: {'_action': 'upload_logo', 'local_path': localPath},
+      payload: {'_action': 'upload_logo', ...source.toPayload()},
     );
   }
 
   /// Enqueue a document upload (multipart).
   Future<void> uploadDocument({
     required String companyId,
-    required String localPath,
+    required UploadSource source,
   }) async {
     await enqueueMutation(
       companyId: companyId,
       entityId: companyId,
       kind: MutationKind.update,
-      payload: {'_action': 'upload_document', 'local_path': localPath},
+      payload: {'_action': 'upload_document', ...source.toPayload()},
     );
   }
 
@@ -272,13 +273,13 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
   /// between save and network availability.
   Future<void> enqueueEInvoiceCertificateUpload({
     required String companyId,
-    required String localPath,
+    required UploadSource source,
   }) async {
     await enqueueMutation(
       companyId: companyId,
       entityId: companyId,
       kind: MutationKind.uploadEInvoiceCertificate,
-      payload: {'local_path': localPath},
+      payload: {...source.toPayload()},
     );
   }
 
@@ -541,7 +542,9 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
         convertProducts: Value(serverResponse.convertProducts),
         convertRateToClient: Value(serverResponse.convertRateToClient),
         stopOnUnpaidRecurring: Value(serverResponse.stopOnUnpaidRecurring),
-        useQuoteTermsOnConversion: Value(serverResponse.useQuoteTermsOnConversion),
+        useQuoteTermsOnConversion: Value(
+          serverResponse.useQuoteTermsOnConversion,
+        ),
         autoStartTasks: Value(serverResponse.autoStartTasks),
         showTaskEndDate: Value(serverResponse.showTaskEndDate),
         showTasksTable: Value(serverResponse.showTasksTable),
@@ -552,7 +555,9 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
           serverResponse.invoiceTaskItemDescription,
         ),
         invoiceTaskProject: Value(serverResponse.invoiceTaskProject),
-        invoiceTaskProjectHeader: Value(serverResponse.invoiceTaskProjectHeader),
+        invoiceTaskProjectHeader: Value(
+          serverResponse.invoiceTaskProjectHeader,
+        ),
         invoiceTaskLock: Value(serverResponse.invoiceTaskLock),
         invoiceTaskDocuments: Value(serverResponse.invoiceTaskDocuments),
         markExpensesInvoiceable: Value(serverResponse.markExpensesInvoiceable),

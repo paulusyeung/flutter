@@ -1,13 +1,7 @@
-import 'dart:io';
-import 'dart:math';
-
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
-import 'package:flutter/services.dart' show PlatformException;
-import 'package:admin/data/services/token_storage.dart' show kSecureStorage;
 import 'package:logging/logging.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+
+import 'package:admin/data/db/database_opener.dart';
 
 import 'package:admin/data/db/dao/bank_account_dao.dart';
 import 'package:admin/data/db/dao/bank_transaction_dao.dart';
@@ -243,102 +237,37 @@ class AppDatabase extends _$AppDatabase {
   }
 }
 
-/// Open the app database with recovery if the file is corrupt or its schema
-/// has drifted from what the generated code expects.
+/// Open the app database with recovery if the underlying store is corrupt
+/// or its schema has drifted from what the generated code expects.
 ///
-/// Two failure modes trigger recovery (rename `<name>` → `<name>.broken.<ts>`
-/// + open fresh + return `wasReset: true` so `main` routes the user to
-/// `/login`):
-///   1. Open / probe fails (corrupt sqlite file, irreconcilable downgrade).
+/// Platform specifics live behind [openDatabaseExecutor] /
+/// [destroyDatabaseStore] in `database_opener.dart`: an encrypted SQLCipher
+/// file (keyed from the OS keychain) on native, an unencrypted IndexedDB /
+/// OPFS store via drift WASM on web. This orchestrator — the `SELECT 1`
+/// probe, the [isSchemaIntact] check, and the catch→reset flow — is
+/// platform-agnostic and identical on every target.
+///
+/// Two failure modes trigger recovery (destroy the store + open fresh +
+/// return `wasReset: true` so `main` routes the user to `/login`):
+///   1. Open / probe fails (corrupt store, irreconcilable downgrade).
 ///   2. Open succeeds but a table is missing a column the code expects —
 ///      i.e. a prior schema migration didn't fully apply on this device.
 ///      Without this backstop a missing column surfaces as a fatal
 ///      `SqliteException` deep inside login (`_persistAndActivate` INSERT)
 ///      with no path forward for the user. Caught here, the user just sees
 ///      "/login" and a fresh sync.
-/// Where the SQLCipher key lives in the OS keychain. v1 — bump on format
-/// changes (e.g. moving from raw-bytes to a passphrase-derived key).
-const _kDbEncryptionKeyName = 'invoiceninja.db.key.v1';
-
-/// Fetch the per-install database encryption key, generating one on first
-/// launch. The key is 256 random bits, hex-encoded, stored in the platform
-/// keychain via [FlutterSecureStorage] (same trust boundary as auth tokens).
-///
-/// Returned as a hex string suitable for the raw-bytes form of `PRAGMA key`
-/// — `"x'<hex>'"` — so SQLCipher uses it directly without PBKDF2 derivation.
-Future<String> _getOrCreateDbKey() async {
-  // kSecureStorage pins iOS/macOS Keychain accessibility to
-  // first_unlock_this_device — see token_storage.dart for the rationale.
-  // Both call sites (auth tokens, this DB key) MUST use the same instance
-  // so they land in the same keychain compartment.
-  const secure = kSecureStorage;
-  final existing = await secure.read(key: _kDbEncryptionKeyName);
-  if (existing != null && existing.length == 64) return existing;
-  final rng = Random.secure();
-  final bytes = List<int>.generate(32, (_) => rng.nextInt(256));
-  final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
-  try {
-    await secure.write(key: _kDbEncryptionKeyName, value: hex);
-  } on PlatformException catch (e) {
-    // errSecDuplicateItem (-25299) on macOS: an orphan item exists under
-    // the same account name but our read() couldn't see its value. Common
-    // after dev-build code-signing churn (the previous build wrote the
-    // key under a different signing identity / accessibility flag than the
-    // one we read with). We can't recover the existing key — delete the
-    // orphan and retry. The SQLite file encrypted with the old key becomes
-    // unreadable, but `openWithRecovery` below already handles that by
-    // renaming it to `.broken.<ts>` and starting fresh. Better a fresh DB
-    // than a blank window.
-    if (e.code == '-25299' ||
-        (e.message?.contains('already exists in the keychain') ?? false)) {
-      await secure.delete(key: _kDbEncryptionKeyName);
-      await secure.write(key: _kDbEncryptionKeyName, value: hex);
-    } else {
-      rethrow;
-    }
-  }
-  return hex;
-}
-
 Future<({AppDatabase db, bool wasReset})> openAppDatabase() async {
-  final dir = await getApplicationSupportDirectory();
-  final file = File(p.join(dir.path, 'invoiceninja.sqlite'));
-  final key = await _getOrCreateDbKey();
-
-  Future<AppDatabase> openFresh() async {
-    final executor = NativeDatabase.createInBackground(
-      file,
-      // SQLite3MultipleCiphers (bundled via `hooks: user_defines: sqlite3:
-      // source: sqlite3mc` in pubspec.yaml) reads existing SQLCipher 4
-      // databases when these three pragmas run before any other query.
-      // Raw-bytes form via `x'…'` skips PBKDF2 (we already generate 256
-      // random bits).
-      setup: (database) {
-        database.execute("PRAGMA cipher = 'sqlcipher'");
-        database.execute('PRAGMA legacy = 4');
-        database.execute("PRAGMA key = \"x'$key'\"");
-      },
-    );
-    return AppDatabase(executor);
-  }
+  Future<AppDatabase> openFresh() async =>
+      AppDatabase(await openDatabaseExecutor());
 
   Future<({AppDatabase db, bool wasReset})> resetAndReopen() async {
-    if (await file.exists()) {
-      final ts = DateTime.now().millisecondsSinceEpoch;
-      await file.rename(p.join(dir.path, 'invoiceninja.sqlite.broken.$ts'));
-    }
-    // Keep at most the two most-recent `.broken.*` snapshots so a device
-    // that hits repeated corruption doesn't accumulate encrypted PII forever.
-    // Two is enough for support to compare "this failure" against "the
-    // previous one"; older snapshots are unrecoverable anyway.
-    await pruneBrokenDbFiles(dir);
-    final db = await openFresh();
-    return (db: db, wasReset: true);
+    await destroyDatabaseStore();
+    return (db: await openFresh(), wasReset: true);
   }
 
   try {
     final db = await openFresh();
-    // Force a trivial query so a corrupt file (or wrong key — `PRAGMA key`
+    // Force a trivial query so a corrupt store (or wrong key — `PRAGMA key`
     // doesn't fail eagerly, the first read does) surfaces here, not later.
     // This also drives the lazy connection open + runs any pending
     // migrations.
@@ -352,45 +281,6 @@ Future<({AppDatabase db, bool wasReset})> openAppDatabase() async {
   } catch (e, st) {
     _log.severe('Drift open failed; recovering by resetting local data', e, st);
     return resetAndReopen();
-  }
-}
-
-/// Delete `invoiceninja.sqlite.broken.<ts>` files in [dir], keeping the
-/// [keep] most-recent ones (by filename timestamp suffix, ties broken by
-/// modification time). Errors are logged but swallowed — sweep failure
-/// must never block startup.
-///
-/// Exposed for tests; production calls it from `resetAndReopen` whenever a
-/// new broken snapshot is created.
-Future<void> pruneBrokenDbFiles(Directory dir, {int keep = 2}) async {
-  try {
-    if (!await dir.exists()) return;
-    final candidates = <File>[];
-    await for (final entity in dir.list()) {
-      if (entity is File &&
-          p.basename(entity.path).startsWith('invoiceninja.sqlite.broken.')) {
-        candidates.add(entity);
-      }
-    }
-    if (candidates.length <= keep) return;
-    // Sort newest first by the ts suffix; fall back to mtime when the
-    // suffix can't be parsed (defensive — we always write a numeric ts).
-    int tsOf(File f) {
-      final suffix = p.basename(f.path).split('.').last;
-      return int.tryParse(suffix) ??
-          f.statSync().modified.millisecondsSinceEpoch;
-    }
-
-    candidates.sort((a, b) => tsOf(b).compareTo(tsOf(a)));
-    for (final stale in candidates.skip(keep)) {
-      try {
-        await stale.delete();
-      } catch (e) {
-        _log.warning('Failed to delete stale broken DB ${stale.path}: $e');
-      }
-    }
-  } catch (e, st) {
-    _log.warning('pruneBrokenDbFiles failed', e, st);
   }
 }
 

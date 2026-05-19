@@ -1,0 +1,140 @@
+import 'dart:io';
+import 'dart:math';
+
+import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
+import 'package:flutter/services.dart' show PlatformException;
+import 'package:admin/data/services/token_storage.dart' show kSecureStorage;
+import 'package:logging/logging.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+
+final _log = Logger('AppDatabase');
+
+/// Where the SQLCipher key lives in the OS keychain. v1 — bump on format
+/// changes (e.g. moving from raw-bytes to a passphrase-derived key).
+const _kDbEncryptionKeyName = 'invoiceninja.db.key.v1';
+
+const _kDbFileName = 'invoiceninja.sqlite';
+
+Future<File> _dbFile() async {
+  final dir = await getApplicationSupportDirectory();
+  return File(p.join(dir.path, _kDbFileName));
+}
+
+/// Fetch the per-install database encryption key, generating one on first
+/// launch. The key is 256 random bits, hex-encoded, stored in the platform
+/// keychain via [FlutterSecureStorage] (same trust boundary as auth tokens).
+///
+/// Returned as a hex string suitable for the raw-bytes form of `PRAGMA key`
+/// — `"x'<hex>'"` — so SQLCipher uses it directly without PBKDF2 derivation.
+Future<String> _getOrCreateDbKey() async {
+  // kSecureStorage pins iOS/macOS Keychain accessibility to
+  // first_unlock_this_device — see token_storage.dart for the rationale.
+  // Both call sites (auth tokens, this DB key) MUST use the same instance
+  // so they land in the same keychain compartment.
+  const secure = kSecureStorage;
+  final existing = await secure.read(key: _kDbEncryptionKeyName);
+  if (existing != null && existing.length == 64) return existing;
+  final rng = Random.secure();
+  final bytes = List<int>.generate(32, (_) => rng.nextInt(256));
+  final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+  try {
+    await secure.write(key: _kDbEncryptionKeyName, value: hex);
+  } on PlatformException catch (e) {
+    // errSecDuplicateItem (-25299) on macOS: an orphan item exists under
+    // the same account name but our read() couldn't see its value. Common
+    // after dev-build code-signing churn (the previous build wrote the
+    // key under a different signing identity / accessibility flag than the
+    // one we read with). We can't recover the existing key — delete the
+    // orphan and retry. The SQLite file encrypted with the old key becomes
+    // unreadable, but `destroyDatabaseStore` handles that by renaming it to
+    // `.broken.<ts>` and starting fresh. Better a fresh DB than a blank
+    // window.
+    if (e.code == '-25299' ||
+        (e.message?.contains('already exists in the keychain') ?? false)) {
+      await secure.delete(key: _kDbEncryptionKeyName);
+      await secure.write(key: _kDbEncryptionKeyName, value: hex);
+    } else {
+      rethrow;
+    }
+  }
+  return hex;
+}
+
+/// Native executor: a background-isolate SQLCipher connection over the
+/// app-support file. Behavior is byte-identical to the pre-web-seam
+/// implementation — this code was moved here verbatim.
+Future<QueryExecutor> openDatabaseExecutor() async {
+  final file = await _dbFile();
+  final key = await _getOrCreateDbKey();
+  return NativeDatabase.createInBackground(
+    file,
+    // SQLite3MultipleCiphers (bundled via `hooks: user_defines: sqlite3:
+    // source: sqlite3mc` in pubspec.yaml) reads existing SQLCipher 4
+    // databases when these three pragmas run before any other query.
+    // Raw-bytes form via `x'…'` skips PBKDF2 (we already generate 256
+    // random bits).
+    setup: (database) {
+      database.execute("PRAGMA cipher = 'sqlcipher'");
+      database.execute('PRAGMA legacy = 4');
+      database.execute("PRAGMA key = \"x'$key'\"");
+    },
+  );
+}
+
+/// Native recovery: rename the corrupt file to `<name>.broken.<ts>` (so
+/// support can inspect it) and prune old snapshots. The next
+/// [openDatabaseExecutor] opens a fresh file at the same path.
+Future<void> destroyDatabaseStore() async {
+  final file = await _dbFile();
+  final dir = file.parent;
+  if (await file.exists()) {
+    final ts = DateTime.now().millisecondsSinceEpoch;
+    await file.rename(p.join(dir.path, '$_kDbFileName.broken.$ts'));
+  }
+  // Keep at most the two most-recent `.broken.*` snapshots so a device that
+  // hits repeated corruption doesn't accumulate encrypted PII forever. Two
+  // is enough for support to compare "this failure" against "the previous
+  // one"; older snapshots are unrecoverable anyway.
+  await pruneBrokenDbFiles(dir);
+}
+
+/// Delete `invoiceninja.sqlite.broken.<ts>` files in [dir], keeping the
+/// [keep] most-recent ones (by filename timestamp suffix, ties broken by
+/// modification time). Errors are logged but swallowed — sweep failure
+/// must never block startup.
+///
+/// Exposed for tests (re-exported via `app_database.dart`); production calls
+/// it from [destroyDatabaseStore] whenever a new broken snapshot is created.
+Future<void> pruneBrokenDbFiles(Directory dir, {int keep = 2}) async {
+  try {
+    if (!await dir.exists()) return;
+    final candidates = <File>[];
+    await for (final entity in dir.list()) {
+      if (entity is File &&
+          p.basename(entity.path).startsWith('$_kDbFileName.broken.')) {
+        candidates.add(entity);
+      }
+    }
+    if (candidates.length <= keep) return;
+    // Sort newest first by the ts suffix; fall back to mtime when the
+    // suffix can't be parsed (defensive — we always write a numeric ts).
+    int tsOf(File f) {
+      final suffix = p.basename(f.path).split('.').last;
+      return int.tryParse(suffix) ??
+          f.statSync().modified.millisecondsSinceEpoch;
+    }
+
+    candidates.sort((a, b) => tsOf(b).compareTo(tsOf(a)));
+    for (final stale in candidates.skip(keep)) {
+      try {
+        await stale.delete();
+      } catch (e) {
+        _log.warning('Failed to delete stale broken DB ${stale.path}: $e');
+      }
+    }
+  } catch (e, st) {
+    _log.warning('pruneBrokenDbFiles failed', e, st);
+  }
+}

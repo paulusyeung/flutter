@@ -1,12 +1,12 @@
-import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company.dart';
+import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
@@ -101,22 +101,28 @@ class CompanyDetailsDocumentsScreen extends StatelessWidget {
       if (picked == null || picked.files.isEmpty) return;
       final file = picked.files.first;
       final path = file.path;
-      if (path == null) return;
-      final ext = path.substring(path.lastIndexOf('.') + 1).toLowerCase();
+      final name = file.name;
+      final ext = name.substring(name.lastIndexOf('.') + 1).toLowerCase();
       if (!context.mounted) return;
       if (!_kDocExts.contains(ext)) {
         Notify.warning(context, invalidTypeText);
         return;
       }
-      final size = file.size > 0 ? file.size : await File(path).length();
-      if (!context.mounted) return;
-      if (size > _kMaxDocBytes) {
+      if (file.size > _kMaxDocBytes) {
         Notify.warning(context, tooLargeText);
+        return;
+      }
+      final UploadSource source;
+      if (!kIsWeb && path != null) {
+        source = fileUploadSource(path);
+      } else if (file.bytes != null) {
+        source = BytesUploadSource(file.bytes!, name);
+      } else {
         return;
       }
       await services.company.uploadDocument(
         companyId: vm.companyId,
-        localPath: path,
+        source: source,
       );
       if (!context.mounted) return;
       Notify.success(context, successText);

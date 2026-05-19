@@ -54,21 +54,23 @@ Future<void> main() async {
   // diagnostics / debug-capture handler chain still composes on top, so
   // errors reach our recorders AND Sentry. Per-account opt-in is enforced
   // in `beforeSend` via `sentryShouldSend`.
-  if (!kDebugMode && Env.sentryDsn.isNotEmpty) {
-    await SentryFlutter.init(
-      (o) {
-        o.dsn = Env.sentryDsn;
-        o.release = AppVersion.kClientVersion;
-        o.dist = AppVersion.kClientVersion;
-        o.beforeSend = (event, hint) => sentryShouldSend(
-              reportErrors:
-                  _authForSentry?.session.value?.reportErrors ?? false,
-            )
-            ? event
-            : null;
-      },
-      appRunner: () => runZonedGuarded(_bootstrap, _zoneOnError),
-    );
+  // Web is excluded for the first milestone: `sentry_flutter` on web needs
+  // its own JS-SDK wiring in `web/index.html`; deferred (see plan). Web
+  // takes the unchanged direct `runZonedGuarded` path → zero web behavior
+  // change. Native behavior is byte-identical (the added `!kIsWeb` is a
+  // const true on every native target).
+  if (!kIsWeb && !kDebugMode && Env.sentryDsn.isNotEmpty) {
+    await SentryFlutter.init((o) {
+      o.dsn = Env.sentryDsn;
+      o.release = AppVersion.kClientVersion;
+      o.dist = AppVersion.kClientVersion;
+      o.beforeSend = (event, hint) =>
+          sentryShouldSend(
+            reportErrors: _authForSentry?.session.value?.reportErrors ?? false,
+          )
+          ? event
+          : null;
+    }, appRunner: () => runZonedGuarded(_bootstrap, _zoneOnError));
   } else {
     await runZonedGuarded(_bootstrap, _zoneOnError);
   }
@@ -178,6 +180,11 @@ Future<void> _bootstrap() async {
       : '/login';
 
   mark('nav-state + route resolve');
+  // Web URL strategy is left at Flutter's default (hash — `/#/clients`).
+  // This is intentional: hash routing needs no server rewrite-to-index
+  // config, so the build deploys to any static host. Do NOT add
+  // `setUrlStrategy(PathUrlStrategy())` — it would break deep links on
+  // hosts without an index fallback. (Locked decision — see plan.)
   runApp(
     InvoiceNinjaApp(
       services: services,
@@ -195,6 +202,11 @@ Future<void> _bootstrap() async {
 /// Advanced → System Logs so Claude can be pointed at it.
 Future<DiagnosticsLog?> _initDiagnostics() async {
   if (kReleaseMode) return null;
+  // No on-disk diagnostics log on web: `DiagnosticsLog.open()` resolves a
+  // path via `path_provider`, which has no web implementation and throws.
+  // The rest of bootstrap already handles `diag == null`. (Web error
+  // capture, if wanted later, is a separate JS-SDK concern — see plan.)
+  if (kIsWeb) return null;
   try {
     final diag = await DiagnosticsLog.open();
     final priorFlutterOnError = FlutterError.onError;

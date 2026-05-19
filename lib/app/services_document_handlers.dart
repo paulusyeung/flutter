@@ -1,7 +1,6 @@
-import 'dart:io';
-
 import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/services/documents_api.dart';
+import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/domain/sync/base_entity_sync_dispatcher.dart';
 import 'package:admin/domain/sync/mutation.dart';
 
@@ -25,7 +24,7 @@ documentMutationHandlers<TInner>({
   required DocumentsApi documentsApi,
   required Future<TInner> Function({
     required String entityId,
-    required String filePath,
+    required UploadSource source,
     required String idempotencyKey,
   })
   upload,
@@ -44,14 +43,16 @@ documentMutationHandlers<TInner>({
 }) {
   return {
     MutationKind.documentUpload: ({required row, required payload}) async {
-      final localPath = payload['local_path'] as String;
       final entityId = payload['entity_id'] as String;
-      // File moved/deleted between enqueue and dispatch — drop the row
+      final source = UploadSource.fromPayload(payload);
+      // Source moved/deleted between enqueue and dispatch — drop the row
       // rather than 5xx-looping. Matches CompanySyncDispatcher's behavior.
-      if (!File(localPath).existsSync()) return null;
+      // Bytes sources are self-contained, so this only trips for a native
+      // local_path whose file vanished.
+      if (!await source.exists()) return null;
       return upload(
         entityId: entityId,
-        filePath: localPath,
+        source: source,
         idempotencyKey: row.idempotencyKey,
       );
     },

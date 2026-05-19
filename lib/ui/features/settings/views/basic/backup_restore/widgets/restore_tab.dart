@@ -1,13 +1,15 @@
-import 'dart:io';
+import 'dart:io' show FileSystemException;
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
@@ -33,7 +35,8 @@ class RestoreTabBody extends StatefulWidget {
 }
 
 class _RestoreTabBodyState extends State<RestoreTabBody> {
-  File? _file;
+  UploadSource? _source;
+  String _fileName = '';
   int _fileLength = 0;
   bool _dragOver = false;
   bool _importSettings = false;
@@ -47,21 +50,20 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
   int _total = 1;
 
   bool get _canRestore =>
-      _file != null && (_importSettings || _importData) && !_busy;
+      _source != null && (_importSettings || _importData) && !_busy;
 
-  Future<void> _acceptPath(String path) async {
-    if (!path.toLowerCase().endsWith('.zip')) {
+  Future<void> _accept(UploadSource source, String name) async {
+    if (!name.toLowerCase().endsWith('.zip')) {
       if (!mounted) return;
       Notify.warning(context, context.tr('dropzone_invalid_file_type'));
       return;
     }
-    final file = File(path);
     // Capture length once so the build pass doesn't hit the disk on every
     // frame; also lets us reject 0-byte files before the upload spins
     // forever at 0%.
     int length = 0;
     try {
-      length = await file.length();
+      length = await source.length();
     } catch (_) {
       length = 0;
     }
@@ -72,7 +74,8 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
     }
     if (!mounted) return;
     setState(() {
-      _file = file;
+      _source = source;
+      _fileName = name;
       _fileLength = length;
       _completedNeedsBanner = false;
     });
@@ -82,24 +85,29 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
     final picked = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: const ['zip'],
+      withData: kIsWeb,
     );
     if (picked == null || picked.files.isEmpty) return;
-    final path = picked.files.first.path;
-    if (path == null) return;
-    await _acceptPath(path);
+    final f = picked.files.first;
+    final path = f.path;
+    if (!kIsWeb && path != null) {
+      await _accept(fileUploadSource(path), f.name);
+    } else if (f.bytes != null) {
+      await _accept(BytesUploadSource(f.bytes!, f.name), f.name);
+    }
   }
 
-  Future<void> _onDropped(List<String> paths) async {
-    final zip = paths.firstWhere(
-      (p) => p.toLowerCase().endsWith('.zip'),
-      orElse: () => '',
-    );
+  Future<void> _onDropped(
+    List<({UploadSource source, String name})> files,
+  ) async {
+    final zip = files.where((f) => f.name.toLowerCase().endsWith('.zip'));
     if (zip.isEmpty) {
       if (!mounted) return;
       Notify.warning(context, context.tr('dropzone_invalid_file_type'));
       return;
     }
-    await _acceptPath(zip);
+    final first = zip.first;
+    await _accept(first.source, first.name);
   }
 
   Future<void> _confirmAndRestore() async {
@@ -129,8 +137,8 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
   }
 
   Future<void> _runUpload() async {
-    final file = _file;
-    if (file == null) return;
+    final source = _source;
+    if (source == null) return;
     final services = context.read<Services>();
     final messenger = ScaffoldMessenger.maybeOf(context);
     setState(() {
@@ -143,7 +151,7 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
     try {
       await services.apiClient.uploadMultipartChunked(
         path: '/api/v1/import_json',
-        file: file,
+        source: source,
         commonFields: {
           'import_settings': '$_importSettings',
           'import_data': '$_importData',
@@ -163,7 +171,11 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
         isCancelled: () => _cancelRequested,
       );
       if (!mounted) return;
-      Notify.success(context, context.tr('import_started'), messenger: messenger);
+      Notify.success(
+        context,
+        context.tr('import_started'),
+        messenger: messenger,
+      );
       // Keep the file row visible with an inline banner so the user doesn't
       // bounce between "Restore" button and a blank form. They navigate
       // away (or re-pick) to clear.
@@ -215,7 +227,7 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
           title: context.tr('restore'),
           children: [
             _Dropzone(
-              file: _file,
+              fileName: _source == null ? null : _fileName,
               fileLength: _fileLength,
               dragOver: _dragOver,
               onEntered: () => setState(() => _dragOver = true),
@@ -223,7 +235,8 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
               onDrop: _onDropped,
               onPick: _pickFile,
               onClear: () => setState(() {
-                _file = null;
+                _source = null;
+                _fileName = '';
                 _fileLength = 0;
                 _completedNeedsBanner = false;
               }),
@@ -250,7 +263,8 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
               SizedBox(height: InSpacing.lg(context)),
               _QueuedBanner(
                 onRestoreAnother: () => setState(() {
-                  _file = null;
+                  _source = null;
+                  _fileName = '';
                   _fileLength = 0;
                   _completedNeedsBanner = false;
                 }),
@@ -275,10 +289,7 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
                   if (narrow) {
                     return SizedBox(width: double.infinity, child: button);
                   }
-                  return Align(
-                    alignment: Alignment.centerLeft,
-                    child: button,
-                  );
+                  return Align(alignment: Alignment.centerLeft, child: button);
                 },
               ),
             ],
@@ -291,7 +302,7 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
 
 class _Dropzone extends StatelessWidget {
   const _Dropzone({
-    required this.file,
+    required this.fileName,
     required this.fileLength,
     required this.dragOver,
     required this.onEntered,
@@ -302,12 +313,12 @@ class _Dropzone extends StatelessWidget {
     required this.enabled,
   });
 
-  final File? file;
+  final String? fileName;
   final int fileLength;
   final bool dragOver;
   final VoidCallback onEntered;
   final VoidCallback onExited;
-  final void Function(List<String> paths) onDrop;
+  final void Function(List<({UploadSource source, String name})> files) onDrop;
   final VoidCallback onPick;
   final VoidCallback onClear;
   final bool enabled;
@@ -326,12 +337,19 @@ class _Dropzone extends StatelessWidget {
       enable: enabled,
       onDragEntered: (_) => onEntered(),
       onDragExited: (_) => onExited(),
-      onDragDone: (details) {
-        final paths = <String>[];
+      onDragDone: (details) async {
+        final files = <({UploadSource source, String name})>[];
         for (final xf in details.files) {
-          if (xf.path.isNotEmpty) paths.add(xf.path);
+          if (!kIsWeb && xf.path.isNotEmpty) {
+            files.add((source: fileUploadSource(xf.path), name: xf.name));
+          } else {
+            files.add((
+              source: BytesUploadSource(await xf.readAsBytes(), xf.name),
+              name: xf.name,
+            ));
+          }
         }
-        onDrop(paths);
+        onDrop(files);
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),
@@ -345,10 +363,10 @@ class _Dropzone extends StatelessWidget {
             style: BorderStyle.solid,
           ),
         ),
-        child: file == null
+        child: fileName == null
             ? _EmptyDropzone(onPick: enabled ? onPick : null)
             : _PickedFileRow(
-                file: file!,
+                name: fileName!,
                 sizeText: _formatBytes(fileLength),
                 onClear: enabled ? onClear : null,
               ),
@@ -426,18 +444,17 @@ class _EmptyDropzone extends StatelessWidget {
 
 class _PickedFileRow extends StatelessWidget {
   const _PickedFileRow({
-    required this.file,
+    required this.name,
     required this.sizeText,
     required this.onClear,
   });
-  final File file;
+  final String name;
   final String sizeText;
   final VoidCallback? onClear;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final name = file.path.split(Platform.pathSeparator).last;
     return Row(
       children: [
         Icon(Icons.folder_zip_outlined, color: tokens.accent, size: 28),

@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:logging/logging.dart';
 
@@ -8,6 +7,7 @@ import 'package:admin/data/models/api/company_api_model.dart';
 import 'package:admin/data/repositories/company_repository.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/companies_api.dart';
+import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/domain/sync/mutation.dart';
 import 'package:admin/domain/sync/sync_dispatcher.dart';
 
@@ -31,10 +31,9 @@ class CompanySyncDispatcher implements SyncDispatcher {
       return jsonDecode(row.payload) as Map<String, dynamic>;
     } catch (e) {
       _log.severe('Corrupt company payload (row ${row.id}): $e');
-      throw ValidationException(
-        'Corrupt outbox payload',
-        const {'payload': ['Could not decode']},
-      );
+      throw ValidationException('Corrupt outbox payload', const {
+        'payload': ['Could not decode'],
+      });
     }
   }
 
@@ -68,16 +67,16 @@ class CompanySyncDispatcher implements SyncDispatcher {
     // and pass it as a query param on the canonical settings PUT below.
     final syncSendTime = payload.remove('_sync_send_time');
     if (action == 'upload_logo') {
-      final localPath = payload['local_path'] as String;
-      if (!await File(localPath).exists()) {
+      final source = UploadSource.fromPayload(payload);
+      if (!await source.exists()) {
         _log.warning(
-          'Logo upload skipped: local file $localPath no longer exists.',
+          'Logo upload skipped: source ${source.fileName} no longer exists.',
         );
         return;
       }
       final response = await api.uploadLogo(
         companyId: row.entityId,
-        filePath: localPath,
+        source: source,
         idempotencyKey: row.idempotencyKey,
       );
       await repo.applyUpdateResponse(
@@ -87,16 +86,17 @@ class CompanySyncDispatcher implements SyncDispatcher {
       return;
     }
     if (action == 'upload_document') {
-      final localPath = payload['local_path'] as String;
-      if (!await File(localPath).exists()) {
+      final source = UploadSource.fromPayload(payload);
+      if (!await source.exists()) {
         _log.warning(
-          'Document upload skipped: local file $localPath no longer exists.',
+          'Document upload skipped: source ${source.fileName} '
+          'no longer exists.',
         );
         return;
       }
       final response = await api.uploadDocument(
         companyId: row.entityId,
-        filePath: localPath,
+        source: source,
         idempotencyKey: row.idempotencyKey,
       );
       await repo.applyUpdateResponse(
@@ -127,16 +127,17 @@ class CompanySyncDispatcher implements SyncDispatcher {
     switch (kind) {
       case MutationKind.uploadEInvoiceCertificate:
         final payload = _decodePayload(row);
-        final localPath = payload['local_path'] as String;
-        if (!await File(localPath).exists()) {
+        final source = UploadSource.fromPayload(payload);
+        if (!await source.exists()) {
           _log.warning(
-            'Cert upload skipped: local file $localPath no longer exists.',
+            'Cert upload skipped: source ${source.fileName} '
+            'no longer exists.',
           );
           return true;
         }
         final response = await api.uploadEInvoiceCertificate(
           companyId: row.entityId,
-          filePath: localPath,
+          source: source,
           idempotencyKey: row.idempotencyKey,
         );
         await repo.applyUpdateResponse(

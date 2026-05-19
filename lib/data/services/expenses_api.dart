@@ -1,4 +1,4 @@
-import 'package:http/http.dart' as http;
+import 'package:admin/data/services/upload_source.dart';
 
 import 'package:admin/data/models/api/expense_api_model.dart';
 import 'package:admin/data/services/base_entity_api.dart';
@@ -30,23 +30,22 @@ class ExpensesApi extends BaseEntityApi<ExpenseListApi, ExpenseItemApi> {
     required String id,
     required String templateId,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'template',
-        idempotencyKey: idempotencyKey,
-        payload: {'template_id': templateId},
-      );
+  }) => action(
+    id: id,
+    action: 'template',
+    idempotencyKey: idempotencyKey,
+    payload: {'template_id': templateId},
+  );
 
   /// Upload a document attachment to an expense. Returns the refreshed
   /// expense envelope with the new document in its `documents` array.
   /// Mirrors `ProjectsApi.uploadDocument` — same multipart field name.
   Future<ExpenseApi> uploadDocument({
     required String entityId,
-    required String filePath,
+    required UploadSource source,
     required String idempotencyKey,
   }) async {
-    final file = await http.MultipartFile.fromPath('documents[]', filePath);
+    final file = await source.toMultipartFile('documents[]');
     final raw = await client.uploadMultipart(
       path: '$basePath/$entityId/upload',
       fields: const {'_method': 'POST'},

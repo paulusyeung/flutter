@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:http/http.dart' as http;
+import 'package:admin/data/services/upload_source.dart';
 
 import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/models/value/date.dart';
@@ -59,10 +59,10 @@ class ClientsApi extends BaseEntityApi<ClientListApi, ClientItemApi> {
   /// `CompaniesApi.uploadDocument` shape — same multipart field name.
   Future<ClientApi> uploadDocument({
     required String entityId,
-    required String filePath,
+    required UploadSource source,
     required String idempotencyKey,
   }) async {
-    final file = await http.MultipartFile.fromPath('documents[]', filePath);
+    final file = await source.toMultipartFile('documents[]');
     final raw = await client.uploadMultipart(
       path: '$basePath/$entityId/upload',
       fields: const {'_method': 'POST'},

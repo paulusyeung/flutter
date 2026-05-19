@@ -9,6 +9,7 @@ import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/project_repository.dart';
 import 'package:admin/data/services/projects_api.dart';
+import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/domain/sync/mutation.dart';
 
 import '_base_entity_repository_contract.dart';
@@ -199,7 +200,7 @@ void main() {
       await repo.uploadDocument(
         companyId: 'co',
         entityId: 'proj_1',
-        localPath: '/tmp/foo.pdf',
+        source: fileUploadSource('/tmp/foo.pdf'),
       );
       final rows = await db.outboxDao.nextReady(
         companyId: 'co',

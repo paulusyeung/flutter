@@ -19,6 +19,21 @@ abstract class BiometricService {
   Future<bool> authenticate({required String reason});
 }
 
+/// Web has no `local_auth` implementation (no FaceID/TouchID/Windows Hello
+/// equivalent reachable from a browser). [isAvailable] returns false so the
+/// User Details toggle hides itself and the lock screen's auto-prompt
+/// short-circuits — identical to a native device with no enrolled
+/// biometrics. Selected via `kIsWeb` in `Services.build`.
+class WebBiometricService implements BiometricService {
+  const WebBiometricService();
+
+  @override
+  Future<bool> isAvailable() async => false;
+
+  @override
+  Future<bool> authenticate({required String reason}) async => false;
+}
+
 class LocalAuthBiometricService implements BiometricService {
   LocalAuthBiometricService([LocalAuthentication? backend])
     : _auth = backend ?? LocalAuthentication();

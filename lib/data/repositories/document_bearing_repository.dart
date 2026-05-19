@@ -1,3 +1,5 @@
+import 'package:admin/data/services/upload_source.dart';
+
 /// Interface every entity repository implements when it supports document
 /// attachments. Lets UI helpers (e.g. `buildStandardDocumentsTab`) take a
 /// typed repo without knowing the concrete entity type — every doc-bearing
@@ -12,7 +14,7 @@ abstract class DocumentBearingRepository {
   Future<void> uploadDocument({
     required String companyId,
     required String entityId,
-    required String localPath,
+    required UploadSource source,
   });
 
   Future<void> deleteDocument({

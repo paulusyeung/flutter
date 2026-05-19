@@ -16,6 +16,7 @@ import 'package:admin/data/repositories/document_bearing_repository.dart';
 import 'package:admin/data/services/payments_api.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
+import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/domain/sync/mutation.dart';
 
 final _log = Logger('PaymentRepository');
@@ -281,10 +282,7 @@ class PaymentRepository extends BaseEntityRepository<Payment, PaymentApi>
       companyId: companyId,
       entityId: paymentId,
       kind: MutationKind.applyPayment,
-      payload: <String, dynamic>{
-        'id': paymentId,
-        'invoices': allocations,
-      },
+      payload: <String, dynamic>{'id': paymentId, 'invoices': allocations},
     );
   }
 
@@ -306,13 +304,13 @@ class PaymentRepository extends BaseEntityRepository<Payment, PaymentApi>
   Future<void> uploadDocument({
     required String companyId,
     required String entityId,
-    required String localPath,
+    required UploadSource source,
   }) {
     return enqueueMutation(
       companyId: companyId,
       entityId: entityId,
       kind: MutationKind.documentUpload,
-      payload: {'entity_id': entityId, 'local_path': localPath},
+      payload: {'entity_id': entityId, ...source.toPayload()},
     );
   }
 

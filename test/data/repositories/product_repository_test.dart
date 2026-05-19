@@ -8,6 +8,7 @@ import 'package:admin/data/models/api/product_api_model.dart';
 import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/data/repositories/product_repository.dart';
 import 'package:admin/data/services/products_api.dart';
+import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/domain/sync/mutation.dart';
 
 import '_base_entity_repository_contract.dart';
@@ -116,7 +117,7 @@ void main() {
       await repo.uploadDocument(
         companyId: 'co',
         entityId: 'prod_1',
-        localPath: '/tmp/foo.pdf',
+        source: fileUploadSource('/tmp/foo.pdf'),
       );
       final rows = await db.outboxDao.nextReady(
         companyId: 'co',

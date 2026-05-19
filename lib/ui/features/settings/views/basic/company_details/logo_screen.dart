@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
@@ -9,6 +10,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/logo_crop_screen.dart';
@@ -132,22 +134,22 @@ class CompanyDetailsLogoScreen extends StatelessWidget {
       final picker = ImagePicker();
       final picked = await picker.pickImage(source: ImageSource.gallery);
       if (picked == null) return;
-      final ext = p.extension(picked.path).toLowerCase();
+      // `XFile.name` is the real filename on every platform (on web
+      // `XFile.path` is a blob URL with no usable extension).
+      final ext = p.extension(picked.name).toLowerCase();
       if (!context.mounted) return;
       if (!_kLogoExts.contains(ext)) {
         Notify.warning(context, invalidTypeText);
         return;
       }
-      final size = await File(picked.path).length();
+      final size = await picked.length();
       if (!context.mounted) return;
       if (size > _kMaxLogoBytes) {
         Notify.warning(context, tooLargeText);
         return;
       }
-      // Crop step (React parity: logo is cropped before upload). The
-      // cropped PNG bytes are written to a temp file so the existing
-      // path-based `uploadLogo` seam is unchanged.
-      final sourceBytes = await File(picked.path).readAsBytes();
+      // Crop step (React parity: logo is cropped before upload).
+      final sourceBytes = await picked.readAsBytes();
       if (!context.mounted) return;
       final cropped = await showLogoCropScreen(context, sourceBytes);
       if (cropped == null || !context.mounted) return;
@@ -161,15 +163,25 @@ class CompanyDetailsLogoScreen extends StatelessWidget {
         Notify.warning(context, tooLargeText);
         return;
       }
-      final tmpDir = await getTemporaryDirectory();
-      final tmpPath = p.join(
-        tmpDir.path,
-        'logo_${DateTime.now().millisecondsSinceEpoch}.png',
-      );
-      await File(tmpPath).writeAsBytes(cropped, flush: true);
+      final UploadSource source;
+      if (kIsWeb) {
+        // No filesystem on web — hand the cropped bytes straight to the
+        // outbox (carried as base64 in the mutation payload).
+        source = BytesUploadSource(cropped, 'logo.png');
+      } else {
+        // Native: keep the temp-file + path channel byte-identical to the
+        // pre-web behaviour (outbox payload stays `{'local_path': …}`).
+        final tmpDir = await getTemporaryDirectory();
+        final tmpPath = p.join(
+          tmpDir.path,
+          'logo_${DateTime.now().millisecondsSinceEpoch}.png',
+        );
+        await File(tmpPath).writeAsBytes(cropped, flush: true);
+        source = fileUploadSource(tmpPath);
+      }
       await services.company.uploadLogo(
         companyId: vm.companyId,
-        localPath: tmpPath,
+        source: source,
       );
       if (!context.mounted) return;
       Notify.success(context, successText);

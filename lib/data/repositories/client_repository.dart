@@ -7,6 +7,7 @@ import 'package:logging/logging.dart';
 import 'package:admin/domain/columns/client_columns.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
+import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/domain/sync/mutation.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/billing_extra_filters.dart';
@@ -320,13 +321,13 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
   Future<void> uploadDocument({
     required String companyId,
     required String entityId,
-    required String localPath,
+    required UploadSource source,
   }) async {
     await enqueueMutation(
       companyId: companyId,
       entityId: entityId,
       kind: MutationKind.documentUpload,
-      payload: {'entity_id': entityId, 'local_path': localPath},
+      payload: {'entity_id': entityId, ...source.toPayload()},
     );
   }
 

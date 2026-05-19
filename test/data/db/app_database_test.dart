@@ -1,6 +1,12 @@
+@TestOn('vm')
+library;
+
 import 'dart:io';
 
 import 'package:admin/data/db/app_database.dart';
+// `pruneBrokenDbFiles` is native-only (takes a `dart:io` Directory); it lives
+// in the io variant of the database-opener seam. This test is `@TestOn('vm')`.
+import 'package:admin/data/db/database_opener_io.dart' show pruneBrokenDbFiles;
 import 'package:admin/domain/columns/client_columns.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:drift/drift.dart' show Value;

@@ -211,7 +211,11 @@ class _LoginForm extends StatelessWidget {
               value: vm.method,
               segments: [
                 _Segment(value: LoginMethod.email, label: context.tr('email')),
-                _Segment(value: LoginMethod.apple, label: context.tr('apple')),
+                if (vm.appleEnabled)
+                  _Segment(
+                    value: LoginMethod.apple,
+                    label: context.tr('apple'),
+                  ),
                 if (vm.googleEnabled)
                   _Segment(
                     value: LoginMethod.google,
@@ -266,10 +270,10 @@ class _LoginForm extends StatelessWidget {
             onPressed: vm.busy
                 ? null
                 : (isApple
-                    ? onAppleSubmit
-                    : isGoogle
-                        ? onGoogleSubmit
-                        : onEmailSubmit),
+                      ? onAppleSubmit
+                      : isGoogle
+                      ? onGoogleSubmit
+                      : onEmailSubmit),
             icon: vm.busy
                 ? SizedBox(
                     width: 16,
@@ -286,16 +290,16 @@ class _LoginForm extends StatelessWidget {
                     isApple
                         ? Icons.apple
                         : isGoogle
-                            ? Icons.account_circle_outlined
-                            : Icons.mail_outline,
+                        ? Icons.account_circle_outlined
+                        : Icons.mail_outline,
                     size: 18,
                   ),
             label: Text(
               isApple
                   ? context.tr('sign_in_with_apple')
                   : isGoogle
-                      ? context.tr('sign_in_with_google')
-                      : context.tr('login_with_email'),
+                  ? context.tr('sign_in_with_google')
+                  : context.tr('login_with_email'),
             ),
             style: FilledButton.styleFrom(
               // Apple HIG: black-on-light, white-on-dark. `ink` already
@@ -445,4 +449,3 @@ class _SegmentButton extends StatelessWidget {
     );
   }
 }
-

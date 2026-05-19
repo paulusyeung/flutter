@@ -135,12 +135,12 @@ class _Body extends StatelessWidget {
                     bodyBuilder: (_) => EntityDocumentsTab(
                       entityId: recurringInvoice.id,
                       documents: recurringInvoice.documents,
-                      onUpload: (paths) async {
-                        for (final p in paths) {
+                      onUpload: (sources) async {
+                        for (final s in sources) {
                           await services.recurringInvoices.uploadDocument(
                             companyId: companyId,
                             entityId: recurringInvoice.id,
-                            localPath: p,
+                            source: s,
                           );
                         }
                       },

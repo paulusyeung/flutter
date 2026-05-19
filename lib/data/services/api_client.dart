@@ -1,13 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
-import 'package:path/path.dart' as p;
 
 import 'package:admin/app/debug_capture_store.dart';
 import 'package:admin/app/env.dart';
@@ -15,6 +13,7 @@ import 'package:admin/app/version.dart';
 import 'package:admin/data/services/api_credentials.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/password_cache.dart';
+import 'package:admin/data/services/upload_source.dart';
 
 final _log = Logger('ApiClient');
 
@@ -40,6 +39,15 @@ class ApiClient {
     http.Client? httpClient,
     Future<dynamic> Function(String)? decoder,
     Duration decodeTimeout = const Duration(seconds: 20),
+    // Per-request wall clock for the core GET/POST/PUT path
+    // ([_sendNoRedirect]: login, /refresh, postJson, getOne, outbox
+    // dispatch). Without it a server that accepts the connection but never
+    // responds hangs the app indefinitely (no client-side bound — the OS
+    // TCP stack is the only backstop, which can stall for many minutes).
+    // 60 s is generous enough for the ~3 MB /refresh on a slow link while
+    // still surfacing a hung server as a NetworkException. Injectable so
+    // tests can drive the timeout path without a real wait.
+    Duration requestTimeout = const Duration(seconds: 60),
     DebugCaptureStore? debugCaptureStore,
   }) : _credentialsListenable = credentials,
        _passwordCache = passwordCache,
@@ -49,6 +57,7 @@ class ApiClient {
        _http = httpClient ?? http.Client(),
        _decoder = decoder ?? _defaultDecoder,
        _decodeTimeout = decodeTimeout,
+       _requestTimeout = requestTimeout,
        _debugCaptureStore = debugCaptureStore;
 
   final ValueListenable<ApiCredentials?> _credentialsListenable;
@@ -59,6 +68,7 @@ class ApiClient {
   final http.Client _http;
   final Future<dynamic> Function(String) _decoder;
   final Duration _decodeTimeout;
+  final Duration _requestTimeout;
   final DebugCaptureStore? _debugCaptureStore;
 
   /// Coalesces concurrent 401s — every parallel caller that 401s while a
@@ -376,7 +386,7 @@ class ApiClient {
   /// earlier chunks' bodies are discarded once they 2xx.
   Future<dynamic> uploadMultipartChunked({
     required String path,
-    required File file,
+    required UploadSource source,
     required Map<String, String> commonFields,
     required Map<String, String> commonQueryTrue,
     required String idempotencyKey,
@@ -387,13 +397,13 @@ class ApiClient {
   }) async {
     if (Env.demoMode) throw const DemoModeException();
     final creds = _requireCreds();
-    final fileName = p.basename(file.path);
-    final length = await file.length();
+    final fileName = source.fileName;
+    final length = await source.length();
     final total = length == 0 ? 1 : (length / chunkBytes).ceil();
 
     // SHA-256 over the first min(length, chunkBytes) bytes. Single read at the
-    // start so we don't re-open the file once per chunk just for the hash.
-    final hashBytes = await _readBytes(file, 0, math.min(length, chunkBytes));
+    // start so we don't re-read the source once per chunk just for the hash.
+    final hashBytes = await source.readRange(0, math.min(length, chunkBytes));
     final fileHash = sha256.convert(hashBytes).toString();
 
     final queryTrue = <String, String>{
@@ -412,7 +422,7 @@ class ApiClient {
       final end = math.min(start + chunkBytes, length);
       final chunk = i == 0 && length <= chunkBytes
           ? Uint8List.fromList(hashBytes)
-          : await _readBytes(file, start, end);
+          : await source.readRange(start, end);
       final metadata = jsonEncode({
         'totalChunks': total,
         'currentChunk': i,
@@ -420,23 +430,25 @@ class ApiClient {
         'fileName': fileName,
         'chunkSize': chunk.length,
       });
-      final uri = Uri.parse(creds.baseUrl).resolve(path).replace(
-        queryParameters: {
-          'chunk_number': '$i',
-          'total_chunks': '$total',
-          ...queryTrue,
-        },
+      final uri = Uri.parse(creds.baseUrl)
+          .resolve(path)
+          .replace(
+            queryParameters: {
+              'chunk_number': '$i',
+              'total_chunks': '$total',
+              ...queryTrue,
+            },
+          );
+      _log.fine(
+        'uploadMultipartChunked: chunk $i/$total ($fileName, ${chunk.length}B)',
       );
-      _log.fine('uploadMultipartChunked: chunk $i/$total ($fileName, ${chunk.length}B)');
       final req = http.MultipartRequest('POST', uri)
         ..followRedirects = false
         ..fields.addAll(commonFields)
         ..fields['metadata'] = metadata
-        ..files.add(http.MultipartFile.fromBytes(
-          'file',
-          chunk,
-          filename: fileName,
-        ))
+        ..files.add(
+          http.MultipartFile.fromBytes('file', chunk, filename: fileName),
+        )
         ..headers.addAll(
           _buildHeaders(creds: creds, idempotencyKey: idempotencyKey),
         );
@@ -459,20 +471,6 @@ class ApiClient {
       }
     }
     return last;
-  }
-
-  /// Reads `[start, end)` from [file] into a freshly allocated [Uint8List].
-  /// Streams in 64 KiB pages so a 2 MB chunk doesn't sit in two buffers
-  /// concurrently when the IO buffer is bigger than the slice.
-  Future<Uint8List> _readBytes(File file, int start, int end) async {
-    final out = Uint8List(end - start);
-    var offset = 0;
-    final stream = file.openRead(start, end);
-    await for (final block in stream) {
-      out.setRange(offset, offset + block.length, block);
-      offset += block.length;
-    }
-    return out;
   }
 
   Future<String> _send({
@@ -553,8 +551,10 @@ class ApiClient {
       ..headers.addAll(headers);
     if (body != null) request.body = body;
     try {
-      final streamed = await _http.send(request);
-      final response = await http.Response.fromStream(streamed);
+      final streamed = await _http.send(request).timeout(_requestTimeout);
+      final response = await http.Response.fromStream(
+        streamed,
+      ).timeout(_requestTimeout);
       if (response.statusCode >= 300 && response.statusCode < 400) {
         // No legitimate Invoice Ninja API endpoint redirects. Either the
         // server is mis-configured or someone is trying to harvest the
@@ -565,6 +565,13 @@ class ApiClient {
         );
       }
       return response;
+    } on TimeoutException {
+      // A server that accepted the socket but never (fully) responded.
+      // Surface as a NetworkException like any other transport failure so
+      // callers/sync treat it uniformly instead of hanging.
+      throw NetworkException(
+        'Request timed out after ${_requestTimeout.inSeconds}s',
+      );
     } on http.ClientException catch (e) {
       throw NetworkException(e.message);
     } on ServerException {

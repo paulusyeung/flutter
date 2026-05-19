@@ -1,4 +1,4 @@
-import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart';
 
 /// Build-time + runtime configuration.
 ///
@@ -52,12 +52,25 @@ class Env {
   static const String sentryDsn = String.fromEnvironment('IN_SENTRY_DSN');
 
   /// `X-CLIENT-PLATFORM` header value. Expands as we add platforms.
+  ///
+  /// Uses `defaultTargetPlatform` (web-safe — `dart:io`'s `Platform` can't be
+  /// imported in a web build at all, not just called) and checks `kIsWeb`
+  /// first so a browser reports `web`, not the underlying host OS.
   static String get clientPlatform {
-    if (Platform.isIOS) return 'ios';
-    if (Platform.isMacOS) return 'macos';
-    if (Platform.isAndroid) return 'android';
-    if (Platform.isWindows) return 'windows';
-    if (Platform.isLinux) return 'linux';
-    return 'unknown';
+    if (kIsWeb) return 'web';
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.iOS:
+        return 'ios';
+      case TargetPlatform.macOS:
+        return 'macos';
+      case TargetPlatform.android:
+        return 'android';
+      case TargetPlatform.windows:
+        return 'windows';
+      case TargetPlatform.linux:
+        return 'linux';
+      case TargetPlatform.fuchsia:
+        return 'unknown';
+    }
   }
 }

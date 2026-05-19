@@ -5,6 +5,7 @@ import 'package:admin/data/services/api_client.dart';
 import 'package:admin/data/services/api_credentials.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/password_cache.dart';
+import 'package:admin/data/services/upload_source.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -64,7 +65,7 @@ void main() {
 
       await client.uploadMultipartChunked(
         path: '/api/v1/import_json',
-        file: file,
+        source: fileUploadSource(file.path),
         commonFields: const {
           'import_settings': 'false',
           'import_data': 'true',
@@ -117,7 +118,7 @@ void main() {
 
       await client.uploadMultipartChunked(
         path: '/api/v1/import_json',
-        file: file,
+        source: fileUploadSource(file.path),
         commonFields: const {},
         commonQueryTrue: const {},
         idempotencyKey: 'idem-xyz',
@@ -162,7 +163,7 @@ void main() {
 
       await client.uploadMultipartChunked(
         path: '/api/v1/import_json',
-        file: file,
+        source: fileUploadSource(file.path),
         commonFields: const {},
         commonQueryTrue: const {},
         idempotencyKey: 'idem-hash',
@@ -199,7 +200,7 @@ void main() {
 
       await client.uploadMultipartChunked(
         path: '/api/v1/import_json',
-        file: file,
+        source: fileUploadSource(file.path),
         commonFields: const {},
         commonQueryTrue: const {},
         idempotencyKey: 'idem-small',
@@ -230,7 +231,7 @@ void main() {
       await expectLater(
         client.uploadMultipartChunked(
           path: '/api/v1/import_json',
-          file: file,
+          source: fileUploadSource(file.path),
           commonFields: const {},
           commonQueryTrue: const {},
           idempotencyKey: 'idem-cancel',
@@ -260,7 +261,7 @@ void main() {
       await expectLater(
         client.uploadMultipartChunked(
           path: '/api/v1/import_json',
-          file: file,
+          source: fileUploadSource(file.path),
           commonFields: const {},
           commonQueryTrue: const {},
           idempotencyKey: 'idem-err',

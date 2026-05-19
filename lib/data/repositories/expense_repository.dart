@@ -16,6 +16,7 @@ import 'package:admin/data/repositories/document_bearing_repository.dart';
 import 'package:admin/data/services/expenses_api.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
+import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/domain/sync/mutation.dart';
 
 final _log = Logger('ExpenseRepository');
@@ -286,13 +287,13 @@ class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi>    imp
   Future<void> uploadDocument({
     required String companyId,
     required String entityId,
-    required String localPath,
+    required UploadSource source,
   }) {
     return enqueueMutation(
       companyId: companyId,
       entityId: entityId,
       kind: MutationKind.documentUpload,
-      payload: {'entity_id': entityId, 'local_path': localPath},
+      payload: {'entity_id': entityId, ...source.toPayload()},
     );
   }
 

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
@@ -6,6 +5,7 @@ import 'package:uuid/uuid.dart';
 
 import 'package:admin/data/models/domain/import_preview.dart';
 import 'package:admin/data/services/api_client.dart';
+import 'package:admin/data/services/upload_source.dart';
 
 /// Entities the CSV importer supports. Wire keys match React's
 /// `import_type` / multipart `files[<entity>]` naming.
@@ -56,7 +56,9 @@ class ImportApi {
     );
     final json = raw is Map<String, dynamic>
         ? raw
-        : (raw is Map ? raw.map((k, v) => MapEntry('$k', v)) : <String, dynamic>{});
+        : (raw is Map
+              ? raw.map((k, v) => MapEntry('$k', v))
+              : <String, dynamic>{});
     return ImportPreview.fromJson(json, entity);
   }
 
@@ -103,12 +105,12 @@ class ImportApi {
   /// `api_client_chunked_upload_test`). [importSettings] controls whether
   /// company settings are imported alongside the data.
   Future<void> runMigration({
-    required File file,
+    required UploadSource source,
     required bool importSettings,
   }) async {
     await client.uploadMultipartChunked(
       path: '/api/v1/import_json',
-      file: file,
+      source: source,
       commonFields: {
         'import_settings': '$importSettings',
         'import_data': 'true',

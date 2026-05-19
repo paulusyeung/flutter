@@ -74,6 +74,7 @@ import 'package:admin/data/services/smtp_api.dart';
 import 'package:admin/data/services/templates_api.dart';
 import 'package:admin/data/services/support_api.dart';
 import 'package:admin/data/services/token_storage.dart';
+import 'package:admin/data/services/token_storage_factory.dart';
 import 'package:admin/data/services/two_factor_api.dart';
 import 'package:admin/data/services/user_settings_api.dart';
 import 'package:admin/data/services/users_api.dart';
@@ -141,8 +142,7 @@ Future<void> _runSidebarPrefetch(
   }
 
   await Future.wait([
-    for (var w = 0; w < _kPrefetchConcurrency && w < jobs.length; w++)
-      worker(),
+    for (var w = 0; w < _kPrefetchConcurrency && w < jobs.length; w++) worker(),
   ]);
 }
 
@@ -567,8 +567,7 @@ class Services implements SidebarBadgeContext {
   /// Sidebar count streams keyed by entity type. Populated once in
   /// [Services.build] from [WiredEntities.countWatchers] and read by
   /// [watchEntityCount].
-  final Map<EntityType, Stream<int> Function(String companyId)>
-  _countWatchers;
+  final Map<EntityType, Stream<int> Function(String companyId)> _countWatchers;
 
   /// First-page prefetch callbacks keyed by entity type. Fired in parallel
   /// from [prefetchSidebarEntities] on every active-company change so the
@@ -673,7 +672,7 @@ class Services implements SidebarBadgeContext {
   }) {
     final passwordCache = PasswordCache();
     final authService = AuthService(httpClient: httpClient);
-    final tokenStore = tokenStorage ?? SecureTokenStorage();
+    final tokenStore = tokenStorage ?? defaultTokenStorage();
     final auth = AuthRepository(
       db: db,
       authService: authService,
@@ -877,8 +876,10 @@ class Services implements SidebarBadgeContext {
     final sidebar = SidebarController(db: db);
     // Company-scoped — clears itself off `auth.session` changes, same as the
     // nav history. No `onActiveCompanyChanged` hook needed here.
-    final recentlyViewed =
-        RecentlyViewedController(db: db, session: auth.session);
+    final recentlyViewed = RecentlyViewedController(
+      db: db,
+      session: auth.session,
+    );
     final settingsLevel = SettingsLevelController();
     // Reset the settings scope whenever the user logs out or switches
     // company — otherwise the next login would inherit a stale clientId
@@ -961,7 +962,9 @@ class Services implements SidebarBadgeContext {
       connectivity: connectivity,
       passwordCache: passwordCache,
       apiClient: apiClient,
-      biometric: biometricService ?? LocalAuthBiometricService(),
+      biometric:
+          biometricService ??
+          (kIsWeb ? const WebBiometricService() : LocalAuthBiometricService()),
       theme: theme,
       accentColor: accentColor,
       locale: locale,

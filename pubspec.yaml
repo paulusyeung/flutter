@@ -1,5 +1,5 @@
 name: admin
-description: "Invoice Ninja admin client — Flutter rebuild (iOS + macOS)."
+description: "Invoice Ninja admin client — Flutter rebuild (iOS, macOS, web)."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -48,6 +48,7 @@ dependencies:
   super_editor: any
   url_launcher: ^6.3.0
   uuid: ^4.4.0
+  web: ^1.1.0
   webview_flutter: ^4.10.0
 
 dev_dependencies:

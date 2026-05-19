@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:admin/data/services/upload_source.dart';
 
 /// Allowlist of file extensions the server accepts as document attachments
 /// (mirrors what admin-portal allows). Sent to the picker as a hard filter,
@@ -39,52 +39,46 @@ enum DocumentUploadIssue { wrongExtension, tooLarge, unreadable }
 
 /// Result of a pre-upload validation check.
 class DocumentUploadValidation {
-  const DocumentUploadValidation.ok(this.localPath, this.sizeBytes)
+  const DocumentUploadValidation.ok(this.fileName, this.sizeBytes)
     : issue = null;
-  const DocumentUploadValidation.failed(this.localPath, this.issue)
+  const DocumentUploadValidation.failed(this.fileName, this.issue)
     : sizeBytes = 0;
 
-  final String localPath;
+  final String fileName;
   final int sizeBytes;
   final DocumentUploadIssue? issue;
 
   bool get isOk => issue == null;
 }
 
-/// Validate one local file path against the allowlist + size cap. Used by
-/// `EntityDocumentsTab` for both the file-picker and drag-drop paths so the
-/// reject toasts are identical regardless of how the user added the file.
-///
-/// [knownSize] short-circuits the [File.length] call when the picker
-/// already reported a size (e.g. `file_picker`'s `PlatformFile.size`).
+/// Validate one [UploadSource] against the allowlist + size cap. Used by
+/// `EntityDocumentsTab` for both the file-picker and drag-drop paths (and
+/// on every platform) so the reject toasts are identical regardless of how
+/// the user added the file. Extension comes from [UploadSource.fileName];
+/// size from [UploadSource.length] (cheap on both the file and bytes form).
 Future<DocumentUploadValidation> validateDocumentUpload(
-  String localPath, {
-  int? knownSize,
-}) async {
-  final dot = localPath.lastIndexOf('.');
-  final ext = dot >= 0 ? localPath.substring(dot + 1).toLowerCase() : '';
+  UploadSource source,
+) async {
+  final name = source.fileName;
+  final dot = name.lastIndexOf('.');
+  final ext = dot >= 0 ? name.substring(dot + 1).toLowerCase() : '';
   if (!kDocumentAllowedExtensions.contains(ext)) {
     return DocumentUploadValidation.failed(
-      localPath,
+      name,
       DocumentUploadIssue.wrongExtension,
     );
   }
   int size;
   try {
-    size = knownSize != null && knownSize > 0
-        ? knownSize
-        : await File(localPath).length();
+    size = await source.length();
   } catch (_) {
     return DocumentUploadValidation.failed(
-      localPath,
+      name,
       DocumentUploadIssue.unreadable,
     );
   }
   if (size > kDocumentMaxBytes) {
-    return DocumentUploadValidation.failed(
-      localPath,
-      DocumentUploadIssue.tooLarge,
-    );
+    return DocumentUploadValidation.failed(name, DocumentUploadIssue.tooLarge);
   }
-  return DocumentUploadValidation.ok(localPath, size);
+  return DocumentUploadValidation.ok(name, size);
 }

@@ -15,6 +15,7 @@ import 'package:admin/data/repositories/document_bearing_repository.dart';
 import 'package:admin/data/services/products_api.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
+import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/domain/sync/mutation.dart';
 
 final _log = Logger('ProductRepository');
@@ -25,7 +26,8 @@ final _log = Logger('ProductRepository');
 ///
 /// Page size is fixed at [pageSize]. Subsequent pages are fetched only on
 /// demand — list screens call [ensurePageLoaded] near the scroll edge.
-class ProductRepository extends BaseEntityRepository<Product, ProductApi>    implements DocumentBearingRepository {
+class ProductRepository extends BaseEntityRepository<Product, ProductApi>
+    implements DocumentBearingRepository {
   ProductRepository({
     required super.db,
     required this.api,
@@ -234,24 +236,22 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi>    imp
   /// `ClientRepository.uploadDocument` for the lifecycle notes — same
   /// payload shape, same outbox kind.
   @override
-
   Future<void> uploadDocument({
     required String companyId,
     required String entityId,
-    required String localPath,
+    required UploadSource source,
   }) {
     return enqueueMutation(
       companyId: companyId,
       entityId: entityId,
       kind: MutationKind.documentUpload,
-      payload: {'entity_id': entityId, 'local_path': localPath},
+      payload: {'entity_id': entityId, ...source.toPayload()},
     );
   }
 
   /// Delete one document attached to a product. Password-gated — see
   /// `requiresPasswordFor` above.
   @override
-
   Future<void> deleteDocument({
     required String companyId,
     required String entityId,
@@ -267,7 +267,6 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi>    imp
 
   /// Flip a document's public/private flag.
   @override
-
   Future<void> setDocumentVisibility({
     required String companyId,
     required String entityId,

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/theme.dart';
 import 'package:admin/data/models/domain/document.dart';
+import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/ui/core/detail/entity_documents_tab.dart';
 
 import '../../../_localization_helper.dart';
@@ -25,7 +26,7 @@ Future<void> _pump(
   required String entityId,
   required List<Document> documents,
   bool readOnly = false,
-  Future<void> Function(List<String>)? onUpload,
+  Future<void> Function(List<UploadSource>)? onUpload,
   Future<void> Function(Document)? onDelete,
   Future<void> Function(Document)? onToggleVisibility,
 }) async {

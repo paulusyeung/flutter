@@ -1,6 +1,6 @@
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/document.dart';
+import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
@@ -45,10 +46,11 @@ class EntityDocumentsTab extends StatefulWidget {
   /// host (typically `vm.client.documents` / `vm.product.documents`).
   final List<Document> documents;
 
-  /// Callback for one or more newly picked / dropped local file paths.
-  /// The host typically does `paths.forEach(repo.uploadDocument)` — the
-  /// outbox handles sequencing.
-  final Future<void> Function(List<String> localPaths) onUpload;
+  /// Callback for one or more newly picked / dropped files, each wrapped in
+  /// an [UploadSource] (native file path or in-memory web bytes). The host
+  /// typically does `sources.forEach(repo.uploadDocument)` — the outbox
+  /// handles sequencing.
+  final Future<void> Function(List<UploadSource> sources) onUpload;
 
   /// Callback when the user picks **Delete** on a row. The host enqueues
   /// `repo.deleteDocument`; the sync engine prompts for the password
@@ -180,32 +182,38 @@ class _EntityDocumentsTabState extends State<EntityDocumentsTab> {
       type: FileType.custom,
       allowedExtensions: kDocumentAllowedExtensions,
       allowMultiple: true,
+      // Web only ever has bytes (no path); request them explicitly so a
+      // platform that lazily loads bytes still populates `.bytes`.
+      withData: kIsWeb,
     );
     if (picked == null || picked.files.isEmpty) return;
-    final paths = <String>[];
+    final sources = <UploadSource>[];
     for (final f in picked.files) {
-      final p = f.path;
-      if (p == null) continue;
-      paths.add(p);
+      final path = f.path;
+      if (!kIsWeb && path != null) {
+        sources.add(fileUploadSource(path));
+      } else if (f.bytes != null) {
+        sources.add(BytesUploadSource(f.bytes!, f.name));
+      }
     }
     if (!mounted) return;
-    await _validateAndUpload(paths);
+    await _validateAndUpload(sources);
   }
 
-  Future<void> _onDrop(List<String> droppedPaths) async {
+  Future<void> _onDrop(List<UploadSource> dropped) async {
     setState(() => _dragOver = false);
-    await _validateAndUpload(droppedPaths);
+    await _validateAndUpload(dropped);
   }
 
-  Future<void> _validateAndUpload(List<String> paths) async {
-    if (paths.isEmpty) return;
-    final goodPaths = <String>[];
+  Future<void> _validateAndUpload(List<UploadSource> sources) async {
+    if (sources.isEmpty) return;
+    final good = <UploadSource>[];
     bool sawWrongType = false;
     bool sawTooLarge = false;
-    for (final p in paths) {
-      final result = await validateDocumentUpload(p);
+    for (final s in sources) {
+      final result = await validateDocumentUpload(s);
       if (result.isOk) {
-        goodPaths.add(p);
+        good.add(s);
       } else {
         switch (result.issue) {
           case DocumentUploadIssue.wrongExtension:
@@ -229,9 +237,9 @@ class _EntityDocumentsTabState extends State<EntityDocumentsTab> {
         context.tr('upload_too_large_with_size', {'size': '$kDocumentMaxMb'}),
       );
     }
-    if (goodPaths.isEmpty) return;
+    if (good.isEmpty) return;
     try {
-      await widget.onUpload(goodPaths);
+      await widget.onUpload(good);
       if (!mounted) return;
       Notify.success(context, context.tr('uploaded_document'));
     } catch (e) {
@@ -262,7 +270,7 @@ class _Dropzone extends StatelessWidget {
   final bool dragOver;
   final VoidCallback onEntered;
   final VoidCallback onExited;
-  final Future<void> Function(List<String>) onDrop;
+  final Future<void> Function(List<UploadSource>) onDrop;
   final Widget child;
 
   @override
@@ -272,12 +280,18 @@ class _Dropzone extends StatelessWidget {
     return DropTarget(
       onDragEntered: (_) => onEntered(),
       onDragExited: (_) => onExited(),
-      onDragDone: (details) {
-        final paths = <String>[];
+      onDragDone: (details) async {
+        final sources = <UploadSource>[];
         for (final xf in details.files) {
-          if (xf.path.isNotEmpty) paths.add(xf.path);
+          if (!kIsWeb && xf.path.isNotEmpty) {
+            sources.add(fileUploadSource(xf.path));
+          } else {
+            // Web: `XFile.path` is a blob URL, not a filesystem path —
+            // read the bytes the drop handed us instead.
+            sources.add(BytesUploadSource(await xf.readAsBytes(), xf.name));
+          }
         }
-        onDrop(paths);
+        await onDrop(sources);
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),

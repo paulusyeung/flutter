@@ -28,20 +28,18 @@ EntityDetailTab buildStandardDocumentsTab({
   return EntityDetailTab(
     label: documents.isEmpty
         ? context.tr('documents')
-        : context.tr('documents_with_count', {
-            'count': '${documents.length}',
-          }),
+        : context.tr('documents_with_count', {'count': '${documents.length}'}),
     icon: Icons.description_outlined,
     bodyBuilder: (_) => EntityDocumentsTab(
       entityId: entityId,
       documents: documents,
       formatter: formatter,
-      onUpload: (paths) async {
-        for (final p in paths) {
+      onUpload: (sources) async {
+        for (final s in sources) {
           await repo.uploadDocument(
             companyId: companyId,
             entityId: entityId,
-            localPath: p,
+            source: s,
           );
         }
       },

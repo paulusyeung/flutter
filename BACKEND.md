@@ -529,3 +529,60 @@ there is no maintained native Flutter MSAL SDK (admin-portal is web-only
 stable native Flutter MSAL option exists, Microsoft sign-in cannot be
 shipped to the verified standard Google/Apple were — so it is NOT flipped.
 No server change is required; this note exists only so the gap is traceable.
+
+---
+
+## Web platform CORS — `Idempotency-Key` not allow-listed — **R (server gap, blocks web writes)**
+
+**Provenance** — 2026-05-19, live `OPTIONS` preflight probe vs
+`demo.invoiceninja.com` while adding the web platform target.
+
+The web build runs at a browser origin and calls the API cross-origin, so
+every request is subject to CORS preflight. `ApiClient._buildHeaders`
+(`lib/data/services/api_client.dart:756-768`) sends `Idempotency-Key` on
+**every outbox write** (stable per outbox row, the M1 retry-safety
+contract — see CLAUDE.md § Sync). The demo server's preflight response
+does **not** allow that header:
+
+```
+$ curl -s -i -X OPTIONS 'https://demo.invoiceninja.com/api/v1/clients' \
+    -H 'Origin: https://admin.example.com' \
+    -H 'Access-Control-Request-Method: POST' \
+    -H 'Access-Control-Request-Headers: idempotency-key'
+access-control-allow-origin: *
+access-control-allow-methods: POST, GET, OPTIONS, PUT, DELETE
+access-control-allow-headers: X-CLIENT-PLATFORM,X-React,X-API-PASSWORD-BASE64,
+  X-API-COMPANY-KEY,X-CLIENT-VERSION,X-API-SECRET,X-API-TOKEN,X-API-PASSWORD,
+  DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,
+  Content-Disposition,Range,X-CSRF-TOKEN,X-XSRF-TOKEN,X-LIVEWIRE,X-Socket-ID
+```
+
+`Idempotency-Key` is absent → the browser blocks every web write
+(create/update/delete) at preflight. All other admin-client headers
+(`X-API-TOKEN`, `X-API-PASSWORD-BASE64`, `X-CLIENT-*`, `X-API-SECRET`,
+`X-Requested-With`, `Content-Type`) **are** allowed, so reads and login
+work; only writes are blocked.
+
+**Required change** — add `Idempotency-Key` to the API's CORS
+`Access-Control-Allow-Headers` list (the middleware/config that produces
+the header set above; mirror how `X-API-TOKEN` is registered).
+
+**Optional, same change site** — add
+`Access-Control-Expose-Headers: X-MINIMUM-CLIENT-VERSION`. There is no
+`Access-Control-Expose-Headers` in the response today, so the
+`x-minimum-client-version` response header (read on every request to throw
+`ClientTooOldException` — CLAUDE.md § Sync) is invisible to JS on web. It
+fails open (the min-version gate silently never trips on web) rather than
+breaking anything, so this is **O**, not **R**. Pagination needs nothing
+here — the keyset cursor reads `data.last` from the body, not a header.
+
+**Acceptance** — re-run the curl above with
+`Access-Control-Request-Headers: idempotency-key`; `Idempotency-Key` must
+appear in the returned `access-control-allow-headers`. Then a web build
+create/edit/delete must complete instead of failing with a console CORS
+preflight error.
+
+Until this ships, web is **read + login only**; outbox drains will fail at
+the network layer (surfaced as transient sync errors). Client code needs
+no change — `Idempotency-Key` stays sent unconditionally; it is correct
+and required for retry safety on every platform.

@@ -132,12 +132,12 @@ class _Body extends StatelessWidget {
                     bodyBuilder: (_) => EntityDocumentsTab(
                       entityId: credit.id,
                       documents: credit.documents,
-                      onUpload: (paths) async {
-                        for (final p in paths) {
+                      onUpload: (sources) async {
+                        for (final s in sources) {
                           await services.credits.uploadDocument(
                             companyId: companyId,
                             entityId: credit.id,
-                            localPath: p,
+                            source: s,
                           );
                         }
                       },

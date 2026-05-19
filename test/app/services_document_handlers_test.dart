@@ -28,12 +28,12 @@ void main() {
           upload:
               ({
                 required entityId,
-                required filePath,
+                required source,
                 required idempotencyKey,
               }) async {
                 uploadCalls.add({
                   'entityId': entityId,
-                  'localPath': filePath,
+                  'fileName': source.fileName,
                   'idempotencyKey': idempotencyKey,
                 });
                 return 'inner-dto';
@@ -87,12 +87,12 @@ void main() {
         upload:
             ({
               required entityId,
-              required filePath,
+              required source,
               required idempotencyKey,
             }) async {
               uploadCalls.add({
                 'entityId': entityId,
-                'localPath': filePath,
+                'fileName': source.fileName,
                 'idempotencyKey': idempotencyKey,
               });
               return 'inner-dto';
@@ -120,7 +120,7 @@ void main() {
       expect(result, 'inner-dto');
       expect(uploadCalls, hasLength(1));
       expect(uploadCalls.single['entityId'], 'e7');
-      expect(uploadCalls.single['localPath'], tmp.path);
+      expect(uploadCalls.single['fileName'], tmp.path.split('/').last);
       expect(uploadCalls.single['idempotencyKey'], 'idk-1');
     });
 
@@ -135,7 +135,7 @@ void main() {
           upload:
               ({
                 required entityId,
-                required filePath,
+                required source,
                 required idempotencyKey,
               }) async => '',
           applyChanged:
@@ -198,7 +198,7 @@ void main() {
         upload:
             ({
               required entityId,
-              required filePath,
+              required source,
               required idempotencyKey,
             }) async => '',
         applyChanged:
