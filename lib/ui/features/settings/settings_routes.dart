@@ -13,6 +13,7 @@ import 'package:admin/ui/features/settings/views/basic/device_settings_screen.da
 import 'package:admin/ui/features/settings/views/basic/import_export_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/localization/localization_shell.dart';
 import 'package:admin/data/models/domain/payment_link.dart';
+import 'package:admin/data/models/domain/report_schedule_seed.dart';
 import 'package:admin/ui/features/gateways/views/company_gateway_detail_screen.dart';
 import 'package:admin/ui/features/gateways/views/company_gateway_edit_screen.dart';
 import 'package:admin/ui/features/gateways/views/company_gateway_list_screen.dart';
@@ -496,8 +497,12 @@ final List<RouteBase> settingsRoutes = [
     routes: [
       _settingsRoute(
         path: 'new',
-        builder: (_, state) =>
-            SchedulesEditScreen(starter: state.uri.queryParameters['starter']),
+        builder: (_, state) => SchedulesEditScreen(
+          starter: state.uri.queryParameters['starter'],
+          seed: state.extra is ReportScheduleSeed
+              ? state.extra as ReportScheduleSeed
+              : null,
+        ),
       ),
       _settingsRoute(
         path: ':id',

@@ -149,6 +149,20 @@ void main() {
       expect(opening.isOpening, isTrue);
       expect(opening.adjustment, Decimal.zero);
       expect(opening.runningBalance, Decimal.zero);
+      // The opening row carries a *placeholder* kind (invoice) — the tab's
+      // filter MUST gate on `isOpening`, not kind, or a non-invoice chip
+      // would hide the genesis anchor. Lock that contract here.
+      expect(opening.kind, LedgerKind.invoice);
+      const active = {LedgerKind.payment};
+      final visibleBuggy =
+          e.where((x) => active.contains(x.kind)).toList();
+      final visibleFixed = e
+          .where((x) => x.isOpening || active.contains(x.kind))
+          .toList();
+      expect(visibleBuggy.any((x) => x.isOpening), isFalse,
+          reason: 'kind-only filter drops the genesis row (the bug)');
+      expect(visibleFixed.any((x) => x.isOpening), isTrue,
+          reason: 'isOpening-guarded filter keeps it (the fix)');
       // The real row's running balance is unchanged by the genesis row.
       expect(e.first.id, 'i1');
       expect(e.first.runningBalance, Decimal.parse('100'));

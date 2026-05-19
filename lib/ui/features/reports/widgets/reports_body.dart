@@ -13,6 +13,7 @@ import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/data/models/domain/report_definition.dart';
 import 'package:admin/data/models/domain/report_payload.dart';
 import 'package:admin/data/models/domain/report_preview.dart';
+import 'package:admin/data/models/domain/report_schedule_seed.dart';
 import 'package:admin/data/models/value/dashboard_filter.dart';
 import 'package:admin/data/repositories/reports_repository.dart';
 import 'package:admin/data/services/reports_api.dart';
@@ -1215,6 +1216,8 @@ class _PanelFooterActions extends StatelessWidget {
             Expanded(child: _EmailButton(vm: vm)),
           ],
         ),
+        SizedBox(height: InSpacing.sm),
+        _ScheduleButton(vm: vm),
         if (vm.columnFilters.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -1244,6 +1247,44 @@ class _PanelFooterActions extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// "Schedule" — opens the recurring-email schedule editor pre-filled as an
+/// `email_report` with the current report's filters/columns (mirrors React's
+/// `useScheduleReport`). Uses the typed-`extra` prefill precedent
+/// (`ReportScheduleSeed` → `SchedulesEditScreen.seed`).
+class _ScheduleButton extends StatelessWidget {
+  const _ScheduleButton({required this.vm});
+
+  final ReportsViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(44),
+      ),
+      icon: const Icon(Icons.schedule_outlined, size: 18),
+      label: Text(context.tr('schedule')),
+      onPressed: () {
+        // `visibleColumnIds` is an unordered Set; the scheduled report's
+        // column order must match the user's chosen order. `columnOrder`
+        // is the canonical ordered selection (filter to currently-visible);
+        // empty → fall back to the visible set, mirroring what the rest of
+        // the reports screen does (and `reports_view_model.dart:513`).
+        final seed = ReportScheduleSeed(
+          reportIdentifier: vm.reportIdentifier,
+          payload: vm.payload,
+          reportKeys: (vm.columnOrder.isNotEmpty
+                  ? vm.columnOrder.where(vm.visibleColumnIds.contains)
+                  : vm.visibleColumnIds)
+              .toList(),
+          groupBy: vm.group,
+        );
+        context.go('/settings/schedules/new', extra: seed);
+      },
     );
   }
 }

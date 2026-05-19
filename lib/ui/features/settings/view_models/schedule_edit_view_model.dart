@@ -1,7 +1,9 @@
+import 'package:admin/data/models/domain/report_schedule_seed.dart';
 import 'package:admin/data/models/domain/schedule.dart';
 import 'package:admin/data/models/domain/schedule_constants.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/repositories/schedule_repository.dart';
+import 'package:admin/domain/reports/report_schedule.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 
 /// Drives the `/settings/schedules/new` + `/:id` edit screen. The draft's
@@ -34,6 +36,11 @@ class ScheduleEditViewModel extends GenericEditViewModel<Schedule> {
   }
 
   void resetToEmpty() => reset(emptyDraft: Schedule.empty());
+
+  /// Seed a fresh create as an `email_report` schedule pre-filled from the
+  /// reports screen's "Schedule" launcher (see `reportEmailSchedule`).
+  void applyReportSeed(ReportScheduleSeed seed) =>
+      updateDraft(reportEmailSchedule(seed));
 
   // ----- common setters -----
 

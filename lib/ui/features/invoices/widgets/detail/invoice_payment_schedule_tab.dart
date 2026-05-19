@@ -266,7 +266,9 @@ class _CreatePaymentScheduleDialogState
                 'date':
                     Date(r.date!.year, r.date!.month, r.date!.day).toIso(),
                 'amount':
-                    Decimal.parse(r.amount.text.trim()).toDouble(),
+                    (Decimal.tryParse(r.amount.text.trim()) ??
+                            Decimal.zero)
+                        .toDouble(),
                 'is_amount': true,
               },
           ],
@@ -318,7 +320,18 @@ class _CreatePaymentScheduleDialogState
             icon: const Icon(Icons.close, size: 18),
             onPressed: (_busy || _rows.length <= 1)
                 ? null
-                : () => setState(() => _rows.removeAt(i).amount.dispose()),
+                : () {
+                    final removed = _rows.removeAt(i);
+                    setState(() {});
+                    // Dispose after this frame: the removed row's TextField
+                    // element is still mounted during the rebuild, so
+                    // disposing its controller synchronously trips the
+                    // "used after dispose" assert. The removed row is no
+                    // longer in `_rows`, so `dispose()` won't double-free.
+                    WidgetsBinding.instance.addPostFrameCallback(
+                      (_) => removed.amount.dispose(),
+                    );
+                  },
           ),
         ],
       ),

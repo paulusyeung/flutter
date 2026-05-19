@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/enabled_modules.dart';
+import 'package:admin/data/models/domain/report_schedule_seed.dart';
 import 'package:admin/data/models/domain/schedule.dart';
 import 'package:admin/data/models/domain/schedule_constants.dart';
 import 'package:admin/data/models/value/date.dart';
@@ -27,13 +28,24 @@ import 'package:admin/utils/formatting.dart';
 /// "Common" section (next_run / frequency / cycles / pause) plus a
 /// per-template parameter section.
 class SchedulesEditScreen extends StatelessWidget {
-  const SchedulesEditScreen({this.existingId, this.starter, super.key});
+  const SchedulesEditScreen({
+    this.existingId,
+    this.starter,
+    this.seed,
+    super.key,
+  });
 
   final String? existingId;
 
   /// `?starter=...` from the empty-state starter cards. Pre-fills the
   /// template + parameters when set on a fresh create.
   final String? starter;
+
+  /// Passed via `context.go(..., extra:)` from the reports screen's
+  /// "Schedule" launcher — pre-fills a fresh create as an `email_report`
+  /// schedule with the current report's filters/columns. Same typed-`extra`
+  /// prefill precedent as `PaymentLinkEditScreen.cloneFrom`.
+  final ReportScheduleSeed? seed;
 
   @override
   Widget build(BuildContext context) {
@@ -58,10 +70,16 @@ class SchedulesEditScreen extends StatelessWidget {
           companyId: companyId,
           existing: existing,
         );
-        // Apply starter prefill on fresh creates. The starter keys map to
-        // the three cards rendered in the empty state on the list screen.
-        if (existing == null && starter != null) {
-          _applyStarter(vm, starter!);
+        // Prefill on fresh creates. A report seed (from the reports
+        // "Schedule" launcher) wins over a starter card; they never
+        // co-occur in practice. `updateDraft` mirrors how `_applyStarter`
+        // mutates the VM post-construction.
+        if (existing == null) {
+          if (seed != null) {
+            vm.applyReportSeed(seed!);
+          } else if (starter != null) {
+            _applyStarter(vm, starter!);
+          }
         }
         return vm;
       },

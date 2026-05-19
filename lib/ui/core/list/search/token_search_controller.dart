@@ -55,10 +55,11 @@ class TokenSearchController {
   /// Text-independent value-mode override. Set when the user taps a
   /// `checkboxMultiSelect` chip to edit it: the value picker must open
   /// WITHOUT writing a `<key>:` prefix into the visible input (that stray
-  /// prefix next to the chips was the reported bug). While set and the
-  /// input is empty, [parseInput] reports value mode for this key. Any
-  /// typing, or the menu dismissing, clears it (text becomes the source of
-  /// truth again).
+  /// prefix next to the chips was the reported bug). While set, [parseInput]
+  /// reports value mode for this key and treats any bare input text as that
+  /// key's value query. The pin is dropped only by an explicit `:` (handled
+  /// in the field's `_onTextChange`) or [clearPinnedValueKey] — not by plain
+  /// typing.
   FilterKey? _pinnedValueKey;
   FilterKey? get pinnedValueKey => _pinnedValueKey;
 

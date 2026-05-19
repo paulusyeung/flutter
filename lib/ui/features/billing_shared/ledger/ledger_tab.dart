@@ -93,9 +93,13 @@ class _LedgerTabState extends State<LedgerTab> {
     bool loading,
   ) {
     final tokens = context.inTheme;
+    // The genesis row (isOpening) carries a placeholder `kind`; it's the
+    // statement anchor and must never be hidden by a kind filter chip.
     final visible = _active.isEmpty
         ? entries
-        : entries.where((e) => _active.contains(e.kind)).toList();
+        : entries
+            .where((e) => e.isOpening || _active.contains(e.kind))
+            .toList();
     final summary = _LedgerSummary(
       scope: widget.scope,
       balance: widget.summaryBalance,

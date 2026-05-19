@@ -57,6 +57,8 @@ import 'package:admin/ui/features/webhooks/views/webhook_list_screen.dart';
 // Entity edit (create) screens.
 import 'package:admin/ui/features/clients/views/client_edit_screen.dart';
 import 'package:admin/ui/features/expenses/views/expense_edit_screen.dart';
+import 'package:admin/data/models/api/invoice_api_model.dart';
+import 'package:admin/ui/features/invoices/views/invoice_detail_screen.dart';
 import 'package:admin/ui/features/invoices/views/invoice_edit_screen.dart';
 import 'package:admin/ui/features/products/views/product_edit_screen.dart';
 import 'package:admin/ui/features/projects/views/project_edit_screen.dart';
@@ -732,6 +734,89 @@ void main() {
         reason: 'sidebar must surface "$label"',
       );
     }
+  });
+
+  // Deep-link regression for the invoice-lock gate. A cold deep link to
+  // `/invoices/:id/edit` never goes through InvoiceActions.dispatch, so the
+  // gate lives in InvoiceEditScreen's fetchExisting closure. Booting the
+  // real app straight at the edit route for a sent invoice under
+  // `lock_invoices=when_sent` must: show the reason-specific dialog, and
+  // (no back stack on a cold deep link) land on the detail screen.
+  //
+  // This lives here, not under `test/`, because it needs the real
+  // EntityEditScreenScaffold load (a genuine async Drift read) AND boots a
+  // GoogleFonts-using screen — the two are incompatible under plain
+  // `flutter test` (google_fonts → path_provider headless limitation, see
+  // demo_harness.dart). On a real device both work without runAsync.
+  testWidgets('cold deep link to a locked invoice edit → dialog, then detail', (
+    tester,
+  ) async {
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    await db.companiesDao.upsertAccount(
+      AccountsCompanion.insert(
+        id: 'acct_1',
+        email: '',
+        plan: 'pro',
+        numTrialDays: 14,
+        updatedAt: nowMs,
+      ),
+    );
+    await db.companiesDao.upsertAll([
+      CompaniesCompanion.insert(
+        id: 'co_a',
+        name: 'Acme',
+        settings: '{"lock_invoices": "when_sent"}',
+        permissions: '',
+        accountId: 'acct_1',
+        token: 'tok_a',
+        isOwner: const Value(true),
+        isAdmin: const Value(true),
+        updatedAt: nowMs,
+      ),
+    ]);
+    final storage = InMemoryTokenStorage();
+    await storage.write('invoiceninja.tokens.v1', '{"co_a":"tok_a"}');
+    await storage.write('invoiceninja.base_url.v1', 'https://test');
+    await storage.write('invoiceninja.is_hosted.v1', 'false');
+    await storage.write('invoiceninja.current_company.v1', 'co_a');
+
+    final services = Services.build(
+      db: db,
+      tokenStorage: storage,
+      httpClient: _silentNetwork(),
+    );
+    await services.auth.restore();
+    // status_id 2 = sent → locked under when_sent.
+    await services.invoices.applyUpdateResponse(
+      companyId: 'co_a',
+      serverResponse: const InvoiceApi(
+        id: 'inv1',
+        statusId: '2',
+        updatedAt: 1700000000,
+      ),
+    );
+
+    await tester.pumpWidget(
+      InvoiceNinjaApp(
+        services: services,
+        dbWasReset: false,
+        initialLocation: '/invoices/inv1/edit',
+      ),
+    );
+    await _pumpUntilFound(tester, find.byType(AlertDialog));
+
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.text('Sent invoices are locked'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Close'));
+    await _pumpUntilFound(tester, find.byType(InvoiceDetailScreen));
+
+    expect(find.byType(AlertDialog), findsNothing);
+    // No back stack on a cold deep link → landed on the detail route.
+    expect(find.byType(InvoiceDetailScreen), findsOneWidget);
+    expect(find.byType(InvoiceEditScreen), findsNothing);
   });
 }
 

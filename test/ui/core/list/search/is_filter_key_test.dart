@@ -266,7 +266,7 @@ void main() {
   });
 
   testWidgets(
-    'pinnedValueKey drives value mode with an EMPTY input; typing wins',
+    'pinnedValueKey owns the menu; bare text is the key value, dropped only by ":" or clear',
     (tester) async {
       await tester.pumpWidget(const SizedBox());
       await tester.runAsync(() async {
@@ -291,13 +291,21 @@ void main() {
         expect(parse.matchedKey, isA<IsFilterKey>());
         expect(parse.query, isEmpty);
 
-        // Typing wins over the pin (text owns the mode).
+        // A pinned key OWNS the menu: bare text (no `:`) is that key's
+        // VALUE query, not a new key/free-text parse. The pin is dropped
+        // only by an explicit `:` (handled in the field's _onTextChange,
+        // not the controller) or clearPinnedValueKey() — never by plain
+        // typing.
         controller.text.text = 'acme';
-        expect(controller.parseInput().matchedKey, isNull);
+        parse = controller.parseInput();
+        expect(parse.matchedKey, isA<IsFilterKey>());
+        expect(parse.query, 'acme');
 
-        // Back to empty: pin still in effect until explicitly cleared.
+        // Clearing the text keeps the pin in effect; query back to empty.
         controller.text.clear();
-        expect(controller.parseInput().matchedKey, isA<IsFilterKey>());
+        parse = controller.parseInput();
+        expect(parse.matchedKey, isA<IsFilterKey>());
+        expect(parse.query, isEmpty);
 
         final rev1 = controller.pinRevision.value;
         controller.clearPinnedValueKey();

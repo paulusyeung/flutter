@@ -16,7 +16,22 @@ import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
+
+/// Every request fails immediately. A deterministic stand-in for the
+/// unreachable test server: without it `buildFixture` falls back to a real
+/// `http.Client` against `https://example.com`, which on a networked machine
+/// (dev box / CI) actually *responds* — so the sidebar prefetch fired by
+/// `auth.switchCompany` (`onActiveCompanyChanged` → `_prefetchSidebarOnCompanyChange`)
+/// and the company-picker precheck flush leave real `ApiClient` `.timeout()`
+/// Timers pending past the test body, tripping "A Timer is still pending even
+/// after the widget tree was disposed". Failing fast completes those futures
+/// synchronously (no pending Timer) and hands the precheck flush the
+/// `NetworkException` it expects (`ApiClient` maps any client error to it).
+http.Client _failFastClient() =>
+    MockClient((_) async => throw http.ClientException('offline (test fixture)'));
 
 class FakeCompany {
   const FakeCompany({
@@ -118,6 +133,7 @@ Future<ShellFixture> buildFixture({
     db: db,
     tokenStorage: storage,
     connectivityWatcher: ConnectivityWatcher.fixed(online: online),
+    httpClient: _failFastClient(),
   );
   await services.auth.restore();
   // `restore()` starts the Services-owned RefreshScheduler's periodic 5-min

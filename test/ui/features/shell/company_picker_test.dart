@@ -13,6 +13,12 @@ Future<void> _drain(WidgetTester tester, ShellFixture fixture) async {
   // RefreshScheduler's periodic timer. flutter_test asserts `!timersPending`
   // at the end of the test body (before addTearDown), so stop it here.
   fixture.services.refreshScheduler.stop();
+  // Switching also bumps `auth.session`, which RecentlyViewedController
+  // listens to: `_onSession` arms a 400 ms persist-debounce Timer. Same
+  // `!timersPending` deadline applies — cancel it here (dispose() cancels
+  // the timer + drops the session listener; ShellFixture.dispose() does not
+  // touch this controller, so there's no double-dispose).
+  fixture.services.recentlyViewed.dispose();
   await tester.pumpWidget(const SizedBox.shrink());
   await tester.pumpAndSettle();
 }
