@@ -36,6 +36,7 @@ class RecurringInvoiceEditScreen extends StatelessWidget {
         return RecurringInvoiceEditViewModel(
           repo: services.recurringInvoices,
           companyId: companyId,
+          clientRequiredMessage: ctx.tr('please_select_a_client'),
           existing: existing,
           cloneFrom: cloneFrom,
         );

@@ -80,6 +80,7 @@ class InvoiceEditScreen extends StatelessWidget {
         final vm = InvoiceEditViewModel(
           repo: services.invoices,
           companyId: companyId,
+          clientRequiredMessage: ctx.tr('please_select_a_client'),
           existing: existing,
           cloneFrom: cloneFrom,
         );

@@ -17,6 +17,7 @@ class PurchaseOrderEditViewModel
   PurchaseOrderEditViewModel({
     required this.repo,
     required this.companyId,
+    required this.vendorRequiredMessage,
     PurchaseOrder? existing,
     PurchaseOrder? cloneFrom,
     super.currencyPrecision,
@@ -27,6 +28,15 @@ class PurchaseOrderEditViewModel
 
   final PurchaseOrderRepository repo;
   final String companyId;
+
+  /// Localized "please select a vendor" — injected from the screen's
+  /// `buildVm` (VMs have no `BuildContext` to localize with).
+  final String vendorRequiredMessage;
+
+  @override
+  Map<String, List<String>> validate() => {
+    if (draft.vendorId.isEmpty) 'vendor_id': [vendorRequiredMessage],
+  };
 
   @override
   bool draftIsNonEmpty() {

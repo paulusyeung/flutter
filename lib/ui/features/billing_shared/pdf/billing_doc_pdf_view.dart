@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -30,7 +31,18 @@ class BillingDocPdfView extends StatefulWidget {
     required this.entityNumber,
     required this.fetcher,
     this.initialDeliveryNote = false,
+    this.revision,
+    this.autoRefreshDebounce = const Duration(milliseconds: 600),
   });
+
+  /// When non-null and it changes by `==`, the preview re-fetches after
+  /// [autoRefreshDebounce]. Edit screens pass the freezed draft (value
+  /// equality, so any field change re-renders); detail / pdf-route screens
+  /// leave it null → fetch-once, no auto-refresh.
+  final Object? revision;
+
+  /// Quiet period after a [revision] change before the refetch fires.
+  final Duration autoRefreshDebounce;
 
   /// Whether the first render requests the delivery-note variant (and the
   /// toggle starts in the on position). Only meaningful when
@@ -64,11 +76,29 @@ class _BillingDocPdfViewState extends State<BillingDocPdfView> {
   late bool _deliveryNote = widget.initialDeliveryNote;
   String? _designId;
   int _generation = 0;
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void didUpdateWidget(BillingDocPdfView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.revision != oldWidget.revision) {
+      _debounce?.cancel();
+      _debounce = Timer(widget.autoRefreshDebounce, () {
+        if (mounted) _load();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {

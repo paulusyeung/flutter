@@ -41,6 +41,7 @@ class QuoteEditScreen extends StatelessWidget {
         final vm = QuoteEditViewModel(
           repo: services.quotes,
           companyId: companyId,
+          clientRequiredMessage: ctx.tr('please_select_a_client'),
           existing: existing,
           cloneFrom: cloneFrom,
         );

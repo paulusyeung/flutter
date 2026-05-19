@@ -20,6 +20,7 @@ class InvoiceEditViewModel extends GenericBillingDocEditViewModel<Invoice> {
   InvoiceEditViewModel({
     required this.repo,
     required this.companyId,
+    required this.clientRequiredMessage,
     Invoice? existing,
     Invoice? cloneFrom,
     super.currencyPrecision,
@@ -30,6 +31,15 @@ class InvoiceEditViewModel extends GenericBillingDocEditViewModel<Invoice> {
 
   final InvoiceRepository repo;
   final String companyId;
+
+  /// Localized "please select a client" — injected from the screen's
+  /// `buildVm` (VMs have no `BuildContext` to localize with).
+  final String clientRequiredMessage;
+
+  @override
+  Map<String, List<String>> validate() => {
+    if (draft.clientId.isEmpty) 'client_id': [clientRequiredMessage],
+  };
 
   @override
   bool draftIsNonEmpty() {

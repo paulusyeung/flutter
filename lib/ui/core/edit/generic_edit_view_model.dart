@@ -79,6 +79,23 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
     return list.first;
   }
 
+  bool _localValidationOnly = false;
+
+  /// True when the current [fieldErrors] came from [validate] (a client-side
+  /// block — no local write, no outbox row was ever created), rather than a
+  /// server 422 / dead outbox row. The save-failed banner and the edit
+  /// scaffold use this to drop the server-rejection framing and skip the
+  /// dead-row lookup that only makes sense for a real sync failure.
+  bool get localValidationOnly => _localValidationOnly;
+
+  /// Synchronous pre-save validation. Return `api_field_key -> messages` to
+  /// block the save *before* any local write / outbox enqueue; the map feeds
+  /// the same inline-error path ([fieldErrorFor]) as a server 422. Default:
+  /// no client-side validation. Subclasses with required fields override
+  /// this (e.g. billing docs require a client / vendor).
+  @protected
+  Map<String, List<String>> validate() => const {};
+
   int? _deadOutboxRowId;
 
   /// `outbox.id` of the dead row whose 422 errors this VM is currently
@@ -104,9 +121,14 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
   /// Clear the dead-row link + the field errors. Called after the user
   /// either fixes the bad fields and saves again, or explicitly discards.
   void clearFailedSync() {
-    if (_deadOutboxRowId == null && _fieldErrors.isEmpty) return;
+    if (_deadOutboxRowId == null &&
+        _fieldErrors.isEmpty &&
+        !_localValidationOnly) {
+      return;
+    }
     _deadOutboxRowId = null;
     _fieldErrors = const {};
+    _localValidationOnly = false;
     notifyListeners();
   }
 
@@ -128,6 +150,7 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
     _savedClean = false;
     _submitError = null;
     _fieldErrors = const {};
+    _localValidationOnly = false;
     notifyListeners();
   }
 
@@ -208,6 +231,7 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
     _isSaving = true;
     _submitError = null;
     _fieldErrors = const {};
+    _localValidationOnly = false;
     // Note: `_deadOutboxRowId` deliberately survives `save()` entry — the
     // screen's `onSaved` callback reads it to delete the prior dead row
     // after a successful re-save. If `performSave` itself throws a 422
@@ -215,6 +239,17 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
     // `onSaveRejected` hook can pick up the *fresh* dead row id.
     notifyListeners();
     try {
+      // Client-side validation runs *inside* the try so the `finally` below
+      // still fires on an early return — that's what clears _pendingSaveQuery
+      // (a one-shot SAVE-PARAM action) and resets _isSaving. The before-save
+      // hooks above have already flushed debounced edits onto the draft, so
+      // validate() sees the final draft. Don't move this before the try.
+      final localErrors = validate();
+      if (localErrors.isNotEmpty) {
+        _fieldErrors = Map.unmodifiable(localErrors);
+        _localValidationOnly = true;
+        return null;
+      }
       final saved = await performSave();
       // Mark the form clean so the post-save navigation doesn't trip the
       // unsaved-changes guard. Re-armed by the next [updateDraft].

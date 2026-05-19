@@ -29,6 +29,7 @@ class CreditEditScreen extends StatelessWidget {
         return CreditEditViewModel(
           repo: services.credits,
           companyId: companyId,
+          clientRequiredMessage: ctx.tr('please_select_a_client'),
           existing: existing,
           cloneFrom: cloneFrom,
         );

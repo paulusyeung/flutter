@@ -1388,7 +1388,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | QR code generation | ✅ | ✅ | ✅ | ✅ | |
 | Accent color customization | ✅ | ✅ | ✅ | ✅ | |
 | Help / tooltip system | ✅ | ✅ | ✅ | ✅ | |
-| Onboarding tour | ✅ | 🟡 | ✅ | ✅ | |
+| Onboarding tour | ✅ | 🟡 | ❌ | ✅ | removed — product decision |
 | New-company setup wizard (name / currency / language) | ✅ | ✅ | ✅ | ✅ | |
 | Contact-us dialog | ✅ | ✅ | ✅ | ✅ | |
 | About dialog | ✅ | ✅ | ✅ | ✅ | |

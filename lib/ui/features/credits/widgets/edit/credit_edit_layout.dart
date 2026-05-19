@@ -164,7 +164,6 @@ class _CreditEditLayoutState extends State<CreditEditLayout>
       totalsCard: _totalsCard(context),
       pdfPane: _PdfPaneDesktop(vm: widget.vm),
       stickyTotals: _slimTotals(context),
-      isDirty: !widget.vm.isCreate && widget.vm.isDirty && !widget.vm.isSaving,
     );
   }
 }
@@ -979,12 +978,12 @@ class _PdfTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (vm.isCreate || vm.draft.id.isEmpty || vm.draft.id.startsWith('tmp_')) {
+    if (vm.draft.clientId.isEmpty) {
       return Center(
         child: Padding(
           padding: EdgeInsets.all(InSpacing.lg(context)),
           child: Text(
-            context.tr('save_first_to_preview'),
+            context.tr('please_select_a_client'),
             style: TextStyle(color: context.inTheme.ink3),
           ),
         ),
@@ -994,6 +993,7 @@ class _PdfTab extends StatelessWidget {
     return BillingDocPdfView(
       entity: BillingDocType.credit,
       entityNumber: vm.draft.number,
+      revision: vm.draft,
       fetcher: ({String? designId, required bool deliveryNote}) =>
           services.credits.api.downloadPdf(
             entityJson: vm.draft.toApiJson(),

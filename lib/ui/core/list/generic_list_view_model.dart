@@ -879,7 +879,19 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   }
 
   void _subscribe() {
-    _watchSub = transformPage(watchPage()).listen(_onItems);
+    // A throw inside the watch pipeline (e.g. `_fromRow` failing to map a
+    // newly-shaped row) must NOT be swallowed: without an onError the
+    // subscription would silently stop delivering, leaving an empty list
+    // with no ErrorView (the fetch's own try/catch only guards the network
+    // call, not the stream). Surface it the same way a failed fetch does so
+    // the failure is loud instead of an inexplicably empty screen.
+    _watchSub = transformPage(watchPage()).listen(
+      _onItems,
+      onError: (Object e) {
+        initialError = e.toString();
+        notifyListeners();
+      },
+    );
   }
 
   void _resubscribe() {

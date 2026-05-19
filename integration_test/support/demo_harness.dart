@@ -36,6 +36,7 @@ import 'dart:io';
 
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
@@ -99,6 +100,25 @@ void registerDemoReachabilityProbe() {
       unreachableReason = '$e';
     } finally {
       client.close();
+    }
+  });
+
+  // Per-test keyboard resync. `TestWidgetsFlutterBinding.postTest` calls
+  // `HardwareKeyboard.instance.clearState()` after every test, emptying the
+  // framework's pressed-keys map while the engine still tracks real OS
+  // modifier state. On a backgrounded macOS run the app loses focus and the
+  // engine emits a *synthesized* Meta-Left KeyUp to release the modifier;
+  // arriving with an empty `_pressedKeys` it trips the
+  // `HardwareKeyboard._assertEventIsRegular` assertion and crashes the
+  // isolate (notably for a network-only test that never pumps a widget, so
+  // nothing re-syncs the state first). Re-query the engine before each test
+  // so a later synthesized modifier-up matches. Inert when already
+  // consistent (and a no-op if the platform channel returns null).
+  setUp(() async {
+    try {
+      await HardwareKeyboard.instance.syncKeyboardState();
+    } catch (_) {
+      // Never let keyboard hygiene fail an otherwise-good test.
     }
   });
 }
@@ -289,7 +309,18 @@ Future<void> openFirstRowDetail(
 }) async {
   goRouter(tester).go(listRoute);
   final tile = find.byType(listTileType);
-  await pumpUntilFound(tester, tile);
+  // The heaviest primary list is /quotes (?include=documents — ~300 KB for
+  // 25 rows), reached after a ~3 MB refresh + the earlier lists in the same
+  // tour. A single live page-one fetch can exceed the default 40 s on a
+  // loaded box. Wait longer, and if it still hasn't arrived re-navigate once
+  // (a fresh ensurePageLoaded) before failing — the assertion stays strict
+  // (every primary list IS seeded; an actually-empty list is still a hard
+  // failure, NOT demoted to the lenient secondary-entity path).
+  await pumpUntilFound(tester, tile, timeout: const Duration(seconds: 60));
+  if (tile.evaluate().isEmpty) {
+    goRouter(tester).go(listRoute);
+    await pumpUntilFound(tester, tile, timeout: const Duration(seconds: 60));
+  }
   expect(
     tile,
     findsAtLeastNWidgets(1),
@@ -365,13 +396,15 @@ Future<void> deleteEntityBestEffort(
   }
 }
 
-/// Tap the edit scaffold's Save action. It's a bare `TextButton` labelled
-/// with `tr('save')` ("Save") living in the AppBar actions of the edit
-/// screen (`lib/ui/core/edit/entity_edit_scaffold.dart`).
+/// Tap the edit scaffold's Save action. It's a `FilledButton` keyed
+/// `ValueKey('entity_edit_save')` (label is `tr('save')`, so the key — not
+/// a text/type finder — is the stable hook). The same single button is
+/// threaded through the OverflowView action bar or the embedded/in-pane
+/// header by `lib/ui/core/edit/entity_edit_scaffold.dart`.
 Future<void> tapSave(WidgetTester tester, Type editScreenType) async {
   final saveBtn = find.descendant(
     of: find.byType(editScreenType),
-    matching: find.widgetWithText(TextButton, 'Save'),
+    matching: find.byKey(const ValueKey('entity_edit_save')),
   );
   await pumpUntilFound(tester, saveBtn, timeout: const Duration(seconds: 10));
   expect(saveBtn, findsOneWidget, reason: 'edit screen must expose Save');

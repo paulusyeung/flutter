@@ -131,11 +131,13 @@ class EntityEditScaffold<T> extends StatelessWidget {
           context.tr('could_not_save'),
           detail: vm.submitError,
         );
-      } else if (vm.fieldErrors.isNotEmpty) {
+      } else if (vm.fieldErrors.isNotEmpty && !vm.localValidationOnly) {
         // Server rejected validation — let the screen pick up the freshly
         // created dead outbox row so the banner's Discard action knows
         // which row to delete. Fire-and-await; screen handles its own
-        // mounted check.
+        // mounted check. Skipped for a client-side [validate] block: no
+        // row was written, and the dead-row lookup could otherwise surface
+        // an unrelated stale row and clobber the local field errors.
         await onSaveRejected?.call();
       }
       return null;
@@ -234,6 +236,10 @@ class EntityEditScaffold<T> extends StatelessWidget {
             // saving state swaps to a fixed-size spinner (repaint-only,
             // safe) without animating the button's width.
             final saveButton = FilledButton(
+              // Stable, locale-independent hook for integration tests
+              // (demo_harness.tapSave). The label is context.tr('save'),
+              // so a text/type finder is fragile — key it instead.
+              key: const ValueKey('entity_edit_save'),
               style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
               onPressed: canSave ? () => _onSave(context) : null,
               child: vm.isSaving

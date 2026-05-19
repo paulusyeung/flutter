@@ -70,6 +70,27 @@ class _CreditBillingReferenceFieldState
     } else {
       _load();
     }
+    // The credit's client can be chosen later (new credit) or changed on
+    // another tab — the VM is a ChangeNotifier, so react to that and
+    // reload the candidate invoices when the client actually changes.
+    widget.vm.addListener(_onVmChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.vm.removeListener(_onVmChanged);
+    super.dispose();
+  }
+
+  void _onVmChanged() {
+    final next = widget.vm.draft.clientId;
+    if (next == _clientId) return;
+    setState(() {
+      _clientId = next;
+      _invoices = const [];
+      _loading = next.isNotEmpty;
+    });
+    if (next.isNotEmpty) _load();
   }
 
   Future<void> _load() async {
@@ -198,6 +219,17 @@ class _CreditBillingReferenceFieldState
           onChanged: _onPick,
           emptyHintKey: _loading ? 'loading' : 'no_records_found',
         ),
+        if (hasSelection && selected == null && !_loading)
+          // Stored reference isn't in the loaded list (archived, beyond the
+          // page cap, or a different client) — surface it as text so it's
+          // not invisibly empty and one stray tap can't silently drop it.
+          Padding(
+            padding: EdgeInsets.only(top: InSpacing.sm),
+            child: Text(
+              '${context.tr('invoice')}: $storedId',
+              style: TextStyle(color: tokens.ink3, fontSize: 12),
+            ),
+          ),
         if (hasSelection) ...[
           SizedBox(height: InSpacing.md(context)),
           InDateField(

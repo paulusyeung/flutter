@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
-import 'package:admin/l10n/localization.dart';
 
 /// Builder for one of the three top-row card slots on the desktop
 /// billing-doc edit shell. The per-entity layout supplies the slot
@@ -35,7 +34,6 @@ class BillingDocEditDesktopShell extends StatelessWidget {
     required this.totalsCard,
     required this.pdfPane,
     required this.stickyTotals,
-    this.isDirty = false,
   });
 
   final TopRowSlotBuilder topRow;
@@ -50,11 +48,6 @@ class BillingDocEditDesktopShell extends StatelessWidget {
 
   /// Slim single-line "Total" bar pinned at the very bottom.
   final Widget stickyTotals;
-
-  /// When true, overlays a small "unsaved changes" banner over the PDF
-  /// pane so the user knows the preview is stale. Driven by `vm.isDirty`
-  /// from the per-entity layout.
-  final bool isDirty;
 
   /// Working height of the left notes/terms/footer editor card. An
   /// independent editor size (no longer tied to a totals+pdf stack now
@@ -123,40 +116,8 @@ class BillingDocEditDesktopShell extends StatelessWidget {
                 SizedBox(height: InSpacing.lg(context)),
                 // Full-width PDF preview pane (mirrors React /
                 // admin-portal: form on top, preview full-width below).
-                // The "preview is stale" banner annotates the preview, so
-                // it travels with it — full-width directly above.
-                if (isDirty)
-                  Container(
-                    margin: EdgeInsets.only(bottom: InSpacing.sm),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: InSpacing.md(context),
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: tokens.surfaceAlt,
-                      borderRadius: BorderRadius.circular(InRadii.r1),
-                      border: Border.all(color: tokens.border),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          size: 16,
-                          color: tokens.ink2,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            context.tr('preview_reflects_last_save'),
-                            style: TextStyle(
-                              color: tokens.ink2,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                // It auto-refreshes as the draft changes, so there's no
+                // stale-preview banner.
                 pdfPane,
               ],
             ),

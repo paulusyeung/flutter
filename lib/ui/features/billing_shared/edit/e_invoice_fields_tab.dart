@@ -71,15 +71,17 @@ class EInvoiceFieldsTab<T> extends StatelessWidget {
   ({Date? start, Date? end}) _readPeriod() {
     if (entityKind == EInvoiceEntityKind.recurringInvoice) {
       final desc = vm.readEInvoicePath(vm.draft, _recurringPeriodPath);
-      if (desc is String && desc.contains('|')) {
+      if (desc is String && desc.isNotEmpty) {
+        // The complete UBL form is "start|end"; tolerate a pipeless legacy
+        // value (treat it as the start) so a single-value record still reads.
         final parts = desc.split('|');
         return (
           start: Date.tryParse(parts[0]),
           end: parts.length > 1 ? Date.tryParse(parts[1]) : null,
         );
       }
-      // Legacy fallback: recurring records saved before the reconcile still
-      // carry the flat keys — keep reading them so the period isn't lost.
+      // Partial entry (only one date so far) is buffered in the flat keys —
+      // and so are legacy records saved before this reconcile. Fall through.
     }
     return (
       start: _readFlatDate('invoice_period_start'),
@@ -89,17 +91,22 @@ class EInvoiceFieldsTab<T> extends StatelessWidget {
 
   void _commitPeriod(Date? start, Date? end) {
     if (entityKind == EInvoiceEntityKind.recurringInvoice) {
-      // Only emit a valid UBL period when both bounds are present; never
-      // ship a malformed "2026-01-01|".
-      vm.setEInvoicePath(
-        _recurringPeriodPath,
-        (start != null && end != null)
-            ? '${start.toIso()}|${end.toIso()}'
-            : null,
-      );
-      // Drop any legacy flat keys so we never ship both encodings.
-      vm.setEInvoiceField('invoice_period_start', null);
-      vm.setEInvoiceField('invoice_period_end', null);
+      if (start != null && end != null) {
+        // Complete: emit the canonical UBL string, drop the flat buffer so
+        // we never ship both encodings.
+        vm.setEInvoicePath(
+          _recurringPeriodPath,
+          '${start.toIso()}|${end.toIso()}',
+        );
+        vm.setEInvoiceField('invoice_period_start', null);
+        vm.setEInvoiceField('invoice_period_end', null);
+      } else {
+        // Partial: keep the half-entered value in the flat keys so it
+        // survives the rebuild; clear any stale Description.
+        vm.setEInvoicePath(_recurringPeriodPath, null);
+        vm.setEInvoiceField('invoice_period_start', start?.toIso());
+        vm.setEInvoiceField('invoice_period_end', end?.toIso());
+      }
       return;
     }
     vm.setEInvoiceField('invoice_period_start', start?.toIso());

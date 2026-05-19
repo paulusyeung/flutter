@@ -149,7 +149,6 @@ class _PurchaseOrderEditLayoutState extends State<PurchaseOrderEditLayout>
       totalsCard: _totalsCard(context),
       pdfPane: _PdfPaneDesktop(vm: widget.vm),
       stickyTotals: _slimTotals(context),
-      isDirty: !widget.vm.isCreate && widget.vm.isDirty && !widget.vm.isSaving,
     );
   }
 }
@@ -951,12 +950,12 @@ class _PdfTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (vm.isCreate || vm.draft.id.isEmpty || vm.draft.id.startsWith('tmp_')) {
+    if (vm.draft.vendorId.isEmpty) {
       return Center(
         child: Padding(
           padding: EdgeInsets.all(InSpacing.lg(context)),
           child: Text(
-            context.tr('save_first_to_preview'),
+            context.tr('select_a_vendor_first'),
             style: TextStyle(color: context.inTheme.ink3),
           ),
         ),
@@ -966,6 +965,7 @@ class _PdfTab extends StatelessWidget {
     return BillingDocPdfView(
       entity: BillingDocType.purchaseOrder,
       entityNumber: vm.draft.number,
+      revision: vm.draft,
       fetcher: ({String? designId, required bool deliveryNote}) =>
           services.purchaseOrders.api.downloadPdf(
             entityJson: vm.draft.toApiJson(),

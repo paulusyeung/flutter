@@ -81,26 +81,29 @@ class _InSidebarState extends State<InSidebar> {
   // saved-views section collapsing to nothing mid-animation, and N+2
   // redundant DB queries per click).
   //
-  // They're now memoized here and only rebuilt when the cache key actually
-  // changes: company, the active branch's entity type (drives the
-  // active-view highlight), enabled-modules bitmask, or the `view_reports`
-  // capability (the last two change which rows — and thus which badge
-  // StreamBuilders — exist for the *same* company). The collapse toggle
-  // touches none of those, so toggling reuses these instances and the
-  // StreamBuilders keep their subscriptions.
+  // They're memoized here behind [_CachedStream], which owns a broadcast
+  // controller fed by a single source subscription so the underlying Drift
+  // query is deterministically cancelled when a generation is replaced or
+  // the State is disposed. (A bare `.asBroadcastStream()` would *not*
+  // cancel its single-subscription source when listeners drop, leaking a
+  // live Drift query per dropped generation.)
   //
-  // Every cached stream is broadcast: `_combineOutboxCounts` and
-  // `watchActiveView`'s `_combineLatest` are single-subscription, so a
-  // StreamBuilder that drops and reacquires its element (any non-collapse
-  // rebuild) would otherwise throw "Stream has already been listened to".
-  String? _keyCompanyId;
-  EntityType? _keyEntityType;
-  int? _keyEnabledModules;
-  bool? _keyCanViewReports;
+  // Keys are split by what each slot actually depends on so unrelated
+  // navigation doesn't churn streams (which would re-introduce the
+  // saved-views/badges blink on every cross-entity nav):
+  //   * `_activeView`  → (companyId, active branch entity type)
+  //   * `_savedViews`  → companyId only
+  //   * `_badgeStreams`→ companyId only (entries are per-key & lazy)
+  // `enabledModules` / `view_reports` only gate *which* rows call
+  // `_cachedBadge` in `_buildItems`; they are not stream-cache keys.
+  String? _avCompanyId;
+  EntityType? _avEntityType;
+  String? _svCompanyId;
 
-  Stream<SavedView?>? _activeView;
-  Stream<List<SavedView>>? _savedViews;
-  final Map<Object, Stream<int>> _badgeStreams = <Object, Stream<int>>{};
+  _CachedStream<SavedView?>? _activeView;
+  _CachedStream<List<SavedView>>? _savedViews;
+  final Map<Object, _CachedStream<int>> _badgeStreams =
+      <Object, _CachedStream<int>>{};
 
   /// The entity owning the active branch, or `null` for a fixed branch
   /// (Dashboard / Settings / Outbox / Reports). Drives the active-view
@@ -128,37 +131,55 @@ class _InSidebarState extends State<InSidebar> {
     );
   }
 
-  /// Rebuild the cached streams when (and only when) the key changes.
-  /// Called during `build` inside the session `ValueListenableBuilder` —
-  /// pure memoization keyed on its inputs, so it never calls `setState`.
-  void _syncCache(Services services, AuthSession session) {
+  /// Rebuild only the cached slots whose inputs changed. Called during
+  /// `build` inside the session `ValueListenableBuilder` — pure
+  /// memoization keyed on its inputs, so it never calls `setState`. Old
+  /// generations are closed (Drift query cancelled) before replacement.
+  void _syncStreams(Services services, AuthSession session) {
     final companyId = session.currentCompanyId;
     final entityType = _currentEntityType(services.entityRegistry);
-    final enabledModules = session.currentCompany?.enabledModules ?? 0;
-    final canViewReports =
-        session.currentCompany?.can('view_reports') ?? false;
-    if (companyId == _keyCompanyId &&
-        entityType == _keyEntityType &&
-        enabledModules == _keyEnabledModules &&
-        canViewReports == _keyCanViewReports) {
-      return;
+
+    // active-view: company + active branch entity type.
+    if (companyId != _avCompanyId || entityType != _avEntityType) {
+      _avCompanyId = companyId;
+      _avEntityType = entityType;
+      _activeView?.close();
+      _activeView = _CachedStream<SavedView?>(
+        _buildActiveViewStream(services, companyId),
+      );
     }
-    _keyCompanyId = companyId;
-    _keyEntityType = entityType;
-    _keyEnabledModules = enabledModules;
-    _keyCanViewReports = canViewReports;
-    _activeView = _buildActiveViewStream(
-      services,
-      companyId,
-    ).asBroadcastStream();
-    _savedViews = services.savedViews.watchAll(companyId).asBroadcastStream();
-    _badgeStreams.clear();
+
+    // saved-views + badges: company only.
+    if (companyId != _svCompanyId) {
+      _svCompanyId = companyId;
+      _savedViews?.close();
+      _savedViews = _CachedStream<List<SavedView>>(
+        services.savedViews.watchAll(companyId),
+      );
+      for (final s in _badgeStreams.values) {
+        s.close();
+      }
+      _badgeStreams.clear();
+    }
   }
 
-  /// Memoize a badge stream within the current cache generation. Cleared
-  /// wholesale by [_syncCache] when the key changes.
+  /// Memoize a badge stream within the current company generation. Cleared
+  /// (and closed) wholesale by [_syncStreams] when the company changes.
   Stream<int> _cachedBadge(Object key, Stream<int> Function() factory) =>
-      _badgeStreams.putIfAbsent(key, () => factory().asBroadcastStream());
+      _badgeStreams
+          .putIfAbsent(key, () => _CachedStream<int>(factory()))
+          .stream;
+
+  @override
+  void dispose() {
+    _activeView?.close();
+    _savedViews?.close();
+    for (final s in _badgeStreams.values) {
+      s.close();
+    }
+    _badgeStreams.clear();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -168,7 +189,7 @@ class _InSidebarState extends State<InSidebar> {
       valueListenable: services.auth.session,
       builder: (context, session, _) {
         if (session == null) return const SizedBox.shrink();
-        _syncCache(services, session);
+        _syncStreams(services, session);
         return ValueListenableBuilder<bool>(
           valueListenable: services.sidebar,
           builder: (context, collapsedPref, _) {
@@ -195,7 +216,7 @@ class _InSidebarState extends State<InSidebar> {
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(12, 8, 12, 14),
                     child: StreamBuilder<SavedView?>(
-                      stream: _activeView,
+                      stream: _activeView?.stream,
                       builder: (context, snap) => Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: _buildItems(
@@ -336,7 +357,7 @@ class _InSidebarState extends State<InSidebar> {
         onSelectBranch: widget.onSelectBranch,
         compact: compact,
         activeViewId: activeViewId,
-        savedViewsStream: _savedViews!,
+        savedViewsStream: _savedViews!.stream,
       ),
       // Visual spacer between the saved list and the bottom row.
       const SidebarSectionHeader(null),
@@ -467,6 +488,32 @@ class _InSidebarState extends State<InSidebar> {
         return tile(count: count);
       },
     );
+  }
+}
+
+/// Owns a broadcast controller fed by a single subscription to a
+/// (single-subscription) source stream, so the sidebar's stream cache can
+/// deterministically tear the source down — `Stream.asBroadcastStream()`
+/// does not cancel its source when listeners drop, which would leak a live
+/// Drift query per replaced cache generation.
+class _CachedStream<T> {
+  _CachedStream(Stream<T> source)
+    : _controller = StreamController<T>.broadcast() {
+    _sub = source.listen(
+      _controller.add,
+      onError: _controller.addError,
+      onDone: _controller.close,
+    );
+  }
+
+  final StreamController<T> _controller;
+  late final StreamSubscription<T> _sub;
+
+  Stream<T> get stream => _controller.stream;
+
+  void close() {
+    unawaited(_sub.cancel());
+    unawaited(_controller.close());
   }
 }
 

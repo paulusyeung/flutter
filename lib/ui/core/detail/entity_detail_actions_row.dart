@@ -6,12 +6,16 @@ import 'package:admin/l10n/localization.dart';
 /// One row item in an [EntityDetailActionsRow].
 ///
 /// Whichever item carries `isPrimary: true` renders as a `FilledButton`
-/// (Edit, by convention). Items with `enabled: false` render disabled and
-/// are wrapped in a [disabledTooltipKey] tooltip (defaulting to
-/// `coming_soon`) so the legacy admin-portal action surface stays visible
-/// while the wiring catches up. Transient-disable callers (e.g. a button
-/// greyed only while a bulk op is in flight) pass `disabledTooltipKey: null`
-/// so the button just renders inert without a misleading "Coming soon" hint.
+/// (Edit, by convention). An item with `enabled: false` is **hidden** —
+/// an action that isn't supported in the current context (e.g. "Refund
+/// Payment" while creating a new invoice) simply doesn't appear, rather
+/// than rendering greyed-out with a misleading "Coming soon" hint.
+///
+/// The one exception: a transient/busy disable (e.g. a button greyed only
+/// while a bulk op is in flight) passes `disabledTooltipKey: null`, which
+/// keeps the item visible-but-inert so it doesn't flicker out and back
+/// mid-operation. So an item renders iff
+/// `enabled || disabledTooltipKey == null` ([isVisible]).
 class EntityActionItem<A> {
   const EntityActionItem({
     required this.kind,
@@ -24,19 +28,6 @@ class EntityActionItem<A> {
     this.disabledTooltipKey = 'coming_soon',
   });
 
-  /// Placeholder action: rendered grayed in both surfaces with a
-  /// `coming_soon` tooltip on hover. Used while wiring catches up — the
-  /// enum case still exists so future implementations are grep-able.
-  const EntityActionItem.disabled({
-    required this.kind,
-    required this.icon,
-    required this.label,
-  }) : enabled = false,
-       isPrimary = false,
-       onTap = null,
-       children = null,
-       disabledTooltipKey = 'coming_soon';
-
   final A kind;
   final IconData icon;
   final String label;
@@ -44,10 +35,13 @@ class EntityActionItem<A> {
   final bool isPrimary;
   final VoidCallback? onTap;
 
-  /// Localization key for the tooltip shown when [enabled] is `false`.
-  /// Defaults to `coming_soon` (the unimplemented-action convention). Pass
-  /// `null` to disable the tooltip entirely for a transient/busy disable
-  /// (the button still renders greyed, just without a misleading hint).
+  /// Controls how a disabled (`enabled: false`) item is treated.
+  ///
+  /// Non-null (default `coming_soon`): the item is **hidden** — an action
+  /// unsupported in the current context just doesn't appear. Pass `null`
+  /// for a transient/busy disable (e.g. greyed only while a bulk op is in
+  /// flight): the item stays **visible-but-inert** so it doesn't flicker
+  /// out and back mid-operation. See [isVisible].
   final String? disabledTooltipKey;
 
   /// When non-null, this item is a parent group: it renders as a
@@ -58,10 +52,18 @@ class EntityActionItem<A> {
 
   bool get hasChildren => children != null && children!.isNotEmpty;
 
+  /// Whether this item is rendered at all. An unsupported action
+  /// (`enabled: false` with a non-null [disabledTooltipKey]) is hidden;
+  /// only enabled items and transient-busy ones (`disabledTooltipKey ==
+  /// null`) appear. A parent group whose children are all hidden resolves
+  /// `enabled: false` (see `standard_entity_action_items`) and is dropped
+  /// here too, so no empty submenu is left behind.
+  bool get isVisible => enabled || disabledTooltipKey == null;
+
   /// Maps [items] to the `MenuAnchor` child widgets shared by both menu
   /// surfaces (the detail-header overflow [_MoreMenu] and the list-row
-  /// `EntityActionsPopupButton`) so they always agree on styling, the
-  /// `coming_soon` tooltip behavior, and submenu nesting. Recurses into
+  /// `EntityActionsPopupButton`) so they always agree on styling,
+  /// hide-when-unsupported behavior, and submenu nesting. Recurses into
   /// [children] to render nested fly-out submenus.
   static List<Widget> menuChildrenFor<A>(
     BuildContext context,
@@ -69,29 +71,27 @@ class EntityActionItem<A> {
   ) {
     return [
       for (final item in items)
-        if (item.hasChildren)
-          SubmenuButton(
-            leadingIcon: Icon(item.icon, size: 18),
-            menuChildren: menuChildrenFor<A>(context, item.children!),
-            child: Text(item.label),
-          )
-        else if (item.enabled)
-          MenuItemButton(
-            leadingIcon: Icon(item.icon, size: 18),
-            onPressed: item.onTap,
-            child: Text(item.label),
-          )
-        else
-          MenuItemButton(
-            leadingIcon: Icon(item.icon, size: 18),
-            onPressed: null,
-            child: item.disabledTooltipKey == null
-                ? Text(item.label)
-                : Tooltip(
-                    message: context.tr(item.disabledTooltipKey!),
-                    child: Text(item.label),
-                  ),
-          ),
+        if (item.isVisible)
+          if (item.hasChildren)
+            SubmenuButton(
+              leadingIcon: Icon(item.icon, size: 18),
+              menuChildren: menuChildrenFor<A>(context, item.children!),
+              child: Text(item.label),
+            )
+          else if (item.enabled)
+            MenuItemButton(
+              leadingIcon: Icon(item.icon, size: 18),
+              onPressed: item.onTap,
+              child: Text(item.label),
+            )
+          else
+            // Only reachable for a transient-busy disable
+            // (disabledTooltipKey == null); no tooltip by design.
+            MenuItemButton(
+              leadingIcon: Icon(item.icon, size: 18),
+              onPressed: null,
+              child: Text(item.label),
+            ),
     ];
   }
 }
@@ -125,19 +125,23 @@ class EntityOverflowActionBar<A> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Drop unsupported actions up front so the visible cluster and the
+    // `remaining`→`hidden` overflow slice both index the same list — the
+    // hidden-count math below depends on that.
+    final shown = [for (final item in items) if (item.isVisible) item];
     return OverflowView.flexible(
       spacing: 8,
       children: [
         if (leading != null) leading!,
-        for (final item in items) _ActionButton<A>(item: item),
+        for (final item in shown) _ActionButton<A>(item: item),
       ],
       builder: (context, remaining) {
         // `remaining` counts hidden children from the end of the full
         // children list (which includes [leading] at index 0). When the
         // bar is so tight even `leading` would collapse, `remaining` can
-        // reach `items.length + 1`; clamp so the slice never goes negative.
-        final hiddenCount = remaining > items.length ? items.length : remaining;
-        final hidden = items.sublist(items.length - hiddenCount);
+        // reach `shown.length + 1`; clamp so the slice never goes negative.
+        final hiddenCount = remaining > shown.length ? shown.length : remaining;
+        final hidden = shown.sublist(shown.length - hiddenCount);
         return _MoreMenu<A>(items: hidden);
       },
     );

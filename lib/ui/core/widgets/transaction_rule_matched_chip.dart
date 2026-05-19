@@ -49,17 +49,23 @@ class TransactionRuleMatchedChip extends StatelessWidget {
           onPressed: () => context.go(
             '/settings/bank_accounts/transaction_rules/$transactionRuleId',
           ),
-          label: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.bolt, size: 16, color: tokens.ink3),
-              const SizedBox(width: 6),
-              Text(
-                '${context.tr('transaction_rule')}: ',
-                style: TextStyle(color: tokens.ink3, fontSize: 12),
-              ),
-              Flexible(
-                child: Text(
+          // No Flexible/Expanded here: RawChip measures its label under
+          // unbounded width (intrinsic sizing), so a flex child throws a
+          // RenderFlex error. The chip sizes to content; the caller's
+          // Align(centerLeft) keeps it from going edge-to-edge, and a
+          // ConstrainedBox caps a pathologically long rule name.
+          label: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 320),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.bolt, size: 16, color: tokens.ink3),
+                const SizedBox(width: 6),
+                Text(
+                  '${context.tr('transaction_rule')}: ',
+                  style: TextStyle(color: tokens.ink3, fontSize: 12),
+                ),
+                Text(
                   name,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -67,8 +73,8 @@ class TransactionRuleMatchedChip extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

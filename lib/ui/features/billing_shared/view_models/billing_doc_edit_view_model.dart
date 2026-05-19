@@ -287,7 +287,7 @@ abstract class GenericBillingDocEditViewModel<T> extends GenericEditViewModel<T>
     } else {
       _setAtPath(root, path, value);
     }
-    _pruneEmpty(root);
+    _pruneAlongPath(root, path);
     updateDraft(copyWithEInvoice(draft, root.isEmpty ? null : root));
   }
 
@@ -364,16 +364,33 @@ abstract class GenericBillingDocEditViewModel<T> extends GenericEditViewModel<T>
   static bool _isEmptyNode(dynamic v) =>
       v == null || (v is Map && v.isEmpty) || (v is List && v.isEmpty);
 
-  static void _pruneEmpty(dynamic node) {
-    if (node is Map) {
-      for (final k in node.keys.toList()) {
-        _pruneEmpty(node[k]);
-        if (_isEmptyNode(node[k])) node.remove(k);
+  /// Prune **only along the edited [path]**: after a set/remove, walk the
+  /// path from the leaf back up and drop a container entry that became
+  /// empty. Unrelated sibling/server branches and their array indices are
+  /// left untouched (a whole-tree prune would silently strip server-
+  /// provided `{}` / `[]` / null elsewhere in `eInvoice` on round-trip).
+  static void _pruneAlongPath(dynamic container, List<Object> path) {
+    if (container == null || path.isEmpty) return;
+    final key = path.first;
+    if (path.length > 1) {
+      dynamic child;
+      if (key is int && container is List) {
+        if (key < 0 || key >= container.length) return;
+        child = container[key];
+      } else if (container is Map) {
+        child = container[key];
+      } else {
+        return;
       }
-    } else if (node is List) {
-      for (var i = node.length - 1; i >= 0; i--) {
-        _pruneEmpty(node[i]);
-        if (_isEmptyNode(node[i])) node.removeAt(i);
+      _pruneAlongPath(child, path.sublist(1));
+    }
+    if (key is int && container is List) {
+      if (key >= 0 && key < container.length && _isEmptyNode(container[key])) {
+        container.removeAt(key);
+      }
+    } else if (container is Map) {
+      if (container.containsKey(key) && _isEmptyNode(container[key])) {
+        container.remove(key);
       }
     }
   }

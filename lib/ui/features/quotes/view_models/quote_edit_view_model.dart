@@ -17,6 +17,7 @@ class QuoteEditViewModel extends GenericBillingDocEditViewModel<Quote> {
   QuoteEditViewModel({
     required this.repo,
     required this.companyId,
+    required this.clientRequiredMessage,
     Quote? existing,
     Quote? cloneFrom,
     super.currencyPrecision,
@@ -27,6 +28,15 @@ class QuoteEditViewModel extends GenericBillingDocEditViewModel<Quote> {
 
   final QuoteRepository repo;
   final String companyId;
+
+  /// Localized "please select a client" — injected from the screen's
+  /// `buildVm` (VMs have no `BuildContext` to localize with).
+  final String clientRequiredMessage;
+
+  @override
+  Map<String, List<String>> validate() => {
+    if (draft.clientId.isEmpty) 'client_id': [clientRequiredMessage],
+  };
 
   @override
   bool draftIsNonEmpty() {

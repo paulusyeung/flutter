@@ -29,6 +29,7 @@ class PurchaseOrderEditScreen extends StatelessWidget {
         return PurchaseOrderEditViewModel(
           repo: services.purchaseOrders,
           companyId: companyId,
+          vendorRequiredMessage: ctx.tr('please_select_a_vendor'),
           existing: existing,
           cloneFrom: cloneFrom,
         );

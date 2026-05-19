@@ -380,8 +380,16 @@ class _ConnectedState extends State<_Connected> {
     final acct = s['qb_income_account_id'];
     _incomeAccountId = (acct is String && acct.isNotEmpty) ? acct : null;
     _automaticTaxes = s['automatic_taxes'] == true;
-    _taxable.text = (s['default_taxable_code'] as String?) ?? '';
-    _exempt.text = (s['default_exempt_code'] as String?) ?? '';
+    // Only reassign when the server value actually differs — a blind
+    // `controller.text =` on every Drift tick resets the cursor/selection
+    // to offset 0 mid-edit (before the user's first keystroke flips
+    // `_settingsDirty`).
+    _seedController(_taxable, (s['default_taxable_code'] as String?) ?? '');
+    _seedController(_exempt, (s['default_exempt_code'] as String?) ?? '');
+  }
+
+  static void _seedController(TextEditingController c, String value) {
+    if (c.text != value) c.text = value;
   }
 
   /// Parsed (defensive) read-only `income_account_map`. Empty until an

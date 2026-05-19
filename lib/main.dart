@@ -138,7 +138,6 @@ Future<void> _bootstrap() async {
     services.auth.restore(),
     services.theme.restore(),
     services.locale.restore(),
-    services.onboarding.restore(),
     services.sidebar.restore(),
     services.recentlyViewed.restore(),
   ]);

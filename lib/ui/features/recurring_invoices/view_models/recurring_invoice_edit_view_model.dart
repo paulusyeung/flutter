@@ -17,6 +17,7 @@ class RecurringInvoiceEditViewModel
   RecurringInvoiceEditViewModel({
     required this.repo,
     required this.companyId,
+    required this.clientRequiredMessage,
     RecurringInvoice? existing,
     RecurringInvoice? cloneFrom,
     super.currencyPrecision,
@@ -27,6 +28,15 @@ class RecurringInvoiceEditViewModel
 
   final RecurringInvoiceRepository repo;
   final String companyId;
+
+  /// Localized "please select a client" — injected from the screen's
+  /// `buildVm` (VMs have no `BuildContext` to localize with).
+  final String clientRequiredMessage;
+
+  @override
+  Map<String, List<String>> validate() => {
+    if (draft.clientId.isEmpty) 'client_id': [clientRequiredMessage],
+  };
 
   @override
   bool draftIsNonEmpty() {

@@ -258,8 +258,7 @@ class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
               return null;
             },
           ),
-          _OpenCommandPaletteIntent:
-              CallbackAction<_OpenCommandPaletteIntent>(
+          _OpenCommandPaletteIntent: CallbackAction<_OpenCommandPaletteIntent>(
             onInvoke: (_) {
               final focus = FocusManager.instance.primaryFocus;
               final widget = focus?.context?.widget;
@@ -409,6 +408,16 @@ class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
                           // Sidebar layer — overlays the content; its own
                           // RepaintBoundary + AnimatedContainer run the
                           // 150 ms width tween in isolation.
+                          //
+                          // Intentionally no `width`/`right` on this
+                          // Positioned: the child self-sizes to the
+                          // *current* (animating) rail width via its
+                          // non-null `AnimatedContainer.width`. A fixed
+                          // width here would force-expand the rail (collapse
+                          // can't shrink) and make the full 232 band hit-test
+                          // as sidebar, swallowing content taps when
+                          // collapsed. `InSidebar` here must keep a non-null
+                          // `width` (defaults to `kInSidebarWidth`).
                           Positioned(
                             left: 0,
                             top: 0,

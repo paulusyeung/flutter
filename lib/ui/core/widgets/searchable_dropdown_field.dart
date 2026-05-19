@@ -239,37 +239,41 @@ class _SearchableDropdownFieldState<T extends Object>
                   focusNode: focusNode,
                   onSubmitted: (_) => onFieldSubmitted(),
                   decoration: InputDecoration(
-                  labelText: widget.label,
-                  errorText: widget.errorText,
-                  labelStyle: theme.textTheme.bodyMedium?.copyWith(
-                    color: tokens.ink3,
+                    labelText: widget.label,
+                    errorText: widget.errorText,
+                    labelStyle: theme.textTheme.bodyMedium?.copyWith(
+                      color: tokens.ink3,
+                    ),
+                    floatingLabelStyle: theme.textTheme.bodySmall?.copyWith(
+                      color: tokens.ink2,
+                    ),
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: InSpacing.md(context),
+                      vertical: 14,
+                    ),
+                    border: border,
+                    enabledBorder: border,
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(InRadii.r1),
+                      borderSide: BorderSide(color: tokens.accent, width: 1.5),
+                    ),
+                    suffixIcon: textController.text.isEmpty
+                        ? Icon(Icons.search, size: 18, color: tokens.ink3)
+                        : IconButton(
+                            tooltip: context.tr('clear'),
+                            icon: Icon(
+                              Icons.close,
+                              size: 16,
+                              color: tokens.ink3,
+                            ),
+                            onPressed: () {
+                              textController.clear();
+                              _committed = null;
+                              widget.onChanged(null);
+                            },
+                          ),
                   ),
-                  floatingLabelStyle: theme.textTheme.bodySmall?.copyWith(
-                    color: tokens.ink2,
-                  ),
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: InSpacing.md(context),
-                    vertical: 14,
-                  ),
-                  border: border,
-                  enabledBorder: border,
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(InRadii.r1),
-                    borderSide: BorderSide(color: tokens.accent, width: 1.5),
-                  ),
-                  suffixIcon: textController.text.isEmpty
-                      ? Icon(Icons.search, size: 18, color: tokens.ink3)
-                      : IconButton(
-                          tooltip: context.tr('clear'),
-                          icon: Icon(Icons.close, size: 16, color: tokens.ink3),
-                          onPressed: () {
-                            textController.clear();
-                            _committed = null;
-                            widget.onChanged(null);
-                          },
-                        ),
-                ),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: tokens.ink,
                   ),

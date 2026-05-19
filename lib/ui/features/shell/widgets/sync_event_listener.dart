@@ -7,8 +7,10 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
 import 'package:admin/domain/sync/sync_event.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/confirm_password_sheet.dart';
 import 'package:admin/ui/core/widgets/conflict_resolution_sheet.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 
 final _log = Logger('SyncEventListener');
 
@@ -53,6 +55,16 @@ class _SyncEventListenerState extends State<SyncEventListener> {
 
   Future<void> _onEvent(SyncEvent event) async {
     if (!mounted) return;
+
+    // Non-modal failures (permanent 422 / dead row). Surfaced *before* the
+    // `_dialogOpen` guard: they don't contend for modal exclusivity, and
+    // gating them behind an open password/conflict sheet would silently
+    // drop a rejection the user never sees otherwise.
+    if (event is ValidationFailedEvent || event is DeadEvent) {
+      _showFailureToast(event);
+      return;
+    }
+
     // Suppress overlapping dialogs — the sync engine will re-emit on the
     // next attempt if the user dismisses without resolving. Without this
     // a flurry of failed rows would stack N dialogs.
@@ -65,10 +77,45 @@ class _SyncEventListenerState extends State<SyncEventListener> {
         await _handleConflict(event);
       case ValidationFailedEvent():
       case DeadEvent():
-        // These don't currently open a dialog — the Outbox screen surfaces
-        // them passively. Future: badge on the sync icon.
-        break;
+        break; // handled above, before the _dialogOpen guard
     }
+  }
+
+  /// Non-blocking toast for a permanently-rejected (422) or dead outbox
+  /// row, with a "View" action. A 422 carrying per-field errors routes to
+  /// the entity's edit screen — opening it triggers the scaffold's
+  /// dead-row hydration, which replays the errors inline + in the banner.
+  /// Anything without per-field detail (network/5xx death) routes to the
+  /// Outbox screen, which shows the failure reason.
+  void _showFailureToast(SyncEvent event) {
+    final services = context.read<Services>();
+    final message = switch (event) {
+      ValidationFailedEvent(:final message) => message,
+      DeadEvent(:final message) => message,
+      _ => '',
+    };
+    final hasFieldErrors =
+        event is ValidationFailedEvent && event.fieldErrors.isNotEmpty;
+    Notify.error(
+      context,
+      context.tr('could_not_save'),
+      detail: message.isEmpty ? null : message,
+      action: NotifyAction(context.tr('view'), () {
+        if (!mounted) return;
+        // Reuse the proven `_handleConflict` routing pattern verbatim —
+        // registry keyed by EntityType, append the id. A 422 with per-field
+        // errors goes to the edit screen (the scaffold hydrates them inline);
+        // anything else — or an unregistered entity type — falls back to the
+        // Outbox screen so "View" is never a dead end.
+        final handlers =
+            hasFieldErrors ? services.entityRegistry[event.entityType] : null;
+        if (handlers != null) {
+          context.go('${handlers.routePath}/${event.entityId}/edit');
+        } else {
+          context.go('/sync/outbox');
+        }
+      }),
+    );
   }
 
   Future<void> _handlePasswordRequired() async {

@@ -76,29 +76,29 @@ class _RecurringInvoiceEditLayoutState extends State<RecurringInvoiceEditLayout>
   }
 
   Widget _stickyTotals(BuildContext context) => Padding(
-        padding: EdgeInsets.all(InSpacing.md(context)),
-        child: TotalsWidget(
-          totals: widget.vm.totals,
-          discount: widget.vm.draft.discount,
-          discountIsAmount: widget.vm.draft.isAmountDiscount,
-          dense: true,
-        ),
-      );
+    padding: EdgeInsets.all(InSpacing.md(context)),
+    child: TotalsWidget(
+      totals: widget.vm.totals,
+      discount: widget.vm.draft.discount,
+      discountIsAmount: widget.vm.draft.isAmountDiscount,
+      dense: true,
+    ),
+  );
 
   Widget _totalsCard(BuildContext context) => TotalsWidget(
-        totals: widget.vm.totals,
-        discount: widget.vm.draft.discount,
-        discountIsAmount: widget.vm.draft.isAmountDiscount,
-        bordered: false,
-      );
+    totals: widget.vm.totals,
+    discount: widget.vm.draft.discount,
+    discountIsAmount: widget.vm.draft.isAmountDiscount,
+    bordered: false,
+  );
 
   Widget _slimTotals(BuildContext context) => TotalsWidget(
-        totals: widget.vm.totals,
-        discount: widget.vm.draft.discount,
-        discountIsAmount: widget.vm.draft.isAmountDiscount,
-        dense: true,
-        slim: true,
-      );
+    totals: widget.vm.totals,
+    discount: widget.vm.draft.discount,
+    discountIsAmount: widget.vm.draft.isAmountDiscount,
+    dense: true,
+    slim: true,
+  );
 
   Widget _buildMobile(BuildContext context) {
     final tokens = context.inTheme;
@@ -137,9 +137,9 @@ class _RecurringInvoiceEditLayoutState extends State<RecurringInvoiceEditLayout>
               animation: _tab,
               builder: (context, _) {
                 Widget tab(int i, Widget child) => ExcludeFocusTraversal(
-                      excluding: i != _tab.index,
-                      child: child,
-                    );
+                  excluding: i != _tab.index,
+                  child: child,
+                );
                 return TabBarView(
                   controller: _tab,
                   children: [
@@ -154,9 +154,9 @@ class _RecurringInvoiceEditLayoutState extends State<RecurringInvoiceEditLayout>
                       EInvoiceFieldsTab<RecurringInvoice>(
                         vm: widget.vm,
                         entityKind: EInvoiceEntityKind.recurringInvoice,
-                        formatter: context
-                            .read<Services>()
-                            .formatterIfReady(widget.vm.companyId),
+                        formatter: context.read<Services>().formatterIfReady(
+                          widget.vm.companyId,
+                        ),
                       ),
                     ),
                   ],
@@ -184,7 +184,6 @@ class _RecurringInvoiceEditLayoutState extends State<RecurringInvoiceEditLayout>
       totalsCard: _totalsCard(context),
       pdfPane: _PdfPaneDesktop(vm: widget.vm),
       stickyTotals: _slimTotals(context),
-      isDirty: !widget.vm.isCreate && widget.vm.isDirty && !widget.vm.isSaving,
     );
   }
 }
@@ -298,8 +297,9 @@ class _ScheduleCardDesktopState extends State<_ScheduleCardDesktop> {
       elevated: false,
       children: [
         DropdownButtonFormField<String>(
-          initialValue:
-              vm.draft.frequencyId.isEmpty ? null : vm.draft.frequencyId,
+          initialValue: vm.draft.frequencyId.isEmpty
+              ? null
+              : vm.draft.frequencyId,
           decoration: billingFieldDecoration(
             context,
             label: context.tr('frequency'),
@@ -356,8 +356,14 @@ class _ScheduleCardDesktopState extends State<_ScheduleCardDesktop> {
           ),
           items: [
             DropdownMenuItem(value: 'off', child: Text(context.tr('off'))),
-            DropdownMenuItem(value: 'always', child: Text(context.tr('enabled'))),
-            DropdownMenuItem(value: 'optout', child: Text(context.tr('opt_out'))),
+            DropdownMenuItem(
+              value: 'always',
+              child: Text(context.tr('enabled')),
+            ),
+            DropdownMenuItem(
+              value: 'optout',
+              child: Text(context.tr('opt_out')),
+            ),
             DropdownMenuItem(value: 'optin', child: Text(context.tr('opt_in'))),
           ],
           onChanged: (v) => vm.setAutoBill(v ?? 'off'),
@@ -365,8 +371,9 @@ class _ScheduleCardDesktopState extends State<_ScheduleCardDesktop> {
         SizedBox(height: InSpacing.md(context)),
         EntityCustomFieldsSection(
           keyPrefix: 'invoice',
-          companyStream:
-              context.read<Services>().company.watchCompany(vm.companyId),
+          companyStream: context.read<Services>().company.watchCompany(
+            vm.companyId,
+          ),
           values: [
             vm.draft.customValue1,
             vm.draft.customValue2,
@@ -480,8 +487,9 @@ class _NumberCardDesktopState extends State<_NumberCardDesktop> {
         SizedBox(height: InSpacing.md(context)),
         EntityCustomFieldsSection(
           keyPrefix: 'invoice',
-          companyStream:
-              context.read<Services>().company.watchCompany(vm.companyId),
+          companyStream: context.read<Services>().company.watchCompany(
+            vm.companyId,
+          ),
           values: [
             vm.draft.customValue1,
             vm.draft.customValue2,
@@ -518,10 +526,12 @@ class _ItemsSectionDesktopState extends State<_ItemsSectionDesktop> {
   @override
   void initState() {
     super.initState();
-    _unregisterFlush =
-        widget.vm.addBeforeSaveHook(_tableController.flushPending);
-    _unregisterStrip =
-        widget.vm.addBeforeSaveHook(widget.vm.stripEmptyLineItems);
+    _unregisterFlush = widget.vm.addBeforeSaveHook(
+      _tableController.flushPending,
+    );
+    _unregisterStrip = widget.vm.addBeforeSaveHook(
+      widget.vm.stripEmptyLineItems,
+    );
   }
 
   @override
@@ -539,10 +549,7 @@ class _ItemsSectionDesktopState extends State<_ItemsSectionDesktop> {
       items: vm.draft.lineItems,
       onChanged: vm.replaceLineItems,
       newItemFactory: emptyLineItem,
-      config: const LineItemColumnConfig(
-        showDiscount: true,
-        taxColumnCount: 1,
-      ),
+      config: const LineItemColumnConfig(showDiscount: true, taxColumnCount: 1),
       controller: _tableController,
       rowErrors: vm.lineItemRowErrors,
     );
@@ -774,25 +781,25 @@ class _DetailsTabState extends State<_DetailsTab> {
                   decoration: InputDecoration(
                     labelText: context.tr('discount'),
                   ),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  onChanged: (v) => vm.setDiscount(
-                    v,
-                    isAmount: vm.draft.isAmountDiscount,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
                   ),
+                  onChanged: (v) =>
+                      vm.setDiscount(v, isAmount: vm.draft.isAmountDiscount),
                 ),
               ),
               SizedBox(width: InSpacing.md(context)),
               SegmentedButton<bool>(
                 segments: [
-                  ButtonSegment(value: false, label: Text(context.tr('percent'))),
+                  ButtonSegment(
+                    value: false,
+                    label: Text(context.tr('percent')),
+                  ),
                   ButtonSegment(value: true, label: Text(context.tr('amount'))),
                 ],
                 selected: {vm.draft.isAmountDiscount},
-                onSelectionChanged: (s) => vm.setDiscount(
-                  _discount.text,
-                  isAmount: s.first,
-                ),
+                onSelectionChanged: (s) =>
+                    vm.setDiscount(_discount.text, isAmount: s.first),
               ),
             ],
           ),
@@ -801,8 +808,9 @@ class _DetailsTabState extends State<_DetailsTab> {
           SizedBox(height: InSpacing.lg(context)),
           EntityCustomFieldsSection(
             keyPrefix: 'invoice',
-            companyStream:
-                context.read<Services>().company.watchCompany(vm.companyId),
+            companyStream: context.read<Services>().company.watchCompany(
+              vm.companyId,
+            ),
             values: [
               vm.draft.customValue1,
               vm.draft.customValue2,
@@ -1129,12 +1137,12 @@ class _PdfTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (vm.isCreate || vm.draft.id.isEmpty || vm.draft.id.startsWith('tmp_')) {
+    if (vm.draft.clientId.isEmpty) {
       return Center(
         child: Padding(
           padding: EdgeInsets.all(InSpacing.lg(context)),
           child: Text(
-            context.tr('save_first_to_preview'),
+            context.tr('please_select_a_client'),
             style: TextStyle(color: context.inTheme.ink3),
           ),
         ),
@@ -1144,12 +1152,14 @@ class _PdfTab extends StatelessWidget {
     return BillingDocPdfView(
       entity: BillingDocType.recurringInvoice,
       entityNumber: vm.draft.number,
+      revision: vm.draft,
       fetcher: ({String? designId, required bool deliveryNote}) =>
           services.recurringInvoices.api.downloadPdf(
-        entityJson: vm.draft.toApiJson(),
-        designId: designId ??
-            (vm.draft.designId.isEmpty ? null : vm.draft.designId),
-      ),
+            entityJson: vm.draft.toApiJson(),
+            designId:
+                designId ??
+                (vm.draft.designId.isEmpty ? null : vm.draft.designId),
+          ),
     );
   }
 }

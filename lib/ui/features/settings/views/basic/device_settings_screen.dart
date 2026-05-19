@@ -11,7 +11,6 @@ import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 import 'package:admin/ui/features/settings/widgets/theme_tile.dart';
-import 'package:admin/ui/features/dashboard/widgets/onboarding_tour.dart';
 
 /// Top-level "Device Settings" page. Holds the device-local, no-save controls:
 /// theme (mode + palette), the per-preset colour overrides, biometric
@@ -63,49 +62,11 @@ class _DeviceSettingsScreenState extends State<DeviceSettingsScreen> {
                   title: context.tr('security'),
                   children: const [BiometricToggleTile()],
                 ),
-              const _HelpSection(),
               const _DataSection(),
             ],
           );
         },
       ),
-    );
-  }
-}
-
-class _HelpSection extends StatelessWidget {
-  const _HelpSection();
-
-  Future<void> _replayTour(BuildContext context) async {
-    final onboarding = context.read<Services>().onboarding;
-    await onboarding.reset();
-    if (!context.mounted) return;
-    await showOnboardingTour(context);
-    await onboarding.markCompleted();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    return FormSection(
-      title: context.tr('help'),
-      children: [
-        Text(
-          context.tr('onboarding_welcome_body'),
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: tokens.ink2),
-        ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: FilledButton.icon(
-            style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
-            onPressed: () => _replayTour(context),
-            icon: const Icon(Icons.slideshow_outlined, size: 18),
-            label: Text(context.tr('show_app_tour')),
-          ),
-        ),
-      ],
     );
   }
 }
