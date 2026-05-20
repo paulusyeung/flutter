@@ -18,6 +18,7 @@ class CreditEditViewModel extends GenericBillingDocEditViewModel<Credit> {
     required this.repo,
     required this.companyId,
     required this.clientRequiredMessage,
+    required this.crossClientLineItemsMessage,
     Credit? existing,
     Credit? cloneFrom,
     super.currencyPrecision,
@@ -32,10 +33,12 @@ class CreditEditViewModel extends GenericBillingDocEditViewModel<Credit> {
   /// Localized "please select a client" — injected from the screen's
   /// `buildVm` (VMs have no `BuildContext` to localize with).
   final String clientRequiredMessage;
+  final String crossClientLineItemsMessage;
 
   @override
   Map<String, List<String>> validate() => {
     if (draft.clientId.isEmpty) 'client_id': [clientRequiredMessage],
+    ...validateCrossClient(crossClientLineItemsMessage),
   };
 
   @override

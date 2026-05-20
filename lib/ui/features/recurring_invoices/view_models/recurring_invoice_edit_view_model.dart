@@ -18,6 +18,7 @@ class RecurringInvoiceEditViewModel
     required this.repo,
     required this.companyId,
     required this.clientRequiredMessage,
+    required this.crossClientLineItemsMessage,
     RecurringInvoice? existing,
     RecurringInvoice? cloneFrom,
     super.currencyPrecision,
@@ -32,10 +33,12 @@ class RecurringInvoiceEditViewModel
   /// Localized "please select a client" — injected from the screen's
   /// `buildVm` (VMs have no `BuildContext` to localize with).
   final String clientRequiredMessage;
+  final String crossClientLineItemsMessage;
 
   @override
   Map<String, List<String>> validate() => {
     if (draft.clientId.isEmpty) 'client_id': [clientRequiredMessage],
+    ...validateCrossClient(crossClientLineItemsMessage),
   };
 
   @override

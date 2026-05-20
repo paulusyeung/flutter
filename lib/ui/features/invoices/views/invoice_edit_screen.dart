@@ -89,6 +89,7 @@ class InvoiceEditScreen extends StatelessWidget {
           repo: services.invoices,
           companyId: companyId,
           clientRequiredMessage: ctx.tr('please_select_a_client'),
+          crossClientLineItemsMessage: ctx.tr('cross_client_line_items'),
           existing: existing,
           cloneFrom: cloneFrom,
         );

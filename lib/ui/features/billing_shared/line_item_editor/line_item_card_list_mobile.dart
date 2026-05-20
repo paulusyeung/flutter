@@ -25,6 +25,7 @@ class LineItemCardListMobile extends StatelessWidget {
     required this.onChanged,
     required this.newItemFactory,
     required this.config,
+    this.onPickItems,
   });
 
   /// Company scope used to look up the active [Formatter] so cost /
@@ -42,6 +43,13 @@ class LineItemCardListMobile extends StatelessWidget {
   final LineItem Function() newItemFactory;
 
   final LineItemColumnConfig config;
+
+  /// Opens the bulk products/tasks/expenses picker. When non-null, the
+  /// empty-state "Add item" button on a zero-row draft routes through the
+  /// picker (matches the items-section FAB). When null, the button still
+  /// appears but appends a blank row — only used in test contexts that
+  /// don't wire the picker.
+  final VoidCallback? onPickItems;
 
   Future<void> _openEditor(BuildContext context, int index) async {
     final fmt = context.read<Services>().formatterIfReady(companyId);
@@ -95,46 +103,32 @@ class LineItemCardListMobile extends StatelessWidget {
               style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
               icon: const Icon(Icons.add),
               label: Text(context.tr('add_item')),
-              onPressed: _add,
+              onPressed: onPickItems ?? _add,
             ),
           ],
         ),
       );
     }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        ReorderableListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          buildDefaultDragHandles: false,
-          itemCount: items.length,
-          onReorder: _onReorder,
-          itemBuilder: (context, index) {
-            final item = items[index];
-            return _ItemCard(
-              key: ValueKey('line_item_$index'),
-              item: item,
-              index: index,
-              companyId: companyId,
-              onTap: () => _openEditor(context, index),
-              onRemove: () => _remove(index),
-            );
-          },
-        ),
-        Padding(
-          padding: EdgeInsets.only(top: InSpacing.md(context)),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
-              icon: const Icon(Icons.add),
-              label: Text(context.tr('add_item')),
-              onPressed: _add,
-            ),
-          ),
-        ),
-      ],
+    // The trailing "+ Add item" button below the cards was removed — it
+    // duplicated the items-section FAB. Reordering and per-card editing
+    // remain the same; bulk adds funnel through the picker.
+    return ReorderableListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      buildDefaultDragHandles: false,
+      itemCount: items.length,
+      onReorder: _onReorder,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return _ItemCard(
+          key: ValueKey('line_item_$index'),
+          item: item,
+          index: index,
+          companyId: companyId,
+          onTap: () => _openEditor(context, index),
+          onRemove: () => _remove(index),
+        );
+      },
     );
   }
 }

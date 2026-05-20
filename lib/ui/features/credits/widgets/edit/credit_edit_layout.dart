@@ -17,14 +17,15 @@ import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/contacts/billing_doc_contacts_section.dart';
 import 'package:admin/ui/features/billing_shared/edit/billing_doc_edit_desktop_shell.dart';
+import 'package:admin/ui/features/billing_shared/edit/billing_doc_edit_fab.dart';
 import 'package:admin/ui/features/billing_shared/edit/billing_edit_field_decoration.dart';
 import 'package:admin/ui/features/billing_shared/edit/billing_doc_settings_tab.dart';
 import 'package:admin/ui/features/billing_shared/edit/credit_billing_reference_field.dart';
 import 'package:admin/ui/features/billing_shared/edit/e_invoice_fields_tab.dart';
 import 'package:admin/ui/features/billing_shared/edit/save_default_helper.dart';
 import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_column_config.dart';
-import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_editor.dart';
-import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_table_desktop.dart';
+import 'package:admin/ui/features/billing_shared/items/billing_doc_items_tabs.dart';
+import 'package:admin/ui/features/billing_shared/line_item_picker/line_item_picker_invoke.dart';
 import 'package:admin/ui/features/billing_shared/markdown_notes_section.dart';
 import 'package:admin/ui/features/billing_shared/pdf/billing_doc_pdf_view.dart';
 import 'package:admin/ui/features/billing_shared/totals_widget.dart';
@@ -50,6 +51,14 @@ class _CreditEditLayoutState extends State<CreditEditLayout>
   void initState() {
     super.initState();
     _tab = TabController(length: 6, vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final services = context.read<Services>();
+      widget.vm.hydrateSourceClientIds(
+        services: services,
+        companyId: widget.vm.companyId,
+      );
+    });
   }
 
   @override
@@ -98,6 +107,24 @@ class _CreditEditLayoutState extends State<CreditEditLayout>
     slim: true,
   );
 
+  void _openPicker(BuildContext context) {
+    final vm = widget.vm;
+    openLineItemPicker(
+      context,
+      companyId: vm.companyId,
+      clientId: vm.draft.clientId,
+      showTasksAndExpenses: true,
+      currentLineItems: vm.draft.lineItems,
+      currentProjectId: vm.draft.projectId,
+      currentClientId: vm.draft.clientId,
+      replaceLineItems: vm.replaceLineItems,
+      setProjectId: vm.setProjectId,
+      setClientId: vm.setClientId,
+      registerSourceClientIds: (tasks, expenses) =>
+          vm.registerSourceClientIds(tasks: tasks, expenses: expenses),
+    );
+  }
+
   Widget _buildMobile(BuildContext context) {
     final tokens = context.inTheme;
     return Column(
@@ -125,7 +152,7 @@ class _CreditEditLayoutState extends State<CreditEditLayout>
             children: [
               _DetailsTab(vm: widget.vm),
               _ContactsTab(vm: widget.vm),
-              _ItemsTab(vm: widget.vm),
+              _ItemsTab(vm: widget.vm, onPickItems: () => _openPicker(context)),
               _NotesTab(vm: widget.vm),
               _PdfTab(vm: widget.vm),
               EInvoiceFieldsTab<Credit>(
@@ -152,18 +179,35 @@ class _CreditEditLayoutState extends State<CreditEditLayout>
   }
 
   Widget _buildDesktop(BuildContext context) {
-    return BillingDocEditDesktopShell(
+    final shell = BillingDocEditDesktopShell(
       topRow: (ctx, slot) => switch (slot) {
         0 => _ClientCardDesktop(vm: widget.vm),
         1 => _DatesCardDesktop(vm: widget.vm),
         2 => _NumberCardDesktop(vm: widget.vm),
         _ => const SizedBox.shrink(),
       },
-      itemsSection: _ItemsSectionDesktop(vm: widget.vm),
+      itemsSection:
+          _ItemsSectionDesktop(vm: widget.vm, onPickItems: () => _openPicker(context)),
       notesTabsCard: _NotesTabsCardDesktop(vm: widget.vm),
       totalsCard: _totalsCard(context),
       pdfPane: _PdfPaneDesktop(vm: widget.vm),
       stickyTotals: _slimTotals(context),
+    );
+    return BillingDocEditPickerShortcuts(
+      onPickItems: () => _openPicker(context),
+      child: Stack(
+        children: [
+          shell,
+          Positioned(
+            bottom: 72,
+            right: 24,
+            child: BillingDocEditFab(
+              heroTag: 'credit_picker_fab',
+              onPressed: () => _openPicker(context),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -404,48 +448,22 @@ class _NumberCardDesktopState extends State<_NumberCardDesktop> {
   }
 }
 
-class _ItemsSectionDesktop extends StatefulWidget {
-  const _ItemsSectionDesktop({required this.vm});
+class _ItemsSectionDesktop extends StatelessWidget {
+  const _ItemsSectionDesktop({required this.vm, required this.onPickItems});
   final CreditEditViewModel vm;
-
-  @override
-  State<_ItemsSectionDesktop> createState() => _ItemsSectionDesktopState();
-}
-
-class _ItemsSectionDesktopState extends State<_ItemsSectionDesktop> {
-  final _tableController = LineItemTableDesktopController();
-  VoidCallback? _unregisterFlush;
-  VoidCallback? _unregisterStrip;
-
-  @override
-  void initState() {
-    super.initState();
-    _unregisterFlush = widget.vm.addBeforeSaveHook(
-      _tableController.flushPending,
-    );
-    _unregisterStrip = widget.vm.addBeforeSaveHook(
-      widget.vm.stripEmptyLineItems,
-    );
-  }
-
-  @override
-  void dispose() {
-    _unregisterFlush?.call();
-    _unregisterStrip?.call();
-    super.dispose();
-  }
+  final VoidCallback onPickItems;
 
   @override
   Widget build(BuildContext context) {
-    final vm = widget.vm;
-    return LineItemEditor(
+    return BillingDocItemsTabs(
+      vm: vm,
       companyId: vm.companyId,
-      items: vm.draft.lineItems,
+      lineItems: vm.draft.lineItems,
       onChanged: vm.replaceLineItems,
       newItemFactory: emptyLineItem,
       config: const LineItemColumnConfig(showDiscount: true, taxColumnCount: 1),
-      controller: _tableController,
       rowErrors: vm.lineItemRowErrors,
+      onPickItems: onPickItems,
     );
   }
 }
@@ -893,22 +911,41 @@ class _ContactsTab extends StatelessWidget {
 }
 
 class _ItemsTab extends StatelessWidget {
-  const _ItemsTab({required this.vm});
+  const _ItemsTab({required this.vm, required this.onPickItems});
   final CreditEditViewModel vm;
+  final VoidCallback onPickItems;
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(InSpacing.lg(context)),
-      child: LineItemEditor(
-        companyId: vm.companyId,
-        items: vm.draft.lineItems,
-        onChanged: vm.replaceLineItems,
-        newItemFactory: emptyLineItem,
-        config: const LineItemColumnConfig(
-          showDiscount: true,
-          taxColumnCount: 1,
-        ),
+    return BillingDocEditPickerShortcuts(
+      onPickItems: onPickItems,
+      child: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: EdgeInsets.all(InSpacing.lg(context)),
+            child: BillingDocItemsTabs(
+              vm: vm,
+              companyId: vm.companyId,
+              lineItems: vm.draft.lineItems,
+              onChanged: vm.replaceLineItems,
+              newItemFactory: emptyLineItem,
+              config: const LineItemColumnConfig(
+                showDiscount: true,
+                taxColumnCount: 1,
+              ),
+              rowErrors: vm.lineItemRowErrors,
+              onPickItems: onPickItems,
+            ),
+          ),
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: BillingDocEditFab(
+              heroTag: 'credit_picker_fab_mobile',
+              onPressed: onPickItems,
+            ),
+          ),
+        ],
       ),
     );
   }

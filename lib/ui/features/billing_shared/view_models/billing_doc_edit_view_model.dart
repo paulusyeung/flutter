@@ -1,3 +1,4 @@
+import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/billing/invitation.dart';
 import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/contact.dart';
@@ -152,6 +153,120 @@ abstract class GenericBillingDocEditViewModel<T> extends GenericEditViewModel<T>
     }
     if (end == items.length) return;
     replaceLineItems(items.sublist(0, end));
+  }
+
+  // ── Cross-client validation ──────────────────────────────────────────
+  //
+  // An invoice (or quote/credit/recurring) must not carry a task or
+  // expense whose source row belongs to a different client. The picker
+  // already filters by `t.clientId == '' || t.clientId == draft.clientId`
+  // (Round 2) and Round 8 added the auto-cascade so the draft's client is
+  // set to the picked task's client when the draft was previously empty.
+  // The save-time validation below is defense-in-depth: it catches legacy
+  // invoices, API-imported drafts, and any data drift that the picker
+  // path didn't filter.
+
+  /// Source-row clientIds keyed by `task.id` for every task referenced by
+  /// the draft's line items. Empty entries (source row not found or its
+  /// `clientId` was blank) short-circuit validation as "no constraint" so
+  /// missing data never blocks save. Populated synchronously by the
+  /// picker invoke helper via [registerSourceClientIds] and lazily by
+  /// the layout via [hydrateSourceClientIds].
+  final Map<String, String> _taskClientIds = {};
+  final Map<String, String> _expenseClientIds = {};
+
+  /// Picker-side push: the picker has the picked `Task` / `Expense`
+  /// objects in memory so it can hand their clientIds back to the VM
+  /// without a Drift round-trip. Idempotent — repeated calls just
+  /// overwrite the same keys.
+  void registerSourceClientIds({
+    Map<String, String> tasks = const {},
+    Map<String, String> expenses = const {},
+  }) {
+    if (tasks.isEmpty && expenses.isEmpty) return;
+    _taskClientIds.addAll(tasks);
+    _expenseClientIds.addAll(expenses);
+    notifyListeners();
+  }
+
+  /// Layout-side lazy hydrate: resolve the source clientId of every
+  /// task/expense referenced by the existing draft (typically a loaded
+  /// invoice being edited). Best-effort — failure is silent so an
+  /// offline open doesn't block save unnecessarily. Idempotent; only
+  /// fetches ids that aren't already in the maps.
+  Future<void> hydrateSourceClientIds({
+    required Services services,
+    required String companyId,
+  }) async {
+    final items = lineItemsOf(draft);
+    final neededTaskIds = items
+        .map((li) => li.taskId)
+        .whereType<String>()
+        .where((s) => s.isNotEmpty && !_taskClientIds.containsKey(s))
+        .toSet();
+    final neededExpenseIds = items
+        .map((li) => li.expenseId)
+        .whereType<String>()
+        .where((s) => s.isNotEmpty && !_expenseClientIds.containsKey(s))
+        .toSet();
+    if (neededTaskIds.isEmpty && neededExpenseIds.isEmpty) return;
+    try {
+      final tasks = await Future.wait(neededTaskIds.map((id) => services.tasks
+          .watchByRealId(companyId: companyId, id: id)
+          .first));
+      final expenses = await Future.wait(neededExpenseIds.map((id) => services
+          .expenses
+          .watchByRealId(companyId: companyId, id: id)
+          .first));
+      var changed = false;
+      for (final t in tasks) {
+        if (t != null && t.clientId.isNotEmpty) {
+          _taskClientIds[t.id] = t.clientId;
+          changed = true;
+        }
+      }
+      for (final e in expenses) {
+        if (e != null && e.clientId.isNotEmpty) {
+          _expenseClientIds[e.id] = e.clientId;
+          changed = true;
+        }
+      }
+      if (changed) notifyListeners();
+    } catch (_) {
+      // Picker block + auto-cascade keep new data safe; legacy data we
+      // can't resolve just won't trip the save validator. No harm.
+    }
+  }
+
+  /// Returns `{'line_items': [crossClientMessage]}` when any line item's
+  /// source task/expense `clientId` is non-blank and doesn't match the
+  /// draft's `clientId`. Per-doc VMs merge the result into their
+  /// `validate()` so the save flow surfaces it the same way as the
+  /// existing `client_required` error.
+  Map<String, List<String>> validateCrossClient(String crossClientMessage) {
+    final draftClientId = clientIdOf(draft);
+    if (draftClientId.isEmpty) return const {};
+    for (final li in lineItemsOf(draft)) {
+      final tId = li.taskId;
+      if (tId != null && tId.isNotEmpty) {
+        final src = _taskClientIds[tId] ?? '';
+        if (src.isNotEmpty && src != draftClientId) {
+          return {
+            'line_items': [crossClientMessage],
+          };
+        }
+      }
+      final eId = li.expenseId;
+      if (eId != null && eId.isNotEmpty) {
+        final src = _expenseClientIds[eId] ?? '';
+        if (src.isNotEmpty && src != draftClientId) {
+          return {
+            'line_items': [crossClientMessage],
+          };
+        }
+      }
+    }
+    return const {};
   }
 
   /// Move the item at [from] to position [to]. Tolerant of

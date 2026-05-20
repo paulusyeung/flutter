@@ -17,12 +17,14 @@ import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/contacts/billing_doc_contacts_section.dart';
 import 'package:admin/ui/features/billing_shared/edit/billing_doc_edit_desktop_shell.dart';
+import 'package:admin/ui/features/billing_shared/edit/billing_doc_edit_fab.dart';
 import 'package:admin/ui/features/billing_shared/edit/billing_doc_settings_tab.dart';
 import 'package:admin/ui/features/billing_shared/edit/billing_edit_field_decoration.dart';
 import 'package:admin/ui/features/billing_shared/edit/save_default_helper.dart';
 import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_column_config.dart';
 import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_editor.dart';
 import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_table_desktop.dart';
+import 'package:admin/ui/features/billing_shared/line_item_picker/line_item_picker_invoke.dart';
 import 'package:admin/ui/features/billing_shared/markdown_notes_section.dart';
 import 'package:admin/ui/features/billing_shared/pdf/billing_doc_pdf_view.dart';
 import 'package:admin/ui/features/billing_shared/totals_widget.dart';
@@ -98,6 +100,27 @@ class _PurchaseOrderEditLayoutState extends State<PurchaseOrderEditLayout>
     slim: true,
   );
 
+  void _openPicker(BuildContext context) {
+    final vm = widget.vm;
+    // PO is vendor-side — no client, so the picker collapses to the
+    // Products tab (no Tasks / Expenses sourcing). The client-cascade /
+    // register-source callbacks are no-ops; the picker only yields a
+    // non-empty hint when a task/expense is selected.
+    openLineItemPicker(
+      context,
+      companyId: vm.companyId,
+      clientId: '',
+      showTasksAndExpenses: false,
+      currentLineItems: vm.draft.lineItems,
+      currentProjectId: vm.draft.projectId,
+      currentClientId: '',
+      replaceLineItems: vm.replaceLineItems,
+      setProjectId: vm.setProjectId,
+      setClientId: (_) {},
+      registerSourceClientIds: (_, _) {},
+    );
+  }
+
   Widget _buildMobile(BuildContext context) {
     final tokens = context.inTheme;
     return Column(
@@ -124,7 +147,7 @@ class _PurchaseOrderEditLayoutState extends State<PurchaseOrderEditLayout>
             children: [
               _DetailsTab(vm: widget.vm),
               _ContactsTab(vm: widget.vm),
-              _ItemsTab(vm: widget.vm),
+              _ItemsTab(vm: widget.vm, onPickItems: () => _openPicker(context)),
               _NotesTab(vm: widget.vm),
               _PdfTab(vm: widget.vm),
             ],
@@ -137,18 +160,35 @@ class _PurchaseOrderEditLayoutState extends State<PurchaseOrderEditLayout>
   }
 
   Widget _buildDesktop(BuildContext context) {
-    return BillingDocEditDesktopShell(
+    final shell = BillingDocEditDesktopShell(
       topRow: (ctx, slot) => switch (slot) {
         0 => _VendorCardDesktop(vm: widget.vm),
         1 => _DatesCardDesktop(vm: widget.vm),
         2 => _NumberCardDesktop(vm: widget.vm),
         _ => const SizedBox.shrink(),
       },
-      itemsSection: _ItemsSectionDesktop(vm: widget.vm),
+      itemsSection:
+          _ItemsSectionDesktop(vm: widget.vm, onPickItems: () => _openPicker(context)),
       notesTabsCard: _NotesTabsCardDesktop(vm: widget.vm),
       totalsCard: _totalsCard(context),
       pdfPane: _PdfPaneDesktop(vm: widget.vm),
       stickyTotals: _slimTotals(context),
+    );
+    return BillingDocEditPickerShortcuts(
+      onPickItems: () => _openPicker(context),
+      child: Stack(
+        children: [
+          shell,
+          Positioned(
+            bottom: 72,
+            right: 24,
+            child: BillingDocEditFab(
+              heroTag: 'purchase_order_picker_fab',
+              onPressed: () => _openPicker(context),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -391,8 +431,9 @@ class _NumberCardDesktopState extends State<_NumberCardDesktop> {
 }
 
 class _ItemsSectionDesktop extends StatefulWidget {
-  const _ItemsSectionDesktop({required this.vm});
+  const _ItemsSectionDesktop({required this.vm, required this.onPickItems});
   final PurchaseOrderEditViewModel vm;
+  final VoidCallback onPickItems;
 
   @override
   State<_ItemsSectionDesktop> createState() => _ItemsSectionDesktopState();
@@ -432,6 +473,7 @@ class _ItemsSectionDesktopState extends State<_ItemsSectionDesktop> {
       config: const LineItemColumnConfig(showDiscount: true, taxColumnCount: 1),
       controller: _tableController,
       rowErrors: vm.lineItemRowErrors,
+      onPickItems: widget.onPickItems,
     );
   }
 }
@@ -864,22 +906,39 @@ class _ContactsTab extends StatelessWidget {
 }
 
 class _ItemsTab extends StatelessWidget {
-  const _ItemsTab({required this.vm});
+  const _ItemsTab({required this.vm, required this.onPickItems});
   final PurchaseOrderEditViewModel vm;
+  final VoidCallback onPickItems;
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(InSpacing.lg(context)),
-      child: LineItemEditor(
-        companyId: vm.companyId,
-        items: vm.draft.lineItems,
-        onChanged: vm.replaceLineItems,
-        newItemFactory: emptyLineItem,
-        config: const LineItemColumnConfig(
-          showDiscount: true,
-          taxColumnCount: 1,
-        ),
+    return BillingDocEditPickerShortcuts(
+      onPickItems: onPickItems,
+      child: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: EdgeInsets.all(InSpacing.lg(context)),
+            child: LineItemEditor(
+              companyId: vm.companyId,
+              items: vm.draft.lineItems,
+              onChanged: vm.replaceLineItems,
+              newItemFactory: emptyLineItem,
+              config: const LineItemColumnConfig(
+                showDiscount: true,
+                taxColumnCount: 1,
+              ),
+              onPickItems: onPickItems,
+            ),
+          ),
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: BillingDocEditFab(
+              heroTag: 'purchase_order_picker_fab_mobile',
+              onPressed: onPickItems,
+            ),
+          ),
+        ],
       ),
     );
   }

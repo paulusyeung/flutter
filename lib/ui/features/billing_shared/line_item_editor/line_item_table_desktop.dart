@@ -545,14 +545,12 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
                     },
                   ),
                   Divider(height: 1, color: tokens.border),
-                  Align(
-                    alignment: Alignment.center,
-                    child: TextButton.icon(
-                      onPressed: _addBlankRow,
-                      icon: const Icon(Icons.add, size: 18),
-                      label: Text(context.tr('add_item')),
-                    ),
-                  ),
+                  // The redundant "+ Add item" button was removed — the
+                  // synthetic trailing ghost row promotes itself on first
+                  // keystroke, Tab from the last cell adds another row,
+                  // and bulk adds go through the items-section FAB →
+                  // line-item picker. `_addBlankRow` survives because
+                  // it's still called by `onTabFromLastCell`.
                 ],
               ),
             ],

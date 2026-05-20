@@ -29,6 +29,7 @@ class LineItemEditor extends StatelessWidget {
     this.controller,
     this.disabledReasonKey,
     this.rowErrors,
+    this.onPickItems,
   });
 
   /// Company scope for the desktop table's product autocomplete +
@@ -65,6 +66,12 @@ class LineItemEditor extends StatelessWidget {
   /// Surfaced inline in the desktop table and in the mobile dialog.
   final Map<int, Map<String, String>>? rowErrors;
 
+  /// Forwarded to the mobile card list — the empty-state "Add item"
+  /// button routes through this callback (the items-section FAB shares
+  /// the same closure). No-op on desktop; the desktop table's ghost row
+  /// covers the same affordance inline.
+  final VoidCallback? onPickItems;
+
   @override
   Widget build(BuildContext context) {
     if (disabledReasonKey != null) {
@@ -91,6 +98,7 @@ class LineItemEditor extends StatelessWidget {
           onChanged: onChanged,
           newItemFactory: newItemFactory,
           config: config,
+          onPickItems: onPickItems,
         );
       },
     );

@@ -21,6 +21,7 @@ class InvoiceEditViewModel extends GenericBillingDocEditViewModel<Invoice> {
     required this.repo,
     required this.companyId,
     required this.clientRequiredMessage,
+    required this.crossClientLineItemsMessage,
     Invoice? existing,
     Invoice? cloneFrom,
     super.currencyPrecision,
@@ -36,9 +37,14 @@ class InvoiceEditViewModel extends GenericBillingDocEditViewModel<Invoice> {
   /// `buildVm` (VMs have no `BuildContext` to localize with).
   final String clientRequiredMessage;
 
+  /// Localized "all tasks/expenses must belong to the doc's client" —
+  /// injected from the screen (same reason as `clientRequiredMessage`).
+  final String crossClientLineItemsMessage;
+
   @override
   Map<String, List<String>> validate() => {
     if (draft.clientId.isEmpty) 'client_id': [clientRequiredMessage],
+    ...validateCrossClient(crossClientLineItemsMessage),
   };
 
   @override

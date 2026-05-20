@@ -159,7 +159,7 @@ the honest default.
 | Invoice — list | ✅ | ✅ | ✅ | ✅ | 🟡 |
 | Invoice — detail | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Invoice — edit (line items, dates, totals) | ✅ | ✅ | ✅ | ✅ | |
-| Invoice — add unbilled tasks/expenses (client-scoped picker, pre-selected, running total) | ✅ | ✅ | ✅ | ✅ | |
+| Billing-doc edit — items-section FAB → tabbed multi-select picker (Products / Tasks / Expenses; tasks+expenses client-scoped to uninvoiced; exclude already-attached; Select All per tab; projectId carry-over) — invoice / quote / credit / recurring / PO | ✅ | ✅ | ✅ | ✅ | |
 | Invoice — create | ✅ | ✅ | ✅ | ✅ | |
 | Edit/create screen action bar (Save & mark sent/paid/cancel/auto-bill via save query-param; email/clone/etc. after-save) — all entities | ✅ | ✅ | ✅ | | |
 | Invoice — clone to new invoice | ✅ | ✅ | ✅ | ✅ | |
