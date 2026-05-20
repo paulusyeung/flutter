@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
@@ -179,7 +178,7 @@ class RecurringExpenseActions {
           updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
           createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
         );
-        context.go('/recurring_expenses/new', extra: draft);
+        goEntityCreateFullWidth(context, '/recurring_expenses', extra: draft);
       case RecurringExpenseAction.cloneToExpense:
         // Hand the draft over via `state.extra`; the Expense create form
         // already accepts an `Expense?` clone seed. The conversion happens
@@ -200,7 +199,7 @@ class RecurringExpenseActions {
           updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
           createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
         );
-        context.go('/expenses/new', extra: draft);
+        goEntityCreateFullWidth(context, '/expenses', extra: draft);
       case RecurringExpenseAction.addComment:
         await _promptAddComment(context, services, companyId, recurringExpense);
       case RecurringExpenseAction.archive:

@@ -98,17 +98,22 @@ class _TaskEditScreenState extends State<TaskEditScreen>
         // zone exception. If the project isn't cached locally (offline +
         // never synced) the resolved value is null and we no-op — the
         // user can pick the project manually from the dropdown.
+        // Wrapped in postFrame so the scaffold's listeners are attached
+        // before vm.selectProject's notifyListeners fires. See
+        // InvoiceEditScreen for the full trace.
         final seedId = widget.prefillProjectId;
         if (seedId != null && seedId.isNotEmpty && existing == null) {
-          unawaited(
-            services.projects
-                .watch(companyId: companyId, id: seedId)
-                .first
-                .then((project) {
-                  if (project != null) vm.selectProject(project);
-                })
-                .catchError((Object _) {}),
-          );
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            unawaited(
+              services.projects
+                  .watch(companyId: companyId, id: seedId)
+                  .first
+                  .then((project) {
+                    if (project != null) vm.selectProject(project);
+                  })
+                  .catchError((Object _) {}),
+            );
+          });
         }
         return vm;
       },

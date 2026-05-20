@@ -385,14 +385,15 @@ class ClientActions {
               ),
           ],
         );
-        context.go('/clients/new', extra: draft);
+        goEntityCreateFullWidth(context, '/clients', extra: draft);
       case ClientAction.newInvoice:
         if (client.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));
           return;
         }
-        context.go(
-          '/invoices/new',
+        goEntityCreateFullWidth(
+          context,
+          '/invoices',
           extra: emptyInvoice().copyWith(clientId: client.id),
         );
       case ClientAction.newQuote:
@@ -400,8 +401,9 @@ class ClientActions {
           Notify.error(context, context.tr('sync_first'));
           return;
         }
-        context.go(
-          '/quotes/new',
+        goEntityCreateFullWidth(
+          context,
+          '/quotes',
           extra: emptyQuote().copyWith(clientId: client.id),
         );
       case ClientAction.newPayment:
@@ -409,6 +411,9 @@ class ClientActions {
           Notify.error(context, context.tr('sync_first'));
           return;
         }
+        // `/payments/new` defaults to the slide-over sidebar (see
+        // `_kEditDefaultsToSlide` in `master_detail_layout.dart`); do not
+        // force `?view=full` here.
         context.go(
           '/payments/new',
           extra: emptyPayment().copyWith(clientId: client.id),
@@ -418,8 +423,9 @@ class ClientActions {
           Notify.error(context, context.tr('sync_first'));
           return;
         }
-        context.go(
-          '/tasks/new',
+        goEntityCreateFullWidth(
+          context,
+          '/tasks',
           extra: emptyTask().copyWith(clientId: client.id),
         );
       case ClientAction.newExpense:
@@ -427,8 +433,9 @@ class ClientActions {
           Notify.error(context, context.tr('sync_first'));
           return;
         }
-        context.go(
-          '/expenses/new',
+        goEntityCreateFullWidth(
+          context,
+          '/expenses',
           extra: emptyExpense().copyWith(clientId: client.id),
         );
       case ClientAction.merge:

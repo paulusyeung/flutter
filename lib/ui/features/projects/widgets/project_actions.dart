@@ -200,7 +200,7 @@ class ProjectActions {
           updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
           createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
         );
-        context.go('/projects/new', extra: draft);
+        goEntityCreateFullWidth(context, '/projects', extra: draft);
       case ProjectAction.delete:
         if (project.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));
@@ -217,8 +217,9 @@ class ProjectActions {
           Notify.error(context, context.tr('sync_first'));
           return;
         }
-        context.go(
-          '/invoices/new',
+        goEntityCreateFullWidth(
+          context,
+          '/invoices',
           extra: emptyInvoice().copyWith(
             clientId: project.clientId,
             projectId: project.id,
@@ -229,8 +230,9 @@ class ProjectActions {
           Notify.error(context, context.tr('sync_first'));
           return;
         }
-        context.go(
-          '/quotes/new',
+        goEntityCreateFullWidth(
+          context,
+          '/quotes',
           extra: emptyQuote().copyWith(
             clientId: project.clientId,
             projectId: project.id,
@@ -241,8 +243,9 @@ class ProjectActions {
           Notify.error(context, context.tr('sync_first'));
           return;
         }
-        context.go(
-          '/expenses/new',
+        goEntityCreateFullWidth(
+          context,
+          '/expenses',
           extra: emptyExpense().copyWith(
             clientId: project.clientId,
             projectId: project.id,
@@ -278,8 +281,9 @@ class ProjectActions {
           Notify.info(context, context.tr('no_billable_tasks'));
           return;
         }
-        context.go(
-          '/invoices/new',
+        goEntityCreateFullWidth(
+          context,
+          '/invoices',
           extra: emptyInvoice().copyWith(
             clientId: project.clientId,
             projectId: project.id,

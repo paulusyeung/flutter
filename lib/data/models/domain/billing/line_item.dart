@@ -3,6 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:admin/data/models/api/line_item_api_model.dart';
 import 'package:admin/data/models/domain/billing/line_item_type.dart';
+import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/data/models/value/money.dart';
 
 part 'line_item.freezed.dart';
@@ -131,6 +132,26 @@ LineItem emptyLineItem() => LineItem(
   expenseId: null,
   taxCategoryId: '',
   createdAt: null,
+);
+
+/// Build a billing line item seeded from a product. Mirrors the shape the
+/// edit form's line-item product picker produces when the user picks a
+/// product manually. `cost` carries the sale `price` (what the customer is
+/// billed); quantity defaults to 1 via [emptyLineItem].
+///
+/// Used by the cross-entity "New Invoice / Quote / Purchase Order" flows
+/// from a product (`?product=<id>` query param on the create route — see
+/// `entity_modules.dart` and the three edit screens that consume it).
+LineItem lineItemForProduct(Product product) => emptyLineItem().copyWith(
+  productKey: product.productKey,
+  notes: product.notes,
+  cost: product.price,
+  taxName1: product.taxName1,
+  taxRate1: product.taxRate1,
+  taxName2: product.taxName2,
+  taxRate2: product.taxRate2,
+  taxName3: product.taxName3,
+  taxRate3: product.taxRate3,
 );
 
 /// Tolerant `Decimal` parser for the `quantity` wire field. Same shape as

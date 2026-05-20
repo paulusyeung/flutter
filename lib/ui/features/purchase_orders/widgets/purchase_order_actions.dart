@@ -372,7 +372,7 @@ class PurchaseOrderActions {
           updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
           createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
         );
-        context.go('/purchase_orders/new', extra: draft);
+        goEntityCreateFullWidth(context, '/purchase_orders', extra: draft);
 
       case PurchaseOrderAction.cloneToInvoice:
         if (tmpGate()) return;

@@ -57,21 +57,24 @@ class ExpenseEditScreen extends StatelessWidget {
           cloneFrom: cloneFrom,
         );
         // Seed project + client from `?project=<id>` on first build (create
-        // mode only). Fire-and-forget; no-op if the project isn't cached.
+        // mode only). Wrapped in postFrame so listeners are attached before
+        // notifyListeners fires — see InvoiceEditScreen for the trace.
         final seedId = prefillProjectId;
         if (seedId != null && seedId.isNotEmpty && existing == null) {
-          unawaited(
-            services.projects
-                .watch(companyId: companyId, id: seedId)
-                .first
-                .then((project) {
-                  if (project != null) {
-                    vm.setProjectId(project.id);
-                    vm.setClientId(project.clientId);
-                  }
-                })
-                .catchError((Object _) {}),
-          );
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            unawaited(
+              services.projects
+                  .watch(companyId: companyId, id: seedId)
+                  .first
+                  .then((project) {
+                    if (project != null) {
+                      vm.setProjectId(project.id);
+                      vm.setClientId(project.clientId);
+                    }
+                  })
+                  .catchError((Object _) {}),
+            );
+          });
         }
         return vm;
       },

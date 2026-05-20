@@ -327,6 +327,8 @@ class CreditActions {
         // allocation. The user adds the target invoice allocation there;
         // the payment then draws the credit balance down against it
         // (mirrors v1's "Apply Credit" → payment-with-credits flow).
+        // `/payments/new` defaults to the slide-over sidebar (see
+        // `_kEditDefaultsToSlide`); do not force `?view=full` here.
         context.go(
           '/payments/new',
           extra: emptyPayment().copyWith(
@@ -353,7 +355,7 @@ class CreditActions {
           updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
           createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
         );
-        context.go('/credits/new', extra: draft);
+        goEntityCreateFullWidth(context, '/credits', extra: draft);
 
       case CreditAction.cloneToInvoice:
         if (tmpGate()) return;

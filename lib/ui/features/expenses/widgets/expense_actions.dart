@@ -160,7 +160,7 @@ class ExpenseActions {
           updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
           createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
         );
-        context.go('/expenses/new', extra: draft);
+        goEntityCreateFullWidth(context, '/expenses', extra: draft);
       case ExpenseAction.cloneToRecurring:
         // Recurring Expense lands later in this PR / a follow-up. Hand the
         // draft over via `state.extra` so the recurring create form can
@@ -179,7 +179,7 @@ class ExpenseActions {
           updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
           createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
         );
-        context.go('/recurring_expenses/new', extra: draft);
+        goEntityCreateFullWidth(context, '/recurring_expenses', extra: draft);
       case ExpenseAction.addComment:
         await _promptAddComment(context, services, companyId, expense);
       case ExpenseAction.archive:
@@ -228,7 +228,7 @@ class ExpenseActions {
           vendorId: expense.vendorId,
           lineItems: [lineItem],
         );
-        context.go('/invoices/new', extra: draft);
+        goEntityCreateFullWidth(context, '/invoices', extra: draft);
       case ExpenseAction.runTemplate:
         if (expense.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));

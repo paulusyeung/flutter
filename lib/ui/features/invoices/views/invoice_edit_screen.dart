@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/domain/billing/invoice_lock.dart';
 import 'package:admin/l10n/localization.dart';
@@ -25,6 +26,7 @@ class InvoiceEditScreen extends StatelessWidget {
     this.existingId,
     this.cloneFrom,
     this.prefillProjectId,
+    this.prefillProductId,
     super.key,
   });
 
@@ -39,6 +41,12 @@ class InvoiceEditScreen extends StatelessWidget {
   /// resolves the project and seeds the invoice's projectId + clientId so
   /// "New Invoice" from a Project's Invoices tab opens a submittable form.
   final String? prefillProjectId;
+
+  /// Optional product id seed (`?product=<id>`). In create mode the VM
+  /// resolves the product and appends one line item built from it. Used
+  /// by the Product kebab → "New Invoice" flow — URL params survive
+  /// cross-StatefulShellRoute-branch nav reliably, where `extra:` doesn't.
+  final String? prefillProductId;
 
   @override
   Widget build(BuildContext context) {
@@ -86,28 +94,63 @@ class InvoiceEditScreen extends StatelessWidget {
         );
         // Seed project + client from `?project=<id>` on first build (create
         // mode only). Fire-and-forget; no-op if the project isn't cached.
+        //
+        // Wrapped in addPostFrameCallback so the watch starts AFTER the
+        // scaffold's first paint has mounted the outer `ListenableBuilder`
+        // and inner `AnimatedBuilder`. Without the deferral, a fast Drift
+        // emission can land before any listener has subscribed to the vm
+        // — `notifyListeners` fires into the void, and any subwidget that
+        // caches state internally on first mount (e.g. LineItemTableDesktop's
+        // _rows) never picks up the seed. Hot-reload's reassemble() then
+        // becomes the only way to recover. See plan PR3 for the trace.
         final seedId = prefillProjectId;
         if (seedId != null && seedId.isNotEmpty && existing == null) {
-          unawaited(
-            services.projects
-                .watch(companyId: companyId, id: seedId)
-                .first
-                .then((project) async {
-                  if (project == null) return;
-                  vm.setProjectId(project.id);
-                  // Resolve the client so its "add to invoices" contacts
-                  // seed invitations, same as picking it in the dropdown.
-                  final client = await services.clients
-                      .watch(companyId: companyId, id: project.clientId)
-                      .first;
-                  if (client != null) {
-                    vm.selectClient(client.id, client.contacts);
-                  } else {
-                    vm.setClientId(project.clientId);
-                  }
-                })
-                .catchError((Object _) {}),
-          );
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            unawaited(
+              services.projects
+                  .watch(companyId: companyId, id: seedId)
+                  .first
+                  .then((project) async {
+                    if (project == null) return;
+                    vm.setProjectId(project.id);
+                    // Resolve the client so its "add to invoices" contacts
+                    // seed invitations, same as picking it in the dropdown.
+                    final client = await services.clients
+                        .watch(companyId: companyId, id: project.clientId)
+                        .first;
+                    if (client != null) {
+                      vm.selectClient(client.id, client.contacts);
+                    } else {
+                      vm.setClientId(project.clientId);
+                    }
+                  })
+                  .catchError((Object _) {}),
+            );
+          });
+        }
+        // Seed a line item from `?product=<id>` on first build (create
+        // mode only). Watches the product from Drift and appends a line
+        // item shaped like the line-item picker output once resolved.
+        // Drives the Product kebab → "New Invoice" flow — URL params
+        // survive cross-branch nav where `extra:` payloads are unreliable.
+        // Deferred via postFrame for the same reason as prefillProjectId
+        // above.
+        final productSeedId = prefillProductId;
+        if (productSeedId != null &&
+            productSeedId.isNotEmpty &&
+            existing == null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            unawaited(
+              services.products
+                  .watch(companyId: companyId, id: productSeedId)
+                  .first
+                  .then((product) {
+                    if (product == null) return;
+                    vm.addLineItem(lineItemForProduct(product));
+                  })
+                  .catchError((Object _) {}),
+            );
+          });
         }
         return vm;
       },

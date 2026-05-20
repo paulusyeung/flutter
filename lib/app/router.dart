@@ -351,6 +351,27 @@ void goEntityEdit(BuildContext context, String basePath, String id) {
   ).go(isFull ? '$basePath/$id/edit?view=full' : '$basePath/$id/edit');
 }
 
+/// Navigate to an entity's create route with an explicit `?view=full`,
+/// passing [extra] as the seed draft. Use this for every cross-entity /
+/// clone "new \<thing\>" navigation whose destination defaults to
+/// full-width on desktop — `?view=full` is explicit so the editor opens
+/// full-width without relying on `MasterDetailLayout`'s auto-promote
+/// redirect (which can be dedup-suppressed across cross-branch re-entry,
+/// and which silently strips `state.extra` from its own internal
+/// `go(...)` call — fixed defensively, but a no-redirect path is more
+/// reliable still).
+///
+/// Do **not** use for entities whose edit defaults to the slide-over
+/// panel (`/products`, `/payments`, `/transactions` — see
+/// `_kEditDefaultsToSlide` in `master_detail_layout.dart`). For those,
+/// plain `context.go('$basePath/new', extra: …)` is correct so the
+/// sidebar default is preserved.
+void goEntityCreateFullWidth(
+  BuildContext context,
+  String basePath, {
+  Object? extra,
+}) => GoRouter.of(context).go('$basePath/new?view=full', extra: extra);
+
 /// Build the app's [GoRouter].
 ///
 /// `isAuthenticated` is read from `AuthRepository`. The `registry` drives

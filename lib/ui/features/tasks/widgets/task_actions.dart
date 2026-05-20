@@ -214,7 +214,7 @@ class TaskActions {
           updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
           createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
         );
-        context.go('/tasks/new', extra: draft);
+        goEntityCreateFullWidth(context, '/tasks', extra: draft);
       case TaskAction.delete:
         if (task.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));
@@ -248,7 +248,7 @@ class TaskActions {
           projectId: task.projectId,
           lineItems: [lineItem],
         );
-        context.go('/invoices/new', extra: draft);
+        goEntityCreateFullWidth(context, '/invoices', extra: draft);
       case TaskAction.addToInvoice:
         if (task.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));

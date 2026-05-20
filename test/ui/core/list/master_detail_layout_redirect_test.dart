@@ -18,6 +18,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/theme.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
@@ -26,6 +27,14 @@ import '../../../_localization_helper.dart';
 void main() {
   Widget stub(String label) =>
       Scaffold(body: Center(child: Text(label)));
+
+  // Last `state.extra` observed by the edit builder. Each `pumpApp` resets it.
+  // Used by the extras-preservation tests to assert that the auto-promote
+  // redirect (and the F-key toggle) propagated `state.extra` through their
+  // internal `go(...)` calls. The detail builder writes only when state.extra
+  // is non-null so an initial null-extra navigation doesn't clobber a prior
+  // sentinel during the redirect's first frame.
+  Object? lastEditExtra;
 
   ShellRoute block(String basePath) {
     return ShellRoute(
@@ -51,7 +60,10 @@ void main() {
           routes: [
             GoRoute(
               path: 'edit',
-              builder: (_, _) => stub('${basePath}_EDIT'),
+              builder: (_, state) {
+                lastEditExtra = state.extra;
+                return stub('${basePath}_EDIT');
+              },
             ),
           ],
         ),
@@ -62,6 +74,7 @@ void main() {
   // `MasterDetailLayout` only engages the slide-over / redirect machinery on
   // wide (>= Breakpoints.slideOver == 1024) viewports.
   Future<GoRouter> pumpApp(WidgetTester tester) async {
+    lastEditExtra = null;
     tester.view.physicalSize = const Size(1600, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -152,6 +165,81 @@ void main() {
       router.go('/products/1/edit');
       await tester.pumpAndSettle();
       expect(currentUri(router), '/products/1/edit');
+    },
+  );
+
+  // Regression guards for the seed-extra propagation through the auto-promote
+  // redirect (`_toggleFullScreenInUrl`) — every cross-entity / clone "new X"
+  // navigation passes its draft via `state.extra`, and a stripping redirect
+  // silently empties the form.
+  testWidgets(
+    'auto-promote redirect preserves state.extra (seed draft survives ?view=full)',
+    (tester) async {
+      final router = await pumpApp(tester);
+
+      router.go('/things/1/edit', extra: 'sentinel');
+      await tester.pumpAndSettle();
+
+      expect(currentUri(router), '/things/1/edit?view=full');
+      expect(
+        lastEditExtra,
+        'sentinel',
+        reason:
+            'auto-promote re-issued go() must propagate state.extra so the '
+            'seed draft is not stripped on its way into the full-width editor',
+      );
+    },
+  );
+
+  testWidgets(
+    'F-key toggle preserves state.extra (full → slide keeps the seed)',
+    (tester) async {
+      final router = await pumpApp(tester);
+
+      router.go('/things/1/edit', extra: 'sentinel');
+      await tester.pumpAndSettle();
+      expect(currentUri(router), '/things/1/edit?view=full');
+      expect(lastEditExtra, 'sentinel');
+
+      // The pane autofocuses inside `_PaneRoot`; F triggers
+      // `_PaneToggleFullScreenIntent` → `_toggleFullScreenInUrl`.
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+      await tester.pumpAndSettle();
+
+      expect(currentUri(router), '/things/1/edit');
+      expect(
+        lastEditExtra,
+        'sentinel',
+        reason: 'F-toggle must propagate state.extra through its go() call',
+      );
+    },
+  );
+
+  testWidgets(
+    'F-key toggle to slide does not infinite-re-promote',
+    (tester) async {
+      final router = await pumpApp(tester);
+
+      router.go('/things/1/edit');
+      await tester.pumpAndSettle();
+      expect(currentUri(router), '/things/1/edit?view=full');
+
+      // User explicitly de-promotes via F. The dedup `_lastRedirectKey` must
+      // keep the auto-promote from re-firing on the rebuilt slide-mode URL,
+      // or the user would be fighting the layout to leave full-screen.
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+      await tester.pumpAndSettle();
+      expect(currentUri(router), '/things/1/edit');
+
+      // A few extra frames in case any addPostFrameCallback is scheduled.
+      for (var i = 0; i < 4; i++) {
+        await tester.pump();
+      }
+      expect(
+        currentUri(router),
+        '/things/1/edit',
+        reason: 'auto-promote must not re-fire after a user-initiated F-toggle',
+      );
     },
   );
 }

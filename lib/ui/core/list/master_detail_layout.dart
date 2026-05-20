@@ -738,19 +738,34 @@ class _PaneActionsRow extends StatelessWidget {
 /// `Uri.replace(queryParameters: null)` *keeps* the existing query params
 /// (per Dart's docs — it only "replaces" non-null fields). Pass the map
 /// directly: an empty map clears the query string.
+///
+/// **Propagates `state.extra` through the internal `go(...)`.** Cross-
+/// entity and clone callers seed the edit draft via the route's `extra`
+/// payload (e.g. Client → "New Invoice" passes `emptyInvoice().copyWith(
+/// clientId: ...)`); a bare `go(next)` here would silently drop the
+/// seed when the auto-promote post-frame redirect fires, opening an
+/// empty form. Re-attach the current state's extra so the rewritten URL
+/// carries the same payload it arrived with.
 void _toggleFullScreenInUrl(
   BuildContext context, {
   required bool isFullScreen,
 }) {
-  final uri = GoRouterState.of(context).uri;
+  final state = GoRouterState.of(context);
+  final uri = state.uri;
   final params = Map<String, String>.from(uri.queryParameters);
   if (isFullScreen) {
     params.remove('view');
   } else {
     params['view'] = 'full';
   }
-  final next = uri.replace(queryParameters: params);
-  GoRouter.of(context).go(next.toString());
+  // `uri.replace(queryParameters: {})` leaves an empty query in the resulting
+  // URI — `toString()` then emits a bare trailing `?`. Drop the trailing
+  // separator by re-building the URI without a query when the map is empty,
+  // so de-promotion to slide yields `/things/1/edit`, not `/things/1/edit?`.
+  final next = params.isEmpty
+      ? Uri(path: uri.path, fragment: uri.hasFragment ? uri.fragment : null)
+      : uri.replace(queryParameters: params);
+  GoRouter.of(context).go(next.toString(), extra: state.extra);
 }
 
 /// Navigate to an entity's create route. No-op when the create route is

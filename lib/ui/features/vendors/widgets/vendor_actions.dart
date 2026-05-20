@@ -1,6 +1,5 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
@@ -177,14 +176,15 @@ class VendorActions {
               ),
           ],
         );
-        context.go('/vendors/new', extra: draft);
+        goEntityCreateFullWidth(context, '/vendors', extra: draft);
       case VendorAction.newExpense:
         if (vendor.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));
           return;
         }
-        context.go(
-          '/expenses/new',
+        goEntityCreateFullWidth(
+          context,
+          '/expenses',
           extra: emptyExpense().copyWith(vendorId: vendor.id),
         );
       case VendorAction.delete:

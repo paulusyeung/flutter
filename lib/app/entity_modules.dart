@@ -503,6 +503,10 @@ final kWiredEntityModules = <EntityModuleSpec>[
       // `?project=<id>` seeds projectId + clientId (Project detail's
       // Invoices tab "New").
       prefillProjectId: state.uri.queryParameters['project'],
+      // `?product=<id>` seeds a line item from the picked product
+      // (Product kebab → "New Invoice"). URL params survive cross-branch
+      // nav reliably — `extra:` does not, per the Bug 1 follow-up.
+      prefillProductId: state.uri.queryParameters['product'],
     ),
     detailBuilder: (context, state) =>
         InvoiceDetailScreen(id: state.pathParameters['id']!),
@@ -561,6 +565,9 @@ final kWiredEntityModules = <EntityModuleSpec>[
       // `?project=<id>` seeds projectId + clientId (Project detail's
       // Quotes tab "New").
       prefillProjectId: state.uri.queryParameters['project'],
+      // `?product=<id>` seeds a line item from the picked product
+      // (Product kebab → "New Quote"). See InvoiceEditScreen.
+      prefillProductId: state.uri.queryParameters['product'],
     ),
     detailBuilder: (context, state) =>
         QuoteDetailScreen(id: state.pathParameters['id']!),
@@ -648,6 +655,9 @@ final kWiredEntityModules = <EntityModuleSpec>[
     createBuilder: (context, state) => PurchaseOrderEditScreen(
       cloneFrom:
           state.extra is PurchaseOrder ? state.extra as PurchaseOrder : null,
+      // `?product=<id>` seeds a line item from the picked product
+      // (Product kebab → "New Purchase Order"). See InvoiceEditScreen.
+      prefillProductId: state.uri.queryParameters['product'],
     ),
     detailBuilder: (context, state) =>
         PurchaseOrderDetailScreen(id: state.pathParameters['id']!),

@@ -579,6 +579,8 @@ class InvoiceActions {
         // allocation seeded to the outstanding balance. The user can lower
         // the amount for a partial payment — the allocations section + VM
         // auto-sync `amount` from the paymentables.
+        // `/payments/new` defaults to the slide-over sidebar (see
+        // `_kEditDefaultsToSlide`); do not force `?view=full` here.
         context.go(
           '/payments/new',
           extra: emptyPayment().copyWith(
@@ -606,13 +608,17 @@ class InvoiceActions {
           updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
           createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
         );
-        context.go('/invoices/new', extra: draft);
+        goEntityCreateFullWidth(context, '/invoices', extra: draft);
 
       case InvoiceAction.rectify:
         if (tmpGate()) return;
         final reason = await showRectifyReasonDialog(context);
         if (reason == null || !context.mounted) return;
-        context.go('/invoices/new', extra: rectifiedDraft(invoice, reason));
+        goEntityCreateFullWidth(
+          context,
+          '/invoices',
+          extra: rectifiedDraft(invoice, reason),
+        );
 
       case InvoiceAction.sendEInvoice:
         if (tmpGate()) return;

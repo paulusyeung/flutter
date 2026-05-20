@@ -405,7 +405,7 @@ class QuoteActions {
           updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
           createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
         );
-        context.go('/quotes/new', extra: draft);
+        goEntityCreateFullWidth(context, '/quotes', extra: draft);
 
       case QuoteAction.cloneToInvoice:
         if (tmpGate()) return;

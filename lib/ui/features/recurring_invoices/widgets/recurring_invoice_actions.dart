@@ -384,7 +384,7 @@ class RecurringInvoiceActions {
           updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
           createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
         );
-        context.go('/recurring_invoices/new', extra: draft);
+        goEntityCreateFullWidth(context, '/recurring_invoices', extra: draft);
 
       case RecurringInvoiceAction.cloneToInvoice:
         if (tmpGate()) return;
