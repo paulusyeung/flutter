@@ -141,6 +141,7 @@ Future<void> _confirmDelete(
             ),
             const SizedBox(width: 8),
             FilledButton(
+              autofocus: true,
               style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
               onPressed: () => Navigator.of(ctx).pop(true),
               child: Text(ctx.tr('delete')),

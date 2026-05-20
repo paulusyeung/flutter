@@ -124,6 +124,7 @@ class _CompanyPickerState extends State<CompanyPicker> {
             child: Text(ctx.tr('cancel')),
           ),
           FilledButton(
+            autofocus: true,
             // Override the theme's full-width `minimumSize` (see
             // lib/app/theme.dart) so the button fits beside Cancel in the
             // OverflowBar instead of forcing a vertical stack.

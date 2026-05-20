@@ -351,7 +351,9 @@ class _InSidebarState extends State<InSidebar> {
                 )
               : null,
         ),
-      // Saved views — reactive section that disappears when empty.
+      // Saved views — reactive section that disappears when empty. Owns its
+      // own trailing spacer so the Reports→Settings gap stays uniform with
+      // the rest of the sidebar when there are no saved views.
       _SavedViewsSection(
         companyId: companyId,
         currentBranch: widget.currentBranch,
@@ -360,8 +362,6 @@ class _InSidebarState extends State<InSidebar> {
         activeViewId: activeViewId,
         savedViewsStream: _savedViews!.stream,
       ),
-      // Visual spacer between the saved list and the bottom row.
-      const SidebarSectionHeader(null),
       _fixedNav(
         context,
         services,
@@ -661,6 +661,12 @@ class _SavedViewsSection extends StatelessWidget {
                 active: view.id == activeViewId,
                 onTap: () => _onTap(context, view),
               ),
+            // Trailing spacer separating the saved list from the bottom
+            // group (Settings / Outbox). Lives inside the section so when
+            // there are no saved views the whole group collapses to
+            // SizedBox.shrink() and the Reports→Settings gap matches the
+            // gap between all other adjacent rows.
+            const SidebarSectionHeader(null),
           ],
         );
       },

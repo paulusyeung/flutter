@@ -71,6 +71,7 @@ Future<ConflictResolution> showConflictResolutionSheet(
             child: Text(ctx.tr('discard_my_changes')),
           ),
           FilledButton(
+            autofocus: true,
             style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
             onPressed: () => Navigator.of(ctx).pop(ConflictResolution.useMine),
             child: Text(ctx.tr('use_my_changes')),

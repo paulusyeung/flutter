@@ -32,6 +32,7 @@ Future<bool> showMarkPaidConfirmDialog(BuildContext context) async {
               ),
               const SizedBox(width: 8),
               FilledButton(
+                autofocus: true,
                 style: FilledButton.styleFrom(
                   minimumSize: const Size(64, 44),
                 ),

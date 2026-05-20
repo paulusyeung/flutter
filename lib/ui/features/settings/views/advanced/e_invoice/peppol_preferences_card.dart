@@ -235,6 +235,7 @@ class _PeppolPreferencesCardState extends State<PeppolPreferencesCard> {
             child: Text(context.tr('cancel')),
           ),
           FilledButton(
+            autofocus: true,
             style: FilledButton.styleFrom(
               minimumSize: const Size(64, 44),
               backgroundColor: tokens.overdue,

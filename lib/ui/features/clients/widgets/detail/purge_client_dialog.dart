@@ -34,6 +34,7 @@ Future<bool> showPurgeClientDialog(
           child: Text(ctx.tr('cancel')),
         ),
         FilledButton(
+          autofocus: true,
           style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
           onPressed: () => Navigator.of(ctx).pop(true),
           child: Text(ctx.tr('continue')),

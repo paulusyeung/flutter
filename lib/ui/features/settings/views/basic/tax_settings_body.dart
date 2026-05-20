@@ -284,6 +284,7 @@ class _CalculateTaxesToggle extends StatelessWidget {
             child: Text(context.tr('cancel')),
           ),
           FilledButton(
+            autofocus: true,
             style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(context.tr('continue')),

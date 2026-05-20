@@ -63,6 +63,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               child: Text(ctx.tr('cancel')),
             ),
             FilledButton(
+              autofocus: true,
               style: FilledButton.styleFrom(
                 minimumSize: const Size(64, 44),
               ),

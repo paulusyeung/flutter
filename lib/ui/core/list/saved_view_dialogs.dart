@@ -87,6 +87,7 @@ Future<void> showDeleteSavedViewDialog(
           child: Text(ctx.tr('cancel')),
         ),
         FilledButton.tonal(
+          autofocus: true,
           style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
           onPressed: () => Navigator.of(ctx).pop(true),
           child: Text(ctx.tr('delete')),
