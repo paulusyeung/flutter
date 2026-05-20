@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/core/utils/text_input_focus.dart';
 
 /// Lightweight shared state between `MasterDetailLayout` and the list
 /// scaffold mounted inside it. The list scaffold writes the visible
@@ -624,26 +625,26 @@ class _PaneRoot extends StatelessWidget {
         },
         child: Actions(
           actions: <Type, Action<Intent>>{
-            _PaneCloseIntent: _PaneAction<_PaneCloseIntent>(
+            _PaneCloseIntent: GuardedShortcutAction<_PaneCloseIntent>(
               onInvoke: (_) {
                 _close(context);
                 return null;
               },
             ),
             _PaneToggleFullScreenIntent:
-                _PaneAction<_PaneToggleFullScreenIntent>(
+                GuardedShortcutAction<_PaneToggleFullScreenIntent>(
               onInvoke: (_) {
                 _toggleFullScreenInUrl(context, isFullScreen: isFullScreen);
                 return null;
               },
             ),
-            _PaneNextIntent: _PaneAction<_PaneNextIntent>(
+            _PaneNextIntent: GuardedShortcutAction<_PaneNextIntent>(
               onInvoke: (_) {
                 _navigateRelative(context, navController.nextId());
                 return null;
               },
             ),
-            _PanePrevIntent: _PaneAction<_PanePrevIntent>(
+            _PanePrevIntent: GuardedShortcutAction<_PanePrevIntent>(
               onInvoke: (_) {
                 _navigateRelative(context, navController.prevId());
                 return null;
@@ -811,14 +812,14 @@ class MasterDetailPaneScope extends InheritedWidget {
 
 // ─── Pane keyboard shortcuts ─────────────────────────────────────────────
 
-/// True when the primary focus is a text input. Single-key pane
-/// shortcuts (F / J / K / arrows / Esc) stand down in that case so the
-/// keystroke reaches the field — typing `f` in the embedded edit form
-/// must insert `f`, not toggle full-screen.
-bool _textInputHasFocus() {
-  final w = FocusManager.instance.primaryFocus?.context?.widget;
-  return w is EditableText;
-}
+// Single-key pane shortcuts (F / J / K / arrows / Esc) stand down while
+// the user is typing — typing `f` in the embedded edit form must insert
+// `f`, not toggle full-screen. The actions wrap [GuardedShortcutAction]
+// from `lib/ui/core/utils/text_input_focus.dart`, which disables itself
+// (and overrides `consumesKey`) whenever a text input has focus. See
+// the comment on the `Shortcuts` widget above for the Flutter-source
+// rationale (consumesKey defaults to true, so a no-op `onInvoke` is
+// not enough — the action must report as *disabled*).
 
 class _PaneCloseIntent extends Intent {
   const _PaneCloseIntent();
@@ -834,21 +835,4 @@ class _PaneNextIntent extends Intent {
 
 class _PanePrevIntent extends Intent {
   const _PanePrevIntent();
-}
-
-/// A pane shortcut action that is *disabled* — not merely a no-op —
-/// while a text input has focus. Disabling is what matters:
-/// `ShortcutManager.handleKeypress` only returns `KeyEventResult.ignored`
-/// (letting the key fall through to the field) when the action is not
-/// enabled. `Action.consumesKey` defaults to `true`, so a guard that
-/// only no-ops in `onInvoke` would still report the key as handled and
-/// swallow it. `consumesKey` is overridden too as belt-and-braces.
-class _PaneAction<T extends Intent> extends CallbackAction<T> {
-  _PaneAction({required super.onInvoke});
-
-  @override
-  bool isEnabled(T intent) => !_textInputHasFocus();
-
-  @override
-  bool consumesKey(T intent) => !_textInputHasFocus();
 }

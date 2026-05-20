@@ -14,6 +14,7 @@ import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/core/utils/text_input_focus.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/offline_banner.dart';
 import 'package:admin/ui/features/settings/views/advanced/debug_panel_section.dart';
@@ -167,9 +168,7 @@ class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
     // Typing inside a text field always wins — the field types `g` etc.
-    final focus = FocusManager.instance.primaryFocus;
-    final w = focus?.context?.widget;
-    if (w is EditableText) return KeyEventResult.ignored;
+    if (isTextInputFocused()) return KeyEventResult.ignored;
 
     // Modifier keys (Ctrl / Alt / Meta) suppress leader handling so
     // shortcuts like `⌘S` can pass through. Shift is allowed — capital
@@ -248,65 +247,50 @@ class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
         actions: <Type, Action<Intent>>{
           _OpenCompanyPickerIntent: CallbackAction<_OpenCompanyPickerIntent>(
             onInvoke: (_) {
-              // Ignore the shortcut when the user is typing in a TextField —
-              // a focused EditableText handles the key itself, but other
-              // focused widgets (e.g. a focused button) still bubble up.
-              final focus = FocusManager.instance.primaryFocus;
-              final widget = focus?.context?.widget;
-              if (widget is EditableText) return null;
+              // Ignore the shortcut when the user is typing — a focused
+              // text input handles modifier shortcuts itself (or has no
+              // useful binding for them); we no-op here so the shell's
+              // company picker doesn't pop over the field.
+              if (isTextInputFocused()) return null;
               showCompanyPicker(context);
               return null;
             },
           ),
           _OpenCommandPaletteIntent: CallbackAction<_OpenCommandPaletteIntent>(
             onInvoke: (_) {
-              final focus = FocusManager.instance.primaryFocus;
-              final widget = focus?.context?.widget;
-              if (widget is EditableText) return null;
+              if (isTextInputFocused()) return null;
               showCommandPalette(context);
               return null;
             },
           ),
+          // `?` and `/` are *unmodified* character activators — they
+          // collide with typing in a field. Disable the action (via
+          // `GuardedShortcutAction`, which overrides isEnabled +
+          // consumesKey) while text input has focus so the keystroke
+          // falls through to the field instead of being swallowed.
           _OpenKeyboardShortcutsIntent:
-              CallbackAction<_OpenKeyboardShortcutsIntent>(
+              GuardedShortcutAction<_OpenKeyboardShortcutsIntent>(
                 onInvoke: (_) {
-                  // Same EditableText guard as Cmd/Ctrl+K — a `?` typed
-                  // inside a search or notes field must reach the field.
-                  final focus = FocusManager.instance.primaryFocus;
-                  final widget = focus?.context?.widget;
-                  if (widget is EditableText) return null;
                   showKeyboardShortcutsDialog(context);
                   return null;
                 },
               ),
-          _FocusSearchIntent: CallbackAction<_FocusSearchIntent>(
+          _FocusSearchIntent: GuardedShortcutAction<_FocusSearchIntent>(
             onInvoke: (_) {
-              // Same guard so `/` typed in any text field types `/`.
-              final focus = FocusManager.instance.primaryFocus;
-              final widget = focus?.context?.widget;
-              if (widget is EditableText) return null;
               context.read<Services>().searchFocus.current?.requestFocus();
               return null;
             },
           ),
           _ToggleSidebarIntent: CallbackAction<_ToggleSidebarIntent>(
             onInvoke: (_) {
-              // `⌘B` in a text field is sometimes Bold in rich editors —
-              // but the app's only rich editor is `super_editor`, which
-              // isn't an EditableText, so this guard only skips plain
-              // TextFields. Acceptable trade-off.
-              final focus = FocusManager.instance.primaryFocus;
-              final widget = focus?.context?.widget;
-              if (widget is EditableText) return null;
+              if (isTextInputFocused()) return null;
               context.read<Services>().sidebar.toggle();
               return null;
             },
           ),
           _OpenSettingsIntent: CallbackAction<_OpenSettingsIntent>(
             onInvoke: (_) {
-              final focus = FocusManager.instance.primaryFocus;
-              final widget = focus?.context?.widget;
-              if (widget is EditableText) return null;
+              if (isTextInputFocused()) return null;
               final idx = _settingsIndex;
               if (idx != null) _goBranch(idx);
               return null;
@@ -315,19 +299,15 @@ class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
           _GoBackIntent: CallbackAction<_GoBackIntent>(
             onInvoke: (_) {
               // Cmd/Alt+Arrow are caret/word motions inside a text field —
-              // same EditableText guard as the other global shortcuts.
-              final focus = FocusManager.instance.primaryFocus;
-              final widget = focus?.context?.widget;
-              if (widget is EditableText) return null;
+              // no-op here lets the field's own action handle them.
+              if (isTextInputFocused()) return null;
               context.read<NavHistoryController>().back();
               return null;
             },
           ),
           _GoForwardIntent: CallbackAction<_GoForwardIntent>(
             onInvoke: (_) {
-              final focus = FocusManager.instance.primaryFocus;
-              final widget = focus?.context?.widget;
-              if (widget is EditableText) return null;
+              if (isTextInputFocused()) return null;
               context.read<NavHistoryController>().forward();
               return null;
             },

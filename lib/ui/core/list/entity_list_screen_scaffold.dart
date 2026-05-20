@@ -24,6 +24,7 @@ import 'package:admin/ui/core/list/entity_list_footer.dart';
 import 'package:admin/ui/core/list/deep_link_filter_intent.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart'
     show MasterDetailNavScope, goToCreateRoute;
+import 'package:admin/ui/core/utils/text_input_focus.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/widgets/confirm_password_sheet.dart';
@@ -604,13 +605,13 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
-          _NewRecordIntent: CallbackAction<_NewRecordIntent>(
+          // `n` is a single-key shortcut — disable the action while a
+          // text input has focus so the keystroke falls through and
+          // inserts `n`. (Arrow keys can't fall through here without
+          // risking the DirectionalFocusAction crash described on
+          // `_stepSelection` — they keep the in-handler guard.)
+          _NewRecordIntent: GuardedShortcutAction<_NewRecordIntent>(
             onInvoke: (_) {
-              // Same EditableText guard the shell uses: typing `n` in a
-              // text field types `n`, not a navigation.
-              final focus = FocusManager.instance.primaryFocus;
-              final w = focus?.context?.widget;
-              if (w is EditableText) return null;
               if (!widget.canCreate) return null;
               goToCreateRoute(context, widget.newRoute);
               return null;
@@ -641,8 +642,7 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
     // Typing in the search box (or any inline field): consume + no-op so
     // the arrow neither navigates nor falls through to the crashing
     // default focus traversal. Single-line caret movement isn't needed.
-    final w = FocusManager.instance.primaryFocus?.context?.widget;
-    if (w is EditableText) return const Object();
+    if (isTextInputFocused()) return const Object();
     // Don't fight checkbox bulk-select mode.
     if (_vm.isInMultiselect) return const Object();
 

@@ -5,6 +5,7 @@ import 'package:super_editor/super_editor.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/utils/text_input_focus.dart';
 
 /// Handle the host can pass into [MarkdownTextField] to force the
 /// editor to serialize + emit its current content immediately,
@@ -383,48 +384,55 @@ class _MarkdownTextFieldState extends State<MarkdownTextField> {
           )
         : SuperReader(editor: _editor, stylesheet: _buildStylesheet(t));
 
-    final frame = Container(
-      decoration: BoxDecoration(
-        color: t.surface,
-        border: Border.all(color: t.border),
-        borderRadius: BorderRadius.circular(InRadii.r1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: widget.expand ? MainAxisSize.max : MainAxisSize.min,
-        children: [
-          if (showToolbar)
-            _MarkdownToolbar(
-              composer: _composer,
-              isActive: _selectionHas,
-              onBold: () => _toggleAttribution(boldAttribution),
-              onItalic: () => _toggleAttribution(italicsAttribution),
-              onUnderline: () => _toggleAttribution(underlineAttribution),
-              onBulletList: () =>
-                  _convertSelectedToList(ListItemType.unordered),
-              onNumberedList: () =>
-                  _convertSelectedToList(ListItemType.ordered),
+    // Wrap the editor frame in [TextInputFocusScope] so the app-wide
+    // `isTextInputFocused()` guard returns true while the caret is in
+    // `SuperEditor` — super_editor isn't an `EditableText`, so without
+    // this marker the pane / shell single-key shortcuts (F / J / K /
+    // arrows / `/` / `?`) would fire mid-typing in a Notes field.
+    final frame = TextInputFocusScope(
+      child: Container(
+        decoration: BoxDecoration(
+          color: t.surface,
+          border: Border.all(color: t.border),
+          borderRadius: BorderRadius.circular(InRadii.r1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: widget.expand ? MainAxisSize.max : MainAxisSize.min,
+          children: [
+            if (showToolbar)
+              _MarkdownToolbar(
+                composer: _composer,
+                isActive: _selectionHas,
+                onBold: () => _toggleAttribution(boldAttribution),
+                onItalic: () => _toggleAttribution(italicsAttribution),
+                onUnderline: () => _toggleAttribution(underlineAttribution),
+                onBulletList: () =>
+                    _convertSelectedToList(ListItemType.unordered),
+                onNumberedList: () =>
+                    _convertSelectedToList(ListItemType.ordered),
+              ),
+            _EditorHost(
+              height: widget.height,
+              expand: widget.expand,
+              // In reader mode the inner `SuperReader` subtree is `ExcludeFocus`'d
+              // so its deep, possibly-unlaid render objects stay out of the
+              // geometry-based `ReadingOrderTraversalPolicy` sort (closes the
+              // `hasSize` crash), while a single lightweight host `Focus` node
+              // remains Tab-reachable and keyboard-activatable. Tap or keyboard
+              // activation promotes the field to the editing `SuperEditor`.
+              // These wrappers sit *outside* the sliver host — never between it
+              // and the editor — so the sliver protocol stays intact.
+              //
+              // Edge: a field scrolled off-screen in a `TabBarView` while still
+              // focused/editing keeps its `SuperEditor` mounted; switching tabs
+              // normally unfocuses it (→ reader), so this is not a live path.
+              excludeFocus: !showEditor,
+              enterEditing: (!showEditor && canEdit) ? _enterEditing : null,
+              sliver: sliver,
             ),
-          _EditorHost(
-            height: widget.height,
-            expand: widget.expand,
-            // In reader mode the inner `SuperReader` subtree is `ExcludeFocus`'d
-            // so its deep, possibly-unlaid render objects stay out of the
-            // geometry-based `ReadingOrderTraversalPolicy` sort (closes the
-            // `hasSize` crash), while a single lightweight host `Focus` node
-            // remains Tab-reachable and keyboard-activatable. Tap or keyboard
-            // activation promotes the field to the editing `SuperEditor`.
-            // These wrappers sit *outside* the sliver host — never between it
-            // and the editor — so the sliver protocol stays intact.
-            //
-            // Edge: a field scrolled off-screen in a `TabBarView` while still
-            // focused/editing keeps its `SuperEditor` mounted; switching tabs
-            // normally unfocuses it (→ reader), so this is not a live path.
-            excludeFocus: !showEditor,
-            enterEditing: (!showEditor && canEdit) ? _enterEditing : null,
-            sliver: sliver,
-          ),
-        ],
+          ],
+        ),
       ),
     );
 

@@ -31,6 +31,7 @@ class BillingDocPdfView extends StatefulWidget {
     required this.entityNumber,
     required this.fetcher,
     this.initialDeliveryNote = false,
+    this.deliveryNoteAvailable = true,
     this.revision,
     this.autoRefreshDebounce = const Duration(milliseconds: 600),
   });
@@ -48,6 +49,12 @@ class BillingDocPdfView extends StatefulWidget {
   /// toggle starts in the on position). Only meaningful when
   /// [BillingDocType.supportsDeliveryNote] — i.e. invoices.
   final bool initialDeliveryNote;
+
+  /// Whether the delivery-note toggle should be offered at all. The dedicated
+  /// `/api/v1/invoices/{id}/delivery_note` route needs a real (saved) id, so
+  /// the edit screen passes `false` while the invoice is still `tmp_<uuid>`.
+  /// Detail / pdf-route call sites watch saved entities and leave the default.
+  final bool deliveryNoteAvailable;
 
   /// Which billing-doc type this widget is rendering. Used for the file
   /// name on download + to gate the delivery-note toggle.
@@ -160,7 +167,7 @@ class _BillingDocPdfViewState extends State<BillingDocPdfView> {
             pdfFileName: fileName,
           ),
         ),
-        if (widget.entity.supportsDeliveryNote)
+        if (widget.entity.supportsDeliveryNote && widget.deliveryNoteAvailable)
           Positioned(
             top: InSpacing.md(context),
             right: InSpacing.md(context),

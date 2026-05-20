@@ -49,12 +49,13 @@ class BillingDocEditDesktopShell extends StatelessWidget {
   /// Slim single-line "Total" bar pinned at the very bottom.
   final Widget stickyTotals;
 
-  /// Working height of the left notes/terms/footer editor card. An
-  /// independent editor size (no longer tied to a totals+pdf stack now
-  /// that the PDF preview is a full-width pane below this row).
+  /// Working height of the left notes/terms/footer editor card. Sized
+  /// short (~1/4 of the older 460–580 pane) — the markdown editors scroll
+  /// internally and the Settings / e-Invoice sub-tabs are already wrapped
+  /// in a `SingleChildScrollView`, so all content remains reachable.
   static double notesPaneHeight(BuildContext context) {
     final h = MediaQuery.sizeOf(context).height;
-    return (h * 0.34).clamp(240.0, 360.0) + 220;
+    return (h * 0.16).clamp(120.0, 150.0);
   }
 
   /// Height of the full-width PDF preview pane at the bottom of the

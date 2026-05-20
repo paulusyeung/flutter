@@ -173,16 +173,29 @@ class InvoicesApi extends BaseEntityApi<InvoiceListApi, InvoiceItemApi> {
         payload: {'template_id': templateId},
       );
 
-  /// Fetch a server-rendered PDF for this invoice via
-  /// `POST /api/v1/live_preview?entity=invoice[&entity_id=<id>]`. The body is
-  /// the **full invoice entity** (`Invoice.toApiJson()` — the same shape the
-  /// save/outbox path sends), exactly as React and admin-portal do; the
-  /// server resolves the design from the entity's `design_id`. (The old
-  /// `/api/v1/preview` is the design-editor endpoint and rejects an entity
-  /// body with "Invalid custom design object".) `entity_id` is sent only for
-  /// a saved invoice. Optional `designId` overrides the design; `deliveryNote`
-  /// switches to the delivery-note layout. `readOnly: true` skips the
-  /// demo-mode short circuit and the outbox (a read in effect, POST on wire).
+  /// Fetch a server-rendered PDF for this invoice.
+  ///
+  /// Two endpoints, picked by [deliveryNote]:
+  ///
+  /// * Normal layout — `POST /api/v1/live_preview?entity=invoice[&entity_id=<id>]`,
+  ///   body = the **full invoice entity** (`Invoice.toApiJson()` — the same
+  ///   shape the save/outbox path sends), exactly as React and admin-portal do.
+  ///   The server resolves the design from the entity's `design_id`. (The old
+  ///   `/api/v1/preview` is the design-editor endpoint and rejects an entity
+  ///   body with "Invalid custom design object".) `entity_id` is sent only for
+  ///   a saved invoice. Optional [designId] overrides the design.
+  ///
+  /// * Delivery note (`deliveryNote: true` **and** saved id) —
+  ///   `GET /api/v1/invoices/{id}/delivery_note[?design_id=<id>]`. This is the
+  ///   only path that actually renders the delivery-note layout: `live_preview`
+  ///   ignores a `delivery_note` body field (it hardcodes the PDF type to
+  ///   `product`). Matches React (`useGeneratePdfUrl.ts`) and admin-portal
+  ///   (`lib/ui/invoice/invoice_pdf.dart`). Requires a real id — for unsaved
+  ///   drafts the UI hides the toggle, but if called we fall through to the
+  ///   live-preview path so the caller still gets a PDF instead of a 404.
+  ///
+  /// `readOnly: true` on both wire calls skips the demo-mode short-circuit
+  /// and the outbox (reads in effect).
   Future<Uint8List> downloadPdf({
     required Map<String, dynamic> entityJson,
     String? designId,
@@ -190,6 +203,17 @@ class InvoicesApi extends BaseEntityApi<InvoiceListApi, InvoiceItemApi> {
   }) {
     final id = (entityJson['id'] as String?) ?? '';
     final saved = id.isNotEmpty && !id.startsWith('tmp_');
+
+    if (deliveryNote && saved) {
+      final qs = (designId != null && designId.isNotEmpty)
+          ? '?design_id=$designId'
+          : '';
+      return client.getRaw(
+        '/api/v1/invoices/$id/delivery_note$qs',
+        readOnly: true,
+      );
+    }
+
     final path = StringBuffer('/api/v1/live_preview?entity=invoice')
       ..write(saved ? '&entity_id=$id' : '');
     return client.postRaw(
@@ -198,7 +222,6 @@ class InvoicesApi extends BaseEntityApi<InvoiceListApi, InvoiceItemApi> {
       body: {
         ...entityJson,
         if (designId != null && designId.isNotEmpty) 'design_id': designId,
-        if (deliveryNote) 'delivery_note': true,
       },
     );
   }

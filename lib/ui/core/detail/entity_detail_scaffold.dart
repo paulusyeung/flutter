@@ -6,6 +6,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/ui/core/detail/detail_scroll_scope.dart';
 import 'package:admin/ui/core/detail/generic_detail_view_model.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
+import 'package:admin/ui/core/utils/text_input_focus.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 
 /// Shared chrome for an entity detail screen.
@@ -78,12 +79,11 @@ class _EntityDetailScaffoldState<T> extends State<EntityDetailScaffold<T>> {
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
-          _EditCurrentIntent: CallbackAction<_EditCurrentIntent>(
+          // Single-key `e` shortcut: disable while typing so the
+          // keystroke falls through and inserts `e` instead of
+          // navigating to the edit screen.
+          _EditCurrentIntent: GuardedShortcutAction<_EditCurrentIntent>(
             onInvoke: (_) {
-              // Typing `e` in any field types `e`, not a navigation.
-              final focus = FocusManager.instance.primaryFocus;
-              final w = focus?.context?.widget;
-              if (w is EditableText) return null;
               if (widget.vm.item == null) return null;
               // Universal: detail routes follow `/<entity>/:id`, edit is
               // the sibling `/<entity>/:id/edit`. Appending `/edit` to

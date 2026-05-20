@@ -1202,10 +1202,15 @@ class _PdfTab extends StatelessWidget {
       );
     }
     final services = context.read<Services>();
+    final draftId = vm.draft.id;
+    final saved = draftId.isNotEmpty && !draftId.startsWith('tmp_');
     return BillingDocPdfView(
       entity: BillingDocType.invoice,
       entityNumber: vm.draft.number,
       revision: vm.draft,
+      // Delivery note PDF lives behind a dedicated GET route that needs a real
+      // (saved) invoice id — hide the toggle until the first save round-trips.
+      deliveryNoteAvailable: saved,
       fetcher: ({String? designId, required bool deliveryNote}) =>
           services.invoices.api.downloadPdf(
             entityJson: vm.draft.toApiJson(),

@@ -248,6 +248,46 @@ class ApiClient {
     _raiseFromResponse(response);
   }
 
+  /// GET an endpoint that returns binary content (e.g. the dedicated
+  /// `/api/v1/invoices/{id}/delivery_note` PDF route). Mirrors [postRaw]'s
+  /// content-type guard so a 200 + JSON envelope surfaces as a
+  /// [ServerException] instead of being handed to a PDF renderer as garbage.
+  /// [readOnly] = true skips the demo-mode short-circuit — these endpoints are
+  /// reads in effect.
+  Future<Uint8List> getRaw(
+    String path, {
+    bool readOnly = false,
+    String expectedContentType = 'application/pdf',
+  }) async {
+    if (!readOnly && Env.demoMode) {
+      throw const DemoModeException();
+    }
+    final creds = _requireCreds();
+    final uri = Uri.parse(creds.baseUrl).resolve(path);
+    final headers = _buildHeaders(creds: creds, contentTypeJson: false);
+    final response = await _sendNoRedirect(
+      method: 'GET',
+      uri: uri,
+      headers: headers,
+    );
+    await _postFlight(response, creds);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final ct = response.headers['content-type'] ?? '';
+      final actualType = ct.split(';').first.trim().toLowerCase();
+      if (actualType != expectedContentType.toLowerCase()) {
+        final preview = response.body.length > 200
+            ? '${response.body.substring(0, 200)}…'
+            : response.body;
+        throw ServerException(
+          response.statusCode,
+          'Unexpected content-type: "$ct" (body: $preview)',
+        );
+      }
+      return response.bodyBytes;
+    }
+    _raiseFromResponse(response);
+  }
+
   /// Like [postRaw], but tuned for the queued export poll where a 2xx with a
   /// **non-binary** content-type means "job still running" (the server
   /// replies with a small JSON status envelope until the file is ready) —
