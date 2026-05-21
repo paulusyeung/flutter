@@ -4,10 +4,17 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/theme_controller.dart';
 import 'package:admin/l10n/localization.dart';
 
-// Width of the SizedBox we wrap every mode-row segment label in. Pins each
-// segment's intrinsic width so the three mode pills line up. The palette row
-// renders a full-width segmented button on its own row instead.
+// Width of the SizedBox we wrap every segment label in. Pins each segment's
+// intrinsic width so the pills line up across both rows. Both rows hand their
+// SegmentedButton to [_SegmentedSettingRow], which keeps it in the ListTile's
+// trailing slot on wide windows and drops it to its own row when narrow.
 const double _kSegmentLabelWidth = 80;
+
+// Below this row width a ~320px three-segment SegmentedButton no longer fits
+// in a ListTile's trailing slot — `_RenderListTile` throws "Trailing widget
+// consumes the entire tile width". [_SegmentedSettingRow] stacks the button on
+// its own row under that width instead.
+const double _kWideRowThreshold = 520;
 
 Widget _segmentLabel(BuildContext context, String key) {
   return SizedBox(
@@ -75,11 +82,11 @@ class _ModeRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mode = controller.themeMode;
-    return ListTile(
+    return _SegmentedSettingRow(
       leading: const Icon(Icons.brightness_6_outlined),
-      title: Text(context.tr('theme')),
-      subtitle: Text(_label(context, mode)),
-      trailing: SegmentedButton<ThemeMode>(
+      title: context.tr('theme'),
+      subtitle: _label(context, mode),
+      control: SegmentedButton<ThemeMode>(
         showSelectedIcon: false,
         segments: [
           ButtonSegment(
@@ -108,9 +115,9 @@ class _ModeRow extends StatelessWidget {
   };
 }
 
-/// The palette preset for the brightness in effect. Same shape as
-/// [_ModeRow] (leading icon, title, subtitle, trailing fixed-width
-/// `SegmentedButton`) so the two controls line up.
+/// The palette preset for the brightness in effect. Same shape as [_ModeRow]
+/// (leading icon, title, subtitle, a `SegmentedButton`) so the two controls
+/// line up.
 class _PaletteRow extends StatelessWidget {
   const _PaletteRow({required this.controller});
   final ThemeController controller;
@@ -127,7 +134,10 @@ class _PaletteRow extends StatelessWidget {
         showSelectedIcon: false,
         segments: [
           for (final v in DarkVariant.values)
-            ButtonSegment(value: v, label: _segmentLabel(context, darkVariantKey(v))),
+            ButtonSegment(
+              value: v,
+              label: _segmentLabel(context, darkVariantKey(v)),
+            ),
         ],
         selected: {controller.darkVariant},
         onSelectionChanged: (s) => controller.setDarkVariant(s.first),
@@ -147,13 +157,72 @@ class _PaletteRow extends StatelessWidget {
         onSelectionChanged: (s) => controller.setLightVariant(s.first),
       );
     }
-    return ListTile(
+    return _SegmentedSettingRow(
       leading: Icon(
         dark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
       ),
-      title: Text(context.tr('palette')),
-      subtitle: Text(context.tr(currentKey)),
-      trailing: picker,
+      title: context.tr('palette'),
+      subtitle: context.tr(currentKey),
+      control: picker,
+    );
+  }
+}
+
+/// A settings row with a leading icon, a title + subtitle, and a wide
+/// [SegmentedButton] control.
+///
+/// On a window at least [_kWideRowThreshold] wide the control sits in the
+/// `ListTile.trailing` slot (the compact, right-aligned look). Below that
+/// width a ~320px three-segment button overflows the tile —
+/// `_RenderListTile` throws "Trailing widget consumes the entire tile width" —
+/// so the control drops to its own full-width row beneath the title instead.
+class _SegmentedSettingRow extends StatelessWidget {
+  const _SegmentedSettingRow({
+    required this.leading,
+    required this.title,
+    required this.subtitle,
+    required this.control,
+  });
+
+  final Widget leading;
+  final String title;
+  final String subtitle;
+  final Widget control;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= _kWideRowThreshold) {
+          return ListTile(
+            leading: leading,
+            title: Text(title),
+            subtitle: Text(subtitle),
+            trailing: control,
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ListTile(
+              leading: leading,
+              title: Text(title),
+              subtitle: Text(subtitle),
+            ),
+            Padding(
+              // Match ListTile's default 16px horizontal content inset so the
+              // control lines up with the tile edges; horizontal scroll is a
+              // guard for sub-320px widths where the button is wider than the
+              // row.
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: control,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

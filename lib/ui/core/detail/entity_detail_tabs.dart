@@ -129,53 +129,60 @@ class _TabStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, _) {
-        final activeIndex = controller.index;
-        return Stack(
-          children: [
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: InSpacing.sm),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (var i = 0; i < tabs.length; i++)
-                    _TabButton(
-                      label: tabs[i].label,
-                      icon: tabs[i].icon,
-                      active: i == activeIndex,
-                      tokens: tokens,
-                      onTap: () {
-                        if (controller.index != i) controller.animateTo(i);
-                      },
-                    ),
-                ],
+    // Material ancestor required so each _TabButton's InkWell renders its
+    // ink/splash; transparency = no visual change. EntityDetailTabs can be
+    // hosted without a Scaffold (EntityDetailScaffold skips its own in
+    // embedded mode), so the strip supplies the Material itself.
+    return Material(
+      type: MaterialType.transparency,
+      child: AnimatedBuilder(
+        animation: controller,
+        builder: (context, _) {
+          final activeIndex = controller.index;
+          return Stack(
+            children: [
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: InSpacing.sm),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (var i = 0; i < tabs.length; i++)
+                      _TabButton(
+                        label: tabs[i].label,
+                        icon: tabs[i].icon,
+                        active: i == activeIndex,
+                        tokens: tokens,
+                        onTap: () {
+                          if (controller.index != i) controller.animateTo(i);
+                        },
+                      ),
+                  ],
+                ),
               ),
-            ),
-            // Trailing fade hinting that more tabs scroll off-screen
-            // (~11 tabs on a client; the strip almost always overflows).
-            Positioned(
-              top: 0,
-              bottom: 0,
-              right: 0,
-              child: IgnorePointer(
-                child: Container(
-                  width: 32,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: [tokens.bg.withValues(alpha: 0), tokens.bg],
+              // Trailing fade hinting that more tabs scroll off-screen
+              // (~11 tabs on a client; the strip almost always overflows).
+              Positioned(
+                top: 0,
+                bottom: 0,
+                right: 0,
+                child: IgnorePointer(
+                  child: Container(
+                    width: 32,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [tokens.bg.withValues(alpha: 0), tokens.bg],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
-        );
-      },
+            ],
+          );
+        },
+      ),
     );
   }
 }
