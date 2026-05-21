@@ -126,4 +126,5 @@ const Map<int, String> kActivityTypeLabelKeys = {
   156: 'verifactu_cancellation_sent',
   157: 'verifactu_cancellation_sent_failure',
   158: 'quote_rejected',
+  167: 'einvoice_status_updated',
 };
