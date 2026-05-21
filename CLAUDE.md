@@ -30,30 +30,32 @@ Plus two non-negotiables carried from admin-portal:
 | macOS entitlement, dev login pre-fill, platform targets | `docs/setup.md` |
 | Probing the demo API for live response shapes | `docs/probing-the-demo-api.md` |
 | Server-side filter gaps / required API changes | `BACKEND.md` |
-| Debugging a runtime error or stale outbox row | § Diagnostics log |
+| Running integration tests | `docs/integration-tests.md` |
+| Debugging a runtime error or stale outbox row | § Diagnostics log + `docs/diagnostics.md` |
+| Desktop window persistence (native runners) | `docs/desktop-window-state.md` |
 | Checking what's built vs what's left | `FEATURES.md` (kept current — see § Strict rules) |
 
 ## Strict rules
 
-These are the rules that turn into bugs or CI failures if I forget them. Read this block first.
+Rules that turn into bugs or CI failures if forgotten. Read this block first.
 
-- **No Redux. No bloc. No Riverpod.** `ChangeNotifier` only. If you're tempted to add one, talk to the team first.
-- **No `per_page=999999`.** Lists fetch one page at a time (50 rows default). The ViewModel calls `repo.ensurePageLoaded(N)` near the scroll edge; the repo writes the page to Drift; the UI reacts via the watch stream. A CI lint test grep-fails the build if the literal appears in `lib/`.
+- **No Redux. No bloc. No Riverpod.** `ChangeNotifier` only. Tempted to add one? Talk to the team first.
+- **No `per_page=999999`.** Lists fetch one page at a time (50 rows default): the ViewModel calls `repo.ensurePageLoaded(N)` near the scroll edge, the repo writes the page to Drift, the UI reacts via the watch stream. A CI lint grep-fails the build if the literal appears in `lib/`.
 - **Money is `Decimal`, never `double`.** Enforced by a CI test (greps entity models).
 - **Date-only is the custom `Date` type; `DateTime` is for timestamps only.** Mixing them silently breaks invoice math.
 - **Drift is the only thing the UI reads from.** The network writes to Drift; the UI watches Drift. Never read API responses straight into UI state.
-- **Auth user data flows in through `/refresh`, not `GET /users/{id}`.** `_persistAndActivate` upserts each `data[N].user` block into the `users` Drift table on every login and refresh. `GET /users/{id}` is 412-gated (password-required). Use `auth.refresh()` for a fresh session snapshot — it runs a full `_persistAndActivate`, so don't fire it for incidental work. Never call `UsersApi.get` from incidental paths.
+- **Auth user data flows in through `/refresh`, not `GET /users/{id}`.** `_persistAndActivate` upserts each `data[N].user` block into the `users` Drift table on every login/refresh. `GET /users/{id}` is 412-gated (password-required). `auth.refresh()` runs a full `_persistAndActivate` — use it for a fresh session snapshot, not for incidental work. Never call `UsersApi.get` from incidental paths.
 - **Every write goes through the outbox.** Repositories never call mutation endpoints directly.
 - **Every list query is scoped by `company_id`.** Use `CompanyScopedDao` — direct table access bypassing the DAO fails a lint check.
 - **Idempotency keys are stable across retries** — generated when the outbox row is created, reused on every retry.
-- **Format money / dates / addresses through `Formatter`** (`lib/utils/formatting.dart`). Use `Formatter.money(amount, clientCurrencyId: ...)` (runs the per-client → company currency cascade + Euro override) and `Formatter.date(date.toIso())` for user-visible dates (honors company `date_format_id`). Never render `Date.toIso()`, `DateFormat`, or `MaterialLocalizations.formatMediumDate` directly — `toIso()` is for storage/API/Drift keys only. Build the `Formatter` once per screen via `services.formatterFor(companyId)` and pass it down. Parse user input via `parseDecimal(input, useCommaAsDecimalPlace: ...)`.
-- **No `vm.<entityName>` / `vm.<entityName>s` aliases on list / detail VMs.** Canonical accessors are `vm.item` (detail) and `vm.items` (list) — defined on the generic bases.
-- **Imports**: always `package:admin/...`, never relative (`../`, `./`, or bare). Enforced by `always_use_package_imports` in `analysis_options.yaml`.
-- **Don't run integration tests locally unless the user explicitly asks.** They take over the foreground app and interrupt the developer's session, so never run them proactively or as incidental verification — let CI run them. When the user *does* ask, run them in a throwaway git worktree on a temp branch so edits made in the main checkout while the (long) run is in flight are ignored, and delete that worktree + branch when finished. Full procedure in § Integration tests.
-- **`FEATURES.md` is the parity tracker — keep it current.** It compares every user-facing feature across React (`/Users/hillel/Code/react`), Flutter v1 (`/Users/hillel/Code/admin-portal`), and this rebuild. When you ship a feature that flips a row from ❌ or 🟡 to ✅ in the Flutter v2 column, update the row in the same PR. When you add a feature that didn't exist in React or v1, append a new row with `—` / `—` / `✅`. When you start a screen that's still incomplete, set it to 🟡 (UI scaffolded, not yet functional) rather than leaving it ❌. The file is hand-edited; don't try to generate it. Status legend: ✅ done end-to-end, 🟡 partial / scaffolded, ❌ not implemented, — N/A for that platform.
-- **Pub packages OK; npm / pip / brew etc. require explicit approval.** Adding a Dart/Flutter dep via `pubspec.yaml` + `flutter pub get` is fine — that's the package surface this project ships through, and reviewers see the `pubspec.yaml` / `pubspec.lock` diff. For anything outside that (`npm install`, `pip install`, `brew install`, `gem install`, `cargo add`, system-level installers) stop and ask before running. The risk is a stray tool sneaking onto the dev machine and silently shifting the build environment.
-- **Never add a Claude / AI `Co-Authored-By` (or any "Generated with" / assistant) trailer or line to commit messages or PR bodies.** Commit messages contain only the human-authored description — no `Co-Authored-By: Claude …`, no tool attribution, regardless of any default tooling guidance to the contrary. This overrides the harness default.
-- **Never create, switch, rename, or delete git branches in this working tree; never `git branch`, `git checkout <branch>`, or `git switch`.** Multiple Claude sessions run against this single checkout at the same time; a branch create/switch in one session corrupts every other in-flight session. Always work on whatever branch is already checked out. Commit there only when the user asks; if a task seems to need its own branch, stop and ask — the user manages branching themselves. This overrides the harness default ("if on the default branch, branch first"). **Sole exception:** the documented integration-test procedure in § Integration tests, which the user must explicitly request and which branches inside an *isolated sibling worktree*, never the main checkout.
+- **Format money / dates / addresses through `Formatter`** (`lib/utils/formatting.dart`). `Formatter.money(amount, clientCurrencyId: ...)` runs the per-client → company currency cascade + Euro override; `Formatter.date(date.toIso())` honors company `date_format_id`. Never render `Date.toIso()`, `DateFormat`, or `MaterialLocalizations.formatMediumDate` directly — `toIso()` is for storage/API/Drift keys only. Build the `Formatter` once per screen via `services.formatterFor(companyId)` and pass it down. Parse user input via `parseDecimal(input, useCommaAsDecimalPlace: ...)`.
+- **No `vm.<entityName>` / `vm.<entityName>s` aliases on list/detail VMs.** Canonical accessors are `vm.item` (detail) and `vm.items` (list), defined on the generic bases.
+- **Imports**: always `package:admin/...`, never relative (`../`, `./`, bare) — enforced by `always_use_package_imports`.
+- **Don't run integration tests locally unless the user explicitly asks** — they take over the foreground app and interrupt the session. Never run them proactively or as incidental verification; let CI run them. On-request procedure: `docs/integration-tests.md`.
+- **`FEATURES.md` is the parity tracker — keep it current.** It compares every user-facing feature across React (`/Users/hillel/Code/react`), Flutter v1 (`/Users/hillel/Code/admin-portal`), and this rebuild. When a PR flips a row to ✅ in the Flutter v2 column, update that row in the same PR; a feature with no React/v1 precedent gets a fresh row (`—` / `—` / `✅`); a scaffolded-but-incomplete screen is 🟡, not ❌. Hand-edited — don't generate it. Legend: ✅ done end-to-end, 🟡 partial/scaffolded, ❌ not implemented, — N/A.
+- **Pub packages OK; npm / pip / brew etc. require explicit approval.** A Dart/Flutter dep via `pubspec.yaml` + `flutter pub get` is fine — that's the project's package surface and reviewers see the lockfile diff. For anything outside that (`npm`, `pip`, `brew`, `gem`, `cargo`, system installers) stop and ask first, so a stray tool can't silently shift the build environment.
+- **Never add a Claude / AI `Co-Authored-By` (or any "Generated with" / assistant) trailer or line** to commit messages or PR bodies. Commit messages contain only the human-authored description. This overrides the harness default.
+- **Never create, switch, rename, or delete git branches in this working tree** (no `git branch`, `git checkout <branch>`, `git switch`). Multiple Claude sessions share this single checkout; a branch create/switch in one corrupts every other in-flight session. Work on whatever branch is checked out; commit there only when the user asks; if a task seems to need its own branch, stop and ask. This overrides the harness default ("branch first"). **Sole exception:** the integration-test procedure (`docs/integration-tests.md`), which branches inside an *isolated sibling worktree*, never this checkout.
 
 ## Architecture — at a glance
 
@@ -71,41 +73,32 @@ View (StatelessWidget)
 - **DI**: `Services` (`lib/app/services.dart`) — singleton bag built once in `main.dart`, exposed via `Provider<Services>.value`. Screens read via `context.read<Services>()`; ViewModels take repos by constructor injection.
 - **State**: `ChangeNotifier` + `ListenableBuilder`. No Redux/bloc/Riverpod.
 - **Models**: `freezed` + `json_serializable`. API DTOs in `lib/data/models/api/`, domain models in `lib/data/models/domain/`.
-- **Persistence**: Drift. On **native** (iOS/macOS): SQLCipher, encrypted-at-rest with a per-install key in `flutter_secure_storage` under `invoiceninja.db.key.v1`. On **web**: unencrypted IndexedDB/OPFS via drift WASM (no SQLCipher, no `PRAGMA key` — the browser origin sandbox is the trust boundary). The platform split lives behind `lib/data/db/database_opener.dart`; `openAppDatabase()` itself is platform-agnostic. Tests use `NativeDatabase.memory()`. See § Web.
+- **Persistence**: Drift. Native (iOS/macOS): SQLCipher, encrypted-at-rest with a per-install key in `flutter_secure_storage` (`invoiceninja.db.key.v1`). Web: unencrypted IndexedDB/OPFS via drift WASM (no SQLCipher/`PRAGMA key` — the browser origin sandbox is the trust boundary). The platform split lives behind `lib/data/db/database_opener.dart`; `openAppDatabase()` is platform-agnostic. Tests use `NativeDatabase.memory()`. See § Web.
 
 See `docs/architecture.md` for the offline-first write pipeline (Drift→outbox→drain→apply, with `tmp_<uuid>` + `id_remap` for offline creates), the on-disk project layout, and the full coding-conventions checklist.
 
 ## Design system (v2)
 
-Token-based visual language. The source of truth and the Dart port are deliberately split:
+Token-based visual language. Source of truth and Dart port are deliberately split:
 
-- `docs/design/v2/tokens.jsx` — **the source of truth** for colors, radii, shadows, type, button variants. When in doubt, read this file first.
+- `docs/design/v2/tokens.jsx` — **the source of truth** for colors, radii, shadows, type, button variants. Read this first when in doubt.
 - `docs/design/v2/{screens,patterns,design-canvas}.jsx` + `index.html` — reference mockups.
-- `lib/app/design_tokens.dart` — Dart port. Read tokens via `context.inTheme.<name>` (e.g. `context.inTheme.surface`). **Do not introduce new color constants** outside `InTheme`. `InRadii` / `InSpacing` are static (brightness-independent).
+- `lib/app/design_tokens.dart` — Dart port. Read tokens via `context.inTheme.<name>` (e.g. `context.inTheme.surface`). **No new color constants** outside `InTheme`. `InRadii` / `InSpacing` are brightness-independent.
 - `lib/app/theme.dart` — wires `InTheme.light` / `InTheme.dark` into `ThemeData`.
 
-When styling a page: read `tokens.jsx`, reuse `InTheme`, and prefer `Theme.of(context).colorScheme` + `context.inTheme` over hardcoded `Color(0x…)`.
+When styling a page: read `tokens.jsx`, reuse `InTheme`, prefer `Theme.of(context).colorScheme` + `context.inTheme` over hardcoded `Color(0x…)`.
 
-**Always use rounded rectangles, never pills.** Use `RoundedRectangleBorder(borderRadius: BorderRadius.circular(InRadii.r2))` (or `.r1` / `.r3` per size) — never `StadiumBorder`, never `BorderRadius.circular(999)`. Material 3 defaults `SegmentedButton`, `Chip`, `FloatingActionButton.extended` to pills, so `lib/app/theme.dart` registers the rounded shape on every relevant component theme. New widgets inherit it automatically. Add new component themes to `theme.dart` rather than overriding inline.
+**Always rounded rectangles, never pills.** Use `RoundedRectangleBorder(borderRadius: BorderRadius.circular(InRadii.r2))` (or `.r1` / `.r3` per size) — never `StadiumBorder`, never `BorderRadius.circular(999)`. Material 3 defaults `SegmentedButton` / `Chip` / `FloatingActionButton.extended` to pills, so `theme.dart` registers the rounded shape on every relevant component theme; new widgets inherit it. Add new component themes to `theme.dart` rather than overriding inline.
 
-**Pair related action buttons side-by-side**, not stacked. Render two-button rows in a `Row` with `SizedBox(width: InSpacing.md)` between them. Cancel sits next to the primary action, never above it.
+**Pair related action buttons side-by-side**, not stacked — a `Row` with `SizedBox(width: InSpacing.md(context))` between them. Cancel sits next to the primary action, never above it.
 
-**Spacing tokens are responsive.** `InSpacing.md` and `InSpacing.lg` are now context-aware static methods (`lib/app/design_tokens.dart`), not const doubles. They return wider values on desktop and tighter ones on mobile:
+**Spacing tokens `InSpacing.md` / `InSpacing.lg` are responsive context-aware static methods** (`lib/app/design_tokens.dart`), not const doubles — wider on desktop, tighter on mobile (`md`: 8 px narrow `<600` / 12 px wide `≥600`; `lg`: 12 / 16 px). Call with a `BuildContext`: `EdgeInsets.all(InSpacing.lg(context))`, `SizedBox(width: InSpacing.md(context))`. **Drop `const` from any wrapping `EdgeInsets` / `SizedBox` / `Padding`** — the value is no longer compile-time const (perf cost is nil: Flutter's `Element.canUpdate` matches on `runtimeType + key`, not `==`). `InSpacing.sm` (8 px) stays `const` for math contexts and small inter-icon gaps; `xs` / `xl` / `xxl` stay const too — not part of the responsive system.
 
-| Token | narrow (<600 px) | wide (≥600 px) |
-|-------|------------------|----------------|
-| `md`  | 8 px             | 12 px          |
-| `lg`  | 12 px            | 16 px          |
+**Bordered-card form sections use `InSpacing.lg(context)` interior padding by default.** That's what `FormSection`, `DashboardCardShell`, and the task-edit identity card use; new one-off bordered cards (`Container` with `tokens.border` + `BorderRadius.circular(InRadii.r3)`) match with `padding: EdgeInsets.all(InSpacing.lg(context))`. Column-aligned interior surfaces (table headers + rows + add-row tiles) use the horizontal value (`horizontal: InSpacing.lg(context)`) so cells line up with the section title. Card-to-card inset consistency is the point.
 
-Call them with a `BuildContext`: `EdgeInsets.all(InSpacing.lg(context))`, `SizedBox(width: InSpacing.md(context))`. **Drop `const` from any wrapping `EdgeInsets` / `SizedBox` / `Padding` literal** that wraps these calls — the value is no longer compile-time const. Element reuse doesn't depend on `const`, so the performance impact is effectively zero (Flutter's `Element.canUpdate` matches on `runtimeType + key`, not `==`); the GC handles short-lived `EdgeInsets` allocations.
+**Side-by-side dialog actions need a per-call `minimumSize` override.** A `FilledButton` / `FilledButton.tonal` / `OutlinedButton` inside `AlertDialog.actions` (or any `Row`) needs `style: FilledButton.styleFrom(minimumSize: const Size(64, 44))` (Outlined uses `Size(64, 40)`). The themes default to `Size.fromHeight(44)` = infinite width — right for column-stacked form buttons, but in a horizontal context `Row` crashes layout and `AlertDialog.actions` silently stacks via `OverflowBar`. Canonical example: `lib/ui/features/shell/widgets/company_picker.dart:118-125`; inline comments in `theme.dart` explain why.
 
-`InSpacing.sm = 8 px` stays `const` for math contexts (`kKanbanCardWidth = kKanbanColumnWidth - InSpacing.sm * 2`, `_gap = InSpacing.sm`) and small inter-icon gaps. `InSpacing.xs`, `xl`, `xxl` likewise stay const — they aren't part of the responsive system.
-
-**Bordered-card form sections use `InSpacing.lg(context)` interior padding by default.** That's what `FormSection` (`lib/ui/features/settings/widgets/form_section.dart`), `DashboardCardShell` (`lib/ui/features/dashboard/widgets/card_shell.dart`), and the task edit's identity card use. New one-off bordered cards (a `Container` with `tokens.border` + `BorderRadius.circular(InRadii.r3)`) match: `padding: EdgeInsets.all(InSpacing.lg(context))`. Column-aligned interior surfaces (table headers + rows + add-row tiles) match the horizontal value (`horizontal: InSpacing.lg(context)`) so cells line up with the section title above. Card-to-card visual consistency is the point — the inset stays the same across the screen no matter which widget owns the card chrome, and shrinks together on mobile.
-
-**Side-by-side dialog actions need a per-call `minimumSize` override.** When you place a `FilledButton` / `FilledButton.tonal` / `OutlinedButton` inside `AlertDialog.actions` (or any `Row`), pass `style: FilledButton.styleFrom(minimumSize: const Size(64, 44))` (Outlined uses `Size(64, 40)`). The themes default to `Size.fromHeight(44)` = infinite width, which is right for column-stacked form buttons but wrong in any horizontal context — `Row` crashes layout and `AlertDialog.actions` silently stacks via `OverflowBar`. Canonical example: `lib/ui/features/shell/widgets/company_picker.dart:118-125`. Inline comments in `lib/app/theme.dart` explain why.
-
-**Centered single-action buttons must constrain their own width too.** The `FilledButton` theme default (`Size.fromHeight(44)` = `Size(double.infinity, 44)`) makes a bare `FilledButton` stretch full-width — correct for column-stacked form buttons, wrong for an `EmptyState` action or any centered call-to-action, where it renders as one giant edge-to-edge bar. Pass `style: FilledButton.styleFrom(minimumSize: const Size(64, 44))` so the button sizes to its content; `EmptyState`'s centered column then centers it. Don't create new full-width `FilledButton`s outside a deliberately column-stacked form/footer context. Reference: the Reports empty-state "Run report" action in `lib/ui/features/reports/widgets/reports_body.dart`.
+**Centered single-action buttons must constrain their own width too.** The same `Size.fromHeight(44)` (= `Size(double.infinity, 44)`) default makes a bare `FilledButton` stretch full-width — wrong for an `EmptyState` action or any centered call-to-action (renders as one edge-to-edge bar). Pass `minimumSize: const Size(64, 44)` so it sizes to content. Don't create full-width `FilledButton`s outside a deliberately column-stacked form/footer context. Reference: the Reports empty-state "Run report" action in `lib/ui/features/reports/widgets/reports_body.dart`.
 
 ## Forms
 
@@ -113,7 +106,7 @@ Call them with a `BuildContext`: `EdgeInsets.all(InSpacing.lg(context))`, `Sized
 
 Pressing **Enter** in a single-line text field submits the surrounding form. Multi-line fields keep Enter for newlines — never submit from `maxLines > 1`.
 
-Wiring: every edit/settings screen wraps its form body in `FormSaveScope` (`lib/ui/core/widgets/form_save_scope.dart`):
+Every edit/settings screen wraps its form body in `FormSaveScope` (`lib/ui/core/widgets/form_save_scope.dart`):
 
 ```dart
 FormSaveScope(
@@ -123,86 +116,78 @@ FormSaveScope(
 )
 ```
 
-Reusable field widgets read the scope from their `onSubmitted` automatically — see `OverridableTextField` and `ClientEditField`. Raw `TextField`s in new code should read `FormSaveScope.maybeOf(context)` when `maxLines == 1`, set `textInputAction: TextInputAction.done`, and pipe `onSubmitted` to `scope.trySubmit()`.
-
-Dialogs with a single text input + primary action: wrap the dialog body in `FormSaveScope` so Enter fires the primary action. Login's password field is wired explicitly (`_PasswordField` in `lib/ui/features/auth/views/login_screen.dart`) — it bridges email + password submit.
+Reusable field widgets read the scope automatically (see `OverridableTextField`, `ClientEditField`). Raw `TextField`s with `maxLines == 1` should read `FormSaveScope.maybeOf(context)`, set `textInputAction: TextInputAction.done`, and pipe `onSubmitted` to `scope.trySubmit()`. Dialogs with a single text input + primary action: wrap the dialog body in `FormSaveScope` so Enter fires the primary action (login's password field is wired explicitly in `_PasswordField`, `lib/ui/features/auth/views/login_screen.dart`).
 
 ### Empty for blank numeric fields
 
-Numeric edit fields seeded from a non-nullable `Decimal` must render **empty for zero**, not `"0"`. Use `decimalInputText(value)` (`lib/utils/formatting.dart`) when feeding a `Decimal` into an `EntityEditField`'s `initial:` — don't reach for `.toString()`. Reference: price / cost / quantity fields on `lib/ui/features/products/views/product_edit_screen.dart`.
-
-For money values, prefer `Formatter.inputMoney(value, currencyId: ...)` (returns `''` for zero). `Formatter.inputAmount(value)` is the same pattern for `num`-typed inputs without forced precision.
+Numeric edit fields seeded from a non-nullable `Decimal` must render **empty for zero**, not `"0"`. Use `decimalInputText(value)` (`lib/utils/formatting.dart`) when feeding a `Decimal` into an `EntityEditField`'s `initial:` — not `.toString()`. Reference: price / cost / quantity fields on `product_edit_screen.dart`. For money, prefer `Formatter.inputMoney(value, currencyId: ...)` (returns `''` for zero); `Formatter.inputAmount(value)` is the `num`-typed equivalent without forced precision.
 
 ### Searchable pickers
 
 Any dropdown bound to a long list (countries, currencies, languages, industries, timezones — anything past ~20 options) **must** support type-to-search.
 
-- **Plain pickers**: `SearchableDropdownField<T>` (`lib/ui/core/widgets/searchable_dropdown_field.dart`). Generic on the item type; takes `displayString` + `idOf` projections.
-- **Settings pickers with cascade-override**: `OverridableSearchableDropdownField<T>` (`lib/ui/features/settings/widgets/overridable_searchable_dropdown_field.dart`). Same shape as `OverridableDropdownField` — use on settings pages.
+- **Plain pickers**: `SearchableDropdownField<T>` (`lib/ui/core/widgets/searchable_dropdown_field.dart`) — generic on the item type; takes `displayString` + `idOf` projections.
+- **Settings pickers with cascade-override**: `OverridableSearchableDropdownField<T>` — same shape as `OverridableDropdownField`, use on settings pages.
 
-Do **not** introduce new `DropdownButtonFormField`s for long lists. They're fine for short, fixed enums (~10 items max — Classification, Size, Custom Field Type).
+Don't introduce new `DropdownButtonFormField`s for long lists. They're fine only for short fixed enums (~10 items max — Classification, Size, Custom Field Type).
 
 ### Two-choice fields → radio, not dropdown
 
-A fixed field with exactly two choices (occasionally up to ~4) uses a **radio group, not a dropdown** — both options stay visible instead of hiding one behind a tap. For cascade-aware settings use `OverridableRadioField<T>` (`lib/ui/features/settings/widgets/overridable_radio_field.dart`); reference the `empty_columns` field on Invoice Design → General. Don't add new two-choice `DropdownButtonFormField` / `OverridableDropdownField`s. Dropdowns stay correct for longer fixed enums (~10 items); past ~20 options it must be a searchable picker (above).
+A fixed field with exactly two choices (occasionally up to ~4) uses a **radio group, not a dropdown** — both options stay visible instead of hiding one behind a tap. Cascade-aware settings use `OverridableRadioField<T>` (reference: the `empty_columns` field on Invoice Design → General). Dropdowns stay correct for longer fixed enums (~10 items); past ~20 options it must be a searchable picker (above).
 
 ### Date and time fields
 
-Single-date and single-time-of-day inputs go through `InDateField` (`lib/ui/core/widgets/in_date_field.dart`) and `InTimeField` (`lib/ui/core/widgets/in_time_field.dart`). They wrap a typed `TextField` with a trailing picker icon — users can type shortcuts *or* tap the icon for the standard Material modal:
+Single-date and single-time-of-day inputs go through `InDateField` (`lib/ui/core/widgets/in_date_field.dart`) and `InTimeField` (`lib/ui/core/widgets/in_time_field.dart`) — a typed `TextField` with a trailing picker icon; users type shortcuts *or* tap the icon for the Material modal:
 
-- Date shortcuts: `today` / `tomorrow` / `yesterday` / `now`; signed offsets `+1`, `-7`; bare day `14`; short slash `5/14` (current year, US/EU order from the active pattern); compact `051426` (with 2-digit year heuristic); plus ISO `2026-05-14`, the company's active format, and the usual short and long fallbacks.
+- Date shortcuts: `today` / `tomorrow` / `yesterday` / `now`; signed offsets `+1`, `-7`; bare day `14`; short slash `5/14` (current year, US/EU order from the active pattern); compact `051426` (2-digit-year heuristic); plus ISO `2026-05-14`, the company's active format, and short/long fallbacks.
 - Time shortcuts: bare hour `9` → `9:00`; compact `930` → `9:30`; AM/PM suffix `9p` / `9am`; plus `HH:mm`, `H:mm`, `h:mm a`.
 
-Commit-on-blur + Enter; silent revert on parse failure (no red border noise — the picker icon is the fallback). The placeholder hint and display format come from the active company `Formatter` (`formatter.settings.dateFormatId`, `formatter.settings.enableMilitaryTime`); without a `Formatter` the field falls back to ISO date display and `HH:MM` time. **Parsing** of typed input is the same in either locale — `9` always means `9:00`, `9p` always means `21:00`; only display rendering switches between `HH:MM` and `h:mm AM`.
+Commit-on-blur + Enter; silent revert on parse failure (the picker icon is the fallback — no red-border noise). Placeholder hint and display format come from the active company `Formatter` (`formatter.settings.dateFormatId`, `.enableMilitaryTime`); without a `Formatter` the field falls back to ISO date and `HH:MM` time. **Parsing of typed input is locale-independent** — `9` always means `9:00`, `9p` always `21:00`; only display rendering switches between `HH:MM` and `h:mm AM`.
 
-**Don't reach for `showDatePicker` / `showTimePicker` directly** for form fields. The only place that's still appropriate is one-tap *range* filters where a single text field doesn't fit the model (see `DateRangePickerButton` in `lib/ui/features/dashboard/widgets/filters/`). Reference call sites for typed single-date / single-time inputs: time-log table (`lib/ui/features/tasks/widgets/edit/time_entry_table.dart`), time-entry editor sheet, project due-date field.
-
-Parsing rules live in `parseDateInput` and `parseTimeInput` in `lib/utils/formatting.dart` — if you need the same shortcuts without the field chrome (e.g. URL-driven date filter, programmatic edge case), reuse those functions directly rather than re-implementing.
+**Don't use `showDatePicker` / `showTimePicker` directly** for form fields — only one-tap *range* filters still warrant it (`DateRangePickerButton`, `lib/ui/features/dashboard/widgets/filters/`). Reference call sites for typed single-date / single-time inputs: time-log table (`lib/ui/features/tasks/widgets/edit/time_entry_table.dart`), time-entry editor sheet, project due-date field. Parsing rules live in `parseDateInput` / `parseTimeInput` (`lib/utils/formatting.dart`) — reuse those for the same shortcuts without the field chrome.
 
 ## Settings screens
 
-Most new settings panels should look like **Company Details** or **Device Settings** — never like User Details. Both are FormSection-card layouts inside `SettingsFormShell(sections: [...])`; the only difference is whether they're VM-backed and cascade-aware.
+Most new settings panels look like **Company Details** or **Device Settings**, never User Details. Both are FormSection-card layouts inside `SettingsFormShell(sections: [...])`; the difference is whether they're VM-backed and cascade-aware. Full skeletons (cascade-aware, company-only, device-local, tabbed shells, mixed fields) and conventions live in `docs/settings-screens.md`.
 
 ### Decision tree (5-second routing)
 
 Ask: **"Does this field write to the server (`/api/v1/companies/...` or similar)?"**
 
-- Field writes to server `company.settings.*` → **Company Details style** + `CascadeSettingsScaffold` + `Overridable*` widgets.
-- Field writes to server `company.*` (top-level) → **Company Details style** + `SettingsPageScaffold` + plain widgets.
-- Field writes only to a local controller (theme, locale, biometric, …) → **Device Settings style** + `SettingsScreenScaffold`, no VM.
-- Never the user-details `ListTile` shape (see anti-pattern below).
+- Server `company.settings.*` → **Company Details style** + `CascadeSettingsScaffold` + `Overridable*` widgets.
+- Server `company.*` (top-level) → **Company Details style** + `SettingsPageScaffold` + plain widgets.
+- Local controller only (theme, locale, biometric, …) → **Device Settings style** + `SettingsScreenScaffold`, no VM.
+- Never the user-details `ListTile` shape (anti-pattern below).
 
-If you're building a *custom* shell (e.g. tabbed like Company Details), reach for `SettingsCompanyScopedHost` instead of re-rolling the company-switch listener inline.
+Building a *custom* shell (e.g. tabbed like Company Details)? Reach for `SettingsCompanyScopedHost` instead of re-rolling the company-switch listener inline.
 
-### Three styles, summarized
+### Three styles
 
-- **Cascade-aware** (`company.settings.*`): `CascadeSettingsScaffold` + a one-line `SettingsDraftViewModel` subclass + body of `OverridableTextField` / `OverridableDropdownField` / `OverridableSearchableDropdownField` / `OverridableMarkdownField`. The scaffold picks the right VM for the active `SettingsLevelController` (your factory at company scope; shared `ClientSettingsDraftViewModel` at client scope). Reference: `lib/ui/features/settings/views/basic/localization/localization_screen.dart`.
-- **Company-only** (`company.*` top-level, or mixed top-level + `company.settings.*`): `SettingsCompanyScopedHost<V>` → `SettingsPageScaffold<V>` directly. Plain `TextField` / `DropdownButtonFormField` / `SearchableDropdownField` calling `vm.updateCompany((c) => c.copyWith(...))`. Do **not** use `CascadeSettingsScaffold` here — it swaps to a client-scope VM where `updateCompany` is a no-op and edits get silently dropped. Reference: `lib/ui/features/settings/views/basic/company_details/company_details_shell.dart`.
-- **Device Settings** (no server, no VM): `SettingsScreenScaffold` + `SettingsFormShell` + typed tiles (`ThemeTile`, `BiometricToggleTile`, …) that write directly to local controllers. Reference: `lib/ui/features/settings/views/basic/device_settings_screen.dart`.
-
-Full skeletons (cascade-aware, company-only, device-local, tabbed shells, mixing both kinds of fields) live in `docs/settings-screens.md`.
+- **Cascade-aware** (`company.settings.*`): `CascadeSettingsScaffold` + a one-line `SettingsDraftViewModel` subclass + body of `OverridableTextField` / `OverridableDropdownField` / `OverridableSearchableDropdownField` / `OverridableMarkdownField`. The scaffold picks the right VM for the active `SettingsLevelController` (your factory at company scope; shared `ClientSettingsDraftViewModel` at client scope). Reference: `localization_screen.dart`.
+- **Company-only** (`company.*` top-level, or mixed top-level + `company.settings.*`): `SettingsCompanyScopedHost<V>` → `SettingsPageScaffold<V>` directly, with plain `TextField` / `DropdownButtonFormField` / `SearchableDropdownField` calling `vm.updateCompany((c) => c.copyWith(...))`. Do **not** use `CascadeSettingsScaffold` here — it swaps to a client-scope VM where `updateCompany` is a no-op and edits get silently dropped. Reference: `company_details_shell.dart`.
+- **Device Settings** (no server, no VM): `SettingsScreenScaffold` + `SettingsFormShell` + typed tiles (`ThemeTile`, `BiometricToggleTile`, …) that write directly to local controllers. Reference: `device_settings_screen.dart`.
 
 ### Width cap: every body under `/settings/...` goes through `SettingsFormShell`
 
-`SettingsFormShell` (`lib/ui/features/settings/widgets/settings_form_shell.dart`) does the centering + max-width (720 px) + outer scroll + outer padding. **Any screen routed under `/settings/...` renders its body through it.** That includes tab bodies inside an entity-edit scaffold — the gateway-edit tabs (Credentials / Settings / Required Fields / Limits & Fees) live under `/settings/company_gateways/.../edit` and use `EntityEditScreenScaffold` for chrome, but their tab bodies still wrap in `SettingsFormShell` so they don't stretch full-width on a wide window like Clients / Products / Tasks do (which is correct *for* Clients / Products / Tasks since those live outside `/settings/...`). The gateway edit screen is the precedent that bit us; don't re-introduce raw `ListView(padding: ...)` as the top-level body for a screen the user reaches from the settings sidebar.
+`SettingsFormShell` (`lib/ui/features/settings/widgets/settings_form_shell.dart`) does the centering + 720 px max-width + outer scroll + outer padding. **Any screen routed under `/settings/...` renders its body through it** — including tab bodies inside an entity-edit scaffold (the gateway-edit tabs live under `/settings/company_gateways/.../edit`, use `EntityEditScreenScaffold` for chrome, but still wrap tab bodies in `SettingsFormShell` so they don't stretch full-width). Don't re-introduce a raw `ListView(padding: ...)` as the top-level body for a screen reached from the settings sidebar. (Clients / Products / Tasks correctly stretch full-width — they live outside `/settings/...`.)
 
 ### Anti-pattern: User Details ListView+ListTile shape
 
-Do not introduce raw `ListView` + `ListTile` layouts for new settings panels. Even single toggles or actions belong inside a `FormSection` so the whole sidebar reads as one design system. A `ListTile` *itself* is fine when wrapped in a typed control widget and dropped inside a `FormSection`; the anti-pattern is the unwrapped `ListView`-of-bare-`ListTile`s with no card chrome. Read-only diagnostic screens and action-only screens follow the same rule — see `views/basic/account_management/overview_screen.dart` and `views/advanced/system_logs_screen.dart`.
+No raw `ListView` + bare `ListTile` layouts for new settings panels. Even single toggles or actions belong inside a `FormSection` so the sidebar reads as one design system. A `ListTile` wrapped in a typed control widget inside a `FormSection` is fine; the unwrapped `ListView`-of-bare-`ListTile`s with no card chrome is the anti-pattern. Read-only diagnostic and action-only screens follow the same rule (see `account_management/overview_screen.dart`, `advanced/system_logs_screen.dart`).
 
 ## Adding a new entity
 
-The generic stack does most of the work. Five layers do the heavy lifting — touch them only when extending the framework, never to bend it for one entity:
+The generic stack does most of the work. Five framework layers do the heavy lifting — touch them only to extend the framework, never to bend it for one entity:
 
 - `BaseEntityApi<TList, TItem>` (`lib/data/services/base_entity_api.dart`)
 - `BaseEntityRepository<TDomain, TApi>` (`lib/data/repositories/base_entity_repository.dart`)
-- `BaseEntitySyncDispatcher<TItem, TInner>` (`lib/domain/sync/base_entity_sync_dispatcher.dart`) — wired in `wireEntities()` (`lib/app/services_entity_wiring.dart`), no per-entity subclass. Document-bearing entities spread `documentMutationHandlers<TInner>(...)` (`lib/app/services_document_handlers.dart`) into their `customActions` map instead of hand-rolling the upload/delete/visibility trio.
+- `BaseEntitySyncDispatcher<TItem, TInner>` (`lib/domain/sync/base_entity_sync_dispatcher.dart`) — wired in `wireEntities()` (`lib/app/services_entity_wiring.dart`), no per-entity subclass. Document-bearing entities spread `documentMutationHandlers<TInner>(...)` (`lib/app/services_document_handlers.dart`) into their `customActions` map.
 - `GenericListViewModel<T>` (`lib/ui/core/list/generic_list_view_model.dart`)
 - `EntityListScreenScaffold<T, VM>` / `EntityDetailScaffold<T>` / `EntityEditScreenScaffold<T, VM>`
 
 `EntityRegistry` (`lib/domain/entity_registry.dart`) is the orchestrator: one entry per entity in `kWiredEntityModules` / `kDisabledEntityModules` (`lib/app/entity_modules.dart`) declares path, route, icon, parent/children, password-required mutations, sidebar metadata, and the four screen builders. Both files are entity-agnostic — adding an entity touches the module specs only.
 
-Contract tests live in `test/data/repositories/_base_entity_repository_contract.dart` — register the fixture at the top of your `<entity>_repository_test.dart` and inherit the universal coverage for free.
+Contract tests live in `test/data/repositories/_base_entity_repository_contract.dart` — register the fixture at the top of your `<entity>_repository_test.dart` for the universal coverage.
 
 ### The 13-step recipe (summary)
 
@@ -215,42 +200,38 @@ Contract tests live in `test/data/repositories/_base_entity_repository_contract.
 7. List + Detail + Edit ViewModels
 8. List + Detail + Edit screens (thin wrappers around the generic scaffolds)
 9. Entity module spec in `kWiredEntityModules` (`lib/app/entity_modules.dart`)
-10. DI: one block in `wireEntities()` in `lib/app/services_entity_wiring.dart` — `final fooApi = FooApi(ctx.apiClient); final fooRepo = FooRepository(...); wire<FooItemApi, FooApi>(type: EntityType.foo, api: fooApi, repo: fooRepo, customActions: ...)`. If document-bearing, set `customActions: documentMutationHandlers<FooApi>(...)`. If bundled, append a closure to `bundleAppliers`. The plain `services.dart` is no longer per-entity; it builds `EntityWiringContext` once and consumes the result.
+10. DI: one block in `wireEntities()` (`lib/app/services_entity_wiring.dart`) — build the API + repo, call `wire<FooItemApi, FooApi>(type: EntityType.foo, api:, repo:, customActions:)`. Document-bearing → `customActions: documentMutationHandlers<FooApi>(...)`. Bundled → append a closure to `bundleAppliers`.
 11. Branch order in `kBranchOrder` (append-only)
 12. Actions + 7 translation keys (entity translation completeness test enforces)
 13. Tests: contract fixture + entity-specific mapper / filter / conflict tests
 
-Full step-by-step shapes, "Standard action helpers" factories, the "Non-standard actions" pattern (e.g. Invoice `markPaid` via `customActions:`), and the bundled-entity alternative all live in `docs/adding-an-entity.md`. The Clients and Products screens are the reference invocations to mirror.
+Full step-by-step shapes, "Standard action helpers" factories, the "Non-standard actions" pattern (e.g. Invoice `markPaid` via `customActions:`), and the bundled-entity alternative live in `docs/adding-an-entity.md`. Clients and Products are the reference invocations to mirror.
 
 ## Sync — non-obvious rules
 
-- Outbox FIFO is **per company, strict global id order** in M1 (only one entity type exists). The plan's stronger "per (company, entity_type)" guarantee is needed when M2+ introduces cross-entity references with retry-driven head-of-line blocking — revisit `OutboxDao.nextReady` then.
-- Every outbound request sends `Idempotency-Key: <uuid from the outbox row>` so retries are safe. Generated once when the row is created; never regenerated.
-- Logout / company-switch with pending non-dead outbox rows **prompts** the user (sync now / discard / cancel). Never silently drops user data.
-- Destructive ops (delete, purge, password change) require `X-API-PASSWORD-BASE64`. Password is captured by `ConfirmPasswordSheet` and held in a 5-min in-memory cache.
+- Outbox FIFO is **per company, strict global id order** in M1 (only one entity type exists). The stronger "per (company, entity_type)" guarantee is needed once M2+ introduces cross-entity references with retry-driven head-of-line blocking — revisit `OutboxDao.nextReady` then.
+- Every outbound request sends `Idempotency-Key: <uuid from the outbox row>` so retries are safe. Generated once at row creation; never regenerated.
+- Logout / company-switch with pending non-dead outbox rows **prompts** the user (sync now / discard / cancel) — never silently drops user data.
+- Destructive ops (delete, purge, password change) require `X-API-PASSWORD-BASE64`. Password is captured by `ConfirmPasswordSheet`, held in a 5-min in-memory cache.
 - **412 Precondition Failed = password-required.** Body is `{"message":"Invalid Password", …}`. `ApiClient._raiseFromResponse` maps it to `PasswordRequiredException`; `SyncEventListener` surfaces `ConfirmPasswordSheet` for outbox-parked mutations. The 403 password-message sniff stays as a defensive fallback. `GET /api/v1/users/{id}` is 412-gated — User Details routes around it via `/refresh` (see § Strict rules).
 - 401 forces `AuthRepository.logout()` and a redirect to `/login`. **Single-flight**: parallel 401s wait on the same logout future.
 - The `x-minimum-client-version` response header is checked on every request; below threshold throws `ClientTooOldException`.
 - 422 validation errors carry `Map<String, List<String>> fieldErrors`. Edit forms surface these inline.
-- **409 conflicts** are parked far in the future (1 year) instead of auto-retried. The `ConflictResolutionSheet` either re-enqueues a fresh mutation or discards.
-- **404 on outbox drain** is treated as a conflict: the entity was deleted server-side while we held a pending mutation locally. Same `Conflict` path applies — the sheet offers "delete locally" / "recreate".
+- **409 conflicts** are parked far in the future (1 year) instead of auto-retried. `ConflictResolutionSheet` either re-enqueues a fresh mutation or discards.
+- **404 on outbox drain** is treated as a conflict (entity deleted server-side while we held a pending mutation). Same `Conflict` path applies — the sheet offers "delete locally" / "recreate".
 - **Server-side list ordering is assumed ascending `updated_at`** — the keyset cursor in `ApiClient.getList` reads `data.last` as the high-water mark. Matches Invoice Ninja's default list endpoints.
-- The local `is_dirty` flag is **layered onto the domain model** in `<Repository>._fromRow` (e.g. `ClientRepository._fromRow`) — `<Entity>.fromApi` defaults to `false`, and the repo overlays the value from the Drift row. Without this overlay, an unsaved edit shows up as clean after app restart.
+- The local `is_dirty` flag is **layered onto the domain model** in `<Repository>._fromRow` (e.g. `ClientRepository._fromRow`) — `<Entity>.fromApi` defaults it to `false`, the repo overlays the value from the Drift row. Without the overlay, an unsaved edit shows up as clean after app restart.
 
 ## Data loading — bundled vs per-entity
 
 Before adding a new module, decide how its data is fetched. Two buckets:
 
-- **Bundled with the company on auth.** `/login` and `/refresh` accept `first_load=true`, which makes the server include company-scoped reference data alongside each company: tax rates, groups, designs, payment terms, expense categories, task statuses, subscriptions, schedulers, etc. The static catalog (currencies, countries, languages, industries, gateway types, date formats) is also returned under `staticData` (request with `include_static=true`). `/refresh` already sends both. When adding data that fits this bucket, consume it from the existing login/refresh response — do not write a separate fetcher.
-- **Loaded by their own routes.** High-volume, user-browsable entities: clients, invoices, products, payments, expenses, tasks, projects, quotes, credits, vendors, purchase orders, recurring invoices, etc. Full `BaseEntityApi` + page-by-page + Drift + outbox stack. Never try to bundle these into `first_load`.
+- **Bundled with the company on auth.** `/login` and `/refresh` accept `first_load=true`, which makes the server include company-scoped reference data alongside each company: tax rates, groups, designs, payment terms, expense categories, task statuses, subscriptions, schedulers, etc. The static catalog (currencies, countries, languages, industries, gateway types, date formats) is returned under `staticData` (`include_static=true`). `/refresh` already sends both — consume from that response, don't write a separate fetcher.
+- **Loaded by their own routes.** High-volume, user-browsable entities: clients, invoices, products, payments, expenses, tasks, projects, quotes, credits, vendors, purchase orders, recurring invoices, etc. Full `BaseEntityApi` + page-by-page + Drift + outbox stack. Never bundle these into `first_load`.
 
-Rule of thumb when adding a new entity:
-- Small, mostly read, shared across the whole company, rarely paginated (≲ a few hundred rows) → **bundled**. Follow the three-step seam in `docs/adding-an-entity.md` § Bundled entities (`CompanyEnvelopeApi` field + repo `applyBundle` + `AuthRepository.onPersistBundles` fan-out).
-- The kind of list a user scrolls, searches, and filters → **own route**, full per-entity stack.
+Rule of thumb: small / mostly-read / company-shared / rarely-paginated (≲ a few hundred rows) → **bundled** (three-step seam in `docs/adding-an-entity.md` § Bundled entities: `CompanyEnvelopeApi` field + repo `applyBundle` + `AuthRepository.onPersistBundles` fan-out). The kind of list a user scrolls / searches / filters → **own route**, full per-entity stack. If unsure, probe `/api/v1/refresh?first_load=true&include_static=true` against the demo API — anything already there belongs in the bundled bucket.
 
-If unsure, probe `/api/v1/refresh?first_load=true&include_static=true` against the demo API — anything already in that payload belongs in the bundled bucket.
-
-**Bundled today**: the auth user record (via `data[N].user`, written directly in `_persistAndActivate`), `task_statuses`, `company_gateways`. `applyBundle` is **upsert-only — never deletes** (rows with `is_dirty=true` keep their outbox-bound payload until the next real sync); advances the keyset cursor with `wasFullSync: true` so the screen's first `ensurePageLoaded` short-circuits.
+**Bundled today**: the auth user record (`data[N].user`, written directly in `_persistAndActivate`), `task_statuses`, `company_gateways`. `applyBundle` is **upsert-only — never deletes** (`is_dirty=true` rows keep their outbox-bound payload until the next real sync); it advances the keyset cursor with `wasFullSync: true` so the screen's first `ensurePageLoaded` short-circuits.
 
 ## Localization
 
@@ -263,111 +244,50 @@ If unsure, probe `/api/v1/refresh?first_load=true&include_static=true` against t
 
 ## Rich text editing
 
-`lib/ui/core/widgets/markdown_text_field.dart` is the shared WYSIWYG editor for markdown-bearing settings (e.g. email/invoice template overrides). It wraps `super_editor` and `super_editor_markdown` — both pulled from a pinned git ref via `dependency_overrides` so the editor and markdown serializer stay on the same monorepo HEAD.
+`lib/ui/core/widgets/markdown_text_field.dart` is the shared WYSIWYG editor for markdown-bearing settings (e.g. email/invoice template overrides). It wraps `super_editor` + `super_editor_markdown`, both pinned via `dependency_overrides` to the same monorepo HEAD so editor and serializer stay in sync.
 
-Conventions:
-- **One-way data flow.** Parent owns the markdown string and feeds `initialValue` + `externalValueKey`. The widget debounces edits (default 300 ms) and emits the serialized markdown through `onChanged`. To force a reseed after an external write (e.g. override toggle resets to a cascaded parent value), change `externalValueKey`. The `(apiKey, value, isOverridden)` hash works well; see `lib/ui/features/settings/widgets/overridable_markdown_field.dart`.
-- **Server content is safe by construction.** `super_editor` deserializes markdown into Flutter's widget AST — no HTML/JS execution context. The `_sanitize` helper strips `<p>`, `<div>`, `<br>` residue from legacy Quill data.
+- **One-way data flow.** Parent owns the markdown string and feeds `initialValue` + `externalValueKey`. The widget debounces edits (default 300 ms) and emits serialized markdown via `onChanged`. Force a reseed after an external write (e.g. an override toggle resetting to a cascaded parent value) by changing `externalValueKey` — the `(apiKey, value, isOverridden)` hash works well; see `overridable_markdown_field.dart`.
+- **Server content is safe by construction.** `super_editor` deserializes markdown into Flutter's widget AST — no HTML/JS execution context. The `_sanitize` helper strips `<p>` / `<div>` / `<br>` residue from legacy Quill data.
 - **No new editor instances.** Don't reach for `TextField` + markdown post-processing for a free-text field that needs formatting — reuse `MarkdownTextField`.
 
 ## Widget previews
 
-The four widgets in `lib/ui/core/widgets/` (`EmptyState`, `ErrorView`, `StatusPill`, `LinkText`) carry `@Preview` annotations that wire through `appPreviewTheme()` in `widget_preview_support.dart`, so previews render against the real `InTheme` tokens. Launch via the IDE's "Flutter Widget Preview" tab or `flutter widget-preview start`. Add new previews to design-system widgets only — feature screens depend on `Services` via `Provider` and aren't preview-friendly without scaffolding.
+The four widgets in `lib/ui/core/widgets/` (`EmptyState`, `ErrorView`, `StatusPill`, `LinkText`) carry `@Preview` annotations wired through `appPreviewTheme()` (`widget_preview_support.dart`), so previews render against the real `InTheme` tokens. Launch via the IDE's "Flutter Widget Preview" tab or `flutter widget-preview start`. Add new previews to design-system widgets only — feature screens depend on `Services` via `Provider` and aren't preview-friendly without scaffolding.
 
 ## Integration tests
 
-`integration_test/app_smoke_test.dart` boots the real `InvoiceNinjaApp` with in-memory Drift + `InMemoryTokenStorage` and a `MockClient`. Scenarios cover: boot to `/login` with no creds, boot to `/lock` when biometric is enabled, lock-screen sign-out, post-auth redirect to `/dashboard` vs `/clients` (driven by `view_dashboard` permission), and a full login → refresh round-trip. Guards the DI graph, router, theme, and localization wiring.
+`integration_test/app_smoke_test.dart` boots the real `InvoiceNinjaApp` with in-memory Drift + `InMemoryTokenStorage` and a `MockClient`, guarding the DI graph, router, theme, and localization wiring. CI runs the full suite on macOS desktop plus `app_smoke_test.dart` on Chrome every PR.
 
-**Don't run integration tests locally unless the user explicitly asks** — they take over the foreground app and interrupt the developer's session. Never run them proactively or as incidental verification. When the user explicitly asks, run them in an isolated worktree (see **Running locally on request** below). CI runs them on every PR via `.github/workflows/ci.yaml`: the full suite on **macOS desktop** (`-d macos`, incl. the live `demo/*` files when reachable), plus `app_smoke_test.dart` on **Chrome** (`-d web-server --browser-name=chrome`) to guard the web build. The live `demo/*` suite and any filesystem/secure-storage/`pruneBrokenDbFiles` unit tests are `@TestOn('vm')` / macOS-only — they don't run under the web job.
-
-**Local runs can't use the CI command.** `flutter test integration_test/ -d macos` only ever works for the *first* file on desktop — [flutter/flutter#135673](https://github.com/flutter/flutter/issues/135673): the tool reuses a debug-connection stream that breaks on the second app launch, so every later file dies with `Error waiting for a debug connection: The log reader stopped unexpectedly, or never started.` → `Unable to start the app on the device.` CI survives the same command only because its runner can't reach `demo.invoiceninja.com`, so the `demo/*` live files self-skip (`skipIfUnreachable`, `integration_test/support/demo_harness.dart`) and `app_smoke_test.dart` is the lone app launch. Locally the demo server *is* reachable, so it bites. For deliberate local verification use `tools/run_integration_local.sh` (one `flutter test` invocation per file = the upstream workaround; mocked suite only by default, `--include-demo` adds the live `demo/*` files).
-
-**Running locally on request.** Only when the user explicitly asks. The run is long (tens of minutes with `--include-demo`) and the repo is live-edited during sessions, so run against an isolated git worktree on a throwaway branch — concurrent edits to the main checkout then can't perturb the code under test — and tear the worktree + branch down afterward, even on failure. Note the macOS run still grabs the foreground app window; the worktree isolates the *code*, not the screen, so it's still strictly on-request.
-
-```bash
-ts=$(date +%Y%m%d-%H%M%S)
-root=$(git rev-parse --show-toplevel)
-wt="$root/../in-itest-$ts"          # sibling of the main checkout, not nested in it
-br="itest/$ts"
-# Non-destructive WIP snapshot: `git stash create` does NOT touch the working
-# tree or the stash list (this is NOT `git stash` — see the "never git stash to
-# experiment" rule). Empty when the tree is clean → falls back to HEAD.
-snap=$(git -C "$root" stash create)
-git -C "$root" worktree add -b "$br" "$wt" "${snap:-HEAD}"
-# `git stash create` omits untracked-but-not-ignored files — copy them in too:
-git -C "$root" ls-files --others --exclude-standard -z \
-  | rsync -a --from0 --files-from=- "$root/" "$wt/"
-# Guarantee teardown even on failure / interrupt:
-trap 'git -C "$root" worktree remove --force "$wt"; git -C "$root" branch -D "$br"' EXIT
-( cd "$wt" && flutter pub get && bash tools/run_integration_local.sh --include-demo )
-```
-
-Run it as a script (so the `trap` fires) or, if invoking step-by-step, always finish with `git worktree remove --force "$wt" && git branch -D "$br"` even when the run fails. `git worktree list` afterward must not show a leftover `in-itest-*`.
-
-Stable widget keys (`login_submit`, `lock_unlock`, `lock_sign_out`) keep assertions locale-independent. Add similar keys when extending the test.
-
-When adding scenarios, mock both `/api/v1/login` and `/api/v1/refresh` if the flow authenticates — `_persistAndActivate` calls refresh after a successful login, and `restore()` fires a best-effort refresh too. The shared `_silentNetwork()` helper returns a 500-MockClient for scenarios that don't care about the wire.
+**Don't run integration tests locally unless the user explicitly asks** — they take over the foreground app and interrupt the developer's session. The on-request procedure (isolated worktree on a throwaway branch, the `flutter#135673` local-run workaround, widget-key and mocking conventions) is in `docs/integration-tests.md`.
 
 ## Diagnostics log
 
-Debug-only on-disk capture so future Claude sessions can read what went wrong without the user copy-pasting console output. Wired in `lib/app/diagnostics_log.dart` + `lib/main.dart`; surfaced in Settings → Advanced → System Logs. **Release builds disable this entirely** (`Services.diagnosticsLog == null`, no handlers registered).
+Debug-only on-disk capture (`getApplicationSupportDirectory()/claude-diagnostics.log`) so a future Claude session can read what went wrong without copy-pasted console output: uncaught Flutter/async errors and every `Logger` record at `WARNING` or higher. Wired in `lib/app/diagnostics_log.dart` + `lib/main.dart`; surfaced in Settings → Advanced → System Logs (which also has an "Append outbox snapshot" button for stale rows). **Disabled in release builds and on web.**
 
-What's captured automatically (debug only):
-- Uncaught Flutter errors via `FlutterError.onError`.
-- Uncaught async errors via `PlatformDispatcher.instance.onError` + `runZonedGuarded`.
-- Every `Logger` record at `WARNING` or higher (uses the same `redact()` helper as `lib/app/logging.dart`).
-
-What the user can trigger explicitly:
-- **Append outbox snapshot** button on System Logs — dumps stale rows for the active company (dead + in_flight + pending parked > 24 h). Uses `OutboxDao.staleRowsForCompany`. Payload bodies are intentionally omitted (only `payload_size` is written) to keep the file small.
-
-**Disabled on web.** `DiagnosticsLog.open()` resolves a path via `path_provider`, which has no web implementation. `_initDiagnostics()` early-returns `null` on web (`kIsWeb`), exactly as it does in release. There is no on-disk diagnostics log on web.
-
-File layout:
-- Path: `getApplicationSupportDirectory()/claude-diagnostics.log` (next to the encrypted Drift DB).
-- Rotation: at 512 KB, current file is renamed to `<name>.log.1` (one backup, overwritten on each rotation).
-- Format: plain text, one record per line, ISO-8601 UTC timestamps, indented stack lines under the head line.
-- gitignored as `claude-diagnostics.log*` (the rotated `.log.1` isn't caught by the generic `*.log` rule).
-
-**To check the log in a future Claude session**, the user can say *"read the diagnostics log"*. The path isn't a constant — it resolves at runtime per platform — so Claude reads it from one of these sources (in order of cost):
-1. Settings → Advanced → System Logs displays the absolute path with a copy button; the user can paste it.
-2. Boot logs the path via `Logger('main').info('Diagnostics log open at <path>')` — visible in the Xcode/IDE console.
-3. On macOS dev, the conventional path is `~/Library/Containers/<bundle-id>/Data/Library/Application Support/<bundle-id>/claude-diagnostics.log` (or, outside the App Sandbox, `~/Library/Application Support/<bundle-id>/`).
-
-Once you have the path, `Read <path>` (or `Read <path>.1` for the rotated backup) ingests it. Lines are pre-redacted, but the file still contains real company/entity ids — treat as user data.
+The user can say *"read the diagnostics log"* — the path resolves at runtime per platform, so get it from System Logs (copy button), the boot log line, or the macOS path convention. Full layout, rotation, capture details, and the path-resolution sources are in `docs/diagnostics.md`.
 
 ## Desktop window state
 
-Each desktop runner persists window size, position, and fullscreen across launches via the host OS's native preference store. No Dart or Flutter package involvement — the goal is one short native function per platform, idiomatic to that platform's APIs. **N/A on web** — the browser owns the window chrome; there is nothing to persist.
-
-**Contract** — every desktop runner does the same three things:
-1. Read saved state at window-construction time, before the window is shown.
-2. Write on every geometry change (move / resize) and on every fullscreen transition completion.
-3. Fall back to the platform-native default frame on first launch (the values declared in the platform's window template — XIB on macOS, manifest / template on Windows, default size call on Linux).
-
-**macOS** — `macos/Runner/MainFlutterWindow.swift` → `setUpWindowStatePersistence()`. Frame via `NSWindow.setFrameAutosaveName` (NSUserDefaults key `NSWindow Frame InvoiceNinjaMainWindow`, derived by AppKit); fullscreen bool via `NSWindowDelegate.windowDidEnter/ExitFullScreen` → NSUserDefaults key `ninja.window.isFullscreen`. `isRestorable = false` to keep AppKit's autosave as the only mechanism (otherwise Cocoa state restoration would override it after `awakeFromNib`).
-
-**Windows** *(when added)* — `windows/runner/flutter_window.cpp` → `SetUpWindowStatePersistence()`. Use `WINDOWPLACEMENT` (covers normal-rect + maximized / minimized state in one struct) read & written under `HKCU\Software\InvoiceNinja\Window`. Persist on `WM_MOVE` / `WM_SIZE` / `WM_DESTROY`; restore in `OnCreate` via `SetWindowPlacement`. For fullscreen (Windows has no built-in fullscreen — it's a borderless window covering the monitor), persist a separate `Fullscreen` DWORD.
-
-**Linux** *(when added)* — `linux/runner/my_application.cc` → `setup_window_state_persistence()`. Connect `configure-event` (geometry) and `window-state-event` (fullscreen / maximize); persist to `~/.config/invoice_ninja/window-state.ini` via `GKeyFile`. Restore in `activate` via `gtk_window_set_default_size` + `gtk_window_move` + `gtk_window_fullscreen` as appropriate.
+Each desktop runner persists window size, position, and fullscreen across launches via the host OS's native preference store — one short native function per platform, no Dart/Flutter package. **N/A on web** (the browser owns the window chrome). The shared three-step contract and per-platform implementations (macOS done; Windows/Linux when added) are in `docs/desktop-window-state.md`.
 
 ## Web
 
 Web is a supported target (`flutter run -d chrome`, `flutter build web`). Native (iOS/macOS) behavior is **byte-identical** — every platform difference is a `kIsWeb` branch or a conditional-import seam that resolves to the unchanged native code on native.
 
-**Persistence.** drift WASM over IndexedDB/OPFS, unencrypted (no SQLCipher, no `PRAGMA key`). The browser origin sandbox is the trust boundary — this is a locked product decision, don't add a web encryption layer without re-deciding. The auth token lives in `window.localStorage` (`LocalStorageTokenStorage`), not `flutter_secure_storage`. IndexedDB can be evicted (storage pressure / private mode) — that surfaces as the existing `dbWasReset` "fresh sync" flow, not a crash.
+**Persistence.** drift WASM over IndexedDB/OPFS, unencrypted (no SQLCipher, no `PRAGMA key`) — the browser origin sandbox is the trust boundary, a locked product decision; don't add a web encryption layer without re-deciding. The auth token lives in `window.localStorage` (`LocalStorageTokenStorage`), not `flutter_secure_storage`. IndexedDB eviction (storage pressure / private mode) surfaces as the existing `dbWasReset` "fresh sync" flow, not a crash.
 
 **Conditional-import seams** (default file = web, `if (dart.library.io)` override = native):
-- `lib/data/db/database_opener.dart` → `_io` (SQLCipher file + keychain key + `.broken.<ts>` recovery) / `_web` (drift `WasmDatabase` + IndexedDB delete on reset). `pruneBrokenDbFiles` is native-only and lives in `database_opener_io.dart`.
+- `lib/data/db/database_opener.dart` → `_io` (SQLCipher file + keychain key + `.broken.<ts>` recovery) / `_web` (`WasmDatabase` + IndexedDB delete on reset). `pruneBrokenDbFiles` is native-only (`database_opener_io.dart`).
 - `lib/data/services/token_storage_factory.dart` → `defaultTokenStorage()`: `SecureTokenStorage` (native) / `LocalStorageTokenStorage` (web).
 - `WebBiometricService` (`biometric_service.dart`) — `isAvailable() => false`; selected via `kIsWeb` in `Services.build`. Biometric/lock UI hides itself.
 
-**Vendored WASM assets** (committed in `web/`, served from app root): `web/sqlite3.wasm` (plain unencrypted build, downloaded from the [sqlite3.dart releases](https://github.com/simolus3/sqlite3.dart/releases) — must match the resolved `sqlite3` Dart package version) and `web/drift_worker.js` (compiled from `web/drift_worker.dart` via `dart compile js -O4 -o web/drift_worker.js web/drift_worker.dart`). **Regenerate both on any `drift`/`sqlite3` bump** — version skew between the vendored assets and the Dart packages is the #1 web runtime failure mode. `database_opener_web.dart` logs `WasmDatabase` `missingFeatures` at boot so degraded persistence is visible.
+**Vendored WASM assets** (committed in `web/`, served from app root): `web/sqlite3.wasm` (plain unencrypted build, from the [sqlite3.dart releases](https://github.com/simolus3/sqlite3.dart/releases) — must match the resolved `sqlite3` Dart package version) and `web/drift_worker.js` (`dart compile js -O4 -o web/drift_worker.js web/drift_worker.dart`). **Regenerate both on any `drift`/`sqlite3` bump** — version skew between the vendored assets and the Dart packages is the #1 web runtime failure mode. `database_opener_web.dart` logs `WasmDatabase` `missingFeatures` at boot.
 
-**URL strategy: hash (`/#/clients`), the Flutter default.** Intentionally left as-is (no `setUrlStrategy`) so the build deploys to any static host with no rewrite-to-index config. Locked decision — see the comment near `runApp` in `main.dart`. Don't switch to `PathUrlStrategy`.
+**URL strategy: hash (`/#/clients`), the Flutter default.** Intentionally left as-is (no `setUrlStrategy`) so the build deploys to any static host with no rewrite-to-index config. Locked decision (see the comment near `runApp` in `main.dart`) — don't switch to `PathUrlStrategy`.
 
-**`dart:io` compiles on web.** Flutter's web toolchain provides a compile-time `dart:io` stub; `import 'dart:io'` does **not** break `flutter build web`. The classes (`File`, `Directory`, `Platform`) throw `UnsupportedError` only when *used* at runtime. So a `kIsWeb` guard before the call is sufficient — no conditional-import file needed just to satisfy the compiler. Prefer `defaultTargetPlatform` + `kIsWeb` (web-safe and cleaner) over `Platform.isX` in new code; `env.dart` / `support_api.dart` are the reference.
+**`dart:io` compiles on web.** Flutter's web toolchain provides a compile-time `dart:io` stub; `import 'dart:io'` does **not** break `flutter build web` — the classes (`File`, `Directory`, `Platform`) throw `UnsupportedError` only when *used* at runtime, so a `kIsWeb` guard before the call suffices (no conditional-import file needed just for the compiler). Prefer `defaultTargetPlatform` + `kIsWeb` over `Platform.isX` in new code (`env.dart` / `support_api.dart` are the reference).
 
-**Disabled on web** (already guarded): native splash/window theming, biometric, in-app purchase (upgrade routes web→Stripe portal via `upgrade_launcher`), Google + Apple OAuth login buttons (`GoogleOAuth.isEnabled` / `LoginViewModel.appleEnabled` both false on web — email/password only; there is no in-app OAuth callback handler).
+**Disabled on web** (already guarded): native splash/window theming, biometric, in-app purchase (upgrade routes web→Stripe portal via `upgrade_launcher`), Google + Apple OAuth login buttons (email/password only — there is no in-app OAuth callback handler).
 
 **Backend dependency:** web writes are blocked until the API server adds `Idempotency-Key` to its CORS `Access-Control-Allow-Headers` (every outbox write sends it). Verified missing on the demo server — full spec + acceptance check in `BACKEND.md` § Web platform CORS. Until it ships, web is read + login only; outbox drains fail at the network layer. No client change needed (the header is correct and required on every platform).
 
@@ -384,7 +304,7 @@ Three read-only sources to mirror, never copy from:
   - `lib/redux/static/static_state.dart` — shape of the `/api/v1/statics` response.
   - `lib/redux/settings/settings_state.dart` (93-99) — settings cascade resolver.
   - `lib/data/models/entities.dart` — full EntityType enum + parent/child relationships.
-- **`/Users/hillel/Code/react`** — the React web client. Useful as a second reference for entity shapes, request flows, and UI behaviors when admin-portal is unclear or out of date.
+- **`/Users/hillel/Code/react`** — the React web client. A second reference for entity shapes, request flows, and UI behaviors when admin-portal is unclear or out of date.
 - **API reference** — <https://invoiceninja.github.io/docs/api-reference/invoice-ninja-api-reference>.
 
 Live-server probes go through `demo.invoiceninja.com`'s canned read credentials — see `docs/probing-the-demo-api.md` for the curl recipe and the 412 password-gate heads-up.
