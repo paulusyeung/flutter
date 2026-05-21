@@ -31,6 +31,21 @@ class Env {
   static const String devEmail = String.fromEnvironment('IN_DEV_EMAIL');
   static const String devPassword = String.fromEnvironment('IN_DEV_PASSWORD');
 
+  /// Demo build: a pre-issued API token baked in via
+  /// `--dart-define=IN_DEMO_API_TOKEN=…`. When non-empty, `main.dart`
+  /// bootstraps a session from it on boot (`AuthRepository.loginWithToken`)
+  /// so the build lands on the dashboard instead of `/login`. Empty in every
+  /// normal build → the bootstrap branch is never taken. Unlike the dev
+  /// pre-fill above this is *not* `kReleaseMode`-gated — the deployed demo is
+  /// a release build.
+  static const String demoApiToken = String.fromEnvironment(
+    'IN_DEMO_API_TOKEN',
+  );
+  static const String demoApiUrl = String.fromEnvironment(
+    'IN_DEMO_API_URL',
+    defaultValue: 'https://demo.invoiceninja.com',
+  );
+
   /// Google OAuth Web/server client ID. Required on Android: the v7
   /// `google_sign_in` plugin routes through Credential Manager, which needs
   /// the Web OAuth client ID passed to `initialize(serverClientId:)` — it does

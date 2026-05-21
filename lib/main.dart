@@ -143,6 +143,22 @@ Future<void> _bootstrap() async {
   ]);
   mark('restore (auth/theme/locale/sidebar)');
 
+  // Demo build: if no session was restored, bootstrap one from a baked-in API
+  // token so the app lands on the dashboard instead of /login. Inert in normal
+  // builds — `Env.demoApiToken` is empty unless set via --dart-define.
+  if (!services.auth.isAuthenticated && Env.demoApiToken.isNotEmpty) {
+    try {
+      await services.auth.loginWithToken(
+        baseUrl: Env.demoApiUrl,
+        isHosted: false,
+        token: Env.demoApiToken,
+      );
+    } catch (e, st) {
+      Logger('main').warning('Demo token bootstrap failed', e, st);
+    }
+    mark('demo token bootstrap');
+  }
+
   // Warm the statics cache before any screen mounts so dropdowns reading
   // `Services.statics` (Company Details size/industry, Localization currency/
   // language/country, …) render populated on first frame instead of flashing

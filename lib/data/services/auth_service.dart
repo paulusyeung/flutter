@@ -45,6 +45,30 @@ class AuthService {
     return LoginResponseApi.fromJson(json);
   }
 
+  /// POST `/api/v1/refresh` authenticated by an explicit API token rather
+  /// than an active session. Used by demo builds to bootstrap a session from
+  /// a baked-in token (see `Env.demoApiToken`). The server echoes the
+  /// supplied token back in `data[N].token`, so feeding the result through
+  /// `AuthRepository._persistAndActivate` persists that token unchanged.
+  Future<LoginResponseApi> refreshWithToken({
+    required String baseUrl,
+    required bool isHosted,
+    required String token,
+  }) async {
+    final response = await _http.post(
+      Uri.parse(
+        baseUrl,
+      ).resolve('/api/v1/refresh?first_load=true&include_static=true'),
+      headers: {
+        ..._headers(isHosted: isHosted, contentTypeJson: true),
+        'X-API-Token': token,
+      },
+    );
+    _raiseIfError(response);
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    return LoginResponseApi.fromJson(json);
+  }
+
   /// POST `/api/v1/oauth_login`. Used by third-party OAuth flows (Sign in
   /// with Apple, etc.). The request body mirrors admin-portal's:
   ///   { provider, access_token, email, auth_code, id_token }

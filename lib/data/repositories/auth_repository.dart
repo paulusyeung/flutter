@@ -156,6 +156,29 @@ class AuthRepository {
     );
   }
 
+  /// Bootstrap a session from a pre-issued API token instead of an
+  /// email/password login. Calls `/api/v1/refresh` with the token, then runs
+  /// the same `_persistAndActivate` tail as [login]. The server echoes the
+  /// token in the envelope, so it is persisted unchanged — unlike a login
+  /// session token it does not expire when the (demo) server resets its data.
+  /// Used only by demo builds; see `Env.demoApiToken` and `main.dart`.
+  Future<void> loginWithToken({
+    required String baseUrl,
+    required bool isHosted,
+    required String token,
+  }) async {
+    final response = await _auth.refreshWithToken(
+      baseUrl: baseUrl,
+      isHosted: isHosted,
+      token: token,
+    );
+    await _persistAndActivate(
+      response: response,
+      baseUrl: baseUrl,
+      isHosted: isHosted,
+    );
+  }
+
   /// OAuth login (Sign in with Apple, etc). Calls `/api/v1/oauth_login`
   /// then activates the session — identical tail to [login].
   Future<void> oauthLogin({
