@@ -461,11 +461,8 @@ class AuthRepository {
         'einvoice': 'true',
       };
     } else {
-      final updatedAtSecs =
-          (((lastSync ~/ 1000) - kUpdatedAtBufferSeconds)).clamp(
-            0,
-            1 << 62,
-          );
+      final updatedAtSecs = (((lastSync ~/ 1000) - kUpdatedAtBufferSeconds))
+          .clamp(0, 1 << 62);
       final cachedStatics = await _db.staticsDao.read();
       final staticsStale =
           cachedStatics == null ||
@@ -794,8 +791,7 @@ class AuthRepository {
     final liveIds = {for (final uc in response.data) uc.company.id};
     final tokens = <String, String>{
       for (final entry in _tokensByCompany.entries)
-        if (!isFullSync || liveIds.contains(entry.key))
-          entry.key: entry.value,
+        if (!isFullSync || liveIds.contains(entry.key)) entry.key: entry.value,
       for (final uc in response.data)
         if (uc.token.token.isNotEmpty) uc.company.id: uc.token.token,
     };

@@ -17,7 +17,16 @@ See CLAUDE.md § Web for the runtime model (unencrypted IndexedDB via drift WASM
   - `web/sqlite3.wasm`: download the `sqlite3.wasm` asset for the **resolved `sqlite3` Dart package version** from <https://github.com/simolus3/sqlite3.dart/releases> (tag `sqlite3-<version>`). Use the plain build, not `sqlite3mc` — web is unencrypted. Current: matched to `sqlite3` 3.3.1.
   - `web/drift_worker.js`: `dart compile js -O4 -o web/drift_worker.js web/drift_worker.dart` (the `.dart` source is committed; the `.js` output is what's served). Delete the stray `.js.deps`/`.js.map` afterward.
 - **Serving**: any static host. The host must serve `.wasm` as `Content-Type: application/wasm`. Hash routing means no rewrite-to-index config is required.
-- **Run / build**: `flutter run -d chrome`, `flutter build web --release`. `flutter build web` is the authoritative web compile gate (catches platform-API regressions; `flutter analyze` runs against the VM target and won't).
+- **Run / build**: `flutter run -d chrome`, `flutter build web --release`. `flutter build web` is the authoritative web compile gate (catches platform-API regressions; `flutter analyze` runs against the VM target and won't). CI builds with `--wasm`, so it also gates WebAssembly compatibility (dart2wasm rejects `dart:html`).
+
+### Demo web build
+
+`tools/build_demo_web.sh` produces the public pre-authenticated demo hosted at <https://hillelcoren.github.io/admin/>:
+
+- Builds `flutter build web --wasm --release --base-href /admin/ --dart-define=IN_DEMO_API_TOKEN=TOKEN`. `--base-href /admin/` matches the GitHub Pages subdirectory; the `IN_DEMO_API_TOKEN` define makes the app boot straight to the dashboard, pre-authenticated against `demo.invoiceninja.com` with the public system token `TOKEN` (see `docs/probing-the-demo-api.md`). The bootstrap path is `Env.demoApiToken` → `AuthRepository.loginWithToken` in `lib/main.dart`; it is inert in any build without the define.
+- Rsyncs `build/web/` into the deploy directory — defaults to the sibling checkout `../hillelcoren.github.io/admin`; pass a path as the first arg, or `-` to build only.
+- The deploy repo **must** keep an empty `.nojekyll` at its root. GitHub Pages otherwise runs Jekyll, which strips `assets/i18n/_app_pending.json` (the leading `_`), and every not-yet-translated string renders as its raw key. The script warns if `.nojekyll` is missing.
+- Publishing is manual: commit & push the deploy repo after running the script.
 
 ## macOS setup notes
 

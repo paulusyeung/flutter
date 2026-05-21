@@ -63,13 +63,17 @@ jobs:
             exit 1
           fi
 
-      # Web compile gate. Cheap, and the authoritative check for web-platform
+      # Web compile gate. The authoritative check for web-platform
       # regressions: `flutter analyze` runs against the VM target and won't
-      # catch a native-only API leaking into the reachable web tree. The
-      # native-assets hook (`hooks: user_defines: sqlite3: source: sqlite3mc`)
-      # targets native builds and is inert here.
-      - name: Build web (compile gate)
-        run: flutter build web --release
+      # catch a native-only API leaking into the reachable web tree. Built
+      # with `--wasm` so it doubles as the WebAssembly gate — dart2wasm is
+      # stricter than dart2js (it rejects `dart:html`), so this fails fast if
+      # a dependency ever reintroduces a web-incompatible import. The `--wasm`
+      # build also emits the dart2js fallback, so it stays a full web gate.
+      # The native-assets hook (`hooks: user_defines: sqlite3: source:
+      # sqlite3mc`) targets native builds and is inert here.
+      - name: Build web (compile gate, --wasm)
+        run: flutter build web --wasm --release
 
       - name: Build iOS (no codesign)
         run: flutter build ios --no-codesign

@@ -371,6 +371,8 @@ Web is a supported target (`flutter run -d chrome`, `flutter build web`). Native
 
 **Backend dependency:** web writes are blocked until the API server adds `Idempotency-Key` to its CORS `Access-Control-Allow-Headers` (every outbox write sends it). Verified missing on the demo server — full spec + acceptance check in `BACKEND.md` § Web platform CORS. Until it ships, web is read + login only; outbox drains fail at the network layer. No client change needed (the header is correct and required on every platform).
 
+**Demo build.** The pre-authenticated GitHub Pages demo (`https://hillelcoren.github.io/admin/`) is produced by `tools/build_demo_web.sh` — a `--wasm` build based at `/admin/` with a baked demo token (`Env.demoApiToken` → `AuthRepository.loginWithToken`, inert in any build without the `--dart-define`). Full procedure + the `.nojekyll` requirement: `docs/setup.md` § Demo web build. CI builds web with `--wasm` so WebAssembly compatibility stays gated.
+
 ## Reference points
 
 Three read-only sources to mirror, never copy from:
