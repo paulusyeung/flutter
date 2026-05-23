@@ -2,6 +2,23 @@ import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
 
+/// Row-hover background color for unselected rows.
+///
+/// Light mode reuses `surfaceAlt` — same value the column-headers strip
+/// uses, so hover reads as part of the same surface family. Dark mode
+/// can't use `surfaceAlt`: its delta from `surface` is ~3 % per channel
+/// (e.g. `#28261F` vs `#1F1E18` on espresso) and is perceptually
+/// invisible as a hover affordance over the card surface. Instead we
+/// blend ~8 % of `ink` over `surface`, matching the Material 3 hover
+/// state opacity and producing a clearly readable lift in every dark
+/// palette.
+Color _rowHoverColor(BuildContext context, InTheme tokens) {
+  if (Theme.of(context).brightness == Brightness.light) {
+    return tokens.surfaceAlt;
+  }
+  return Color.alphaBlend(tokens.ink.withAlpha(0x14), tokens.surface);
+}
+
 /// Shared selected-row chrome for every entity list tile.
 ///
 /// Replaces the per-tile hand-rolled `Material`/`InkWell`/`DecoratedBox`
@@ -28,7 +45,11 @@ import 'package:admin/app/design_tokens.dart';
 ///   Material color and `overlayColor: transparent` does not suppress it.
 ///   With no `InkWell` in the tree no overlay can fire, so `accentSoft`
 ///   stays readable on hover. Unselected rows keep the `InkWell` (its
-///   `surfaceAlt` hover + the Material focus highlight for keyboard nav).
+///   hover overlay via [_rowHoverColor] + the Material focus highlight
+///   for keyboard nav). The hover color is brightness-aware: light mode
+///   uses `surfaceAlt`; dark mode uses a computed `ink @ 8% over surface`
+///   blend, because raw `surfaceAlt` is perceptually invisible against
+///   the dark card surface.
 ///
 /// No animation: selection snaps. Arrow-key / J-K navigation in the
 /// master-detail list moves selection on every keypress; an implicit tween
@@ -112,7 +133,7 @@ class SelectableListRow extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       onLongPress: onLongPress,
-      hoverColor: tokens.surfaceAlt,
+      hoverColor: _rowHoverColor(context, tokens),
       child: body,
     );
   }

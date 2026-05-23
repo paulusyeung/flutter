@@ -64,15 +64,15 @@ dev_dependencies:
   json_serializable: ^6.8.0
 
 dependency_overrides:
+  # re_editor's transitive isolate_manager 4.x → isolate_contactor uses
+  # `dart:html`, which dart2wasm rejects (blocks `flutter build web --wasm`).
+  # isolate_manager 6.x is wasm-clean and on `package:web`.
+  isolate_manager: ^6.3.2
   super_editor:
     git:
       url: https://github.com/superlistapp/super_editor
       path: super_editor
       ref: 068a20d3151dc4e46068b5cb54a38b0e93f7ef03
-  # re_editor's transitive isolate_manager 4.x → isolate_contactor uses
-  # `dart:html`, which dart2wasm rejects (blocks `flutter build web --wasm`).
-  # isolate_manager 6.x is wasm-clean and on `package:web`.
-  isolate_manager: ^6.3.2
 
 hooks:
   user_defines:

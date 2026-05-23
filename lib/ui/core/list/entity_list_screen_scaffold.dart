@@ -1011,6 +1011,15 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
   /// table + narrow list + empty state). Matches the `DashboardCardShell`
   /// Details/Address/Contacts cards above it (`surface` + `border` + `r3` +
   /// `shadow1`) so the detail page reads as one consistent design.
+  ///
+  /// The inner `Material(type: transparency)` is the InkFeatures host for
+  /// every row `InkWell` in the table. Without it, the InkWell's nearest
+  /// `Material` is the Scaffold's body Material — far above this card — and
+  /// hover/focus/splash paint at that ancestor, BEFORE the card's `surface`
+  /// fill paints over them. The fill then hides the hover inside the card
+  /// while any geometric overshoot leaks past the card's edges. A local
+  /// transparency Material moves the ink painting INSIDE the clip so hover
+  /// is visible on the row and never leaks outside.
   Widget _embeddedListCard(BuildContext context, Widget child) {
     final tokens = context.inTheme;
     return Container(
@@ -1021,7 +1030,10 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
         borderRadius: BorderRadius.circular(InRadii.r3),
         boxShadow: tokens.shadow1,
       ),
-      child: child,
+      child: Material(
+        type: MaterialType.transparency,
+        child: child,
+      ),
     );
   }
 
