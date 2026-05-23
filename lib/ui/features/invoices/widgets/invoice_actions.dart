@@ -427,13 +427,15 @@ class InvoiceActions {
 
       case InvoiceAction.viewPdf:
         if (tmpGate()) return;
-        unawaited(context.push('/invoices/${invoice.id}/pdf'));
+        // `go` (not `push`) so the inner Navigator resolves the full
+        // `/invoices/:id` + `pdf` chain when the user invokes this from
+        // the bare list — `push` drops the missing `:id` parent and the
+        // pane never opens. See client_actions.dart#viewStatement.
+        context.go('/invoices/${invoice.id}/pdf');
 
       case InvoiceAction.deliveryNote:
         if (tmpGate()) return;
-        unawaited(
-          context.push('/invoices/${invoice.id}/pdf?delivery_note=true'),
-        );
+        context.go('/invoices/${invoice.id}/pdf?delivery_note=true');
 
       case InvoiceAction.downloadPdf:
       case InvoiceAction.printPdf:

@@ -242,16 +242,14 @@ class ClientActions {
           Notify.error(context, context.tr('sync_first'));
           return;
         }
-        // Statement generation is server-only — no point opening the screen
-        // just to render a network error. Gate at the action site.
-        final online = await services.connectivity.isOnline;
-        if (!context.mounted) return;
-        if (!online) {
-          Notify.error(context, context.tr('statement_offline'));
-          return;
-        }
-        // Push (not go) so the back arrow returns to the previous screen.
-        await context.push('/clients/${client.id}/statement');
+        // `go` (not `push`) so the inner Navigator resolves the full route
+        // chain — `/clients/:id` + `statement` — and lands both pages on
+        // its stack. `push` from the bare list URL drops the missing `:id`
+        // parent: the URL updates (row paints as selected) but the
+        // sub-route never makes it into the pane. Matches the working
+        // `payment_actions.dart` refund pattern. Offline is surfaced inside
+        // the screen by `ClientStatementViewModel`.
+        context.go('/clients/${client.id}/statement');
       case ClientAction.archive:
         await StandardEntityActions.archive(
           context: context,

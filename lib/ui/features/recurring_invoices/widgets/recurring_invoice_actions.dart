@@ -285,7 +285,8 @@ class RecurringInvoiceActions {
 
       case RecurringInvoiceAction.viewPdf:
         if (tmpGate()) return;
-        unawaited(context.push('/recurring_invoices/${ri.id}/pdf'));
+        // `go` (not `push`): see client_actions.dart#viewStatement.
+        context.go('/recurring_invoices/${ri.id}/pdf');
 
       case RecurringInvoiceAction.downloadPdf:
       case RecurringInvoiceAction.printPdf:

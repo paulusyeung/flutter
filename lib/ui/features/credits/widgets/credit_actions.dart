@@ -258,7 +258,8 @@ class CreditActions {
 
       case CreditAction.viewPdf:
         if (tmpGate()) return;
-        unawaited(context.push('/credits/${credit.id}/pdf'));
+        // `go` (not `push`): see client_actions.dart#viewStatement.
+        context.go('/credits/${credit.id}/pdf');
 
       case CreditAction.downloadPdf:
       case CreditAction.printPdf:

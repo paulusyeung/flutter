@@ -275,7 +275,8 @@ class PurchaseOrderActions {
 
       case PurchaseOrderAction.viewPdf:
         if (tmpGate()) return;
-        unawaited(context.push('/purchase_orders/${po.id}/pdf'));
+        // `go` (not `push`): see client_actions.dart#viewStatement.
+        context.go('/purchase_orders/${po.id}/pdf');
 
       case PurchaseOrderAction.downloadPdf:
       case PurchaseOrderAction.printPdf:

@@ -299,7 +299,8 @@ class QuoteActions {
 
       case QuoteAction.viewPdf:
         if (tmpGate()) return;
-        unawaited(context.push('/quotes/${quote.id}/pdf'));
+        // `go` (not `push`): see client_actions.dart#viewStatement.
+        context.go('/quotes/${quote.id}/pdf');
 
       case QuoteAction.downloadPdf:
       case QuoteAction.printPdf:
