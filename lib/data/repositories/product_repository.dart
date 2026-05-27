@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show Value, BooleanExpressionOperators;
 import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/app_database.dart';
@@ -407,7 +407,8 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi>
     final current = decodeRawDocumentsColumn(row.documents);
     final next = current.where((d) => d.id != documentId).toList();
     if (next.length == current.length) return;
-    await (db.update(db.products)..where((p) => p.id.equals(entityId))).write(
+    await (db.update(db.products)
+          ..where((p) => p.companyId.equals(companyId) & p.id.equals(entityId))).write(
       ProductsCompanion(
         documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
       ),
@@ -433,7 +434,8 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi>
     if (!current.any((d) => d.id == document.id)) {
       next.add(document);
     }
-    await (db.update(db.products)..where((p) => p.id.equals(entityId))).write(
+    await (db.update(db.products)
+          ..where((p) => p.companyId.equals(companyId) & p.id.equals(entityId))).write(
       ProductsCompanion(
         documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
       ),

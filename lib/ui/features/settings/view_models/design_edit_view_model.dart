@@ -24,14 +24,30 @@ class DesignEditViewModel extends GenericEditViewModel<Design> {
   final DesignRepository repo;
   final String companyId;
 
-  /// Document types a custom design can be bound to. Matches the current
-  /// product (React `CustomDesign` EntityType union); the wire stores these
+  /// Document types a custom design (non-template) can be bound to.
+  /// Matches React `Settings.tsx:307-310`. The wire stores these
   /// comma-joined in `Design.entities`.
   static const supportedEntities = <String>[
     'invoice',
     'quote',
     'credit',
     'purchase_order',
+  ];
+
+  /// Document types a custom **template** (`is_template = true`) can be
+  /// bound to. Mirrors React `Create.tsx:35-45`'s `templateEntites` list
+  /// (and admin-portal v1's `design_edit.dart:503-512`, which lacks
+  /// `expense`). Singular `snake_case` per existing wire convention.
+  static const supportedTemplateEntities = <String>[
+    'invoice',
+    'payment',
+    'client',
+    'quote',
+    'credit',
+    'purchase_order',
+    'project',
+    'task',
+    'expense',
   ];
 
   /// Bumped every time the *whole template* is replaced wholesale
@@ -73,9 +89,62 @@ class DesignEditViewModel extends GenericEditViewModel<Design> {
   void resetToEmpty() {
     reset(emptyDraft: _emptyDesign());
     _seedRevision++;
+    _seedCaretToNinja = false;
   }
 
   void setName(String v) => updateDraft(draft.copyWith(name: v));
+
+  /// One-shot flag set by [setIsTemplate] when it just seeded the
+  /// scaffold; the body editor calls [consumeSeedCaretToNinja] to drop
+  /// the caret inside the freshly-seeded `<ninja>` block instead of
+  /// leaving it at line 0. Cleared by every other reseed path so it
+  /// can't yank the cursor on a Start-from / Import / Blank reseed.
+  bool _seedCaretToNinja = false;
+
+  /// Returns the current flag value and clears it. Called once per
+  /// `seedRevision` bump by the body editor.
+  bool consumeSeedCaretToNinja() {
+    final v = _seedCaretToNinja;
+    _seedCaretToNinja = false;
+    return v;
+  }
+
+  /// Toggle the `is_template` flag. Flipping ON over an empty body seeds
+  /// the minimal `<ninja></ninja>` scaffold (mirrors React
+  /// `Create.tsx:108-130`); existing body content is preserved either
+  /// way so the user doesn't lose work when experimenting.
+  ///
+  /// On toggle OFF, template-only entity tokens (expense / client /
+  /// payment / project / task) are filtered out — the design-mode UI
+  /// can't surface them anyway and leaving them in `draft.entities`
+  /// would silently ship to the server. Data loss is intentional and
+  /// predictable (the entities just dropped from view).
+  void setIsTemplate(bool v) {
+    final t = draft.template;
+    // `trim()` so a body that's just whitespace (e.g. a few stray newlines)
+    // still counts as empty and gets the scaffold.
+    if (v && t.body.trim().isEmpty) {
+      updateDraft(
+        draft.copyWith(
+          isTemplate: true,
+          template: t.copyWith(body: kBlankDesignBody),
+        ),
+      );
+      _seedRevision++;
+      _seedCaretToNinja = true;
+    } else if (v) {
+      updateDraft(draft.copyWith(isTemplate: true));
+    } else {
+      // Toggling OFF — sanitize entities to the design-mode subset.
+      updateDraft(
+        draft.copyWith(
+          isTemplate: false,
+          entities:
+              draft.entities.where(supportedEntities.contains).toList(),
+        ),
+      );
+    }
+  }
 
   void toggleEntity(String entity, bool selected) {
     final next = List<String>.from(draft.entities)..remove(entity);
@@ -105,16 +174,24 @@ class DesignEditViewModel extends GenericEditViewModel<Design> {
   /// otherwise the saved row and the `/preview` payload would carry the
   /// source's `is_custom:false` / `is_template:true` flags.
   void loadFrom(Design source) {
+    // We always force isTemplate=false on a copy. Drop any template-only
+    // entity tokens (expense / client / payment / project / task) the
+    // source may have carried — otherwise they'd persist invisibly into
+    // the design-mode draft and ship to the server on Save.
+    final filteredEntities = source.entities
+        .where(supportedEntities.contains)
+        .toList();
     updateDraft(
       draft.copyWith(
         name: draft.name.isEmpty ? source.name : draft.name,
-        entities: List<String>.from(source.entities),
+        entities: filteredEntities,
         template: source.template,
         isCustom: true,
         isTemplate: false,
       ),
     );
     _seedRevision++;
+    _seedCaretToNinja = false;
   }
 
   /// "Blank" start-from option: a minimal valid HTML scaffold.
@@ -127,6 +204,7 @@ class DesignEditViewModel extends GenericEditViewModel<Design> {
       ),
     );
     _seedRevision++;
+    _seedCaretToNinja = false;
   }
 
   /// Seed the draft from exported design JSON (the [DesignPayload.toApiJson]
@@ -171,6 +249,7 @@ class DesignEditViewModel extends GenericEditViewModel<Design> {
       ),
     );
     _seedRevision++;
+    _seedCaretToNinja = false;
     return null;
   }
 }

@@ -492,6 +492,7 @@ const kSettingsSearchCatalog = <String, List<String>>{
     'task_columns',
     'total_fields',
     'custom_designs',
+    'template',
   ],
   'custom_fields': [
     'custom_fields',

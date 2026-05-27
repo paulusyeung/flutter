@@ -1,14 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:re_editor/re_editor.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/design.dart';
 import 'package:admin/data/services/live_design_service.dart';
-import 'package:admin/data/static/design_variables_catalog.dart';
+import 'package:admin/data/static/design_template_completions.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/dialogs/discard_changes_dialog.dart';
 import 'package:admin/ui/features/settings/view_models/design_edit_view_model.dart';
@@ -22,6 +25,9 @@ import 'package:admin/ui/features/settings/widgets/settings_text_field.dart';
 /// sit side-by-side; below it the editor is full-width and the preview is a
 /// "Preview" button → full-screen modal. Matches General Settings.
 const double _kSplitBreakpoint = 1024;
+
+const String _kTemplateDocsUrl =
+    'https://invoiceninja.github.io/docs/advanced-topics/templates';
 
 /// One editable template section. Ordered to match the editor tabs.
 enum _Section { settings, body, header, footer, product, task, includes, variables }
@@ -187,7 +193,15 @@ class _DesignWorkspaceState extends State<_DesignWorkspace> {
   void _insertVariable(String v) {
     final c = _controllers[_lastHtmlSection];
     if (c == null) return;
-    c.replaceSelection(v);
+    // Template-mode Twig chips (`{{ … }}`) only render inside a
+    // `<ninja>...</ninja>` block. Outside one, auto-wrap so the variable
+    // works — otherwise the chip would silently insert literal HTML.
+    final isTwig = v.startsWith('{{') || v.startsWith('{%');
+    if (widget.vm.draft.isTemplate && isTwig && !isCaretInNinja(c)) {
+      c.replaceSelection('<ninja>$v</ninja>');
+    } else {
+      c.replaceSelection(v);
+    }
   }
 
   @override
@@ -211,7 +225,9 @@ class _DesignWorkspaceState extends State<_DesignWorkspace> {
           vm: widget.vm,
           enabledModulesBitmask: company?.enabledModules ?? 0,
           embedded: true,
-          onSectionErrors: (e) => setState(() => _sectionErrors = e),
+          onSectionErrors: (e) {
+            if (mounted) setState(() => _sectionErrors = e);
+          },
         );
         return LayoutBuilder(
           builder: (context, c) {
@@ -341,7 +357,11 @@ class _EditorColumn extends StatelessWidget {
       return _SettingsPane(vm: vm, company: company);
     }
     if (s == _Section.variables) {
-      return _VariablesPane(onInsert: onInsertVariable);
+      return _VariablesPane(
+        onInsert: onInsertVariable,
+        isTemplate: vm.draft.isTemplate,
+        entities: vm.draft.entities,
+      );
     }
     return _HtmlPane(
       vm: vm,
@@ -424,6 +444,7 @@ class _SettingsPane extends StatelessWidget {
               errorText: vm.fieldErrorFor('name'),
               externalSyncKey: vm.original?.id,
             ),
+            _TemplateToggle(vm: vm),
             _StartFromField(vm: vm),
             _EntitiesField(vm: vm),
             SizedBox(height: InSpacing.md(context)),
@@ -447,6 +468,42 @@ class _SettingsPane extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// `is_template` toggle. Templates use Twig (`{{ }}` / `{% %}`) inside
+/// `<ninja></ninja>` blocks for bespoke documents (statements,
+/// multi-invoice reports). Designs use flat `$tokens`. Flipping ON over
+/// an empty body seeds the minimal Twig scaffold.
+class _TemplateToggle extends StatelessWidget {
+  const _TemplateToggle({required this.vm});
+
+  final DesignEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return Padding(
+      padding: EdgeInsets.only(top: InSpacing.md(context)),
+      child: CheckboxListTile(
+        contentPadding: EdgeInsets.zero,
+        dense: true,
+        controlAffinity: ListTileControlAffinity.leading,
+        value: vm.draft.isTemplate,
+        onChanged: (v) => vm.setIsTemplate(v ?? false),
+        title: Text(context.tr('template')),
+        subtitle: Text(
+          context.tr('template_help'),
+          style: TextStyle(color: tokens.ink3, fontSize: 12),
+        ),
+        secondary: IconButton(
+          tooltip: context.tr('view_docs'),
+          icon: const Icon(Icons.help_outline, size: 18),
+          onPressed: () =>
+              unawaited(launchUrl(Uri.parse(_kTemplateDocsUrl))),
+        ),
+      ),
     );
   }
 }
@@ -544,7 +601,9 @@ class _EntitiesField extends StatelessWidget {
           style: Theme.of(context).textTheme.labelMedium,
         ),
         const SizedBox(height: 4),
-        for (final e in DesignEditViewModel.supportedEntities)
+        for (final e in vm.draft.isTemplate
+            ? DesignEditViewModel.supportedTemplateEntities
+            : DesignEditViewModel.supportedEntities)
           CheckboxListTile(
             contentPadding: EdgeInsets.zero,
             dense: true,
@@ -677,8 +736,13 @@ class _HtmlPane extends StatelessWidget {
           child: DesignCodeField(
             initial: _initial,
             seedRevision: vm.seedRevision,
+            isTemplate: vm.draft.isTemplate,
             onChanged: _onChanged,
             insertController: (c) => controllers[section] = c,
+            // Only the body section ever gets a fresh <ninja> scaffold,
+            // so it's the only section that should consume the flag.
+            caretToNinjaOnSeed:
+                section == _Section.body && vm.consumeSeedCaretToNinja(),
           ),
         ),
       ],
@@ -686,11 +750,26 @@ class _HtmlPane extends StatelessWidget {
   }
 }
 
-/// Grouped, tap-to-insert variable reference.
+/// Grouped, tap-to-insert variable reference. Catalog depends on
+/// [isTemplate]: design-mode shows `$tokens`, template-mode shows the
+/// Twig `{{ … }}` set. The inline editor autocomplete carries the full
+/// catalog; this pane is the browseable subset.
+///
+/// In template mode, groups whose required entity isn't in [entities]
+/// render dimmed via [isGroupEnabledForEntities]. Chips stay tappable
+/// — the gray-out is informational. Design mode never gates because
+/// its lone entity-named group (`$invoice.*`) actually holds generic
+/// document tokens that apply to quotes / credits / POs too.
 class _VariablesPane extends StatefulWidget {
-  const _VariablesPane({required this.onInsert});
+  const _VariablesPane({
+    required this.onInsert,
+    required this.isTemplate,
+    required this.entities,
+  });
 
   final ValueChanged<String> onInsert;
+  final bool isTemplate;
+  final List<String> entities;
 
   @override
   State<_VariablesPane> createState() => _VariablesPaneState();
@@ -703,6 +782,9 @@ class _VariablesPaneState extends State<_VariablesPane> {
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final q = _query.trim().toLowerCase();
+    final groups = widget.isTemplate
+        ? kTwigVariableGroups
+        : kDesignVariableGroups;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -717,15 +799,16 @@ class _VariablesPaneState extends State<_VariablesPane> {
         ),
         SizedBox(height: InSpacing.sm),
         Text(
-          context.tr('variables_hint'),
+          context.tr(
+            widget.isTemplate ? 'variables_hint_template' : 'variables_hint',
+          ),
           style: TextStyle(color: tokens.ink3, fontSize: 12),
         ),
         SizedBox(height: InSpacing.sm),
         Expanded(
           child: ListView(
             children: [
-              for (final g in kDesignVariableGroups)
-                ..._group(context, g, q),
+              for (final g in groups) ..._group(context, g, q),
             ],
           ),
         ),
@@ -742,34 +825,63 @@ class _VariablesPaneState extends State<_VariablesPane> {
         ? g.variables
         : g.variables.where((v) => v.toLowerCase().contains(q)).toList();
     if (vars.isEmpty) return const [];
+    // Design mode never gates; template mode dims groups whose required
+    // entity isn't in the draft's `entities`. Chip taps still work — the
+    // gray-out is just a heads-up that the variable may not render in
+    // this template's context.
+    final enabled = !widget.isTemplate ||
+        isGroupEnabledForEntities(g.titleKey, widget.entities);
+    final opacity = enabled ? 1.0 : 0.45;
     return [
-      Padding(
-        padding: EdgeInsets.only(
-          top: InSpacing.md(context),
-          bottom: InSpacing.sm,
-        ),
-        child: Text(
-          context.tr(g.titleKey),
-          style: Theme.of(context).textTheme.titleSmall,
+      Opacity(
+        opacity: opacity,
+        child: Padding(
+          padding: EdgeInsets.only(
+            top: InSpacing.md(context),
+            bottom: InSpacing.sm,
+          ),
+          child: Text(
+            context.tr(g.titleKey),
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
         ),
       ),
-      Wrap(
-        spacing: 6,
-        runSpacing: 6,
-        children: [
-          for (final v in vars)
-            ActionChip(
-              label: Text(
-                v,
-                style: const TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 12,
-                ),
-              ),
-              onPressed: () => widget.onInsert(v),
-            ),
-        ],
+      Opacity(
+        opacity: opacity,
+        child: Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [for (final v in vars) _buildChip(v)],
+        ),
       ),
     ];
+  }
+
+  /// Builds one side-pane chip. Long HTML-comment snippets (currently
+  /// just the statement-template marker) get a shorter preview label
+  /// plus a tooltip carrying the full insertion text and a placement
+  /// hint — the raw 51-char marker would wrap ugly in a chip and the
+  /// user wouldn't know it must live near the top of `<head>`.
+  Widget _buildChip(String v) {
+    if (v.startsWith('<!--')) {
+      return Tooltip(
+        message: 'Inserts: $v\n'
+            'Place near the top of <head> in a statement template.',
+        child: ActionChip(
+          label: const Text(
+            '<!-- Statement marker -->',
+            style: TextStyle(fontFamily: 'monospace', fontSize: 12),
+          ),
+          onPressed: () => widget.onInsert(v),
+        ),
+      );
+    }
+    return ActionChip(
+      label: Text(
+        v,
+        style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+      ),
+      onPressed: () => widget.onInsert(v),
+    );
   }
 }

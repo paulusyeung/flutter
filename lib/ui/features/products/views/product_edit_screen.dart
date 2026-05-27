@@ -38,6 +38,11 @@ class ProductEditScreen extends StatelessWidget {
         companyId: companyId,
         existing: existing,
         cloneFrom: cloneFrom,
+        useCommaAsDecimalPlace: services
+                .formatterIfReady(companyId)
+                ?.settings
+                .useCommaAsDecimalPlace ??
+            false,
       ),
       titleWhileLoading: (ctx) =>
           existingId == null ? ctx.tr('new_product') : ctx.tr('edit'),

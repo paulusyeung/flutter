@@ -17,12 +17,22 @@ import 'package:admin/utils/formatting.dart';
 ///   * [draftIsNonEmpty] — used by the create-mode dirty check; defaults to
 ///     `true` so a brand-new screen is treated as dirty
 abstract class GenericEditViewModel<T> extends ChangeNotifier {
-  GenericEditViewModel({required T initialDraft, T? original})
-    : _original = original,
-      _draft = initialDraft;
+  GenericEditViewModel({
+    required T initialDraft,
+    T? original,
+    bool useCommaAsDecimalPlace = false,
+  })  : _original = original,
+        _draft = initialDraft,
+        _useCommaAsDecimalPlace = useCommaAsDecimalPlace;
 
   final T? _original;
   T _draft;
+
+  /// Honors the company's `useCommaAsDecimalPlace` setting for [setDec].
+  /// Without this, a user with that setting enabled typing `1,5` gets the
+  /// comma stripped by [parseDecimal]'s regex and stored as `15` — a silent
+  /// 10× corruption. Subclasses thread the company setting via `super`.
+  final bool _useCommaAsDecimalPlace;
 
   T get draft => _draft;
   T? get original => _original;
@@ -182,8 +192,16 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
       updateDraft(write(_draft, v));
 
   @protected
-  void setDec(T Function(T, Decimal) write, String input) =>
-      updateDraft(write(_draft, parseDecimal(input) ?? Decimal.zero));
+  void setDec(T Function(T, Decimal) write, String input) => updateDraft(
+        write(
+          _draft,
+          parseDecimal(
+                input,
+                useCommaAsDecimalPlace: _useCommaAsDecimalPlace,
+              ) ??
+              Decimal.zero,
+        ),
+      );
 
   @protected
   void setInt(T Function(T, int) write, String input) =>

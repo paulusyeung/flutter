@@ -86,7 +86,7 @@ class EntityListTopRow<T> extends StatelessWidget {
             foregroundColor: tokens.ink2,
             side: BorderSide(color: tokens.border),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(InRadii.r1),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             minimumSize: const Size(0, 36),

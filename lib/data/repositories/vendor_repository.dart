@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show Value, BooleanExpressionOperators;
 import 'package:logging/logging.dart';
 
 import 'package:admin/domain/columns/vendor_columns.dart';
@@ -438,7 +438,8 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi>    implem
     final current = decodeRawDocumentsColumn(row.documents);
     final next = current.where((d) => d.id != documentId).toList();
     if (next.length == current.length) return; // not found; no-op
-    await (db.update(db.vendors)..where((v) => v.id.equals(entityId))).write(
+    await (db.update(db.vendors)
+          ..where((v) => v.companyId.equals(companyId) & v.id.equals(entityId))).write(
       VendorsCompanion(
         documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
       ),
@@ -464,7 +465,8 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi>    implem
     if (!current.any((d) => d.id == document.id)) {
       next.add(document);
     }
-    await (db.update(db.vendors)..where((v) => v.id.equals(entityId))).write(
+    await (db.update(db.vendors)
+          ..where((v) => v.companyId.equals(companyId) & v.id.equals(entityId))).write(
       VendorsCompanion(
         documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
       ),

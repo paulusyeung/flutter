@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show Value, BooleanExpressionOperators;
 import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/app_database.dart';
@@ -627,7 +627,8 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
     final current = decodeRawDocumentsColumn(row.documents);
     final next = current.where((d) => d.id != documentId).toList();
     if (next.length == current.length) return;
-    await (db.update(db.invoices)..where((e) => e.id.equals(entityId))).write(
+    await (db.update(db.invoices)
+          ..where((e) => e.companyId.equals(companyId) & e.id.equals(entityId))).write(
       InvoicesCompanion(
         documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
       ),
@@ -653,7 +654,8 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
     if (!current.any((d) => d.id == document.id)) {
       next.add(document);
     }
-    await (db.update(db.invoices)..where((e) => e.id.equals(entityId))).write(
+    await (db.update(db.invoices)
+          ..where((e) => e.companyId.equals(companyId) & e.id.equals(entityId))).write(
       InvoicesCompanion(
         documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
       ),

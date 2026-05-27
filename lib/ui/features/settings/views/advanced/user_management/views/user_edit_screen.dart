@@ -178,6 +178,7 @@ class _UserEditBody extends StatelessWidget {
       length: 3,
       child: SettingsScreenScaffold(
         titleKey: isCreate ? 'new_user' : 'edit_user',
+        leading: const BackButton(),
         actions: [
           TextButton(
             onPressed: canSave ? () => _save(context, vm) : null,

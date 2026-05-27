@@ -1058,7 +1058,19 @@ class _PaymentScheduleRowTileState extends State<_PaymentScheduleRowTile> {
                 ],
                 enabled: !isPast,
                 onChanged: (v) {
-                  final parsed = parseDecimal(v) ?? Decimal.zero;
+                  final services = context.read<Services>();
+                  final companyId =
+                      services.auth.session.value?.currentCompanyId ?? '';
+                  final useComma = services
+                          .formatterIfReady(companyId)
+                          ?.settings
+                          .useCommaAsDecimalPlace ??
+                      false;
+                  final parsed = parseDecimal(
+                        v,
+                        useCommaAsDecimalPlace: useComma,
+                      ) ??
+                      Decimal.zero;
                   widget.onChanged(row.copyWith(amount: parsed));
                 },
               ),

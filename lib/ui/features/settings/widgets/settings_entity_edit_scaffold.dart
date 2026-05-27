@@ -199,12 +199,14 @@ class _SettingsEntityEditScaffoldState<T, VM extends GenericEditViewModel<T>>
     if (_loading) {
       return SettingsScreenScaffold(
         titleKey: titleKey,
+        leading: const BackButton(),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
     if (_loadError != null || _vm == null) {
       return SettingsScreenScaffold(
         titleKey: titleKey,
+        leading: const BackButton(),
         body: EmptyState(
           icon: Icons.error_outline,
           title: context.tr('not_found'),
@@ -233,6 +235,7 @@ class _SettingsEntityEditScaffoldState<T, VM extends GenericEditViewModel<T>>
           );
           final scaffold = SettingsScreenScaffold(
             titleKey: titleKey,
+            leading: const BackButton(),
             actions: [
               if (!isCreate)
                 SettingsEntityOverflowMenu(

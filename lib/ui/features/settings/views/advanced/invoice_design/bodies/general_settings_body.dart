@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
@@ -152,20 +151,6 @@ class GeneralSettingsBody extends StatelessWidget {
               allowBlank: true,
               bundledDesigns: bundled,
               forEntity: 'payment',
-            ),
-          ],
-        ),
-        FormSection(
-          title: context.tr('custom_designs'),
-          children: [
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.dashboard_customize_outlined),
-              title: Text(context.tr('custom_designs')),
-              subtitle: Text(context.tr('custom_designs_help')),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () =>
-                  context.go('/settings/invoice_design/custom_designs'),
             ),
           ],
         ),

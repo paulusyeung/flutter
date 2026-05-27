@@ -50,7 +50,6 @@ import 'package:admin/ui/features/settings/views/advanced/integrations/api_webho
 import 'package:admin/ui/features/tokens/views/token_edit_screen.dart';
 import 'package:admin/ui/features/webhooks/views/webhook_edit_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/integrations/integrations_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/invoice_design/custom_designs_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/invoice_design_shell.dart';
 import 'package:admin/ui/features/settings/views/advanced/schedules_edit_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/schedules_screen.dart';
@@ -294,14 +293,15 @@ final List<RouteBase> settingsRoutes = [
   _leaf('device_settings', () => const DeviceSettingsScreen()),
 
   // ── Advanced ──────────────────────────────────────────────────────────
-  // Invoice Design is one shell with a tab per PDF-variable section + a
-  // General Settings tab + Custom Designs. Shared page key so the bare URL
-  // and each `/<slug>` resolve to the same Navigator Page — keeps the
-  // cascade VM + TabController alive across tab clicks.
+  // Invoice Design is one shell with a Custom Designs tab + a tab per
+  // PDF-variable section + a General Settings tab. Shared page key so the
+  // bare URL and each `/<slug>` resolve to the same Navigator Page — keeps
+  // the cascade VM + TabController alive across tab clicks.
   ...tabbedSettingsRoutePair(
     path: 'invoice_design',
     pageKey: 'invoice_design_shell',
     tabSlugs: const [
+      'custom_designs',
       'client_details',
       'company_details',
       'company_address',
@@ -317,10 +317,6 @@ final List<RouteBase> settingsRoutes = [
     ],
     shellBuilder: (initialTab) => InvoiceDesignShell(initialTab: initialTab),
   ),
-  // Custom Designs is no longer an Invoice Design tab — it's its own leaf
-  // screen, reached from the "Custom Designs" entry on the General tab (and
-  // still resolvable by its original URL / deep links / search-catalog key).
-  _leaf('invoice_design/custom_designs', () => const CustomDesignsScreen()),
   // Custom Fields is one shell with N module-gated tabs (Company / Clients /
   // Products / Invoices / Payments / Projects / Tasks / Vendors / Expenses /
   // Users). The bare URL and per-tab URL share a page key (see

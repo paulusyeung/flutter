@@ -9,6 +9,7 @@ import 'package:admin/data/static/pdf_catalogs.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/invoice_design_view_model.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
+import 'package:admin/ui/features/settings/views/advanced/invoice_design/bodies/custom_designs_body.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/bodies/general_settings_body.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/bodies/pdf_variable_list_body.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/widgets/invoice_design_preview_pane.dart';
@@ -88,6 +89,17 @@ class InvoiceDesignShell extends StatelessWidget {
         body: const GeneralSettingsBody(),
       ),
       if (isCompanyScope) ...[
+        // Custom Designs sits as the second tab (mirrors React's
+        // `useTabs.ts:28-35`). `contributesToSave: false` because the body
+        // doesn't bind to the cascade VM — it's a self-contained list that
+        // pushes its own edit screen via the outbox, so the AppBar Save
+        // button hides while this tab is active.
+        const TabbedSettingsTab(
+          slug: 'custom_designs',
+          labelKey: 'custom_designs',
+          contributesToSave: false,
+          body: CustomDesignsBody(),
+        ),
         TabbedSettingsTab(
           slug: PdfVariableSection.clientDetails,
           labelKey: 'client_details',
@@ -181,9 +193,6 @@ class InvoiceDesignShell extends StatelessWidget {
             sectionKey: PdfVariableSection.totalColumns,
           ),
         ),
-        // Custom Designs is no longer a tab — it's reached from the
-        // "Custom Designs" entry on the General tab (and its own URL
-        // `/settings/invoice_design/custom_designs`).
       ],
     ];
 

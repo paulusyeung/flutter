@@ -120,7 +120,11 @@ class _OverridableCurrencyFieldState extends State<OverridableCurrencyField> {
       onChanged: (v) {
         // Store the parsed canonical Decimal string so the wire stays
         // locale-agnostic. parseDecimal returning null becomes empty.
-        final parsed = parseDecimal(v);
+        final parsed = parseDecimal(
+          v,
+          useCommaAsDecimalPlace:
+              widget.formatter.settings.useCommaAsDecimalPlace,
+        );
         host.updateSettings((s) => _write(s, parsed?.toString() ?? ''));
       },
       onSubmitted: scope == null ? null : (_) => scope.trySubmit(),

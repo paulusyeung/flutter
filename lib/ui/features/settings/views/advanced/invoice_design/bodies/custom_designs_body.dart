@@ -13,13 +13,18 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/design_edit_screen.dart';
 
-/// Tab body for `/settings/invoice_design/custom_designs`.
+/// Custom Designs tab body — second tab on the Invoice Design shell
+/// (`/settings/invoice_design/custom_designs`).
 ///
 /// Lists Built-in / Custom buckets. Tapping a custom row opens
 /// [DesignEditScreen] for full create / edit / delete (the entity stack,
 /// outbox wiring, and password gate live in [DesignRepository]); built-in
 /// and template rows open the read-only [_DesignDetailScreen] since their
 /// HTML isn't user-editable.
+///
+/// Self-contained — reads `Services` off Provider, doesn't bind to the
+/// cascade VM. The tab is registered with `contributesToSave: false` so the
+/// shell's Save button hides while it's active.
 class CustomDesignsBody extends StatelessWidget {
   const CustomDesignsBody({super.key});
 

@@ -18,6 +18,7 @@ class PaymentLinkEditViewModel extends GenericEditViewModel<PaymentLink> {
     required this.companyId,
     PaymentLink? existing,
     PaymentLink? cloneFrom,
+    super.useCommaAsDecimalPlace,
   }) : super(
          initialDraft: cloneFrom ?? existing ?? emptyPaymentLink(),
          original: existing,

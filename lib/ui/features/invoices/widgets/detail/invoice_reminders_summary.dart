@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/formatter_scope.dart';
 
 /// Read-only summary of the four reminder timestamps on an invoice
 /// (`reminder1Sent` / `reminder2Sent` / `reminder3Sent` / `reminderLastSent`).
@@ -77,7 +77,8 @@ class _RemindRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final fmt = DateFormat.yMMMd(Localizations.localeOf(context).toString());
+    final formatter = FormatterScope.maybeOf(context);
+    final dateText = formatter?.date(date.toIso()) ?? date.toIso();
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
@@ -91,7 +92,7 @@ class _RemindRow extends StatelessWidget {
             ),
           ),
           Text(
-            fmt.format(date.toDateTime()),
+            dateText,
             style: TextStyle(color: tokens.ink3, fontSize: 13),
           ),
         ],

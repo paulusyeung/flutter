@@ -13,6 +13,7 @@ class ProductEditViewModel extends GenericEditViewModel<Product> {
     required this.companyId,
     Product? existing,
     Product? cloneFrom,
+    super.useCommaAsDecimalPlace,
   }) : super(
          initialDraft: cloneFrom ?? existing ?? _emptyProduct(),
          original: existing,

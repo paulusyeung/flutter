@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show Value, BooleanExpressionOperators;
 import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/app_database.dart';
@@ -483,7 +483,10 @@ class PurchaseOrderRepository
     final current = decodeRawDocumentsColumn(row.documents);
     final next = current.where((d) => d.id != documentId).toList();
     if (next.length == current.length) return;
-    await (db.update(db.purchaseOrders)..where((e) => e.id.equals(entityId)))
+    await (db.update(db.purchaseOrders)
+          ..where(
+            (e) => e.companyId.equals(companyId) & e.id.equals(entityId),
+          ))
         .write(
       PurchaseOrdersCompanion(
         documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
@@ -508,7 +511,10 @@ class PurchaseOrderRepository
     if (!current.any((d) => d.id == document.id)) {
       next.add(document);
     }
-    await (db.update(db.purchaseOrders)..where((e) => e.id.equals(entityId)))
+    await (db.update(db.purchaseOrders)
+          ..where(
+            (e) => e.companyId.equals(companyId) & e.id.equals(entityId),
+          ))
         .write(
       PurchaseOrdersCompanion(
         documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),

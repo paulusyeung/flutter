@@ -51,7 +51,10 @@ class _OverridableNumberFieldState extends State<OverridableNumberField> {
     _write = widget.write ?? binding.write;
     final host = context.read<SettingsDraftHost>();
     _controller = TextEditingController(
-      text: _displayFor(_read(host.settings)),
+      text: _displayFor(
+        _read(host.settings),
+        useComma: host.settings.useCommaAsDecimalPlace ?? false,
+      ),
     );
   }
 
@@ -63,13 +66,13 @@ class _OverridableNumberFieldState extends State<OverridableNumberField> {
 
   /// Empty-for-zero, no scientific notation. Mirrors `Formatter.inputAmount`
   /// without taking a dependency on the currency map.
-  String _displayFor(String? raw) {
+  String _displayFor(String? raw, {required bool useComma}) {
     if (raw == null || raw.isEmpty) return '';
     if (widget.integerOnly) {
       final n = int.tryParse(raw.trim());
       return n == null || n == 0 ? '' : n.toString();
     }
-    final d = parseDecimal(raw);
+    final d = parseDecimal(raw, useCommaAsDecimalPlace: useComma);
     if (d == null || d == Decimal.zero) return '';
     return d.toString();
   }
@@ -77,7 +80,8 @@ class _OverridableNumberFieldState extends State<OverridableNumberField> {
   @override
   Widget build(BuildContext context) {
     final host = context.watch<SettingsDraftHost>();
-    final hostValue = _displayFor(_read(host.settings));
+    final useComma = host.settings.useCommaAsDecimalPlace ?? false;
+    final hostValue = _displayFor(_read(host.settings), useComma: useComma);
     if (_controller.text != hostValue) {
       _controller.value = TextEditingValue(
         text: hostValue,
@@ -108,15 +112,23 @@ class _OverridableNumberFieldState extends State<OverridableNumberField> {
         // Empty/unparseable input is stored as the empty string — matches
         // OverridableTextField's "absent override is empty string" wire
         // shape, so `setOverride(enabled: true)` writes a meaningful value
-        // and `setOverride(enabled: false)` clears it.
-        host.updateSettings((s) => _write(s, v));
+        // and `setOverride(enabled: false)` clears it. Decimal input is
+        // canonicalized so the wire stays locale-agnostic (the server
+        // expects `1.5`, never `1,5`).
+        if (widget.integerOnly) {
+          host.updateSettings((s) => _write(s, v));
+        } else {
+          final parsed = parseDecimal(v, useCommaAsDecimalPlace: useComma);
+          host.updateSettings((s) => _write(s, parsed?.toString() ?? ''));
+        }
       },
       onSubmitted: scope == null ? null : (_) => scope.trySubmit(),
     );
     return OverridableField.bind(
       apiKey: widget.apiKey,
       label: widget.label,
-      cascadedValueOnEnable: () => _displayFor(_read(host.settings)),
+      cascadedValueOnEnable: () =>
+          _displayFor(_read(host.settings), useComma: useComma),
       child: field,
     );
   }

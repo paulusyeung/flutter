@@ -39,12 +39,14 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     if (companyId == null || companyId.isEmpty) {
       return SettingsScreenScaffold(
         titleKey: 'user',
+        leading: const BackButton(),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return SettingsScreenScaffold(
       titleKey: 'user',
+      leading: const BackButton(),
       body: StreamBuilder<User?>(
         stream: services.user.watch(companyId: companyId, id: widget.id),
         builder: (context, snapshot) {

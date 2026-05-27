@@ -21,6 +21,7 @@ import 'package:admin/ui/core/detail/recent_visit_recorder.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/detail/build_standard_documents_tab.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
+import 'package:admin/ui/core/widgets/formatter_scope.dart';
 import 'package:admin/ui/features/billing_shared/activity/billing_doc_activity_tab.dart';
 import 'package:admin/ui/features/billing_shared/sends/billing_doc_sends_tab.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
@@ -82,11 +83,15 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen>
         services: _services,
         companyId: _companyId,
       ),
-      bodyBuilder: (context, invoice) => _Body(
-        invoice: invoice,
-        services: _services,
-        companyId: _companyId,
-      ),
+      bodyBuilder: (context, invoice) {
+        final body = _Body(
+          invoice: invoice,
+          services: _services,
+          companyId: _companyId,
+        );
+        final f = formatter;
+        return f != null ? FormatterScope(formatter: f, child: body) : body;
+      },
     );
   }
 }

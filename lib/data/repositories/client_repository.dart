@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show Value, BooleanExpressionOperators;
 import 'package:logging/logging.dart';
 
 import 'package:admin/domain/columns/client_columns.dart';
@@ -640,7 +640,8 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
     final current = decodeRawDocumentsColumn(row.documents);
     final next = current.where((d) => d.id != documentId).toList();
     if (next.length == current.length) return; // not found; no-op
-    await (db.update(db.clients)..where((c) => c.id.equals(entityId))).write(
+    await (db.update(db.clients)
+          ..where((c) => c.companyId.equals(companyId) & c.id.equals(entityId))).write(
       ClientsCompanion(
         documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
       ),
@@ -667,7 +668,8 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
     if (!current.any((d) => d.id == document.id)) {
       next.add(document);
     }
-    await (db.update(db.clients)..where((c) => c.id.equals(entityId))).write(
+    await (db.update(db.clients)
+          ..where((c) => c.companyId.equals(companyId) & c.id.equals(entityId))).write(
       ClientsCompanion(
         documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
       ),
