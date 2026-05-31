@@ -798,6 +798,94 @@ void main() {
       },
     );
   });
+
+  group('Phase 17 — 500 with non-JSON body surfaces in ServerException', () {
+    test(
+      'HTML / stack-trace body is sampled into ServerException.message',
+      () async {
+        const stackTrace = '<html><body>'
+            'PHP Fatal Error: Call to undefined method '
+            'DesignProcessor::renderBlocks() in '
+            '/var/www/html/app/Services/DesignProcessor.php:142'
+            '</body></html>';
+        final fake = MockClient((_) async => http.Response(
+              stackTrace,
+              500,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+              reasonPhrase: 'Internal Server Error',
+            ));
+        final client = ApiClient(
+          credentials: _creds(),
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fake,
+        );
+        try {
+          await client.getOne('/api/v1/preview');
+          fail('expected ServerException');
+        } on ServerException catch (e) {
+          expect(e.statusCode, 500);
+          // Reason phrase prefix preserved.
+          expect(e.message, contains('Internal Server Error'));
+          // The PHP error inside the HTML body is surfaced inline.
+          expect(e.message, contains('undefined method'));
+          expect(e.message, contains('DesignProcessor::renderBlocks'));
+        }
+      },
+    );
+
+    test(
+      'JSON {"message": "..."} 500 keeps the old behaviour (no body sample)',
+      () async {
+        final fake = MockClient((_) async => http.Response(
+              jsonEncode({'message': 'Database temporarily unavailable'}),
+              500,
+              headers: {'content-type': 'application/json'},
+              reasonPhrase: 'Internal Server Error',
+            ));
+        final client = ApiClient(
+          credentials: _creds(),
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fake,
+        );
+        try {
+          await client.getOne('/api/v1/x');
+          fail('expected ServerException');
+        } on ServerException catch (e) {
+          expect(e.message, 'Database temporarily unavailable');
+          // We don't append a HTML/body sample when JSON already carried
+          // a clean message — banner stays concise.
+          expect(e.message, isNot(contains('Internal Server Error')));
+        }
+      },
+    );
+
+    test('huge HTML body is truncated to ~240 chars in the message', () async {
+      final huge = 'X' * 10000;
+      final fake = MockClient((_) async => http.Response(
+            huge,
+            500,
+            headers: {'content-type': 'text/html'},
+            reasonPhrase: 'Internal Server Error',
+          ));
+      final client = ApiClient(
+        credentials: _creds(),
+        passwordCache: PasswordCache(),
+        onUnauthorized: () async {},
+        httpClient: fake,
+      );
+      try {
+        await client.getOne('/api/v1/x');
+        fail('expected ServerException');
+      } on ServerException catch (e) {
+        // Reason phrase + " — " + first 240 chars + "…" = bounded length.
+        // Anything under 500 keeps the banner usable.
+        expect(e.message.length, lessThan(500));
+        expect(e.message, endsWith('…'));
+      }
+    });
+  });
 }
 
 /// Bump the minor version by [by] — used to fabricate a server-required

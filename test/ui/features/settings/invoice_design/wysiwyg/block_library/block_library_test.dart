@@ -118,4 +118,18 @@ void main() {
       expect(item['show'], isTrue, reason: 'item ${item['label']} missing show:true');
     }
   });
+
+  group('blockSpecFor (Phase 15a const map)', () {
+    test('every kBlockLibrary type resolves to its own spec', () {
+      for (final spec in kBlockLibrary) {
+        expect(identical(blockSpecFor(spec.type), spec), isTrue,
+            reason: 'spec ${spec.type} should be looked up by id');
+      }
+    });
+
+    test('unknown types resolve to null', () {
+      expect(blockSpecFor('not-a-real-block'), isNull);
+      expect(blockSpecFor(''), isNull);
+    });
+  });
 }

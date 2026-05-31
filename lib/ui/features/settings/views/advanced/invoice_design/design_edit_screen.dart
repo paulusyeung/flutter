@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -423,7 +422,8 @@ class _SectionTabs extends StatelessWidget {
   }
 }
 
-/// Code-free tab: name, start-from, entities, recolor link, used-for badge.
+/// Code-free tab: name, start-from, template toggle, entities (templates
+/// only), used-for badge.
 class _SettingsPane extends StatelessWidget {
   const _SettingsPane({required this.vm, required this.company});
 
@@ -446,25 +446,12 @@ class _SettingsPane extends StatelessWidget {
             ),
             _TemplateToggle(vm: vm),
             _StartFromField(vm: vm),
-            _EntitiesField(vm: vm),
+            // Entities picker is only meaningful for templates (which
+            // can target multiple entity types). Non-template designs
+            // default to a single entity and don't need the chooser.
+            if (vm.draft.isTemplate) _EntitiesField(vm: vm),
             SizedBox(height: InSpacing.md(context)),
             _UsedForBadge(vm: vm, company: company),
-            SizedBox(height: InSpacing.sm),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: () {
-                  // Capture the router before popping — after `maybePop()`
-                  // this subtree is being torn down, so `GoRouter.of` on the
-                  // same context would be operating on a deactivated element.
-                  final router = GoRouter.of(context);
-                  Navigator.of(context).maybePop();
-                  router.go('/settings/invoice_design');
-                },
-                icon: const Icon(Icons.palette_outlined, size: 18),
-                label: Text(context.tr('recolor_and_layout')),
-              ),
-            ),
           ],
         ),
       ],

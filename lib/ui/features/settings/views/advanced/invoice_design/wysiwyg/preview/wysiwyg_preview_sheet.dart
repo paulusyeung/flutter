@@ -10,6 +10,7 @@ import 'package:admin/data/models/domain/design.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/live_design_service.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/features/settings/view_models/design_edit_view_model.dart';
 import 'package:admin/utils/pdf_bytes_guard.dart';
 
 /// Server-PDF preview of the current WYSIWYG draft. Sends the [Design]
@@ -145,9 +146,14 @@ class _WysiwygPreviewSheetState extends State<WysiwygPreviewSheet> {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final entityOptions = widget.design.entities.isEmpty
-        ? const <String>['invoice']
-        : widget.design.entities;
+    // Phase 18: dropdown lists every supported entity type (invoice /
+    // quote / credit / purchase_order; broader set for templates) so
+    // the user can preview any rendering regardless of which entities
+    // the design happens to be bound to. The default selection logic
+    // in initState still prefers `design.entities.first` when set.
+    final entityOptions = widget.design.isTemplate
+        ? DesignEditViewModel.supportedTemplateEntities
+        : DesignEditViewModel.supportedEntities;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [

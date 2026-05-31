@@ -39,13 +39,24 @@ class BlockMovePayload extends CanvasDropPayload {
 /// click-and-drag to move blocks. Resize handles, alignment guides, and
 /// fine-grained block renderers land in Phase 2.
 class WysiwygCanvas extends StatefulWidget {
-  const WysiwygCanvas({super.key, required this.vm});
+  const WysiwygCanvas({super.key, required this.vm, this.showGrid});
 
   final WysiwygDesignViewModel vm;
+
+  /// Phase 16: workspace-owned `ValueNotifier<bool>` that toggles the
+  /// column + row guide lines. `null` keeps the legacy always-on
+  /// behaviour so callers that don't wire the toggle (e.g. preview-
+  /// only test setups) still see the grid.
+  final ValueListenable<bool>? showGrid;
 
   @override
   State<WysiwygCanvas> createState() => _WysiwygCanvasState();
 }
+
+/// Fallback notifier handed to [ValueListenableBuilder] when the
+/// canvas caller doesn't wire its own `showGrid` toggle — keeps the
+/// grid permanently visible without per-call boilerplate.
+final ValueNotifier<bool> _alwaysShown = ValueNotifier<bool>(true);
 
 class _WysiwygCanvasState extends State<WysiwygCanvas> {
   /// Grid units high — chosen so a portrait A4-shaped canvas fits at
@@ -202,10 +213,22 @@ class _WysiwygCanvasState extends State<WysiwygCanvas> {
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
-                          _GridGuides(
-                            cellWidth: cellWidth,
-                            cellHeight: cellHeight,
-                            color: tokens.border,
+                          // Phase 16: hidden when the workspace's
+                          // showGrid notifier is false. Wrapped in
+                          // its own ValueListenableBuilder so a toggle
+                          // doesn't trigger the surrounding block
+                          // tree to rebuild.
+                          ValueListenableBuilder<bool>(
+                            valueListenable:
+                                widget.showGrid ?? _alwaysShown,
+                            key: const ValueKey('canvas-grid-guides'),
+                            builder: (_, shown, _) => shown
+                                ? _GridGuides(
+                                    cellWidth: cellWidth,
+                                    cellHeight: cellHeight,
+                                    color: tokens.border,
+                                  )
+                                : const SizedBox.shrink(),
                           ),
                           // Deselect when the user clicks empty canvas.
                           Positioned.fill(
@@ -296,7 +319,11 @@ class _GridGuides extends StatelessWidget {
     return Positioned.fill(
       child: IgnorePointer(
         child: CustomPaint(
-          painter: _GuidesPainter(cellWidth: cellWidth, color: color),
+          painter: _GuidesPainter(
+            cellWidth: cellWidth,
+            cellHeight: cellHeight,
+            color: color,
+          ),
         ),
       ),
     );
@@ -304,23 +331,39 @@ class _GridGuides extends StatelessWidget {
 }
 
 class _GuidesPainter extends CustomPainter {
-  _GuidesPainter({required this.cellWidth, required this.color});
+  _GuidesPainter({
+    required this.cellWidth,
+    required this.cellHeight,
+    required this.color,
+  });
   final double cellWidth;
+  final double cellHeight;
   final Color color;
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color.withValues(alpha: 0.5)
       ..strokeWidth = 0.5;
+    // Column separators (11 lines between the 12 grid columns).
     for (var i = 1; i < kGridCols; i++) {
       final x = cellWidth * i;
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+    // Phase 16: row separators — derived from the actual canvas
+    // height (the row count grows with the tallest block + slack,
+    // so there's no fixed `kGridRows`).
+    if (cellHeight > 0) {
+      for (var y = cellHeight; y < size.height; y += cellHeight) {
+        canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+      }
     }
   }
 
   @override
   bool shouldRepaint(_GuidesPainter old) =>
-      old.cellWidth != cellWidth || old.color != color;
+      old.cellWidth != cellWidth ||
+      old.cellHeight != cellHeight ||
+      old.color != color;
 }
 
 class _EmptyHint extends StatelessWidget {

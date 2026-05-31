@@ -16,6 +16,7 @@ class TabbedSettingsTab {
     required this.labelKey,
     required this.body,
     this.contributesToSave = true,
+    this.topBarLeading,
   });
 
   /// URL suffix without leading slash. The default tab uses an empty
@@ -35,6 +36,13 @@ class TabbedSettingsTab {
   /// self-contained flows like Two Factor, or device-local controllers like
   /// Theme + Language) — a Save button there would read as a no-op.
   final bool contributesToSave;
+
+  /// Optional widget that the cascade shell renders at the **left** of the
+  /// preview toggle bar (`_PreviewBarButton` row) when this tab is active.
+  /// Lets a tab inject its primary action (e.g. Custom Designs' "New
+  /// design") so it sits on the same horizontal line as the Show Preview
+  /// toggle instead of duplicating a vertical stack inside the body.
+  final Widget? topBarLeading;
 }
 
 /// Generic tabbed shell for company-only settings pages whose contents are

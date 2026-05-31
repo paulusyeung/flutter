@@ -13,7 +13,8 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/design_edit_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/templates.dart';
-import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/templates_gallery.dart';
+import 'package:admin/ui/features/settings/views/settings_shell.dart'
+    show hideSettingsListSidebar;
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/wysiwyg_design_screen.dart';
 
 /// Custom Designs tab body — second tab on the Invoice Design shell
@@ -30,6 +31,31 @@ import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg
 /// shell's Save button hides while it's active.
 class CustomDesignsBody extends StatelessWidget {
   const CustomDesignsBody({super.key});
+
+  @override
+  Widget build(BuildContext context) => const _BodyImpl();
+}
+
+/// Top-bar action injected into the cascade shell's preview-toggle row
+/// for the Custom Designs tab (see `TabbedSettingsTab.topBarLeading`).
+/// Lives outside `CustomDesignsBody` so the shell can render it alongside
+/// "Show Preview" instead of stacking it below.
+class CustomDesignsNewDesignButton extends StatelessWidget {
+  const CustomDesignsNewDesignButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      style: FilledButton.styleFrom(minimumSize: const Size(64, 40)),
+      onPressed: () => _showNewDesignChooser(context),
+      icon: const Icon(Icons.add, size: 18),
+      label: Text(context.tr('new_design')),
+    );
+  }
+}
+
+class _BodyImpl extends StatelessWidget {
+  const _BodyImpl();
 
   @override
   Widget build(BuildContext context) {
@@ -49,23 +75,33 @@ class CustomDesignsBody extends StatelessWidget {
 
 /// Open the full design create/edit screen. Modal sub-flow (not page
 /// navigation) — see the routing rule in `docs/architecture.md` § Navigation.
+///
+/// Phase 12: while the editor is open, flip [hideSettingsListSidebar] so
+/// the wide-mode shell hides its 280 px sidebar column and the live
+/// preview gets the reclaimed space. The flag auto-resets when the push
+/// future completes (back / save / discard / system-back all funnel here).
 Future<void> showDesignEditScreen(
   BuildContext context, {
   String? existingId,
   Design? seedFrom,
   String? importJson,
   bool startInHtml = false,
-}) {
-  return Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) => DesignEditScreen(
-        existingId: existingId,
-        seedFrom: seedFrom,
-        importJson: importJson,
-        startInHtml: startInHtml,
+}) async {
+  hideSettingsListSidebar.value = true;
+  try {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => DesignEditScreen(
+          existingId: existingId,
+          seedFrom: seedFrom,
+          importJson: importJson,
+          startInHtml: startInHtml,
+        ),
       ),
-    ),
-  );
+    );
+  } finally {
+    hideSettingsListSidebar.value = false;
+  }
 }
 
 /// Open the read-only design detail screen (template rows, which are not
@@ -78,9 +114,12 @@ Future<void> showDesignDetailScreen(BuildContext context, Design design) {
   );
 }
 
-/// Entry chooser. Leads with the visual builder (the easiest path for new
-/// users), then the code-free duplicate flow, raw HTML authoring, and JSON
-/// import. The visual builder is the React `invoice-designer` branch port.
+/// Entry chooser. Three options (Phase 11): the visual builder
+/// pre-seeded with the standard starter so users land on a populated
+/// canvas; the tabbed Twig editor open to the HTML tab (the
+/// "Edit HTML" path absorbs the old "Duplicate a built-in" + "Edit
+/// the HTML" entries since they routed to the same screen); and a
+/// paste-JSON importer.
 Future<void> _showNewDesignChooser(BuildContext context) async {
   await showDialog<void>(
     context: context,
@@ -93,25 +132,17 @@ Future<void> _showNewDesignChooser(BuildContext context) async {
           subtitle: Text(ctx.tr('drag_and_drop_to_add')),
           onTap: () {
             Navigator.of(ctx).pop();
-            showWysiwygDesignScreen(context);
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.dashboard_customize_outlined),
-          title: Text(ctx.tr('start_from_template')),
-          subtitle: Text(ctx.tr('starter_templates_hint')),
-          onTap: () async {
-            Navigator.of(ctx).pop();
-            await _showTemplateGallery(context);
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.dashboard_customize_outlined),
-          title: Text(ctx.tr('duplicate_a_builtin')),
-          subtitle: Text(ctx.tr('duplicate_a_builtin_hint')),
-          onTap: () {
-            Navigator.of(ctx).pop();
-            showDesignEditScreen(context);
+            // Phase 11: pre-seed with the `standard` starter so users
+            // land on a populated canvas instead of an empty grid.
+            final starters = buildStarterTemplates();
+            final standard = starters.firstWhere(
+              (s) => s.id == 'standard',
+              orElse: () => starters.first,
+            );
+            showWysiwygDesignScreen(
+              context,
+              seedFrom: _seedFromStarter(standard),
+            );
           },
         ),
         ListTile(
@@ -120,7 +151,9 @@ Future<void> _showNewDesignChooser(BuildContext context) async {
           subtitle: Text(ctx.tr('edit_the_html_hint')),
           onTap: () {
             Navigator.of(ctx).pop();
-            showDesignEditScreen(context, startInHtml: true);
+            // Land on the Settings tab so the user sets name / start-from
+            // / template first; HTML editing is one tab over.
+            showDesignEditScreen(context);
           },
         ),
         ListTile(
@@ -137,46 +170,46 @@ Future<void> _showNewDesignChooser(BuildContext context) async {
   );
 }
 
-/// Phase 8f: starter template picker — rich card-grid gallery with
-/// category filter chips and abstract structural previews, mirroring
-/// React's `TemplateGallery.tsx`. Built on top of the hand-coded
-/// [buildStarterTemplates] data; on pick, builds a synthetic `Design`
-/// and opens the WYSIWYG screen.
-Future<void> _showTemplateGallery(BuildContext context) async {
-  final picked = await showRichTemplateGallery(context);
-  if (picked == null || !context.mounted) return;
-  final seed = Design(
-    id: '',
-    name: '',
-    isCustom: true,
-    isActive: true,
-    isTemplate: false,
-    isFree: false,
-    entities: const ['invoice'],
-    template: DesignTemplate(blocks: picked.blocks),
-    updatedAt: DateTime.utc(2000),
-    createdAt: DateTime.utc(2000),
-    archivedAt: null,
-    isDeleted: false,
-  );
-  await showWysiwygDesignScreen(context, seedFrom: seed);
-}
+/// Synthesize an unsaved `Design` that wraps a starter template's
+/// blocks. Used by the Visual Designer entry (pre-seeded with
+/// `standard`) and any future template-gallery flow.
+Design _seedFromStarter(DesignTemplateStarter starter) => Design(
+  id: '',
+  name: '',
+  isCustom: true,
+  isActive: true,
+  isTemplate: false,
+  isFree: false,
+  entities: const ['invoice'],
+  template: DesignTemplate(blocks: starter.blocks),
+  updatedAt: DateTime.utc(2000),
+  createdAt: DateTime.utc(2000),
+  archivedAt: null,
+  isDeleted: false,
+);
 
 /// Open the WYSIWYG visual designer (sibling to [showDesignEditScreen]).
 /// Modal sub-flow — see `docs/architecture.md` § Navigation.
+///
+/// Phase 12: same sidebar-hide treatment as [showDesignEditScreen].
 Future<void> showWysiwygDesignScreen(
   BuildContext context, {
   String? existingId,
   Design? seedFrom,
-}) {
-  return Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) => WysiwygDesignScreen(
-        existingId: existingId,
-        seedFrom: seedFrom,
+}) async {
+  hideSettingsListSidebar.value = true;
+  try {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => WysiwygDesignScreen(
+          existingId: existingId,
+          seedFrom: seedFrom,
+        ),
       ),
-    ),
-  );
+    );
+  } finally {
+    hideSettingsListSidebar.value = false;
+  }
 }
 
 Future<void> _promptImportJson(BuildContext context) async {
@@ -231,17 +264,7 @@ class _DesignsListView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Merge bundled with the static built-in catalog so the screen renders
-    // before /refresh delivers the first envelope. Bundled rows win on id
-    // collision (the server is authoritative).
-    final byId = <String, _Row>{};
-    for (final d in kBuiltInDesigns) {
-      byId[d.id] = _Row.builtIn(d.id, d.name, d.isFree);
-    }
-    for (final d in bundled) {
-      byId[d.id] = _Row.fromDomain(d);
-    }
-    final rows = byId.values.toList()..sort((a, b) => a.name.compareTo(b.name));
+    final rows = mergeDesignRows(bundled);
     final builtIn = rows.where((r) => !r.isCustom).toList();
     final custom = rows.where((r) => r.isCustom).toList();
 
@@ -250,23 +273,13 @@ class _DesignsListView extends StatelessWidget {
         horizontal: InSpacing.lg(context),
         vertical: InSpacing.md(context),
       ),
+      // "+ New design" used to live here; it's been hoisted into the
+      // shell's preview-toggle bar via `TabbedSettingsTab.topBarLeading`
+      // (see `CustomDesignsNewDesignButton` + `invoice_design_shell.dart`)
+      // so it sits on the same horizontal line as "Show preview"
+      // instead of stacking below it.
       children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Padding(
-            padding: EdgeInsets.only(bottom: InSpacing.md(context)),
-            child: FilledButton.icon(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(64, 44),
-              ),
-              onPressed: () => _showNewDesignChooser(context),
-              icon: const Icon(Icons.add, size: 18),
-              label: Text(context.tr('new_design')),
-            ),
-          ),
-        ),
         if (custom.isNotEmpty) ...[
-          _SectionHeader(label: context.tr('custom_designs')),
           for (final r in custom) _DesignTile(row: r),
           SizedBox(height: InSpacing.lg(context)),
         ],
@@ -493,6 +506,49 @@ class _Pill extends StatelessWidget {
 /// a [Design] reference when the row came from the bundle (so the detail
 /// screen has the full template HTML) and is null for the pure-static
 /// built-in catalog entries (no template HTML on hand until the bundle lands).
+/// Merge the server-bundled designs with the static built-in catalog
+/// into a single sorted row list.
+///
+/// **Phase 14 dedupe rule:** when `bundled` carries any non-custom row
+/// the server is authoritative — drop [kBuiltInDesigns] entirely so
+/// installs whose server-side IDs diverge from the static catalog
+/// don't show each built-in twice (the old by-id merge let
+/// non-matching ids through). The catalog only contributes to
+/// first-paint / offline scenarios where no built-in has arrived yet.
+@visibleForTesting
+List<DesignListRow> mergeDesignRows(List<Design> bundled) {
+  // Composite key — different shape per bucket:
+  //   * Built-ins (`isCustom: false`) dedupe by NAME, case-insensitive
+  //     trimmed. Server-side IDs diverge from the static catalog on many
+  //     installs, AND the server itself can return the same built-in at
+  //     two ids (e.g. an original + a copy). Both should collapse to one
+  //     row.
+  //   * Custom designs dedupe by id only. Two custom designs with the
+  //     same name are legitimate (user named both "Invoice v2"); they
+  //     must not silently merge.
+  final byKey = <String, _Row>{};
+  String keyFor(_Row r) => r.isCustom
+      ? 'c:${r.id}'
+      : 'b:${r.name.toLowerCase().trim()}';
+
+  final hasBundledBuiltIns = bundled.any((d) => !d.isCustom);
+  if (!hasBundledBuiltIns) {
+    for (final d in kBuiltInDesigns) {
+      final row = _Row.builtIn(d.id, d.name, d.isFree);
+      byKey[keyFor(row)] = row;
+    }
+  }
+  for (final d in bundled) {
+    final row = _Row.fromDomain(d);
+    byKey[keyFor(row)] = row; // server wins on built-in name collision
+  }
+  return byKey.values.toList()..sort((a, b) => a.name.compareTo(b.name));
+}
+
+/// Public alias for [_Row] so [mergeDesignRows]' return type is
+/// reachable from tests. The `_Row` shape stays internal to the body.
+typedef DesignListRow = _Row;
+
 class _Row {
   const _Row({
     required this.id,

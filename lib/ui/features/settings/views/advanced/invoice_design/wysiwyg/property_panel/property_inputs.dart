@@ -77,21 +77,27 @@ class AlignmentInput extends StatelessWidget {
         ),
         SizedBox(height: InSpacing.sm),
         SegmentedButton<String>(
+          // Phase 19a: icon-only segments. The 280 px property panel
+          // truncates "Center" / "Right" labels onto two lines —
+          // dropping the text and keeping the universally-recognized
+          // format_align icons fixes the wrap. `tooltip:` keeps the
+          // wordy label discoverable on hover and via screen readers
+          // (Tooltip emits a Semantics annotation).
           segments: [
             ButtonSegment(
               value: 'left',
               icon: const Icon(Icons.format_align_left, size: 18),
-              label: Text(context.tr('left')),
+              tooltip: context.tr('left'),
             ),
             ButtonSegment(
               value: 'center',
               icon: const Icon(Icons.format_align_center, size: 18),
-              label: Text(context.tr('center')),
+              tooltip: context.tr('center'),
             ),
             ButtonSegment(
               value: 'right',
               icon: const Icon(Icons.format_align_right, size: 18),
-              label: Text(context.tr('right')),
+              tooltip: context.tr('right'),
             ),
           ],
           selected: {v},

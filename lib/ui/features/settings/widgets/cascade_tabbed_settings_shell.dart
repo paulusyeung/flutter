@@ -278,6 +278,8 @@ class _CascadeTabbedSettingsShellState extends State<CascadeTabbedSettingsShell>
             sidePane: widget.sidePane!,
             previewShown: _previewShown,
             fullScreenBuilder: widget.sidePaneFullScreenBuilder,
+            tabController: _tabController,
+            tabs: widget.tabs,
           )
         : tabBarView;
     if (widget.banner == null) return content;
@@ -304,12 +306,25 @@ class _SidePaneLayout extends StatelessWidget {
     required this.sidePane,
     required this.previewShown,
     required this.fullScreenBuilder,
+    required this.tabController,
+    required this.tabs,
   });
 
   final Widget tabBarView;
   final Widget sidePane;
   final ValueNotifier<bool> previewShown;
   final Widget Function(BuildContext context)? fullScreenBuilder;
+  final TabController tabController;
+  final List<TabbedSettingsTab> tabs;
+
+  /// Read the active tab's `topBarLeading` and rebuild when it changes.
+  /// Wrap in [AnimatedBuilder] at call sites so the preview bar refreshes
+  /// when the user switches tabs.
+  Widget? _currentLeading() {
+    final i = tabController.index;
+    if (i < 0 || i >= tabs.length) return null;
+    return tabs[i].topBarLeading;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -336,14 +351,18 @@ class _SidePaneLayout extends StatelessWidget {
             builder: (context, shown, _) {
               return Column(
                 children: [
-                  _PreviewBarButton(
-                    icon: shown
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                    label: shown
-                        ? context.tr('hide_preview')
-                        : context.tr('show_preview'),
-                    onPressed: () => previewShown.value = !shown,
+                  AnimatedBuilder(
+                    animation: tabController,
+                    builder: (context, _) => _PreviewBarButton(
+                      icon: shown
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      label: shown
+                          ? context.tr('hide_preview')
+                          : context.tr('show_preview'),
+                      onPressed: () => previewShown.value = !shown,
+                      leading: _currentLeading(),
+                    ),
                   ),
                   Expanded(child: shown ? sidePane : tabBarView),
                 ],
@@ -358,11 +377,15 @@ class _SidePaneLayout extends StatelessWidget {
         return Column(
           children: [
             if (builder != null)
-              _PreviewBarButton(
-                icon: Icons.visibility_outlined,
-                label: context.tr('preview'),
-                onPressed: () =>
-                    showCascadeFullScreenPreview(context, builder),
+              AnimatedBuilder(
+                animation: tabController,
+                builder: (context, _) => _PreviewBarButton(
+                  icon: Icons.visibility_outlined,
+                  label: context.tr('preview'),
+                  onPressed: () =>
+                      showCascadeFullScreenPreview(context, builder),
+                  leading: _currentLeading(),
+                ),
               ),
             Expanded(child: tabBarView),
           ],
@@ -372,21 +395,31 @@ class _SidePaneLayout extends StatelessWidget {
   }
 }
 
-/// Right-aligned bar holding the preview toggle / open button. Shared by the
+/// Top bar holding the preview toggle / open button on the right, plus
+/// an optional per-tab [leading] widget on the left (currently used by
+/// Custom Designs to inject its "+ New Design" button). Shared by the
 /// tablet (toggle) and phone (open-modal) branches of [_SidePaneLayout].
 class _PreviewBarButton extends StatelessWidget {
   const _PreviewBarButton({
     required this.icon,
     required this.label,
     required this.onPressed,
+    this.leading,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onPressed;
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
+    final previewBtn = OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+      onPressed: onPressed,
+    );
     return Padding(
       padding: EdgeInsets.fromLTRB(
         InSpacing.lg(context),
@@ -394,14 +427,12 @@ class _PreviewBarButton extends StatelessWidget {
         InSpacing.lg(context),
         0,
       ),
-      child: Align(
-        alignment: Alignment.centerRight,
-        child: OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
-          icon: Icon(icon, size: 18),
-          label: Text(label),
-          onPressed: onPressed,
-        ),
+      child: Row(
+        children: [
+          if (leading != null) leading!,
+          const Spacer(),
+          previewBtn,
+        ],
       ),
     );
   }

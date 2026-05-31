@@ -327,4 +327,38 @@ void main() {
       expect(vm.documentSettings.hideEmptyColumns, isTrue);
     });
   });
+
+  group('Phase 19a — AlignmentInput is icon-only with tooltips', () {
+    testWidgets(
+      'segments carry only icons + tooltips, no per-segment text',
+      (tester) async {
+        await tester.pumpWidget(_wrap(
+          AlignmentInput(
+            labelKey: 'alignment',
+            value: 'left',
+            onChanged: (_) {},
+          ),
+        ));
+        await tester.pump();
+
+        // The three format_align icons render.
+        expect(find.byIcon(Icons.format_align_left), findsOneWidget);
+        expect(find.byIcon(Icons.format_align_center), findsOneWidget);
+        expect(find.byIcon(Icons.format_align_right), findsOneWidget);
+
+        // Each segment carries a tooltip (per ButtonSegment.tooltip).
+        final segmented =
+            tester.widget<SegmentedButton<String>>(find.byType(SegmentedButton<String>));
+        expect(segmented.segments, hasLength(3));
+        for (final seg in segmented.segments) {
+          expect(seg.tooltip, isNotNull,
+              reason: 'segment ${seg.value} should expose a tooltip');
+          // The wordy label was removed in Phase 19a — no per-segment
+          // text widget should be embedded.
+          expect(seg.label, isNull,
+              reason: 'segment ${seg.value} should not carry a text label');
+        }
+      },
+    );
+  });
 }

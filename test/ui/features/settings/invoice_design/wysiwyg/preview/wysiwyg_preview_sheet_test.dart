@@ -294,4 +294,62 @@ void main() {
       );
     });
   });
+
+  group('Phase 18 — entity dropdown lists all supported types', () {
+    testWidgets(
+      'non-template design surfaces invoice + quote + credit + purchase_order',
+      (tester) async {
+        final service = _StubLiveDesignService();
+        await tester.pumpWidget(_wrap(
+          WysiwygPreviewSheet(
+            // Bound to only `invoice` but the dropdown should still
+            // expose every supported entity for preview.
+            service: service,
+            design: _design(entities: const ['invoice']),
+            debounce: Duration.zero,
+          ),
+        ));
+        await tester.pump();
+
+        final dropdown =
+            tester.widget<DropdownButton<String>>(find.byType(DropdownButton<String>));
+        final values = dropdown.items?.map((i) => i.value).toSet() ?? <String?>{};
+        expect(values, containsAll(<String>[
+          'invoice',
+          'quote',
+          'credit',
+          'purchase_order',
+        ]));
+      },
+    );
+
+    testWidgets(
+      'template design carries the broader supported-template-entities list',
+      (tester) async {
+        final service = _StubLiveDesignService();
+        await tester.pumpWidget(_wrap(
+          WysiwygPreviewSheet(
+            service: service,
+            design: _design().copyWith(isTemplate: true),
+            debounce: Duration.zero,
+          ),
+        ));
+        await tester.pump();
+
+        final dropdown =
+            tester.widget<DropdownButton<String>>(find.byType(DropdownButton<String>));
+        final values = dropdown.items?.map((i) => i.value).toSet() ?? <String?>{};
+        // Templates additionally cover payment / client / project /
+        // task / expense per DesignEditViewModel.supportedTemplateEntities.
+        expect(values, containsAll(<String>[
+          'invoice',
+          'payment',
+          'client',
+          'project',
+          'task',
+          'expense',
+        ]));
+      },
+    );
+  });
 }

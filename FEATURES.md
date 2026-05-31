@@ -1064,7 +1064,6 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | WYSIWYG — Pro gate (Save disabled for free users) | ✅ | ❌ | ✅ | — | |
 | WYSIWYG — export design JSON (copy to clipboard or download .json file) | ✅ | ❌ | ✅ | — | |
 | WYSIWYG — rich template gallery (categorized card grid + abstract previews + filters) | ✅ | ❌ | ✅ | — | |
-| WYSIWYG — top-bar zoom indicator | ✅ | ❌ | ✅ | — | |
 | WYSIWYG — Total block keepTogether page-break switch | ✅ | ❌ | ✅ | — | |
 | WYSIWYG — import design JSON from the WYSIWYG toolbar (overwrite-confirm) | ✅ | ❌ | ✅ | — | |
 | WYSIWYG — free-user PDF preview watermark | ✅ | ❌ | ✅ | — | |
@@ -1072,6 +1071,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | WYSIWYG — Total block-level fontSize default | ✅ | ❌ | ✅ | — | |
 | WYSIWYG — document `embedDocuments` toggle | ✅ | ❌ | ✅ | — | |
 | WYSIWYG — document `hideEmptyColumns` toggle | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — top bar packs design name + actions on one row (tablet+) | ✅ | ❌ | ✅ | — | |
 | WYSIWYG — table columns reorder + delete | ✅ | ❌ | ✅ | — | |
 | WYSIWYG — total items reorder + show/hide | ✅ | ❌ | ✅ | — | |
 | WYSIWYG — info-block fieldConfigs reorder + hideIfEmpty toggle | ✅ | ❌ | ✅ | — | |

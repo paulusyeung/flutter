@@ -458,18 +458,58 @@ class _NumberField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
-      decoration: InputDecoration(labelText: context.tr(labelKey)),
-      initialValue: value.toString(),
-      keyboardType: TextInputType.number,
-      onChanged: (v) {
-        final parsed = int.tryParse(v.trim());
-        if (parsed == null) return;
-        var clamped = parsed;
-        if (minValue != null && clamped < minValue!) clamped = minValue!;
-        if (maxValue != null && clamped > maxValue!) clamped = maxValue!;
-        onChanged(clamped);
-      },
+    final tokens = context.inTheme;
+    // Phase 19b: small static label above a compact dense input. The
+    // previous Material floating-label decoration truncated to "T..." /
+    // "Ri..." / "B..." / "L..." at the ~60 px cell width inside a
+    // _Quad row. A 10 px Text above the input keeps the full word
+    // ("Top" / "Right" / "Bottom" / "Left") legible without overflow.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          context.tr(labelKey),
+          style: TextStyle(
+            fontSize: 10,
+            color: tokens.ink3,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        SizedBox(height: InSpacing.xs),
+        TextFormField(
+          decoration: InputDecoration(
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 8,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(InRadii.r1),
+              borderSide: BorderSide(color: tokens.border, width: 1),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(InRadii.r1),
+              borderSide: BorderSide(color: tokens.border, width: 1),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(InRadii.r1),
+              borderSide: BorderSide(color: tokens.accent, width: 1.5),
+            ),
+          ),
+          initialValue: value.toString(),
+          keyboardType: TextInputType.number,
+          textAlign: TextAlign.center,
+          onChanged: (v) {
+            final parsed = int.tryParse(v.trim());
+            if (parsed == null) return;
+            var clamped = parsed;
+            if (minValue != null && clamped < minValue!) clamped = minValue!;
+            if (maxValue != null && clamped > maxValue!) clamped = maxValue!;
+            onChanged(clamped);
+          },
+        ),
+      ],
     );
   }
 }

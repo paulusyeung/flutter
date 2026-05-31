@@ -4,6 +4,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/design.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/property_panel/cell_typography_editor.dart';
+import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/property_panel/expandable_property_row.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/property_panel/property_inputs.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/wysiwyg_design_view_model.dart';
 
@@ -400,59 +401,31 @@ class _ColumnRow extends StatelessWidget {
     final field = (column['field'] as String?) ?? '';
     final width = (column['width'] as String?) ?? '';
     final align = (column['align'] as String?) ?? 'left';
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: InSpacing.xs),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              ReorderableDragStartListener(
-                index: index,
-                child:
-                    Icon(Icons.drag_indicator, color: tokens.ink3, size: 20),
-              ),
-              SizedBox(width: InSpacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      headerKey.isEmpty ? field : context.tr(headerKey),
-                      style: Theme.of(context).textTheme.bodyMedium,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      '$field  ·  $width  ·  $align',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontFamily: 'monospace',
-                        color: tokens.ink3,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                tooltip: context.tr(expanded ? 'collapse' : 'expand'),
-                icon: Icon(
-                  expanded ? Icons.expand_less : Icons.expand_more,
-                  size: 18,
-                ),
-                onPressed: onToggleExpanded,
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline, size: 18),
-                onPressed: onDelete,
-              ),
-            ],
-          ),
-          if (expanded) _ExpandedColumnEditor(
-            column: column,
-            onColumnChanged: onColumnChanged,
-          ),
-        ],
+    return ExpandablePropertyRow(
+      index: index,
+      title: Text(
+        headerKey.isEmpty ? field : context.tr(headerKey),
+        style: Theme.of(context).textTheme.bodyMedium,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(
+        '$field  ·  $width  ·  $align',
+        style: TextStyle(
+          fontSize: 11,
+          fontFamily: 'monospace',
+          color: tokens.ink3,
+        ),
+        overflow: TextOverflow.ellipsis,
+      ),
+      expanded: expanded,
+      onToggleExpanded: onToggleExpanded,
+      trailing: IconButton(
+        icon: const Icon(Icons.delete_outline, size: 18),
+        onPressed: onDelete,
+      ),
+      expandedChild: _ExpandedColumnEditor(
+        column: column,
+        onColumnChanged: onColumnChanged,
       ),
     );
   }

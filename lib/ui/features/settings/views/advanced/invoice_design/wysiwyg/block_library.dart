@@ -467,12 +467,15 @@ Map<String, dynamic> _tableDefaults({
   'alternateRows': true,
 };
 
+/// Type → spec lookup index, frozen at import time. Lets [blockSpecFor]
+/// run in O(1) instead of an O(N) linear scan (Phase 15a) — matters on
+/// the mobile reorder list where the lookup fires per row per scroll
+/// frame.
+final Map<String, BlockSpec> _kBlockSpecsByType = Map.unmodifiable({
+  for (final spec in kBlockLibrary) spec.type: spec,
+});
+
 /// Find a block spec by its `type` string. Returns null when the type is
 /// unknown — render the fallback "Unknown block" placeholder in that case
 /// so a future server-side block type doesn't crash the canvas.
-BlockSpec? blockSpecFor(String type) {
-  for (final spec in kBlockLibrary) {
-    if (spec.type == type) return spec;
-  }
-  return null;
-}
+BlockSpec? blockSpecFor(String type) => _kBlockSpecsByType[type];

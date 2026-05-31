@@ -4,6 +4,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/design.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/property_panel/cell_typography_editor.dart';
+import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/property_panel/expandable_property_row.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/property_panel/property_inputs.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/property_panel/variable_picker.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/wysiwyg_design_view_model.dart';
@@ -264,7 +265,8 @@ class _InfoBlockPropertiesState extends State<InfoBlockProperties> {
 /// Reorderable row inside the fieldConfigs list. Collapsed: handle +
 /// label + variable + expand-chevron + delete. Expanded: inline
 /// `label` / `prefix` / `suffix` / `hideIfEmpty` controls + nested
-/// CellTypographyEditor for `labelStyle` and `valueStyle`.
+/// CellTypographyEditor for `labelStyle` and `valueStyle`. The
+/// surrounding chrome lives in [ExpandablePropertyRow] (Phase 15b).
 class _FieldRow extends StatelessWidget {
   const _FieldRow({
     super.key,
@@ -289,60 +291,31 @@ class _FieldRow extends StatelessWidget {
     final labelKey = (field['label'] as String?) ?? '';
     final variable = (field['variable'] as String?) ?? '';
     final displayLabel = labelKey.isEmpty ? variable : context.tr(labelKey);
-
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: InSpacing.xs),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              ReorderableDragStartListener(
-                index: index,
-                child:
-                    Icon(Icons.drag_indicator, color: tokens.ink3, size: 20),
-              ),
-              SizedBox(width: InSpacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      displayLabel,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      variable,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontFamily: 'monospace',
-                        color: tokens.ink3,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                tooltip: context.tr(expanded ? 'collapse' : 'expand'),
-                icon: Icon(
-                  expanded ? Icons.expand_less : Icons.expand_more,
-                  size: 18,
-                ),
-                onPressed: onToggleExpanded,
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline, size: 18),
-                onPressed: onDelete,
-              ),
-            ],
-          ),
-          if (expanded) _ExpandedFieldEditor(
-            field: field,
-            onFieldChanged: onFieldChanged,
-          ),
-        ],
+    return ExpandablePropertyRow(
+      index: index,
+      title: Text(
+        displayLabel,
+        style: Theme.of(context).textTheme.bodyMedium,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(
+        variable,
+        style: TextStyle(
+          fontSize: 11,
+          fontFamily: 'monospace',
+          color: tokens.ink3,
+        ),
+        overflow: TextOverflow.ellipsis,
+      ),
+      expanded: expanded,
+      onToggleExpanded: onToggleExpanded,
+      trailing: IconButton(
+        icon: const Icon(Icons.delete_outline, size: 18),
+        onPressed: onDelete,
+      ),
+      expandedChild: _ExpandedFieldEditor(
+        field: field,
+        onFieldChanged: onFieldChanged,
       ),
     );
   }

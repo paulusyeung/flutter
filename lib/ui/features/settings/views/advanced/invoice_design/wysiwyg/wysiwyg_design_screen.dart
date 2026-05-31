@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io' show File;
 
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show ValueListenable, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -136,6 +136,13 @@ class _WorkspaceState extends State<_Workspace> {
   /// coexistence banner. Stays dismissed for the session.
   bool _twigBannerDismissed = false;
 
+  /// Phase 16: per-session show/hide flag for the canvas grid guides.
+  /// Defaults visible. Both `_TopBar` (toggle button) and
+  /// `WysiwygCanvas` (renders `_GridGuides` only when true) subscribe.
+  /// Transient — not persisted, matches the `_previewShown` pattern in
+  /// the cascade shell.
+  final ValueNotifier<bool> _showGrid = ValueNotifier<bool>(true);
+
   @override
   void initState() {
     super.initState();
@@ -145,6 +152,12 @@ class _WorkspaceState extends State<_Workspace> {
         if (mounted) widget.vm.loadFrom(seed);
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _showGrid.dispose();
+    super.dispose();
   }
 
   /// Whether the loaded design has custom Twig in `body` (anything not the
@@ -264,27 +277,47 @@ class _WorkspaceState extends State<_Workspace> {
         },
         child: Focus(
           autofocus: true,
+          // Phase 15c analysis: the children below are either const
+          // (`_ProGateBanner`) or thin pass-through wrappers
+          // (`_TopBar` / `_DesignNameField` / `_DesktopLayout` etc.)
+          // whose deep subscribers (canvas / property panel / preview)
+          // already manage their own rebuild scope. The
+          // `MediaQuery.size` read + the `_twigBannerDismissed` local
+          // state both rebuild on changes regardless of the VM
+          // listener. The per-keystroke cost lives inside the
+          // children's own subscriptions, and the Phase 8c text-
+          // debounce + the preview sheet's 800 ms debounce are the
+          // tools that fix the actual cascade.
+          //
+          // We DO pass the immutable Pro-gate banner via the builder's
+          // `child:` slot — `ListenableBuilder` then short-circuits
+          // its re-instantiation across rebuilds.
           child: ListenableBuilder(
             listenable: widget.vm,
-            builder: (context, _) {
+            child: widget.isPro ? null : const _ProGateBanner(),
+            builder: (context, proGate) {
               final width = MediaQuery.of(context).size.width;
               return Column(
                 children: [
-                  if (!widget.isPro) const _ProGateBanner(),
+                  if (proGate != null) proGate,
                   if (!_twigBannerDismissed && _hasCustomTwig())
                     _TwigCoexistenceBanner(
                       onStartVisual: () =>
                           setState(() => _twigBannerDismissed = true),
                       onStayInTwig: () => Navigator.of(context).maybePop(),
                     ),
-                  _TopBar(vm: widget.vm),
-                  _DesignNameField(vm: widget.vm),
+                  _TopBar(vm: widget.vm, showGrid: _showGrid),
+                  // Phase 10: the design-name field lives INSIDE
+                  // _TopBar on tablet+. Phone keeps the legacy
+                  // dedicated row since the inline slot would crowd
+                  // the toolbar past overflow.
+                  if (width < 600) _DesignNameField(vm: widget.vm),
                   Expanded(
                     child: width < 600
                         ? _PhoneLayout(vm: widget.vm)
                         : width < 1024
-                            ? _TabletLayout(vm: widget.vm)
-                            : _DesktopLayout(vm: widget.vm),
+                            ? _TabletLayout(vm: widget.vm, showGrid: _showGrid)
+                            : _DesktopLayout(vm: widget.vm, showGrid: _showGrid),
                   ),
                 ],
               );
@@ -419,11 +452,15 @@ class _ResizeNudgeIntent extends Intent {
 }
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.vm});
+  const _TopBar({required this.vm, required this.showGrid});
   final WysiwygDesignViewModel vm;
+  /// Phase 16: workspace-owned grid-visibility flag. The toggle button
+  /// flips it; `WysiwygCanvas` listens to show/hide `_GridGuides`.
+  final ValueNotifier<bool> showGrid;
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: InSpacing.lg(context),
@@ -436,6 +473,16 @@ class _TopBar extends StatelessWidget {
       ),
       child: Row(
         children: [
+          // Phase 10: design-name field FIRST — the design's identity
+          // takes precedence over editing controls. Phone keeps the
+          // legacy dedicated row (handled in the workspace Column).
+          if (width >= 600) ...[
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 320),
+              child: _InlineDesignNameField(vm: vm),
+            ),
+            const _ToolbarDivider(),
+          ],
           IconButton(
             icon: const Icon(Icons.undo_outlined),
             tooltip: context.tr('undo'),
@@ -446,27 +493,35 @@ class _TopBar extends StatelessWidget {
             tooltip: context.tr('redo'),
             onPressed: vm.canRedo ? vm.redo : null,
           ),
-          SizedBox(width: InSpacing.md(context)),
-          TextButton.icon(
-            icon: const Icon(Icons.dashboard_customize_outlined, size: 18),
-            label: Text(context.tr('fix_overlaps')),
-            onPressed: vm.blocks.isEmpty ? null : vm.fixOverlaps,
-          ),
+          // Fix-overlaps removed (2026-05-31): redundant safety net —
+          // addBlock/addBlockAt + moveBlock auto-pushCollisionsDown on
+          // insert/drop, and the resize gesture's onPanEnd already
+          // calls vm.fixOverlaps() in `wysiwyg_canvas.dart`. The VM
+          // method stays for those auto callers and future imports.
           const Spacer(),
-          // Phase 8g: zoom indicator. Fixed at 100% — the canvas
-          // doesn't expose zoom yet and pinch-zoom would be a gesture
-          // concern. Hidden on narrow viewports to keep the top bar
-          // from overflowing.
-          if (MediaQuery.sizeOf(context).width >= 720) ...[
-            Text(
-              '${context.tr('zoom')}: 100%',
-              style: TextStyle(
-                fontSize: 12,
-                color: context.inTheme.ink3,
+          // Zoom indicator removed (2026-05-31): it was a Phase 8g
+          // React-parity port that just rendered a fixed "Zoom: 100%"
+          // label with no wired interaction. The label disappeared
+          // with no behaviour change since the canvas auto-fits its
+          // pane on every layout. Re-add as a real Slider /
+          // SegmentedButton if pinch / step-zoom ever ships.
+          // Phase 16: grid show/hide toggle. Lives next to the canvas-
+          // adjacent controls (export menu) rather than buried in a
+          // menu. Wrapped in a ValueListenableBuilder so the icon swaps
+          // when the flag flips without rebuilding the rest of the bar.
+          ValueListenableBuilder<bool>(
+            valueListenable: showGrid,
+            builder: (context, visible, _) => IconButton(
+              icon: Icon(
+                visible
+                    ? Icons.grid_on_outlined
+                    : Icons.grid_off_outlined,
+                size: 18,
               ),
+              tooltip: context.tr(visible ? 'hide_grid' : 'show_grid'),
+              onPressed: () => showGrid.value = !visible,
             ),
-            SizedBox(width: InSpacing.md(context)),
-          ],
+          ),
           // Phase 8e: export menu — clipboard (legacy) + file download.
           // React's `InvoiceBuilder.tsx` downloads `invoice-design-{ts}.json`;
           // we keep the clipboard option for power users + add the file
@@ -707,9 +762,120 @@ class _DesignNameField extends StatelessWidget {
   }
 }
 
-class _DesktopLayout extends StatelessWidget {
-  const _DesktopLayout({required this.vm});
+/// Phase 10: thin vertical separator between toolbar clusters. Mirrors
+/// React's `<div className="h-6 w-px bg-gray-300" />` rule lines that
+/// punctuate `BuilderToolbar.tsx`.
+class _ToolbarDivider extends StatelessWidget {
+  const _ToolbarDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: InSpacing.md(context)),
+      child: Container(
+        width: 1,
+        height: 20,
+        color: context.inTheme.border,
+      ),
+    );
+  }
+}
+
+/// Phase 10: inline design-name field that lives inside `_TopBar` on
+/// tablet+ widths. Mirrors React's `BuilderToolbar.tsx` middle-slot
+/// design-name display, with the Flutter-specific addition of inline
+/// edit (React's span is read-only). Reuses the same controller-
+/// lifecycle pattern as `SettingsTextField` but emits a compact,
+/// toolbar-density `TextField` instead of the labeled settings shape.
+///
+/// `externalSyncKey: vm.draft.id` flushes the controller when a JSON
+/// import or template-load swaps the draft to a different design id.
+class _InlineDesignNameField extends StatefulWidget {
+  const _InlineDesignNameField({required this.vm});
   final WysiwygDesignViewModel vm;
+
+  @override
+  State<_InlineDesignNameField> createState() =>
+      _InlineDesignNameFieldState();
+}
+
+class _InlineDesignNameFieldState extends State<_InlineDesignNameField> {
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.vm.draft.name);
+  String? _lastSyncedId;
+
+  @override
+  void initState() {
+    super.initState();
+    _lastSyncedId = widget.vm.draft.id;
+  }
+
+  @override
+  void didUpdateWidget(covariant _InlineDesignNameField old) {
+    super.didUpdateWidget(old);
+    // Mirrors SettingsTextField's externalSyncKey rule: reseed when the
+    // draft id changes (e.g. Import JSON loaded a different design) and
+    // the on-screen text doesn't already match.
+    final nextId = widget.vm.draft.id;
+    if (nextId != _lastSyncedId &&
+        widget.vm.draft.name != _controller.text) {
+      _lastSyncedId = nextId;
+      final text = widget.vm.draft.name;
+      _controller.value = TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return Tooltip(
+      message: context.tr('design_name'),
+      child: TextField(
+        controller: _controller,
+        textInputAction: TextInputAction.done,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+        decoration: InputDecoration(
+          hintText: context.tr('untitled'),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 8,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(InRadii.r2),
+            borderSide: BorderSide(color: tokens.border, width: 1),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(InRadii.r2),
+            borderSide: BorderSide(color: tokens.border, width: 1),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(InRadii.r2),
+            borderSide: BorderSide(color: tokens.accent, width: 1.5),
+          ),
+        ),
+        onChanged: widget.vm.setName,
+      ),
+    );
+  }
+}
+
+class _DesktopLayout extends StatelessWidget {
+  const _DesktopLayout({required this.vm, required this.showGrid});
+  final WysiwygDesignViewModel vm;
+  final ValueListenable<bool> showGrid;
 
   @override
   Widget build(BuildContext context) {
@@ -721,7 +887,7 @@ class _DesktopLayout extends StatelessWidget {
             children: [
               ComponentPalette(vm: vm),
               const VerticalDivider(width: 1),
-              Expanded(child: WysiwygCanvas(vm: vm)),
+              Expanded(child: WysiwygCanvas(vm: vm, showGrid: showGrid)),
               const VerticalDivider(width: 1),
               PropertyPanel(vm: vm),
             ],
@@ -733,8 +899,9 @@ class _DesktopLayout extends StatelessWidget {
 }
 
 class _TabletLayout extends StatelessWidget {
-  const _TabletLayout({required this.vm});
+  const _TabletLayout({required this.vm, required this.showGrid});
   final WysiwygDesignViewModel vm;
+  final ValueListenable<bool> showGrid;
 
   @override
   Widget build(BuildContext context) {
@@ -745,7 +912,7 @@ class _TabletLayout extends StatelessWidget {
           children: [
             ComponentPalette(vm: vm),
             const VerticalDivider(width: 1),
-            Expanded(child: WysiwygCanvas(vm: vm)),
+            Expanded(child: WysiwygCanvas(vm: vm, showGrid: showGrid)),
           ],
         ),
         if (vm.panelMode == PropertyPanelMode.block)

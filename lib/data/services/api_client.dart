@@ -702,8 +702,37 @@ class ApiClient {
     } catch (_) {
       /* non-JSON body */
     }
-    final message =
-        json?['message']?.toString() ?? response.reasonPhrase ?? 'HTTP $status';
+    // Phase 17: surface the response body when the server returned a
+    // non-JSON 5xx (PHP stack trace, Symfony error page, etc.) so the
+    // user sees the actual cause instead of a bare "HTTP 500". JSON
+    // `{"message": "..."}` responses already had a message; keep that
+    // path unchanged. Truncate the inline preview to keep banners
+    // readable; the full body still lands in the diagnostics log via
+    // the _log.warning below.
+    String message;
+    if (json?['message'] != null) {
+      message = json!['message'].toString();
+    } else if (status >= 500 && response.body.isNotEmpty) {
+      final body = response.body;
+      final preview =
+          body.length > 240 ? '${body.substring(0, 240)}…' : body;
+      message = '${response.reasonPhrase ?? 'HTTP $status'} — $preview';
+    } else {
+      message = response.reasonPhrase ?? 'HTTP $status';
+    }
+    // Log the full body (capped) for diagnostics-log capture — lets the
+    // user pull a server-side stack trace from Settings → Advanced →
+    // System Logs without copy-pasting from the banner. Skip when the
+    // server gave us a clean JSON message (already covered by the
+    // banner). Cap at 4 KB so a runaway HTML dump doesn't bloat the
+    // on-disk log.
+    if (status >= 500 && json?['message'] == null && response.body.isNotEmpty) {
+      final body = response.body;
+      final capped = body.length > 4096 ? '${body.substring(0, 4096)}…' : body;
+      _log.warning(
+        'HTTP $status from ${response.request?.url}: $capped',
+      );
+    }
 
     final errorType = json?['error_type']?.toString().toLowerCase();
     switch (status) {

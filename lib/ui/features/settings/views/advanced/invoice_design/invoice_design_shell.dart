@@ -99,6 +99,10 @@ class InvoiceDesignShell extends StatelessWidget {
           labelKey: 'custom_designs',
           contributesToSave: false,
           body: CustomDesignsBody(),
+          // Inject "+ New design" into the shell's preview-toggle bar so
+          // it sits on the same row as "Show preview" instead of stacking
+          // below the body's first list item.
+          topBarLeading: CustomDesignsNewDesignButton(),
         ),
         TabbedSettingsTab(
           slug: PdfVariableSection.clientDetails,

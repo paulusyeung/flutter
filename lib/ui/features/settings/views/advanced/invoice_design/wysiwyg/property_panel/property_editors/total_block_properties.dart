@@ -4,6 +4,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/design.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/property_panel/cell_typography_editor.dart';
+import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/property_panel/expandable_property_row.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/property_panel/property_inputs.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/wysiwyg_design_view_model.dart';
 
@@ -298,70 +299,44 @@ class _TotalItemRow extends StatelessWidget {
     final show = (item['show'] as bool?) ?? true;
     final isTotal = (item['isTotal'] as bool?) ?? false;
     final isBalance = (item['isBalance'] as bool?) ?? false;
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: InSpacing.xs),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+    return ExpandablePropertyRow(
+      index: index,
+      title: Text(
+        _readableLabel(context, labelKey, field),
+        style: Theme.of(context).textTheme.bodyMedium,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Row(
         children: [
-          Row(
-            children: [
-              ReorderableDragStartListener(
-                index: index,
-                child:
-                    Icon(Icons.drag_indicator, color: tokens.ink3, size: 20),
-              ),
-              SizedBox(width: InSpacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _readableLabel(context, labelKey, field),
-                      style: Theme.of(context).textTheme.bodyMedium,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Row(
-                      children: [
-                        Text(
-                          field,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontFamily: 'monospace',
-                            color: tokens.ink3,
-                          ),
-                        ),
-                        if (isTotal || isBalance) ...[
-                          SizedBox(width: InSpacing.sm),
-                          Icon(
-                            isBalance
-                                ? Icons.account_balance_wallet_outlined
-                                : Icons.functions,
-                            size: 12,
-                            color: tokens.ink3,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                tooltip: context.tr(expanded ? 'collapse' : 'expand'),
-                icon: Icon(
-                  expanded ? Icons.expand_less : Icons.expand_more,
-                  size: 18,
-                ),
-                onPressed: onToggleExpanded,
-              ),
-              Switch.adaptive(value: show, onChanged: onToggleShow),
-            ],
+          Text(
+            field,
+            style: TextStyle(
+              fontSize: 11,
+              fontFamily: 'monospace',
+              color: tokens.ink3,
+            ),
           ),
-          if (expanded) _ExpandedTotalEditor(
-            item: item,
-            onItemChanged: onItemChanged,
-            onItemPatch: onItemPatch,
-          ),
+          if (isTotal || isBalance) ...[
+            SizedBox(width: InSpacing.sm),
+            Icon(
+              isBalance
+                  ? Icons.account_balance_wallet_outlined
+                  : Icons.functions,
+              size: 12,
+              color: tokens.ink3,
+            ),
+          ],
         ],
+      ),
+      expanded: expanded,
+      onToggleExpanded: onToggleExpanded,
+      // Total items are hideable, not deletable — the show switch takes
+      // the trailing slot in place of Info/Table's delete icon.
+      trailing: Switch.adaptive(value: show, onChanged: onToggleShow),
+      expandedChild: _ExpandedTotalEditor(
+        item: item,
+        onItemChanged: onItemChanged,
+        onItemPatch: onItemPatch,
       ),
     );
   }

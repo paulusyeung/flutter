@@ -513,4 +513,67 @@ void main() {
       expect(vm.blocks.single.type, 'text');
     });
   });
+
+  group('Phase 15d — performSave → repo round-trip', () {
+    test(
+      'create then watchById returns the same blocks + documentSettings',
+      () async {
+        final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
+        // Build a non-trivial draft covering every important corner of the
+        // schema: blocks list, GridPosition, properties (incl. Phase 8j
+        // keepTogether), and DocumentSettings.
+        vm.addBlock(_specByType('logo'));
+        vm.addBlock(_specByType('total'));
+        // Flip the keepTogether flag on the total block we just added.
+        final totalBlock = vm.blocks.last;
+        vm.updateBlock(totalBlock.copyWith(
+          properties: {
+            ...totalBlock.properties,
+            'keepTogether': true,
+            'align': 'right',
+          },
+        ));
+        vm.setDocumentSettings(vm.documentSettings.copyWith(
+          pageSize: 'Letter',
+          embedDocuments: true,
+          hideEmptyColumns: true,
+        ));
+        vm.setName('Round-trip test');
+
+        // Save (create branch — vm.isCreate is true; this lands a `tmp_…`
+        // row in Drift plus an outbox create row).
+        final saved = await vm.performSave();
+        expect(saved.id, isNotEmpty);
+
+        // Read back via the same repo. Use `watchAll` since the
+        // create-path id is tmp_; we don't have a real server id yet.
+        final all = await repo.watchAll(companyId: companyId).first;
+        final fresh = all.firstWhere((d) => d.name == 'Round-trip test');
+
+        // Blocks survived.
+        expect(fresh.template.blocks, hasLength(2));
+        expect(
+          fresh.template.blocks.map((b) => b.type).toList(),
+          ['logo', 'total'],
+        );
+
+        // The Phase 8j keepTogether boolean made it through the mapper
+        // → Drift → row-rebuild cycle.
+        final totalAfter = fresh.template.blocks.firstWhere(
+          (b) => b.type == 'total',
+        );
+        expect(totalAfter.properties['keepTogether'], isTrue);
+        expect(totalAfter.properties['align'], 'right');
+
+        // GridPosition survived intact.
+        expect(totalAfter.gridPosition.w, greaterThan(0));
+        expect(totalAfter.gridPosition.h, greaterThan(0));
+
+        // DocumentSettings round-tripped including the Phase 9c/9d flags.
+        expect(fresh.template.documentSettings?.pageSize, 'Letter');
+        expect(fresh.template.documentSettings?.embedDocuments, isTrue);
+        expect(fresh.template.documentSettings?.hideEmptyColumns, isTrue);
+      },
+    );
+  });
 }
