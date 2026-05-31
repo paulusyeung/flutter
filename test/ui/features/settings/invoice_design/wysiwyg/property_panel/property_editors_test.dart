@@ -9,6 +9,7 @@ import 'package:admin/data/repositories/design_repository.dart';
 import 'package:admin/data/services/designs_api.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/block_library.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/property_panel/cell_typography_editor.dart';
+import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/property_panel/property_panel.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/property_panel/property_editors/info_block_properties.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/property_panel/property_editors/table_block_properties.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/property_panel/property_editors/text_block_properties.dart';
@@ -326,6 +327,85 @@ void main() {
       expect(vm.documentSettings.embedDocuments, isTrue);
       expect(vm.documentSettings.hideEmptyColumns, isTrue);
     });
+  });
+
+  group('Phase 19b / 20d — _Quad direction labels render above inputs', () {
+    // PropertyPanel renders the document form for an unselected block.
+    // The Phase 19b restructure pushed each _NumberField's label up as
+    // a static Text widget above a dense TextFormField; the previous
+    // Material InputDecoration(labelText:) was truncating to "T..." /
+    // "Ri..." at the panel's 280 px width inside a 4-cell _Quad row.
+    // This guard catches a regression that flips back.
+    Widget bareWrap(Widget child) => MaterialApp(
+          localizationsDelegates: kTestLocalizationsDelegates,
+          supportedLocales: kTestSupportedLocales,
+          locale: const Locale('en'),
+          theme: buildInTheme(InTheme.light),
+          home: Scaffold(body: child),
+        );
+
+    testWidgets(
+      'each direction label renders twice — once per Quad (margin + padding)',
+      (tester) async {
+        // PropertyPanel's document form uses a ListView; switches below
+        // the default 600 px viewport don't mount, but the two _Quad
+        // rows sit near the top so we just need a small bump.
+        await tester.binding.setSurfaceSize(const Size(420, 1600));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        // The font-picker DropdownButtonFormField has a pre-existing
+        // 68 px horizontal overflow at the panel's fixed 280 px width
+        // — unrelated to Phase 19b. Suppress it so the assertions
+        // below aren't pre-empted by the framework's error handler.
+        final originalOnError = FlutterError.onError;
+        FlutterError.onError = (details) {
+          final s = details.exceptionAsString();
+          if (s.contains('RenderFlex overflowed')) return;
+          originalOnError?.call(details);
+        };
+        addTearDown(() => FlutterError.onError = originalOnError);
+
+        final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
+        await tester.pumpWidget(bareWrap(PropertyPanel(vm: vm)));
+        await tester.pump();
+
+        // Both `_Quad`s (Page margin + Padding) render T / R / B / L
+        // labels — 2 occurrences per direction.
+        for (final dir in const ['Top', 'Right', 'Bottom', 'Left']) {
+          expect(find.text(dir), findsNWidgets(2), reason: 'label $dir');
+        }
+
+        // Each direction Text sits ABOVE a TextFormField in the same
+        // Column — spot-check the first 'Top' resolves to a parent
+        // Column also containing a TextFormField.
+        final topText = find.text('Top').first;
+        final ancestorColumn = find.ancestor(
+          of: topText,
+          matching: find.byType(Column),
+        );
+        expect(ancestorColumn, findsAtLeast(1));
+        // Regression guard against reverting to Material floating
+        // labels: TextFormField's inner TextField must not carry a
+        // labelText decoration matching one of the direction words.
+        // (TextFormField wraps TextField → InputDecorator; check the
+        // inner TextField for the decoration.)
+        final allTextFields = tester.widgetList<TextField>(
+          find.byType(TextField),
+        );
+        for (final field in allTextFields) {
+          final lbl = field.decoration?.labelText;
+          if (lbl != null) {
+            expect(
+              const <String>{'Top', 'Right', 'Bottom', 'Left'}
+                  .contains(lbl),
+              isFalse,
+              reason: '_NumberField must not regress to a floating '
+                  'direction label (found "$lbl")',
+            );
+          }
+        }
+      },
+    );
   });
 
   group('Phase 19a — AlignmentInput is icon-only with tooltips', () {

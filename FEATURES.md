@@ -1063,7 +1063,6 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | WYSIWYG — Twig coexistence banner on legacy custom designs | ✅ | ❌ | ✅ | — | |
 | WYSIWYG — Pro gate (Save disabled for free users) | ✅ | ❌ | ✅ | — | |
 | WYSIWYG — export design JSON (copy to clipboard or download .json file) | ✅ | ❌ | ✅ | — | |
-| WYSIWYG — rich template gallery (categorized card grid + abstract previews + filters) | ✅ | ❌ | ✅ | — | |
 | WYSIWYG — Total block keepTogether page-break switch | ✅ | ❌ | ✅ | — | |
 | WYSIWYG — import design JSON from the WYSIWYG toolbar (overwrite-confirm) | ✅ | ❌ | ✅ | — | |
 | WYSIWYG — free-user PDF preview watermark | ✅ | ❌ | ✅ | — | |

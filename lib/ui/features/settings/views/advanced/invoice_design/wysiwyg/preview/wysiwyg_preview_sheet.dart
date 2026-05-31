@@ -134,6 +134,15 @@ class _WysiwygPreviewSheetState extends State<WysiwygPreviewSheet> {
         _errorMessage = e.message;
         _fieldErrors = e.fieldErrors;
       });
+    } on NetworkException catch (_) {
+      // Phase 20c: the api client wraps SocketException / TimeoutException
+      // / failed-host-lookup into NetworkException. Map to a friendly
+      // banner string instead of dumping the raw exception.
+      if (!mounted || seq != _requestSeq) return;
+      setState(() {
+        _loading = false;
+        _errorMessage = context.tr('network_error');
+      });
     } catch (e) {
       if (!mounted || seq != _requestSeq) return;
       setState(() {

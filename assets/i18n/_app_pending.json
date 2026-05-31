@@ -84,6 +84,7 @@
   "hide_empty_columns": "Hide empty columns",
   "show_grid": "Show grid",
   "hide_grid": "Hide grid",
+  "network_error": "Network error — check your connection and try again.",
   "branding": "Branding",
   "document_settings": "Document settings",
   "page_margin": "Page margin",

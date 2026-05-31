@@ -521,6 +521,16 @@ class _FloatingSelectionToolbar extends StatelessWidget {
   final double cellHeight;
 
   static const double _toolbarHeight = 28;
+  // Phase 20a: approximate intrinsic width of the toolbar. Used to
+  // keep it inside the canvas on the LEFT for narrow blocks near x=0
+  // — anchoring by `right: canvasWidth - blockRight` alone lets the
+  // natural-width toolbar overhang past x=0 when its width exceeds
+  // `blockLeft + blockWidth`. The toolbar is 3 IconButtons (each at
+  // Material's default 48-px tap target — `Icon(size: 18)` doesn't
+  // shrink the surrounding hit area) + Padding(4,2) on the Material
+  // wrapper, so measured intrinsic is ~150 px. Round up to be safe;
+  // `MainAxisSize.min` keeps actual painting tight regardless.
+  static const double _toolbarApproxWidth = 160;
 
   @override
   Widget build(BuildContext context) {
@@ -536,14 +546,25 @@ class _FloatingSelectionToolbar extends StatelessWidget {
         : blockTop + 2;
     final blockRight = blockLeft + blockWidth;
     final canvasWidth = cellWidth * kGridCols;
+    // Anchor the toolbar to the block's right edge and let it size to its
+    // content instead of forcing it into `width: blockWidth`. A narrow
+    // selected block (w≈3) is thinner than the three-button toolbar
+    // (~92px), which RenderFlex-overflowed this Row — "overflowed by 8.5
+    // pixels on the right" in the diagnostics log.
+    //
+    // Phase 20a: clamp the right-anchor so the toolbar's implied left
+    // edge stays >= 0 — without this, a 1-cell block at x=0 anchored to
+    // its right edge would paint ~70 px past the canvas's left edge.
+    // `maxRight` is the largest `Positioned.right` that keeps the
+    // intrinsic-width toolbar inside the canvas on the left.
+    final rawRight = canvasWidth - blockRight;
+    final maxRight = canvasWidth - _toolbarApproxWidth;
+    final right = maxRight <= 0
+        ? 0.0
+        : rawRight.clamp(0.0, maxRight).toDouble();
     return Positioned(
       top: top,
-      // Anchor the toolbar to the block's right edge and let it size to its
-      // content instead of forcing it into `width: blockWidth`. A narrow
-      // selected block (w≈3) is thinner than the three-button toolbar
-      // (~92px), which RenderFlex-overflowed this Row — "overflowed by 8.5
-      // pixels on the right" in the diagnostics log.
-      right: canvasWidth - blockRight,
+      right: right,
       child: Material(
         color: tokens.accent,
         borderRadius: BorderRadius.circular(InRadii.r1),

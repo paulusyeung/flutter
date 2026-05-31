@@ -89,4 +89,51 @@ void main() {
       },
     );
   }
+
+  testWidgets(
+    'Phase 20a: narrow block at x=0 keeps the floating toolbar inside '
+    'the canvas left edge (no negative-left paint)',
+    (tester) async {
+      // Fixed surface so cellWidth math is deterministic. 800 / 12 ≈ 66 px
+      // per cell — a 1-cell block at x=0 yields blockRight ≈ 66, which
+      // before the clamp would push the ~96 px toolbar's left edge to
+      // roughly -30 px (off-canvas left).
+      await tester.binding.setSurfaceSize(const Size(800, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
+      vm.addBlock(_specByType('text'));
+      final block = vm.blocks.single;
+      vm.updateBlock(
+        block.copyWith(
+          gridPosition: const GridPosition(x: 0, y: 0, w: 1, h: 2),
+        ),
+      );
+      expect(vm.selectedBlockId, block.id);
+
+      await tester.pumpWidget(_wrap(vm));
+      await tester.pump();
+
+      // No layout exception fired.
+      expect(tester.takeException(), isNull);
+
+      // The Material (the toolbar wrapper) should be fully inside the
+      // canvas's left edge. Find the Material with the accent color
+      // (the floating toolbar) and check its on-screen bounds.
+      final accentMaterial = find.byWidgetPredicate(
+        (w) {
+          if (w is! Material) return false;
+          // The toolbar uses tokens.accent; other Materials in the canvas
+          // are surface-coloured. Heuristic: pick the smallest one near
+          // the top of the canvas.
+          return w.elevation == 2;
+        },
+      );
+      expect(accentMaterial, findsOneWidget,
+          reason: 'expected exactly one floating toolbar Material');
+      final rect = tester.getRect(accentMaterial);
+      expect(rect.left, greaterThanOrEqualTo(0),
+          reason: 'toolbar left edge must stay inside the canvas');
+    },
+  );
 }

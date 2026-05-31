@@ -352,4 +352,32 @@ void main() {
       },
     );
   });
+
+  group('Phase 20c — NetworkException → friendly banner', () {
+    testWidgets(
+      'a NetworkException surfaces as the network_error i18n string, '
+      'not the raw exception',
+      (tester) async {
+        final service = _StubLiveDesignService()
+          ..throwOnNext = const NetworkException(
+            'SocketException: Failed host lookup …',
+          );
+        await tester.pumpWidget(_wrap(
+          WysiwygPreviewSheet(
+            service: service,
+            design: _design(),
+            debounce: Duration.zero,
+          ),
+        ));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
+        // _ErrorBanner renders the translated message; we don't lock to
+        // the full sentence (kept in `_app_pending.json`) but assert
+        // (a) the raw exception text doesn't leak and (b) a
+        // recognisable hint surfaces.
+        expect(find.textContaining('SocketException'), findsNothing);
+        expect(find.textContaining('Network error'), findsOneWidget);
+      },
+    );
+  });
 }
