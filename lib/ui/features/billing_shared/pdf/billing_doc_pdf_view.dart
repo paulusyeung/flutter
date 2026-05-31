@@ -9,6 +9,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
+import 'package:admin/utils/pdf_bytes_guard.dart';
 
 /// Shared PDF preview pane for billing docs. Fetches bytes via the
 /// caller-supplied [fetcher] (typically `services.invoices.api.downloadPdf`)
@@ -147,6 +148,14 @@ class _BillingDocPdfViewState extends State<BillingDocPdfView> {
       );
     }
     if (bytes == null) {
+      return EmptyState(
+        icon: Icons.picture_as_pdf_outlined,
+        title: context.tr('view_pdf'),
+      );
+    }
+    if (!isRenderablePdf(bytes)) {
+      // Empty / non-PDF response — don't feed printing's rasterizer a
+      // zero-page document (RangeError).
       return EmptyState(
         icon: Icons.picture_as_pdf_outlined,
         title: context.tr('view_pdf'),

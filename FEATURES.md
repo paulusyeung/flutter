@@ -1048,6 +1048,50 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Custom design — import / export design JSON | ✅ | ❌ | ✅ | ✅ | |
 | Custom design editor — inline 422 Twig/HTML error per section | ✅ | ❌ | ✅ | ✅ | |
 | Custom design editor — unsaved-changes guard + "used for" warning | 🟡 | 🟡 | ✅ | ✅ | |
+| **WYSIWYG invoice designer** — three-pane drag/drop builder | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — 17 block types (logo, info blocks, tables, totals, text, divider, spacer, etc.) | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — 12-column grid canvas with drag/drop reposition | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — corner + edge resize handles with grid snap | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — ghost preview + alignment guides during drag | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — undo/redo with Cmd-Z / Cmd-Shift-Z + Cmd-S | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — arrow-key nudging (move) + Shift+arrow resize | — | ❌ | ✅ | — | |
+| WYSIWYG — fix-overlaps toolbar action | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — server-PDF live preview button | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — type-specific property editors (text / info / table / total / image / logo) | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — document settings panel (page layout / size / margins / fonts) | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — mobile reorder mode (full-width list, no canvas) | — | ❌ | ✅ | — | |
+| WYSIWYG — Twig coexistence banner on legacy custom designs | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — Pro gate (Save disabled for free users) | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — export design JSON (copy to clipboard or download .json file) | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — rich template gallery (categorized card grid + abstract previews + filters) | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — top-bar zoom indicator | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — Total block keepTogether page-break switch | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — import design JSON from the WYSIWYG toolbar (overwrite-confirm) | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — free-user PDF preview watermark | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — Total block-level alignment (left/center/right table positioning) | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — Total block-level fontSize default | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — document `embedDocuments` toggle | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — document `hideEmptyColumns` toggle | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — table columns reorder + delete | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — total items reorder + show/hide | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — info-block fieldConfigs reorder + hideIfEmpty toggle | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — image / logo source + maxWidth + align + objectFit | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — table column add (catalog picker) + remove | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — image upload (base64 → properties.source) | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — variable picker for info-block fieldConfigs | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — template gallery (Standard / Minimal / Quote-friendly starters) | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — real QR rendering via `qr_flutter` | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — Google Fonts loading for `documentSettings.primaryFont`/`secondaryFont` | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — `design.blocks` + `documentSettings` schema round-trip | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — per-row inline expansion (Info / Total / Table rows expand with chevron) | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — `CellTypographyEditor` sub-cards (labelStyle / valueStyle on field configs + table columns) | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — renderer cascade applies nested `labelStyle` / `valueStyle` on the canvas | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — `$..._label` token map translates row labels (`$subtotal_label` → "Subtotal") | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — QR code 5-preset picker (payment link / SEPA / Swiss / SPC / Verifactu) | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — block-level styling (lineHeight, padding, title sub-group, border editors) | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — desktop drag-and-drop image upload (`desktop_drop`) | — | ❌ | ✅ | — | |
+| WYSIWYG — text-content 300 ms debounce on the canvas | ✅ | ❌ | ✅ | — | |
+| WYSIWYG — table border width clamped to `[0, 20]` + page margins/padding clamped to `[0, 500]` | ✅ | ❌ | ✅ | — | |
 
 ### Custom Fields
 

@@ -493,6 +493,13 @@ const kSettingsSearchCatalog = <String, List<String>>{
     'total_fields',
     'custom_designs',
     'template',
+    // Phase 3d: WYSIWYG visual designer — discoverable from settings
+    // search; routed via Custom Designs → + New → "Visual designer."
+    'visual_designer',
+    'document_settings',
+    'page_margin',
+    'embed_documents',
+    'hide_empty_columns',
   ],
   'custom_fields': [
     'custom_fields',

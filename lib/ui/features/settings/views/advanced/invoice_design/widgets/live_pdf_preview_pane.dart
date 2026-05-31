@@ -9,9 +9,11 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/data/services/live_design_service.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
+import 'package:admin/utils/pdf_bytes_guard.dart';
 
 /// Renders a live PDF preview of the current draft settings via
 /// `POST /api/v1/live_design`. Listens to [SettingsDraftHost] and debounces
@@ -198,6 +200,14 @@ class _LivePdfPreviewPaneState extends State<LivePdfPreviewPane> {
     }
     if (bytes == null) {
       return const Center(child: CircularProgressIndicator());
+    }
+    if (!isRenderablePdf(bytes)) {
+      // Empty / non-PDF response — don't feed printing's rasterizer a
+      // zero-page document (RangeError). Show the neutral empty state.
+      return EmptyState(
+        icon: Icons.picture_as_pdf_outlined,
+        title: context.tr('no_preview_available'),
+      );
     }
     // Embedded mode: hide `PdfPreview`'s built-in print/share toolbar and
     // top-align the page so it doesn't float in the middle of tall windows.

@@ -12,6 +12,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
 import 'package:admin/ui/features/settings/view_models/design_edit_view_model.dart';
+import 'package:admin/utils/pdf_bytes_guard.dart';
 
 /// Live PDF preview of an **in-progress** custom design. Sibling of
 /// `LivePdfPreviewPane`, but bound to a [DesignEditViewModel] instead of the
@@ -220,6 +221,14 @@ class _DesignLivePreviewPaneState extends State<DesignLivePreviewPane> {
     }
     if (bytes == null) {
       return const Center(child: CircularProgressIndicator());
+    }
+    if (!isRenderablePdf(bytes)) {
+      // Empty / non-PDF response — don't feed printing's rasterizer a
+      // zero-page document (RangeError). Show the neutral empty state.
+      return EmptyState(
+        icon: Icons.picture_as_pdf_outlined,
+        title: context.tr('no_preview_available'),
+      );
     }
     final preview = PdfPreview(
       build: (_) => bytes,

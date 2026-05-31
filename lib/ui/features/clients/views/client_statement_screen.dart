@@ -12,6 +12,7 @@ import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/features/clients/view_models/client_statement_view_model.dart';
 import 'package:admin/ui/features/dashboard/widgets/filters/date_range_picker_button.dart';
 import 'package:admin/utils/formatting.dart';
+import 'package:admin/utils/pdf_bytes_guard.dart';
 
 /// Full-screen view for `POST /api/v1/client_statement`. Fetches a PDF and
 /// renders it via `printing`'s [PdfPreview]. The package's toolbar handles
@@ -140,6 +141,14 @@ class _Body extends StatelessWidget {
     if (bytes == null) {
       // Idle no-bytes/no-error path — unreachable in practice because the VM
       // kicks load() on construction, but keep a neutral placeholder.
+      return EmptyState(
+        icon: Icons.picture_as_pdf_outlined,
+        title: context.tr('statement'),
+      );
+    }
+    if (!isRenderablePdf(bytes)) {
+      // Empty / non-PDF response — don't feed printing's rasterizer a
+      // zero-page document (RangeError).
       return EmptyState(
         icon: Icons.picture_as_pdf_outlined,
         title: context.tr('statement'),

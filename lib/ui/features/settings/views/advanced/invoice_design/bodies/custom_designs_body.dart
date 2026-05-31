@@ -12,6 +12,9 @@ import 'package:admin/data/static/built_in_designs_catalog.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/design_edit_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/templates.dart';
+import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/templates_gallery.dart';
+import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/wysiwyg_design_screen.dart';
 
 /// Custom Designs tab body — second tab on the Invoice Design shell
 /// (`/settings/invoice_design/custom_designs`).
@@ -75,14 +78,33 @@ Future<void> showDesignDetailScreen(BuildContext context, Design design) {
   );
 }
 
-/// Entry chooser. Leads with the code-free path (duplicate a built-in /
-/// recolor) and keeps raw HTML authoring + JSON import as secondary options.
+/// Entry chooser. Leads with the visual builder (the easiest path for new
+/// users), then the code-free duplicate flow, raw HTML authoring, and JSON
+/// import. The visual builder is the React `invoice-designer` branch port.
 Future<void> _showNewDesignChooser(BuildContext context) async {
   await showDialog<void>(
     context: context,
     builder: (ctx) => SimpleDialog(
       title: Text(ctx.tr('new_design')),
       children: [
+        ListTile(
+          leading: const Icon(Icons.dashboard_customize_outlined),
+          title: Text(ctx.tr('visual_designer')),
+          subtitle: Text(ctx.tr('drag_and_drop_to_add')),
+          onTap: () {
+            Navigator.of(ctx).pop();
+            showWysiwygDesignScreen(context);
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.dashboard_customize_outlined),
+          title: Text(ctx.tr('start_from_template')),
+          subtitle: Text(ctx.tr('starter_templates_hint')),
+          onTap: () async {
+            Navigator.of(ctx).pop();
+            await _showTemplateGallery(context);
+          },
+        ),
         ListTile(
           leading: const Icon(Icons.dashboard_customize_outlined),
           title: Text(ctx.tr('duplicate_a_builtin')),
@@ -111,6 +133,48 @@ Future<void> _showNewDesignChooser(BuildContext context) async {
           },
         ),
       ],
+    ),
+  );
+}
+
+/// Phase 8f: starter template picker — rich card-grid gallery with
+/// category filter chips and abstract structural previews, mirroring
+/// React's `TemplateGallery.tsx`. Built on top of the hand-coded
+/// [buildStarterTemplates] data; on pick, builds a synthetic `Design`
+/// and opens the WYSIWYG screen.
+Future<void> _showTemplateGallery(BuildContext context) async {
+  final picked = await showRichTemplateGallery(context);
+  if (picked == null || !context.mounted) return;
+  final seed = Design(
+    id: '',
+    name: '',
+    isCustom: true,
+    isActive: true,
+    isTemplate: false,
+    isFree: false,
+    entities: const ['invoice'],
+    template: DesignTemplate(blocks: picked.blocks),
+    updatedAt: DateTime.utc(2000),
+    createdAt: DateTime.utc(2000),
+    archivedAt: null,
+    isDeleted: false,
+  );
+  await showWysiwygDesignScreen(context, seedFrom: seed);
+}
+
+/// Open the WYSIWYG visual designer (sibling to [showDesignEditScreen]).
+/// Modal sub-flow — see `docs/architecture.md` § Navigation.
+Future<void> showWysiwygDesignScreen(
+  BuildContext context, {
+  String? existingId,
+  Design? seedFrom,
+}) {
+  return Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => WysiwygDesignScreen(
+        existingId: existingId,
+        seedFrom: seedFrom,
+      ),
     ),
   );
 }
