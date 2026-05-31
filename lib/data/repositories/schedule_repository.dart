@@ -8,6 +8,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/schedule_dao.dart';
 import 'package:admin/data/models/api/schedule_api_model.dart';
 import 'package:admin/data/models/domain/schedule.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/schedules_api.dart';
 import 'package:admin/domain/entity_state.dart';
@@ -168,39 +169,53 @@ class ScheduleRepository extends BaseEntityRepository<Schedule, ScheduleApi> {
     }
   }
 
-  Future<Schedule> create({
+  Future<SaveResult<Schedule>> create({
     required String companyId,
     required Schedule draft,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.scheduleDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: stored.toApiJson(),
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
-  Future<void> save({
+  Future<SaveResult<Schedule>> save({
     required String companyId,
     required Schedule schedule,
   }) async {
     final companion = _domainToCompanion(schedule, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.scheduleDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: schedule.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: schedule.id,
         kind: MutationKind.update,
         payload: schedule.toApiJson(preserveTempId: true),
       );
     });
+    return SaveResult(entity: schedule, outboxRowId: rowId);
   }
 
   /// Toggle the paused flag. The full schedule payload is sent on the wire

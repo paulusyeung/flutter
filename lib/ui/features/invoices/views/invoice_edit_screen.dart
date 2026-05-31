@@ -92,6 +92,8 @@ class InvoiceEditScreen extends StatelessWidget {
           crossClientLineItemsMessage: ctx.tr('cross_client_line_items'),
           existing: existing,
           cloneFrom: cloneFrom,
+          sync: services.sync,
+          connectivity: services.connectivity,
         );
         // Seed project + client from `?project=<id>` on first build (create
         // mode only). Fire-and-forget; no-op if the project isn't cached.

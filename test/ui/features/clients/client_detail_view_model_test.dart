@@ -87,7 +87,7 @@ void main() {
       final draft = Client.fromApi(
         _api('', name: 'New'),
       ).copyWith(isDirty: true);
-      final created = await repo.create(companyId: 'co', draft: draft);
+      final created = (await repo.create(companyId: 'co', draft: draft)).entity;
       expect(created.id, startsWith('tmp_'));
 
       final vm = ClientDetailViewModel(

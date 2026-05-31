@@ -1,4 +1,5 @@
 import 'package:admin/data/models/domain/user.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/user_repository.dart';
 import 'package:admin/domain/notifications.dart';
 import 'package:admin/domain/permissions.dart';
@@ -24,7 +25,13 @@ class UserEditViewModel extends GenericEditViewModel<User> {
     required this.repo,
     required this.companyId,
     User? existing,
-  }) : super(initialDraft: existing ?? const User(), original: existing) {
+    super.sync,
+    super.connectivity,
+  }) : super(
+          initialDraft: existing ?? const User(),
+          original: existing,
+          companyId: companyId,
+        ) {
     final draftPerms = existing?.permissions ?? const <String>[];
     _permissionDraft = List<String>.of(draftPerms);
     final tokens = existing?.notificationsEmail ?? const <String>[];
@@ -188,11 +195,16 @@ class UserEditViewModel extends GenericEditViewModel<User> {
   }
 
   @override
-  Future<User> performSave() async {
+  Future<SaveResult<User>> performSave() async {
     if (isCreate) {
-      return await repo.create(companyId: companyId, draft: draft);
+      final result = await repo.create(
+        companyId: companyId,
+        draft: draft,
+        existingTempId: recoveryTempId,
+      );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(companyId: companyId, user: draft);
-    return draft;
+    return repo.save(companyId: companyId, user: draft);
   }
 }

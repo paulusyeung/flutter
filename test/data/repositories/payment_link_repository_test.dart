@@ -6,6 +6,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/payment_link_dao.dart';
 import 'package:admin/data/models/api/subscription_api_model.dart';
 import 'package:admin/data/models/domain/payment_link.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/payment_link_repository.dart';
 import 'package:admin/data/services/subscriptions_api.dart';
@@ -52,7 +53,7 @@ class _PaymentLinkFixture
   bool isDirtyOf(PaymentLink item) => item.isDirty;
 
   @override
-  Future<PaymentLink> create(
+  Future<SaveResult<PaymentLink>> create(
     BaseEntityRepository<PaymentLink, SubscriptionApi> repo, {
     required String companyId,
     required PaymentLink draft,
@@ -60,7 +61,7 @@ class _PaymentLinkFixture
       .create(companyId: companyId, draft: draft);
 
   @override
-  Future<void> save(
+  Future<SaveResult<PaymentLink>> save(
     BaseEntityRepository<PaymentLink, SubscriptionApi> repo, {
     required String companyId,
     required PaymentLink entity,
@@ -105,7 +106,7 @@ void main() {
           postPurchaseBody: 'legacy-body',
         ),
       );
-      final created = await repo.create(companyId: 'co', draft: draft);
+      final created = (await repo.create(companyId: 'co', draft: draft)).entity;
       final reloaded = await repo
           .watch(companyId: 'co', id: created.id)
           .first;
@@ -126,7 +127,7 @@ void main() {
         name: 'Ordered',
         steps: 'auth.login,cart,custom.confirmation',
       );
-      final created = await repo.create(companyId: 'co', draft: draft);
+      final created = (await repo.create(companyId: 'co', draft: draft)).entity;
       final reloaded = await repo
           .watch(companyId: 'co', id: created.id)
           .first;
@@ -139,7 +140,7 @@ void main() {
         name: 'PlanMapped',
         planMap: 'opaque-internal-blob',
       );
-      final created = await repo.create(companyId: 'co', draft: draft);
+      final created = (await repo.create(companyId: 'co', draft: draft)).entity;
       final reloaded = await repo
           .watch(companyId: 'co', id: created.id)
           .first;

@@ -259,28 +259,35 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
 
   /// Create a new invoice offline. Returns the invoice with its tmp id so
   /// the UI can navigate to the detail screen immediately.
-  Future<Invoice> create({
+  Future<SaveResult<Invoice>> create({
     required String companyId,
     required Invoice draft,
     Map<String, String>? extraQuery,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
 
+    var rowId = 0;
     await db.transaction(() async {
       await db.invoiceDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: _withSaveQuery(stored.toApiJson(), extraQuery),
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
-  Future<void> save({
+  Future<SaveResult<Invoice>> save({
     required String companyId,
     required Invoice invoice,
     Map<String, String>? extraQuery,
@@ -307,9 +314,15 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
       }
     }
     final companion = _domainToCompanion(invoice, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.invoiceDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: invoice.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: invoice.id,
         kind: MutationKind.update,
@@ -319,6 +332,7 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
         ),
       );
     });
+    return SaveResult(entity: invoice, outboxRowId: rowId);
   }
 
   /// Folds a SAVE-PARAM action's query map into the outbox payload under

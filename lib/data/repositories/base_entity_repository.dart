@@ -140,6 +140,29 @@ abstract class BaseEntityRepository<TDomain, TApi> {
   /// Generate a fresh `tmp_<uuid>` id for an offline-created entity.
   String mintTempId() => 'tmp_${uuid.v4()}';
 
+  /// Drop any prior `pending` outbox row for this `(company, type, id, kind)`
+  /// tuple. Call **inside** the same `db.transaction` that does the
+  /// optimistic Drift write + [enqueueMutation], so the new row replaces the
+  /// stale one atomically. Used by `create` / `save` to suppress duplicates
+  /// when the user retries from a synchronous-when-online inline error — for
+  /// CREATE the stale row would otherwise produce a server-side duplicate;
+  /// for UPDATE it would waste an HTTP round-trip with stale data. `in_flight`
+  /// rows are left alone — their HTTP request may already be landing, so
+  /// deleting them would race the dispatcher's `applyCreateResponse`. `dead`
+  /// rows are left alone too — the existing `onSaved` cleanup deletes them
+  /// after a successful re-save.
+  @protected
+  Future<void> dedupPendingMutations({
+    required String companyId,
+    required String entityId,
+    required MutationKind kind,
+  }) => _outbox.deletePendingForEntity(
+        companyId: companyId,
+        entityType: entityTypeName,
+        entityId: entityId,
+        mutationKind: kind.wireName,
+      );
+
   /// Enqueue an `archive` mutation. The optimistic local state is set
   /// when the user invokes the action — typically via a
   /// `services.<entity>.archive(...)` call from a list-row popup or

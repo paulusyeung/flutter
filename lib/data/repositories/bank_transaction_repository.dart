@@ -8,6 +8,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/bank_transaction_dao.dart';
 import 'package:admin/data/models/api/bank_transaction_api_model.dart';
 import 'package:admin/data/models/domain/bank_transaction.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/bank_transactions_api.dart';
 import 'package:admin/domain/entity_state.dart';
@@ -137,41 +138,55 @@ class BankTransactionRepository
     }
   }
 
-  Future<BankTransaction> create({
+  Future<SaveResult<BankTransaction>> create({
     required String companyId,
     required BankTransaction draft,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
 
+    var rowId = 0;
     await db.transaction(() async {
       await db.bankTransactionDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: stored.toApiJson(),
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
-  Future<void> save({
+  Future<SaveResult<BankTransaction>> save({
     required String companyId,
     required BankTransaction transaction,
   }) async {
     final companion =
         _domainToCompanion(transaction, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.bankTransactionDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: transaction.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: transaction.id,
         kind: MutationKind.update,
         payload: transaction.toApiJson(preserveTempId: true),
       );
     });
+    return SaveResult(entity: transaction, outboxRowId: rowId);
   }
 
   // ── match-action helpers ──

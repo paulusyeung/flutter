@@ -109,6 +109,8 @@ class DesignEditScreen extends StatelessWidget {
         repo: repo,
         companyId: companyId,
         existing: existing,
+        sync: services.sync,
+        connectivity: services.connectivity,
       ),
       isArchivedOf: (d) => d.archivedAt != null,
       isDeletedOf: (d) => d.isDeleted,

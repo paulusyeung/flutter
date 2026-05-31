@@ -272,41 +272,65 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
     }
   }
 
-  /// Create a new client offline. Returns the client with its tmp id so the
-  /// UI can navigate to the detail screen immediately.
-  Future<Client> create({
+  /// Create a new client offline. Returns the client with its tmp id (so the
+  /// UI can navigate to the detail screen immediately) plus the outbox row
+  /// id (so `GenericEditViewModel.save()` can await the server's verdict).
+  ///
+  /// [existingTempId] — when re-saving after a transient/validation failure
+  /// on a CREATE form, the VM threads the prior attempt's tmp id back in so
+  /// `dedupPendingMutations` finds and deletes the now-stale pending row,
+  /// preventing server-side duplicates. Without this, each retry mints a
+  /// fresh tmp id and the prior pending row drains as a separate insert.
+  Future<SaveResult<Client>> create({
     required String companyId,
     required Client draft,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
 
+    var rowId = 0;
     await db.transaction(() async {
       await db.clientDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: stored.toApiJson(), // server allocates real id
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
   /// Save an existing client. The local row updates instantly via the watch
   /// stream; the outbox handles the round-trip.
-  Future<void> save({required String companyId, required Client client}) async {
+  Future<SaveResult<Client>> save({
+    required String companyId,
+    required Client client,
+  }) async {
     final companion = _domainToCompanion(client, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.clientDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: client.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: client.id,
         kind: MutationKind.update,
         payload: client.toApiJson(preserveTempId: true),
       );
     });
+    return SaveResult(entity: client, outboxRowId: rowId);
   }
 
   /// Permanently destroy the client and every record that references it

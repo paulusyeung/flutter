@@ -152,7 +152,12 @@ class EntityEditScaffold<T> extends StatelessWidget {
   Future<void> _onSave(BuildContext context) async {
     final result = await _runSave(context);
     if (result == null || !context.mounted) return;
-    Notify.success(context, context.tr('saved'));
+    // On a sync-wait timeout the server hasn't confirmed yet, so a plain
+    // "Saved" toast misleads the user into thinking the save landed; show
+    // a "Saving in background…" message instead. Offline saves are unchanged
+    // — `lastSaveWasOptimistic` stays false on the offline path.
+    final toastKey = vm.lastSaveWasOptimistic ? 'saving_in_background' : 'saved';
+    Notify.success(context, context.tr(toastKey));
     await onSaved(context, result);
   }
 

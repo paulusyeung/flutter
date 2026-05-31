@@ -43,6 +43,8 @@ class TaskStatusesEditScreen extends StatelessWidget {
         repo: repo,
         companyId: companyId,
         existing: existing,
+        sync: services.sync,
+        connectivity: services.connectivity,
       ),
       isArchivedOf: (s) => s.archivedAt != null,
       isDeletedOf: (s) => s.isDeleted,

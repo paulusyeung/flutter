@@ -47,6 +47,8 @@ class BankAccountEditScreen extends StatelessWidget {
         repo: repo,
         companyId: companyId,
         existing: existing,
+        sync: services.sync,
+        connectivity: services.connectivity,
       ),
       isArchivedOf: (a) => a.archivedAt != null,
       isDeletedOf: (a) => a.isDeleted,

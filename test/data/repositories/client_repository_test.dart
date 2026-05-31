@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/models/api/location_api_model.dart';
 import 'package:admin/data/models/domain/client.dart';
@@ -101,14 +102,14 @@ class _ClientFixture
   bool isDirtyOf(Client item) => item.isDirty;
 
   @override
-  Future<Client> create(
+  Future<SaveResult<Client>> create(
     BaseEntityRepository<Client, ClientApi> repo, {
     required String companyId,
     required Client draft,
   }) => (repo as ClientRepository).create(companyId: companyId, draft: draft);
 
   @override
-  Future<void> save(
+  Future<SaveResult<Client>> save(
     BaseEntityRepository<Client, ClientApi> repo, {
     required String companyId,
     required Client entity,
@@ -430,7 +431,7 @@ void main() {
       final (:repo, :api) = makeRepo();
       final draft = Client.fromApi(apiClient('', name: 'New Co'));
 
-      final created = await repo.create(companyId: 'co', draft: draft);
+      final created = (await repo.create(companyId: 'co', draft: draft)).entity;
       expect(created.id, startsWith('tmp_'));
 
       final stored = await db.clientDao
@@ -457,10 +458,10 @@ void main() {
       'watch(tmpId) keeps emitting after the sync engine remaps the id',
       () async {
         final (:repo, :api) = makeRepo();
-        final created = await repo.create(
+        final created = (await repo.create(
           companyId: 'co',
           draft: Client.fromApi(apiClient('', name: 'New Co')),
-        );
+        )).entity;
 
         // Sync lands: the sync engine receives the server's response
         // (canonical entity with real id) and calls applyCreateResponse.
@@ -478,6 +479,42 @@ void main() {
           'real_xyz',
           reason: 'watch must resolve through id_remap',
         );
+      },
+    );
+
+    test(
+      're-creating with existingTempId replaces the prior pending outbox row '
+      '(synchronous-when-online retry path — without this, two pending CREATE '
+      'rows would drain as duplicate server-side inserts)',
+      () async {
+        final (:repo, :api) = makeRepo();
+        final first = (await repo.create(
+          companyId: 'co',
+          draft: Client.fromApi(apiClient('', name: 'First name')),
+        )).entity;
+        expect(first.id, startsWith('tmp_'));
+
+        // User got a transient error, edits the form, hits Save again.
+        // The VM reuses the prior tmpId via `existingTempId`.
+        final second = (await repo.create(
+          companyId: 'co',
+          draft: Client.fromApi(apiClient('', name: 'Second name')),
+          existingTempId: first.id,
+        )).entity;
+        expect(second.id, first.id, reason: 'tmpId must be reused');
+
+        // Exactly one pending CREATE row should remain — the second attempt's
+        // payload. The first attempt's row was dropped by dedupPendingMutations.
+        final pending = await db.outboxDao.nextReady(
+          companyId: 'co',
+          now: 1 << 60,
+        );
+        expect(pending, hasLength(1));
+        expect(pending.single.entityId, first.id);
+        expect(pending.single.mutationKind, 'create');
+        final payload =
+            jsonDecode(pending.single.payload) as Map<String, dynamic>;
+        expect(payload['name'], 'Second name');
       },
     );
   });

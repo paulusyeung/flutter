@@ -1,4 +1,5 @@
 import 'package:admin/data/models/domain/webhook.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/webhook_repository.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 
@@ -8,7 +9,13 @@ class WebhookEditViewModel extends GenericEditViewModel<Webhook> {
     required this.repo,
     required this.companyId,
     Webhook? existing,
-  }) : super(initialDraft: existing ?? _emptyWebhook(), original: existing);
+    super.sync,
+    super.connectivity,
+  }) : super(
+          initialDraft: existing ?? _emptyWebhook(),
+          original: existing,
+          companyId: companyId,
+        );
 
   final WebhookRepository repo;
   final String companyId;
@@ -18,12 +25,17 @@ class WebhookEditViewModel extends GenericEditViewModel<Webhook> {
       draft.targetUrl.isNotEmpty || draft.eventId.isNotEmpty;
 
   @override
-  Future<Webhook> performSave() async {
+  Future<SaveResult<Webhook>> performSave() async {
     if (isCreate) {
-      return await repo.create(companyId: companyId, draft: draft);
+      final result = await repo.create(
+        companyId: companyId,
+        draft: draft,
+        existingTempId: recoveryTempId,
+      );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(companyId: companyId, webhook: draft);
-    return draft;
+    return repo.save(companyId: companyId, webhook: draft);
   }
 
   void setTargetUrl(String v) => updateDraft(draft.copyWith(targetUrl: v));

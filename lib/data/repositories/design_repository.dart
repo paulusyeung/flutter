@@ -8,6 +8,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/design_dao.dart';
 import 'package:admin/data/models/api/design_api_model.dart';
 import 'package:admin/data/models/domain/design.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/designs_api.dart';
 import 'package:admin/domain/entity_state.dart';
@@ -151,36 +152,53 @@ class DesignRepository extends BaseEntityRepository<Design, DesignApi> {
     }
   }
 
-  Future<Design> create({
+  Future<SaveResult<Design>> create({
     required String companyId,
     required Design draft,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.designDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: stored.toApiJson(),
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
-  Future<void> save({required String companyId, required Design design}) async {
+  Future<SaveResult<Design>> save({
+    required String companyId,
+    required Design design,
+  }) async {
     final companion = _domainToCompanion(design, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.designDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: design.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: design.id,
         kind: MutationKind.update,
         payload: design.toApiJson(preserveTempId: true),
       );
     });
+    return SaveResult(entity: design, outboxRowId: rowId);
   }
 
   @override

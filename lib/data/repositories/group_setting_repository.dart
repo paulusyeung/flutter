@@ -188,40 +188,54 @@ class GroupSettingRepository
   }
 
   /// Create a new group offline. Returns the group with its tmp id.
-  Future<GroupSetting> create({
+  Future<SaveResult<GroupSetting>> create({
     required String companyId,
     required GroupSetting draft,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
 
+    var rowId = 0;
     await db.transaction(() async {
       await db.groupSettingDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: stored.toApiJson(),
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
-  Future<void> save({
+  Future<SaveResult<GroupSetting>> save({
     required String companyId,
     required GroupSetting group,
   }) async {
     final companion = _domainToCompanion(group, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.groupSettingDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: group.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: group.id,
         kind: MutationKind.update,
         payload: group.toApiJson(preserveTempId: true),
       );
     });
+    return SaveResult(entity: group, outboxRowId: rowId);
   }
 
   @override

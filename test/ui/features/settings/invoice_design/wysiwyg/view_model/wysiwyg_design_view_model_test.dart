@@ -543,7 +543,7 @@ void main() {
         // Save (create branch — vm.isCreate is true; this lands a `tmp_…`
         // row in Drift plus an outbox create row).
         final saved = await vm.performSave();
-        expect(saved.id, isNotEmpty);
+        expect(saved.entity.id, isNotEmpty);
 
         // Read back via the same repo. Use `watchAll` since the
         // create-path id is tmp_; we don't have a real server id yet.

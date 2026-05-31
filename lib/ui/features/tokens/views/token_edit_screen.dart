@@ -42,6 +42,8 @@ class TokenEditScreen extends StatelessWidget {
         repo: repo,
         companyId: companyId,
         existing: existing,
+        sync: services.sync,
+        connectivity: services.connectivity,
       ),
       isArchivedOf: (t) => t.archivedAt != null,
       isDeletedOf: (t) => t.isDeleted,

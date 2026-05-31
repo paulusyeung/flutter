@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/domain/sync/mutation.dart';
 
@@ -39,13 +40,13 @@ abstract class EntityRepositoryContractFixture<TDomain, TApi> {
     editCopy,
     required String Function(TDomain) idOf,
     required bool Function(TDomain) isDirtyOf,
-    required Future<TDomain> Function(
+    required Future<SaveResult<TDomain>> Function(
       BaseEntityRepository<TDomain, TApi> repo, {
       required String companyId,
       required TDomain draft,
     })
     create,
-    required Future<void> Function(
+    required Future<SaveResult<TDomain>> Function(
       BaseEntityRepository<TDomain, TApi> repo, {
       required String companyId,
       required TDomain entity,
@@ -104,13 +105,13 @@ abstract class EntityRepositoryContractFixture<TDomain, TApi> {
   /// `save` / `delete` directly — they live on the concrete subclass with
   /// entity-specific named params (`save({client:})`, `save({product:})`,
   /// …). The fixture closes the gap.
-  Future<TDomain> create(
+  Future<SaveResult<TDomain>> create(
     BaseEntityRepository<TDomain, TApi> repo, {
     required String companyId,
     required TDomain draft,
   });
 
-  Future<void> save(
+  Future<SaveResult<TDomain>> save(
     BaseEntityRepository<TDomain, TApi> repo, {
     required String companyId,
     required TDomain entity,
@@ -150,13 +151,13 @@ class _ClosureContractFixture<TDomain, TApi>
     editCopy,
     required String Function(TDomain) idOf,
     required bool Function(TDomain) isDirtyOf,
-    required Future<TDomain> Function(
+    required Future<SaveResult<TDomain>> Function(
       BaseEntityRepository<TDomain, TApi> repo, {
       required String companyId,
       required TDomain draft,
     })
     create,
-    required Future<void> Function(
+    required Future<SaveResult<TDomain>> Function(
       BaseEntityRepository<TDomain, TApi> repo, {
       required String companyId,
       required TDomain entity,
@@ -194,13 +195,13 @@ class _ClosureContractFixture<TDomain, TApi>
   _editCopy;
   final String Function(TDomain) _idOf;
   final bool Function(TDomain) _isDirtyOf;
-  final Future<TDomain> Function(
+  final Future<SaveResult<TDomain>> Function(
     BaseEntityRepository<TDomain, TApi> repo, {
     required String companyId,
     required TDomain draft,
   })
   _create;
-  final Future<void> Function(
+  final Future<SaveResult<TDomain>> Function(
     BaseEntityRepository<TDomain, TApi> repo, {
     required String companyId,
     required TDomain entity,
@@ -239,14 +240,14 @@ class _ClosureContractFixture<TDomain, TApi>
   bool isDirtyOf(TDomain item) => _isDirtyOf(item);
 
   @override
-  Future<TDomain> create(
+  Future<SaveResult<TDomain>> create(
     BaseEntityRepository<TDomain, TApi> repo, {
     required String companyId,
     required TDomain draft,
   }) => _create(repo, companyId: companyId, draft: draft);
 
   @override
-  Future<void> save(
+  Future<SaveResult<TDomain>> save(
     BaseEntityRepository<TDomain, TApi> repo, {
     required String companyId,
     required TDomain entity,
@@ -287,9 +288,16 @@ void runEntityRepositoryContract<TDomain, TApi>(
 
       final created = await fixture.create(repo, companyId: 'co', draft: draft);
 
-      expect(fixture.idOf(created), startsWith('tmp_'));
+      expect(fixture.idOf(created.entity), startsWith('tmp_'));
+      expect(
+        created.outboxRowId,
+        greaterThan(0),
+        reason:
+            'create must return the just-enqueued outbox row id so '
+            'GenericEditViewModel.save() can await it (synchronous-when-online)',
+      );
       final fromDb = await fixture
-          .watch(repo, companyId: 'co', id: fixture.idOf(created))
+          .watch(repo, companyId: 'co', id: fixture.idOf(created.entity))
           .first;
       expect(fromDb, isNotNull);
       expect(fixture.isDirtyOf(fromDb as TDomain), isTrue);
@@ -301,7 +309,7 @@ void runEntityRepositoryContract<TDomain, TApi>(
         fixture.buildApiModel(id: '', displayValue: 'A'),
       );
       final created = await fixture.create(repo, companyId: 'co', draft: draft);
-      final tmpId = fixture.idOf(created);
+      final tmpId = fixture.idOf(created.entity);
       expect(
         await fixture.watch(repo, companyId: 'co', id: tmpId).first,
         isNotNull,
@@ -404,7 +412,7 @@ void runEntityRepositoryContract<TDomain, TApi>(
         fixture.buildApiModel(id: '', displayValue: 'A'),
       );
       final created = await fixture.create(repo, companyId: 'co', draft: draft);
-      final tmpId = fixture.idOf(created);
+      final tmpId = fixture.idOf(created.entity);
 
       await repo.applyCreateResponse(
         companyId: 'co',
@@ -491,7 +499,7 @@ void runEntityRepositoryContract<TDomain, TApi>(
           companyId: 'co',
           draft: draft,
         );
-        final tmpId = fixture.idOf(created);
+        final tmpId = fixture.idOf(created.entity);
 
         await repo.applyCreateResponse(
           companyId: 'co',

@@ -1,4 +1,5 @@
 import 'package:admin/data/models/domain/tax_rate.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/tax_rate_repository.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 
@@ -10,7 +11,13 @@ class TaxRateEditViewModel extends GenericEditViewModel<TaxRate> {
     required this.repo,
     required this.companyId,
     TaxRate? existing,
-  }) : super(initialDraft: existing ?? _emptyRate(), original: existing);
+    super.sync,
+    super.connectivity,
+  }) : super(
+          initialDraft: existing ?? _emptyRate(),
+          original: existing,
+          companyId: companyId,
+        );
 
   final TaxRateRepository repo;
   final String companyId;
@@ -22,12 +29,17 @@ class TaxRateEditViewModel extends GenericEditViewModel<TaxRate> {
   }
 
   @override
-  Future<TaxRate> performSave() async {
+  Future<SaveResult<TaxRate>> performSave() async {
     if (isCreate) {
-      return repo.create(companyId: companyId, draft: draft);
+      final result = await repo.create(
+        companyId: companyId,
+        draft: draft,
+        existingTempId: recoveryTempId,
+      );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(companyId: companyId, rate: draft);
-    return draft;
+    return repo.save(companyId: companyId, rate: draft);
   }
 
   void resetToEmpty() => reset(emptyDraft: _emptyRate());

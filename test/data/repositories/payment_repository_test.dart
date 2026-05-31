@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/payment_api_model.dart';
 import 'package:admin/data/models/domain/payment.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/payment_repository.dart';
 import 'package:admin/data/services/payments_api.dart';
@@ -49,7 +50,7 @@ class _PaymentFixture
   bool isDirtyOf(Payment item) => item.isDirty;
 
   @override
-  Future<Payment> create(
+  Future<SaveResult<Payment>> create(
     BaseEntityRepository<Payment, PaymentApi> repo, {
     required String companyId,
     required Payment draft,
@@ -60,7 +61,7 @@ class _PaymentFixture
   );
 
   @override
-  Future<void> save(
+  Future<SaveResult<Payment>> save(
     BaseEntityRepository<Payment, PaymentApi> repo, {
     required String companyId,
     required Payment entity,

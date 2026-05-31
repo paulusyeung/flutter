@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/user_api_model.dart';
 import 'package:admin/data/models/domain/user.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/user_repository.dart';
 import 'package:admin/data/services/users_api.dart';
@@ -56,7 +57,7 @@ class _UserFixture extends EntityRepositoryContractFixture<User, UserApi> {
   bool isDirtyOf(User item) => item.isDirty;
 
   @override
-  Future<User> create(
+  Future<SaveResult<User>> create(
     BaseEntityRepository<User, UserApi> repo, {
     required String companyId,
     required User draft,
@@ -64,7 +65,7 @@ class _UserFixture extends EntityRepositoryContractFixture<User, UserApi> {
       (repo as UserRepository).create(companyId: companyId, draft: draft);
 
   @override
-  Future<void> save(
+  Future<SaveResult<User>> save(
     BaseEntityRepository<User, UserApi> repo, {
     required String companyId,
     required User entity,

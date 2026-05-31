@@ -40,6 +40,8 @@ class VendorEditScreen extends StatelessWidget {
         companyId: companyId,
         existing: existing,
         cloneFrom: cloneFrom,
+        sync: services.sync,
+        connectivity: services.connectivity,
       ),
       titleWhileLoading: (ctx) =>
           existingId == null ? ctx.tr('new_vendor') : ctx.tr('edit'),

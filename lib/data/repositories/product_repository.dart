@@ -191,42 +191,56 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi>
 
   /// Create a new product offline. Returns the product with its tmp id so the
   /// UI can navigate to the detail screen immediately.
-  Future<Product> create({
+  Future<SaveResult<Product>> create({
     required String companyId,
     required Product draft,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
 
+    var rowId = 0;
     await db.transaction(() async {
       await db.productDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: stored.toApiJson(),
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
   /// Save an existing product. The local row updates instantly via the watch
   /// stream; the outbox handles the round-trip.
-  Future<void> save({
+  Future<SaveResult<Product>> save({
     required String companyId,
     required Product product,
   }) async {
     final companion = _domainToCompanion(product, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.productDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: product.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: product.id,
         kind: MutationKind.update,
         payload: product.toApiJson(preserveTempId: true),
       );
     });
+    return SaveResult(entity: product, outboxRowId: rowId);
   }
 
   /// Permanently destroy the product. Irreversible. The outbox row carries

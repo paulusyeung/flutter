@@ -156,6 +156,28 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
             o.entityId.equals(entityId),
       )).go();
 
+  /// Drop only `pending` rows for the given tuple. Used by repo `create` /
+  /// `save` to suppress duplicates when the user retries from a synchronous-
+  /// when-online inline error: a previously-enqueued pending row would still
+  /// be queued (and for CREATE would cause a server-side duplicate when both
+  /// rows eventually drain). `in_flight` rows are left alone — their HTTP
+  /// request may already be landing, so deleting them would race the
+  /// dispatcher's `applyCreateResponse`. `dead` rows are left alone too —
+  /// the existing `onSaved` cleanup deletes them after a successful re-save.
+  Future<int> deletePendingForEntity({
+    required String companyId,
+    required String entityType,
+    required String entityId,
+    required String mutationKind,
+  }) => (delete(outbox)..where(
+        (o) =>
+            o.companyId.equals(companyId) &
+            o.entityType.equals(entityType) &
+            o.entityId.equals(entityId) &
+            o.mutationKind.equals(mutationKind) &
+            o.state.equals('pending'),
+      )).go();
+
   /// Snapshot of `pending` rows for [companyId] (excludes `dead` and
   /// `in_flight`) — same predicate as [deletePendingForCompany], but
   /// returns the rows so a caller can apply per-row discard logic. Used by

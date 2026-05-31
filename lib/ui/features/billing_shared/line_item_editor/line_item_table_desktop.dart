@@ -489,10 +489,10 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
                         },
                         onCreateProduct: (query) async {
                           try {
-                            final created = await services.products.create(
+                            final created = (await services.products.create(
                               companyId: widget.companyId,
                               draft: emptyProductWithKey(query),
-                            );
+                            )).entity;
                             if (!context.mounted) return;
                             final base = isGhost
                                 ? widget.newItemFactory()

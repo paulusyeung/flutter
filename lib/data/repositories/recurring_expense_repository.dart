@@ -223,27 +223,34 @@ class RecurringExpenseRepository
 
   /// Create a new recurring expense offline. Returns the entity with its
   /// tmp id so the UI can navigate to the detail screen immediately.
-  Future<RecurringExpense> create({
+  Future<SaveResult<RecurringExpense>> create({
     required String companyId,
     required RecurringExpense draft,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
 
+    var rowId = 0;
     await db.transaction(() async {
       await db.recurringExpenseDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: stored.toApiJson(),
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
-  Future<void> save({
+  Future<SaveResult<RecurringExpense>> save({
     required String companyId,
     required RecurringExpense recurringExpense,
   }) async {
@@ -252,15 +259,22 @@ class RecurringExpenseRepository
       companyId,
       isDirty: true,
     );
+    var rowId = 0;
     await db.transaction(() async {
       await db.recurringExpenseDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: recurringExpense.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: recurringExpense.id,
         kind: MutationKind.update,
         payload: recurringExpense.toApiJson(preserveTempId: true),
       );
     });
+    return SaveResult(entity: recurringExpense, outboxRowId: rowId);
   }
 
   /// `MutationKind.start` — Draft / Paused → Active.

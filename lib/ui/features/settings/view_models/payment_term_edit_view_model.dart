@@ -1,4 +1,5 @@
 import 'package:admin/data/models/domain/payment_term.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/payment_term_repository.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 
@@ -10,7 +11,13 @@ class PaymentTermEditViewModel extends GenericEditViewModel<PaymentTerm> {
     required this.repo,
     required this.companyId,
     PaymentTerm? existing,
-  }) : super(initialDraft: existing ?? _emptyTerm(), original: existing);
+    super.sync,
+    super.connectivity,
+  }) : super(
+          initialDraft: existing ?? _emptyTerm(),
+          original: existing,
+          companyId: companyId,
+        );
 
   final PaymentTermRepository repo;
   final String companyId;
@@ -22,12 +29,17 @@ class PaymentTermEditViewModel extends GenericEditViewModel<PaymentTerm> {
   }
 
   @override
-  Future<PaymentTerm> performSave() async {
+  Future<SaveResult<PaymentTerm>> performSave() async {
     if (isCreate) {
-      return await repo.create(companyId: companyId, draft: draft);
+      final result = await repo.create(
+        companyId: companyId,
+        draft: draft,
+        existingTempId: recoveryTempId,
+      );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(companyId: companyId, term: draft);
-    return draft;
+    return repo.save(companyId: companyId, term: draft);
   }
 
   void resetToEmpty() => reset(emptyDraft: _emptyTerm());

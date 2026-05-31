@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:admin/data/models/domain/design.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/design_repository.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 
@@ -19,7 +20,13 @@ class DesignEditViewModel extends GenericEditViewModel<Design> {
     required this.repo,
     required this.companyId,
     Design? existing,
-  }) : super(initialDraft: existing ?? _emptyDesign(), original: existing);
+    super.sync,
+    super.connectivity,
+  }) : super(
+          initialDraft: existing ?? _emptyDesign(),
+          original: existing,
+          companyId: companyId,
+        );
 
   final DesignRepository repo;
   final String companyId;
@@ -78,12 +85,17 @@ class DesignEditViewModel extends GenericEditViewModel<Design> {
   }
 
   @override
-  Future<Design> performSave() async {
+  Future<SaveResult<Design>> performSave() async {
     if (isCreate) {
-      return repo.create(companyId: companyId, draft: draft);
+      final result = await repo.create(
+        companyId: companyId,
+        draft: draft,
+        existingTempId: recoveryTempId,
+      );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(companyId: companyId, design: draft);
-    return draft;
+    return repo.save(companyId: companyId, design: draft);
   }
 
   void resetToEmpty() {

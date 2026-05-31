@@ -115,6 +115,8 @@ class _CompanyGatewayEditScreenState extends State<CompanyGatewayEditScreen> {
             companyId: companyId,
             existing: existing,
             initialGatewayKey: _pickedGatewayKey,
+            sync: services.sync,
+            connectivity: services.connectivity,
           ),
       titleWhileLoading: (ctx) => widget.existingId == null
           ? ctx.tr('new_company_gateway')

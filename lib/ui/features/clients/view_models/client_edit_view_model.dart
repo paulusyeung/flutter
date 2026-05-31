@@ -2,6 +2,7 @@ import 'package:decimal/decimal.dart';
 
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/contact.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/client_repository.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 
@@ -18,9 +19,12 @@ class ClientEditViewModel extends GenericEditViewModel<Client> {
     required this.companyId,
     Client? existing,
     Client? cloneFrom,
+    super.sync,
+    super.connectivity,
   }) : super(
          initialDraft: cloneFrom ?? existing ?? _emptyClient(),
          original: existing,
+         companyId: companyId,
        );
 
   final ClientRepository repo;
@@ -39,12 +43,17 @@ class ClientEditViewModel extends GenericEditViewModel<Client> {
   }
 
   @override
-  Future<Client> performSave() async {
+  Future<SaveResult<Client>> performSave() async {
     if (isCreate) {
-      return await repo.create(companyId: companyId, draft: draft);
+      final result = await repo.create(
+        companyId: companyId,
+        draft: draft,
+        existingTempId: recoveryTempId,
+      );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(companyId: companyId, client: draft);
-    return draft;
+    return repo.save(companyId: companyId, client: draft);
   }
 
   /// Reset back to the original draft (or an empty client in create mode).

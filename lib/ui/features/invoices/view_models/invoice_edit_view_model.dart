@@ -5,6 +5,7 @@ import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/data/models/domain/invoice_status.dart';
 import 'package:admin/data/models/value/date.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/invoice_repository.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/domain/billing/invoice_lock.dart';
@@ -25,9 +26,12 @@ class InvoiceEditViewModel extends GenericBillingDocEditViewModel<Invoice> {
     Invoice? existing,
     Invoice? cloneFrom,
     super.currencyPrecision,
+    super.sync,
+    super.connectivity,
   }) : super(
           initialDraft: cloneFrom ?? existing ?? emptyInvoice(),
           original: existing,
+          companyId: companyId,
         );
 
   final InvoiceRepository repo;
@@ -63,19 +67,22 @@ class InvoiceEditViewModel extends GenericBillingDocEditViewModel<Invoice> {
   }
 
   @override
-  Future<Invoice> performSave() async {
+  Future<SaveResult<Invoice>> performSave() async {
     // One-shot SAVE-PARAM query (mark_sent / paid / cancel / auto_bill)
     // set by the edit-screen action bar; null on a plain Save.
     final extraQuery = consumeSaveQuery();
     if (isCreate) {
-      return await repo.create(
+      final result = await repo.create(
         companyId: companyId,
         draft: draft,
         extraQuery: extraQuery,
+        existingTempId: recoveryTempId,
       );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
     try {
-      await repo.save(
+      return await repo.save(
         companyId: companyId,
         invoice: draft,
         extraQuery: extraQuery,
@@ -89,7 +96,6 @@ class InvoiceEditViewModel extends GenericBillingDocEditViewModel<Invoice> {
       // normal flows, and the VM has no BuildContext to localize with.
       throw ValidationException(_lockedSaveMessage(e.reason), const {});
     }
-    return draft;
   }
 
   String _lockedSaveMessage(InvoiceLockReason reason) {

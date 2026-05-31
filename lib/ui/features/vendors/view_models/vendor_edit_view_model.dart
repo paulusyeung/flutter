@@ -2,6 +2,7 @@ import 'package:decimal/decimal.dart';
 
 import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/data/models/domain/vendor_contact.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/vendor_repository.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 
@@ -19,9 +20,12 @@ class VendorEditViewModel extends GenericEditViewModel<Vendor> {
     required this.companyId,
     Vendor? existing,
     Vendor? cloneFrom,
+    super.sync,
+    super.connectivity,
   }) : super(
          initialDraft: cloneFrom ?? existing ?? _emptyVendor(),
          original: existing,
+         companyId: companyId,
        );
 
   final VendorRepository repo;
@@ -40,12 +44,17 @@ class VendorEditViewModel extends GenericEditViewModel<Vendor> {
   }
 
   @override
-  Future<Vendor> performSave() async {
+  Future<SaveResult<Vendor>> performSave() async {
     if (isCreate) {
-      return await repo.create(companyId: companyId, draft: draft);
+      final result = await repo.create(
+        companyId: companyId,
+        draft: draft,
+        existingTempId: recoveryTempId,
+      );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(companyId: companyId, vendor: draft);
-    return draft;
+    return repo.save(companyId: companyId, vendor: draft);
   }
 
   /// Reset back to the original draft (or an empty vendor in create mode).

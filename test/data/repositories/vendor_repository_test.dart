@@ -6,6 +6,7 @@ import 'package:admin/data/models/api/vendor_api_model.dart';
 import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/data/models/domain/vendor_contact.dart';
 import 'package:admin/data/models/value/parsing.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/vendor_repository.dart';
 import 'package:admin/data/services/vendors_api.dart';
@@ -49,14 +50,14 @@ class _VendorFixture
   bool isDirtyOf(Vendor item) => item.isDirty;
 
   @override
-  Future<Vendor> create(
+  Future<SaveResult<Vendor>> create(
     BaseEntityRepository<Vendor, VendorApi> repo, {
     required String companyId,
     required Vendor draft,
   }) => (repo as VendorRepository).create(companyId: companyId, draft: draft);
 
   @override
-  Future<void> save(
+  Future<SaveResult<Vendor>> save(
     BaseEntityRepository<Vendor, VendorApi> repo, {
     required String companyId,
     required Vendor entity,

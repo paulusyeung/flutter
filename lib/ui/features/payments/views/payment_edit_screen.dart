@@ -42,6 +42,8 @@ class PaymentEditScreen extends StatelessWidget {
           existing: existing,
           cloneFrom: cloneFrom,
           translate: ctx.tr,
+          sync: services.sync,
+          connectivity: services.connectivity,
         );
       },
       titleWhileLoading: (ctx) =>

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/app/theme.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/edit/entity_edit_scaffold.dart';
@@ -35,10 +36,10 @@ class _FakeVM extends GenericEditViewModel<String> {
   Map<String, String>? consumedQuery;
 
   @override
-  Future<String> performSave() async {
+  Future<SaveResult<String>> performSave() async {
     saveCalled = true;
     consumedQuery = consumeSaveQuery();
-    return draft;
+    return SaveResult(entity: draft, outboxRowId: 1);
   }
 }
 

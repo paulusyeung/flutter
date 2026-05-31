@@ -2,6 +2,7 @@ import 'package:decimal/decimal.dart';
 
 import 'package:admin/data/models/domain/recurring_expense.dart';
 import 'package:admin/data/models/value/date.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/recurring_expense_repository.dart';
 import 'package:admin/domain/recurring_frequency.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
@@ -16,9 +17,12 @@ class RecurringExpenseEditViewModel
     required this.companyId,
     RecurringExpense? existing,
     RecurringExpense? cloneFrom,
+    super.sync,
+    super.connectivity,
   }) : super(
          initialDraft: cloneFrom ?? existing ?? emptyRecurringExpense(),
          original: existing,
+         companyId: companyId,
        );
 
   final RecurringExpenseRepository repo;
@@ -38,12 +42,17 @@ class RecurringExpenseEditViewModel
   }
 
   @override
-  Future<RecurringExpense> performSave() async {
+  Future<SaveResult<RecurringExpense>> performSave() async {
     if (isCreate) {
-      return await repo.create(companyId: companyId, draft: draft);
+      final result = await repo.create(
+        companyId: companyId,
+        draft: draft,
+        existingTempId: recoveryTempId,
+      );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(companyId: companyId, recurringExpense: draft);
-    return draft;
+    return repo.save(companyId: companyId, recurringExpense: draft);
   }
 
   void resetToEmpty() => reset(emptyDraft: emptyRecurringExpense());

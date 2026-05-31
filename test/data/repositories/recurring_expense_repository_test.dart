@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/recurring_expense_api_model.dart';
 import 'package:admin/data/models/domain/recurring_expense.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/recurring_expense_repository.dart';
 import 'package:admin/data/services/recurring_expenses_api.dart';
@@ -57,7 +58,7 @@ class _RecurringExpenseFixture
   bool isDirtyOf(RecurringExpense item) => item.isDirty;
 
   @override
-  Future<RecurringExpense> create(
+  Future<SaveResult<RecurringExpense>> create(
     BaseEntityRepository<RecurringExpense, RecurringExpenseApi> repo, {
     required String companyId,
     required RecurringExpense draft,
@@ -65,7 +66,7 @@ class _RecurringExpenseFixture
       .create(companyId: companyId, draft: draft);
 
   @override
-  Future<void> save(
+  Future<SaveResult<RecurringExpense>> save(
     BaseEntityRepository<RecurringExpense, RecurringExpenseApi> repo, {
     required String companyId,
     required RecurringExpense entity,

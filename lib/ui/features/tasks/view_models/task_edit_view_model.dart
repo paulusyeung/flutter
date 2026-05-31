@@ -3,6 +3,7 @@ import 'package:decimal/decimal.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/data/models/domain/time_entry.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/task_repository.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 
@@ -24,9 +25,12 @@ class TaskEditViewModel extends GenericEditViewModel<Task> {
     required this.now,
     Task? existing,
     Task? cloneFrom,
+    super.sync,
+    super.connectivity,
   }) : super(
          initialDraft: cloneFrom ?? existing ?? emptyTask(),
          original: existing,
+         companyId: companyId,
        );
 
   final TaskRepository repo;
@@ -43,12 +47,17 @@ class TaskEditViewModel extends GenericEditViewModel<Task> {
   }
 
   @override
-  Future<Task> performSave() async {
+  Future<SaveResult<Task>> performSave() async {
     if (isCreate) {
-      return await repo.create(companyId: companyId, draft: draft);
+      final result = await repo.create(
+        companyId: companyId,
+        draft: draft,
+        existingTempId: recoveryTempId,
+      );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(companyId: companyId, task: draft);
-    return draft;
+    return repo.save(companyId: companyId, task: draft);
   }
 
   void resetToEmpty() => reset(emptyDraft: emptyTask());

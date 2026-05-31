@@ -8,6 +8,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/payment_term_dao.dart';
 import 'package:admin/data/models/api/payment_term_api_model.dart';
 import 'package:admin/data/models/domain/payment_term.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/payment_terms_api.dart';
 import 'package:admin/domain/entity_state.dart';
@@ -176,39 +177,53 @@ class PaymentTermRepository
     }
   }
 
-  Future<PaymentTerm> create({
+  Future<SaveResult<PaymentTerm>> create({
     required String companyId,
     required PaymentTerm draft,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.paymentTermDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: stored.toApiJson(),
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
-  Future<void> save({
+  Future<SaveResult<PaymentTerm>> save({
     required String companyId,
     required PaymentTerm term,
   }) async {
     final companion = _domainToCompanion(term, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.paymentTermDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: term.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: term.id,
         kind: MutationKind.update,
         payload: term.toApiJson(preserveTempId: true),
       );
     });
+    return SaveResult(entity: term, outboxRowId: rowId);
   }
 
   @override

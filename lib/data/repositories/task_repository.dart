@@ -189,34 +189,54 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
     }
   }
 
-  Future<Task> create({required String companyId, required Task draft}) async {
-    final tmpId = mintTempId();
+  Future<SaveResult<Task>> create({
+    required String companyId,
+    required Task draft,
+    String? existingTempId,
+  }) async {
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
 
+    var rowId = 0;
     await db.transaction(() async {
       await db.taskDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: stored.toApiJson(),
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
-  Future<void> save({required String companyId, required Task task}) async {
+  Future<SaveResult<Task>> save({
+    required String companyId,
+    required Task task,
+  }) async {
     final companion = _domainToCompanion(task, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.taskDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: task.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: task.id,
         kind: MutationKind.update,
         payload: task.toApiJson(preserveTempId: true),
       );
     });
+    return SaveResult(entity: task, outboxRowId: rowId);
   }
 
   /// Surgical "stop the running entry, save through the outbox" — used by

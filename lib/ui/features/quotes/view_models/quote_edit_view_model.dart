@@ -5,6 +5,7 @@ import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/quote.dart';
 import 'package:admin/data/models/domain/quote_status.dart';
 import 'package:admin/data/models/value/date.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/quote_repository.dart';
 import 'package:admin/domain/billing/totals_calculator.dart';
 import 'package:admin/ui/features/billing_shared/view_models/billing_doc_edit_view_model.dart';
@@ -22,9 +23,12 @@ class QuoteEditViewModel extends GenericBillingDocEditViewModel<Quote> {
     Quote? existing,
     Quote? cloneFrom,
     super.currencyPrecision,
+    super.sync,
+    super.connectivity,
   }) : super(
           initialDraft: cloneFrom ?? existing ?? emptyQuote(),
           original: existing,
+          companyId: companyId,
         );
 
   final QuoteRepository repo;
@@ -57,23 +61,25 @@ class QuoteEditViewModel extends GenericBillingDocEditViewModel<Quote> {
   }
 
   @override
-  Future<Quote> performSave() async {
+  Future<SaveResult<Quote>> performSave() async {
     // One-shot SAVE-PARAM query (convert / mark_sent / approve) set by the
     // edit-screen action bar; null on a plain Save.
     final extraQuery = consumeSaveQuery();
     if (isCreate) {
-      return await repo.create(
+      final result = await repo.create(
         companyId: companyId,
         draft: draft,
         extraQuery: extraQuery,
+        existingTempId: recoveryTempId,
       );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(
+    return repo.save(
       companyId: companyId,
       quote: draft,
       extraQuery: extraQuery,
     );
-    return draft;
   }
 
   void resetToEmpty() => reset(emptyDraft: emptyQuote());

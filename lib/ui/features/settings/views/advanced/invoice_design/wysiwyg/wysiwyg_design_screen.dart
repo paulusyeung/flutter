@@ -95,6 +95,8 @@ class WysiwygDesignScreen extends StatelessWidget {
         // brand-new design starts with the user's preferred page size,
         // fonts, etc.
         companySettings: company.settings,
+        sync: services.sync,
+        connectivity: services.connectivity,
       ),
       isArchivedOf: (d) => d.archivedAt != null,
       isDeletedOf: (d) => d.isDeleted,

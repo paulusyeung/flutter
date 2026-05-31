@@ -178,35 +178,48 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
     }
   }
 
-  Future<Credit> create({
+  Future<SaveResult<Credit>> create({
     required String companyId,
     required Credit draft,
     Map<String, String>? extraQuery,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.creditDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: _withSaveQuery(stored.toApiJson(), extraQuery),
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
-  Future<void> save({
+  Future<SaveResult<Credit>> save({
     required String companyId,
     required Credit credit,
     Map<String, String>? extraQuery,
   }) async {
     final companion = _domainToCompanion(credit, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.creditDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: credit.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: credit.id,
         kind: MutationKind.update,
@@ -216,6 +229,7 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
         ),
       );
     });
+    return SaveResult(entity: credit, outboxRowId: rowId);
   }
 
   /// Folds a SAVE-PARAM action's query map into the outbox payload under

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/group_setting_api_model.dart';
 import 'package:admin/data/models/domain/group_setting.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/group_setting_repository.dart';
 import 'package:admin/data/services/group_settings_api.dart';
@@ -44,7 +45,7 @@ class _GroupSettingFixture
   bool isDirtyOf(GroupSetting item) => item.isDirty;
 
   @override
-  Future<GroupSetting> create(
+  Future<SaveResult<GroupSetting>> create(
     BaseEntityRepository<GroupSetting, GroupSettingApi> repo, {
     required String companyId,
     required GroupSetting draft,
@@ -54,7 +55,7 @@ class _GroupSettingFixture
   );
 
   @override
-  Future<void> save(
+  Future<SaveResult<GroupSetting>> save(
     BaseEntityRepository<GroupSetting, GroupSettingApi> repo, {
     required String companyId,
     required GroupSetting entity,

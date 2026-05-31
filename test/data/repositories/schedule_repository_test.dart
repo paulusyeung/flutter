@@ -6,6 +6,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/schedule_api_model.dart';
 import 'package:admin/data/models/domain/schedule.dart';
 import 'package:admin/data/models/domain/schedule_constants.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/schedule_repository.dart';
 import 'package:admin/data/services/schedules_api.dart';
@@ -60,7 +61,7 @@ class _ScheduleFixture
   bool isDirtyOf(Schedule item) => item.isDirty;
 
   @override
-  Future<Schedule> create(
+  Future<SaveResult<Schedule>> create(
     BaseEntityRepository<Schedule, ScheduleApi> repo, {
     required String companyId,
     required Schedule draft,
@@ -70,7 +71,7 @@ class _ScheduleFixture
   );
 
   @override
-  Future<void> save(
+  Future<SaveResult<Schedule>> save(
     BaseEntityRepository<Schedule, ScheduleApi> repo, {
     required String companyId,
     required Schedule entity,

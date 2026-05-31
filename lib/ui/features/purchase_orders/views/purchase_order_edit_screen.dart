@@ -46,6 +46,8 @@ class PurchaseOrderEditScreen extends StatelessWidget {
           vendorRequiredMessage: ctx.tr('please_select_a_vendor'),
           existing: existing,
           cloneFrom: cloneFrom,
+          sync: services.sync,
+          connectivity: services.connectivity,
         );
         // Seed a line item from `?product=<id>` on first build (create
         // mode only). See InvoiceEditScreen for the rationale — URL params

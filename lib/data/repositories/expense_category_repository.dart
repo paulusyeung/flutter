@@ -8,6 +8,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/expense_category_dao.dart';
 import 'package:admin/data/models/api/expense_category_api_model.dart';
 import 'package:admin/data/models/domain/expense_category.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/expense_categories_api.dart';
 import 'package:admin/domain/entity_state.dart';
@@ -181,39 +182,53 @@ class ExpenseCategoryRepository
     }
   }
 
-  Future<ExpenseCategory> create({
+  Future<SaveResult<ExpenseCategory>> create({
     required String companyId,
     required ExpenseCategory draft,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.expenseCategoryDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: stored.toApiJson(),
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
-  Future<void> save({
+  Future<SaveResult<ExpenseCategory>> save({
     required String companyId,
     required ExpenseCategory category,
   }) async {
     final companion = _domainToCompanion(category, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.expenseCategoryDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: category.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: category.id,
         kind: MutationKind.update,
         payload: category.toApiJson(preserveTempId: true),
       );
     });
+    return SaveResult(entity: category, outboxRowId: rowId);
   }
 
   /// Hard-delete on the server. Password-gated per [requiresPasswordFor]; the

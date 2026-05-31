@@ -31,6 +31,9 @@ abstract class GenericBillingDocEditViewModel<T> extends GenericEditViewModel<T>
   GenericBillingDocEditViewModel({
     required super.initialDraft,
     super.original,
+    super.sync,
+    super.connectivity,
+    super.companyId,
     this.currencyPrecision = 2,
   });
 

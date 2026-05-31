@@ -8,6 +8,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/task_status_dao.dart';
 import 'package:admin/data/models/api/task_status_api_model.dart';
 import 'package:admin/data/models/domain/task_status.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/task_statuses_api.dart';
 import 'package:admin/domain/entity_state.dart';
@@ -178,39 +179,53 @@ class TaskStatusRepository
     }
   }
 
-  Future<TaskStatus> create({
+  Future<SaveResult<TaskStatus>> create({
     required String companyId,
     required TaskStatus draft,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.taskStatusDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: stored.toApiJson(),
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
-  Future<void> save({
+  Future<SaveResult<TaskStatus>> save({
     required String companyId,
     required TaskStatus status,
   }) async {
     final companion = _domainToCompanion(status, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.taskStatusDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: status.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: status.id,
         kind: MutationKind.update,
         payload: status.toApiJson(preserveTempId: true),
       );
     });
+    return SaveResult(entity: status, outboxRowId: rowId);
   }
 
   /// Hard-delete on the server. Password-gated per [requiresPasswordFor]; the

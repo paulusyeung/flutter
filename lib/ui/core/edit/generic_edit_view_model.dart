@@ -1,7 +1,10 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/foundation.dart';
 
+import 'package:admin/data/repositories/_repository_helpers.dart';
+import 'package:admin/data/repositories/sync_repository.dart';
 import 'package:admin/data/services/api_exception.dart';
+import 'package:admin/data/services/connectivity_watcher.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// State for an entity edit or create screen. Holds the in-progress draft in
@@ -21,12 +24,30 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
     required T initialDraft,
     T? original,
     bool useCommaAsDecimalPlace = false,
+    SyncRepository? sync,
+    ConnectivityWatcher? connectivity,
+    String? companyId,
+    Duration onlineSaveTimeout = const Duration(seconds: 30),
   })  : _original = original,
         _draft = initialDraft,
-        _useCommaAsDecimalPlace = useCommaAsDecimalPlace;
+        _useCommaAsDecimalPlace = useCommaAsDecimalPlace,
+        _sync = sync,
+        _connectivity = connectivity,
+        _companyId = companyId,
+        _onlineSaveTimeout = onlineSaveTimeout;
 
   final T? _original;
   T _draft;
+
+  /// Optional sync + connectivity wiring. When both are set (production
+  /// path), [save] awaits the just-enqueued outbox row so 422 / 5xx errors
+  /// land inline on the still-open form instead of via the dead-row banner
+  /// post-pop. Unit tests construct the VM without them and keep the
+  /// legacy fire-and-forget behavior.
+  final SyncRepository? _sync;
+  final ConnectivityWatcher? _connectivity;
+  final String? _companyId;
+  final Duration _onlineSaveTimeout;
 
   /// Honors the company's `useCommaAsDecimalPlace` setting for [setDec].
   /// Without this, a user with that setting enabled typing `1,5` gets the
@@ -68,6 +89,30 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
 
   bool _isSaving = false;
   bool get isSaving => _isSaving;
+
+  bool _lastSaveWasOptimistic = false;
+
+  /// True when the most recent successful `save()` returned because the
+  /// online wait hit its timeout (server hasn't confirmed yet) rather than
+  /// the dispatcher actually draining the row. The scaffold reads this to
+  /// toast `"Saving in background…"` instead of `"Saved"` — without the
+  /// distinction the user sees "Saved" then sees a dead-row banner a minute
+  /// later when the row finally 422s. Reset on every save attempt.
+  bool get lastSaveWasOptimistic => _lastSaveWasOptimistic;
+
+  bool _disposed = false;
+
+  /// Latches in [dispose] so the `save()` finally block (which can run
+  /// after the screen unmounts — a 30 s `awaitRow` may still resolve
+  /// while the user navigates away) doesn't call `notifyListeners()` on
+  /// a disposed `ChangeNotifier`, which asserts in debug Flutter.
+  bool get isDisposed => _disposed;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
 
   String? _submitError;
 
@@ -114,31 +159,71 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
   /// affordance uses this to delete the right row from the outbox.
   int? get deadOutboxRowId => _deadOutboxRowId;
 
+  String? _recoveryTempId;
+
+  /// `tmp_<uuid>` from a prior CREATE attempt that didn't fully drain (422
+  /// or transient error). Subclasses thread this into `repo.create(
+  /// existingTempId: ...)` on the next `performSave` so the retry replaces
+  /// the prior pending outbox row in-place — without it, each click of Save
+  /// on a stuck CREATE form mints a fresh tmp id and the prior pending row
+  /// (still under its old tmp id) eventually drains as a duplicate.
+  ///
+  /// Cleared after a successful save (`_savedClean = true`) and on [reset]
+  /// — once the row is gone or the user explicitly discards, the next
+  /// attempt is a clean start.
+  String? get recoveryTempId => _recoveryTempId;
+
+  /// Remember the tmp id from a CREATE attempt's [SaveResult] so subsequent
+  /// retries can reuse it. Subclasses call this from their `performSave`
+  /// override right after a `repo.create(...)` call.
+  @protected
+  void rememberCreateTempId(String? tmpId) {
+    _recoveryTempId = tmpId;
+  }
+
   /// Replay a prior sync failure on this screen. The Outbox screen's
   /// "Open" action and the edit form's `initState` use this to surface
   /// the server's 422 against the re-opened form, so the user can fix
   /// the flagged fields and re-save. Passing an empty [errors] map clears
   /// any previously-displayed errors.
+  ///
+  /// [entityId] — the dead outbox row's `entity_id`. When it's a `tmp_<uuid>`
+  /// (the entity was created offline / via a timed-out online save and
+  /// 422'd later), the VM stashes it as `recoveryTempId` so the user's
+  /// next Save reuses that same tmp id. Without this, the retry mints a
+  /// fresh tmp id and the (now-stale) dead row's eventual cleanup races
+  /// with a second create attempt — duplicate-server-row risk.
   void applyFailedSync({
     required int rowId,
     required Map<String, List<String>> errors,
+    String? entityId,
   }) {
     _deadOutboxRowId = rowId;
     _fieldErrors = Map.unmodifiable(errors);
+    if (entityId != null && entityId.startsWith('tmp_')) {
+      _recoveryTempId = entityId;
+    }
     notifyListeners();
   }
 
   /// Clear the dead-row link + the field errors. Called after the user
   /// either fixes the bad fields and saves again, or explicitly discards.
+  ///
+  /// Also clears `_recoveryTempId` — "Discard failed save" means the user
+  /// wants to throw away the prior attempt entirely; the next Save should
+  /// mint a fresh tmp id rather than re-use the discarded attempt's id
+  /// (which would collide with the now-orphaned dead outbox row).
   void clearFailedSync() {
     if (_deadOutboxRowId == null &&
         _fieldErrors.isEmpty &&
-        !_localValidationOnly) {
+        !_localValidationOnly &&
+        _recoveryTempId == null) {
       return;
     }
     _deadOutboxRowId = null;
     _fieldErrors = const {};
     _localValidationOnly = false;
+    _recoveryTempId = null;
     notifyListeners();
   }
 
@@ -161,14 +246,19 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
     _submitError = null;
     _fieldErrors = const {};
     _localValidationOnly = false;
+    _recoveryTempId = null;
     notifyListeners();
   }
 
   /// Concrete repo call — `repo.create` for new rows, `repo.save` for
   /// existing ones. Subclasses dispatch based on [isCreate]. Returns the
-  /// saved entity on success; throws on failure.
+  /// saved entity *plus* the outbox row id that the sync engine will drain.
+  /// The id lets [save] await that specific row when online so a 422 lands
+  /// inline. Throws on synchronous failures (e.g. client-side guards inside
+  /// the repo); 422 / 5xx are surfaced via the awaited outbox row, not by
+  /// throwing here.
   @protected
-  Future<T> performSave();
+  Future<SaveResult<T>> performSave();
 
   /// Optimistic save. Returns the saved entity on success, null on
   /// failure. The view uses the return value to decide whether to pop the
@@ -250,6 +340,7 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
     _submitError = null;
     _fieldErrors = const {};
     _localValidationOnly = false;
+    _lastSaveWasOptimistic = false;
     // Note: `_deadOutboxRowId` deliberately survives `save()` entry — the
     // screen's `onSaved` callback reads it to delete the prior dead row
     // after a successful re-save. If `performSave` itself throws a 422
@@ -268,11 +359,54 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
         _localValidationOnly = true;
         return null;
       }
-      final saved = await performSave();
+      final result = await performSave();
+      // If the production wiring is in place AND the device is online, wait
+      // for the just-enqueued row to settle so 422 / 5xx errors land on this
+      // form instead of via the dead-row banner after pop. When wiring is
+      // missing (unit tests) or the device is offline, fall through to the
+      // legacy fire-and-forget behavior.
+      final sync = _sync;
+      final connectivity = _connectivity;
+      final companyId = _companyId;
+      if (sync != null && connectivity != null && companyId != null) {
+        final online = await connectivity.isOnline;
+        if (online) {
+          final outcome = await sync.awaitRow(
+            rowId: result.outboxRowId,
+            companyId: companyId,
+            timeout: _onlineSaveTimeout,
+          );
+          switch (outcome.outcome) {
+            case SyncRowOutcome.success:
+              break;
+            case SyncRowOutcome.timeout:
+              // Optimistic fallback — local Drift row is the user's draft,
+              // outbox keeps trying in the background. Flag for the scaffold
+              // so it can toast "Saving in background…" instead of "Saved".
+              _lastSaveWasOptimistic = true;
+              break;
+            case SyncRowOutcome.validationFailed:
+              throw ValidationException(
+                outcome.message ?? '',
+                outcome.fieldErrors,
+              );
+            case SyncRowOutcome.serverError:
+              throw ServerException(
+                outcome.statusCode ?? 0,
+                outcome.message ?? 'Save failed',
+              );
+          }
+        }
+      }
       // Mark the form clean so the post-save navigation doesn't trip the
-      // unsaved-changes guard. Re-armed by the next [updateDraft].
+      // unsaved-changes guard. Re-armed by the next [updateDraft]. The
+      // recovery tmp id is no longer needed: either we successfully drained
+      // (the dispatcher will applyCreateResponse → remap to a real id), or
+      // we hit timeout and the still-pending row carries the same tmp id
+      // (background drain handles its own remap).
       _savedClean = true;
-      return saved;
+      _recoveryTempId = null;
+      return result.entity;
     } on ValidationException catch (e) {
       _fieldErrors = Map.unmodifiable(e.fieldErrors);
       // The prior dead-row link (if any) refers to the previous failure's
@@ -284,7 +418,11 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
       _submitError = e.fieldErrors.isEmpty ? e.message : null;
       return null;
     } catch (e) {
-      _submitError = e.toString();
+      // Surface a clean error message: `ApiException` subclasses' default
+      // `toString()` prefixes with the runtime type (e.g. "ServerException:
+      // Connection lost"), which leaks implementation detail into the toast
+      // and inline submit-error UI.
+      _submitError = e is ApiException ? e.message : e.toString();
       return null;
     } finally {
       // Defensively drop any pending save-query that performSave did not
@@ -292,7 +430,10 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
       // it must never survive into a subsequent plain Save.
       _pendingSaveQuery = null;
       _isSaving = false;
-      notifyListeners();
+      // The screen may have unmounted while we were awaiting the sync
+      // result (30 s timeout) — guard the notification so we don't trip
+      // ChangeNotifier's disposed assertion.
+      if (!_disposed) notifyListeners();
     }
   }
 }

@@ -1,6 +1,7 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/models/domain/billing/invitation.dart';
 import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/domain/billing/totals_calculator.dart';
@@ -40,7 +41,8 @@ class _FakeVm extends GenericBillingDocEditViewModel<_Doc> {
         usesInclusiveTaxes: false,
       );
   @override
-  Future<_Doc> performSave() async => draft;
+  Future<SaveResult<_Doc>> performSave() async =>
+      SaveResult(entity: draft, outboxRowId: 1);
 }
 
 const _idPath = <Object>[

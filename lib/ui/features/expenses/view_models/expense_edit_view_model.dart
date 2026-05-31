@@ -2,6 +2,7 @@ import 'package:decimal/decimal.dart';
 
 import 'package:admin/data/models/domain/expense.dart';
 import 'package:admin/data/models/value/date.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/expense_repository.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 
@@ -14,9 +15,12 @@ class ExpenseEditViewModel extends GenericEditViewModel<Expense> {
     required this.companyId,
     Expense? existing,
     Expense? cloneFrom,
+    super.sync,
+    super.connectivity,
   }) : super(
          initialDraft: cloneFrom ?? existing ?? emptyExpense(),
          original: existing,
+         companyId: companyId,
        );
 
   final ExpenseRepository repo;
@@ -36,12 +40,17 @@ class ExpenseEditViewModel extends GenericEditViewModel<Expense> {
   }
 
   @override
-  Future<Expense> performSave() async {
+  Future<SaveResult<Expense>> performSave() async {
     if (isCreate) {
-      return await repo.create(companyId: companyId, draft: draft);
+      final result = await repo.create(
+        companyId: companyId,
+        draft: draft,
+        existingTempId: recoveryTempId,
+      );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(companyId: companyId, expense: draft);
-    return draft;
+    return repo.save(companyId: companyId, expense: draft);
   }
 
   void resetToEmpty() => reset(emptyDraft: emptyExpense());

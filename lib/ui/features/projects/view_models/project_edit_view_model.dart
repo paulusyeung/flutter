@@ -2,6 +2,7 @@ import 'package:decimal/decimal.dart';
 
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/value/date.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/project_repository.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 
@@ -14,9 +15,12 @@ class ProjectEditViewModel extends GenericEditViewModel<Project> {
     required this.companyId,
     Project? existing,
     Project? cloneFrom,
+    super.sync,
+    super.connectivity,
   }) : super(
          initialDraft: cloneFrom ?? existing ?? _emptyProject(),
          original: existing,
+         companyId: companyId,
        );
 
   final ProjectRepository repo;
@@ -35,12 +39,17 @@ class ProjectEditViewModel extends GenericEditViewModel<Project> {
   }
 
   @override
-  Future<Project> performSave() async {
+  Future<SaveResult<Project>> performSave() async {
     if (isCreate) {
-      return await repo.create(companyId: companyId, draft: draft);
+      final result = await repo.create(
+        companyId: companyId,
+        draft: draft,
+        existingTempId: recoveryTempId,
+      );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(companyId: companyId, project: draft);
-    return draft;
+    return repo.save(companyId: companyId, project: draft);
   }
 
   void resetToEmpty() => reset(emptyDraft: _emptyProject());

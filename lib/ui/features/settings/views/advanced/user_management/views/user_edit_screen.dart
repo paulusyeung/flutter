@@ -58,7 +58,12 @@ class _UserEditScreenState extends State<UserEditScreen> {
     }
 
     if (_isCreate) {
-      _vm = UserEditViewModel(repo: services.user, companyId: companyId);
+      _vm = UserEditViewModel(
+        repo: services.user,
+        companyId: companyId,
+        sync: services.sync,
+        connectivity: services.connectivity,
+      );
     } else {
       // Edit mode: capture password upfront (server gates GET /users/{id}
       // with 412), then fetch a fresh snapshot from the API so the form
@@ -88,6 +93,8 @@ class _UserEditScreenState extends State<UserEditScreen> {
           repo: services.user,
           companyId: companyId,
           existing: local,
+          sync: services.sync,
+          connectivity: services.connectivity,
         );
       });
       return;
@@ -142,6 +149,8 @@ class _UserEditScreenState extends State<UserEditScreen> {
         repo: services.user,
         companyId: companyId,
         existing: existing,
+        sync: services.sync,
+        connectivity: services.connectivity,
       );
     });
   }

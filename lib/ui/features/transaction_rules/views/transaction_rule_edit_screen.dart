@@ -43,6 +43,8 @@ class TransactionRuleEditScreen extends StatelessWidget {
         repo: repo,
         companyId: companyId,
         existing: existing,
+        sync: services.sync,
+        connectivity: services.connectivity,
       ),
       isArchivedOf: (r) => r.archivedAt != null,
       isDeletedOf: (r) => r.isDeleted,

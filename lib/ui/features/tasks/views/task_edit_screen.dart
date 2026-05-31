@@ -86,6 +86,8 @@ class _TaskEditScreenState extends State<TaskEditScreen>
           now: DateTime.now,
           existing: existing,
           cloneFrom: widget.cloneFrom,
+          sync: services.sync,
+          connectivity: services.connectivity,
         );
         // Seed the project picker on first build. Fire-and-forget — the
         // watch resolves the project once Drift has it, then runs the

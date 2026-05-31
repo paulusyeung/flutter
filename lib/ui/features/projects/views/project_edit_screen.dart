@@ -58,6 +58,8 @@ class ProjectEditScreen extends StatelessWidget {
           companyId: companyId,
           existing: existing,
           cloneFrom: clone,
+          sync: services.sync,
+          connectivity: services.connectivity,
         );
       },
       titleWhileLoading: (ctx) =>

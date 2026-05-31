@@ -24,6 +24,43 @@ const List<Duration> kBackoffSchedule = [
 /// Total attempts (initial + retries) before a row is marked dead.
 const int kMaxAttempts = 5;
 
+/// Terminal state observed by [SyncRepository.awaitRow] for one outbox row.
+enum SyncRowOutcome {
+  /// Row was successfully drained (server returned 2xx; the row was deleted).
+  success,
+
+  /// Row was rejected by the server with a 422 — caller should surface the
+  /// returned `fieldErrors` inline on the edit form.
+  validationFailed,
+
+  /// Row hit a non-validation failure (5xx, network, dead row with a non-422
+  /// status). Caller surfaces [SyncRowResult.message] as a submit-level error
+  /// and keeps the form open.
+  serverError,
+
+  /// [SyncRepository.awaitRow] hit its caller-supplied timeout while the row
+  /// was still pending / in-flight. Caller pops the form optimistically and
+  /// lets the outbox keep draining in the background.
+  timeout,
+}
+
+/// Result of [SyncRepository.awaitRow]. [fieldErrors] is populated only for
+/// [SyncRowOutcome.validationFailed]; [message] / [statusCode] are surfaced
+/// on transient and validation failures so the form can show an error.
+class SyncRowResult {
+  const SyncRowResult({
+    required this.outcome,
+    this.fieldErrors = const <String, List<String>>{},
+    this.message,
+    this.statusCode,
+  });
+
+  final SyncRowOutcome outcome;
+  final Map<String, List<String>> fieldErrors;
+  final String? message;
+  final int? statusCode;
+}
+
 /// Long-running consumer of the outbox. Drains rows in FIFO order per
 /// `(company, entity_type)`, dispatches them via the [EntityRegistry], and
 /// emits typed [SyncEvent]s for the UI shell to react to.
@@ -152,6 +189,103 @@ class SyncRepository {
   /// Errors propagate so the caller can show a SnackBar.
   Future<int> flushNow({required String companyId}) =>
       drainOnce(companyId: companyId);
+
+  /// Wait for one specific outbox row to reach a terminal state, kicking the
+  /// drain as needed so the row actually gets dispatched. Used by
+  /// `GenericEditViewModel.save()` when the device is online to flip the form
+  /// into a synchronous UX: a 422 lands inline on the still-open form
+  /// instead of via the dead-row banner after the route popped.
+  ///
+  /// The poll loop (default 200 ms) is the contract; events are nice-to-have.
+  /// On every tick where the row is still `pending` and due, [drainOnce] is
+  /// re-kicked — the single-flight `_inFlight` guard makes that idempotent.
+  /// This closes the drain race where a prior in-flight drain snapshotted
+  /// `nextReady` before our row was enqueued and finished without seeing it.
+  ///
+  /// Returns:
+  ///   * [SyncRowOutcome.success] — row was deleted (server 2xx).
+  ///   * [SyncRowOutcome.validationFailed] — row is `dead` with status 422.
+  ///   * [SyncRowOutcome.serverError] — row is `dead` with a non-422 status,
+  ///     or row is `pending` with a future `nextAttemptAt` (a backoff was
+  ///     scheduled; surface the `lastError`).
+  ///   * [SyncRowOutcome.timeout] — [timeout] elapsed with the row still
+  ///     pending or in_flight; caller should fall back to background sync.
+  Future<SyncRowResult> awaitRow({
+    required int rowId,
+    required String companyId,
+    Duration timeout = const Duration(seconds: 30),
+    Duration pollInterval = const Duration(milliseconds: 200),
+  }) async {
+    // Use a real wall-clock Stopwatch for the deadline — the injected `_now`
+    // is fixed in unit tests (deterministic backoff math) so checking it
+    // would never trip the timeout branch. The poll loop's `Future.delayed`
+    // is already real-wall-time, so this just matches what the user actually
+    // experiences.
+    final stopwatch = Stopwatch()..start();
+    // Kick the drain right away so an idle company starts processing without
+    // waiting for the first poll. Subsequent kicks happen inside the loop.
+    unawaited(drainOnce(companyId: companyId));
+    while (true) {
+      final row = await db.outboxDao.byId(rowId);
+      if (row == null) {
+        return const SyncRowResult(outcome: SyncRowOutcome.success);
+      }
+      if (row.state == 'dead') {
+        if (row.lastStatusCode == 422) {
+          return SyncRowResult(
+            outcome: SyncRowOutcome.validationFailed,
+            fieldErrors: _decodeFieldErrors(row.fieldErrorsJson),
+            message: row.lastError,
+            statusCode: row.lastStatusCode,
+          );
+        }
+        return SyncRowResult(
+          outcome: SyncRowOutcome.serverError,
+          message: row.lastError ?? 'Save failed',
+          statusCode: row.lastStatusCode,
+        );
+      }
+      final nowMs = _now().millisecondsSinceEpoch;
+      if (row.state == 'pending' && row.nextAttemptAt > nowMs) {
+        // A retry has been scheduled into the future — this is a transient
+        // server/network failure. Surface inline; the outbox will keep
+        // retrying in the background per its backoff if the user navigates
+        // away, but for now the form stays open with the error.
+        return SyncRowResult(
+          outcome: SyncRowOutcome.serverError,
+          message: row.lastError ?? 'Connection lost',
+          statusCode: row.lastStatusCode,
+        );
+      }
+      if (stopwatch.elapsed >= timeout) {
+        return const SyncRowResult(outcome: SyncRowOutcome.timeout);
+      }
+      // Pending and due, or in_flight. Re-kick drainOnce — if a prior drain
+      // missed this row (it snapshotted nextReady before our enqueue), the
+      // next pass picks it up. If a drain is already running, single-flight
+      // makes this a no-op.
+      if (row.state == 'pending') {
+        unawaited(drainOnce(companyId: companyId));
+      }
+      await Future<void>.delayed(pollInterval);
+    }
+  }
+
+  Map<String, List<String>> _decodeFieldErrors(String? json) {
+    if (json == null || json.isEmpty) return const <String, List<String>>{};
+    try {
+      final decoded = jsonDecode(json);
+      if (decoded is Map) {
+        return decoded.map(
+          (k, v) => MapEntry(
+            k.toString(),
+            v is List ? v.map((e) => e.toString()).toList() : <String>[],
+          ),
+        );
+      }
+    } catch (_) {}
+    return const <String, List<String>>{};
+  }
 
   /// Drain all due `pending` rows for [companyId] in one pass. Returns the
   /// number of rows successfully dispatched (200-class result). Stops early

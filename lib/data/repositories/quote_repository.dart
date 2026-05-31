@@ -200,35 +200,48 @@ class QuoteRepository extends BaseEntityRepository<Quote, QuoteApi> {
     }
   }
 
-  Future<Quote> create({
+  Future<SaveResult<Quote>> create({
     required String companyId,
     required Quote draft,
     Map<String, String>? extraQuery,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.quoteDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: _withSaveQuery(stored.toApiJson(), extraQuery),
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
-  Future<void> save({
+  Future<SaveResult<Quote>> save({
     required String companyId,
     required Quote quote,
     Map<String, String>? extraQuery,
   }) async {
     final companion = _domainToCompanion(quote, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.quoteDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: quote.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: quote.id,
         kind: MutationKind.update,
@@ -238,6 +251,7 @@ class QuoteRepository extends BaseEntityRepository<Quote, QuoteApi> {
         ),
       );
     });
+    return SaveResult(entity: quote, outboxRowId: rowId);
   }
 
   /// Folds a SAVE-PARAM action's query map into the outbox payload under

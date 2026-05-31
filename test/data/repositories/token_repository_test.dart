@@ -166,7 +166,7 @@ void main() {
         final repo = makeRepo();
 
         final draft = Token.fromApi(const TokenApi(name: 'My Token'));
-        final stored = await repo.create(companyId: 'co', draft: draft);
+        final stored = (await repo.create(companyId: 'co', draft: draft)).entity;
         final tempId = stored.id;
 
         final firstSecret = repo.newSecrets.first;

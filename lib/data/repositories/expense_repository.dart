@@ -213,40 +213,54 @@ class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi>    imp
 
   /// Create a new expense offline. Returns the expense with its tmp id so
   /// the UI can navigate to the detail screen immediately.
-  Future<Expense> create({
+  Future<SaveResult<Expense>> create({
     required String companyId,
     required Expense draft,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
 
+    var rowId = 0;
     await db.transaction(() async {
       await db.expenseDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: stored.toApiJson(),
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
-  Future<void> save({
+  Future<SaveResult<Expense>> save({
     required String companyId,
     required Expense expense,
   }) async {
     final companion = _domainToCompanion(expense, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.expenseDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: expense.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: expense.id,
         kind: MutationKind.update,
         payload: expense.toApiJson(preserveTempId: true),
       );
     });
+    return SaveResult(entity: expense, outboxRowId: rowId);
   }
 
   /// Append a user comment to this expense's activity stream. Hits

@@ -1,6 +1,7 @@
 import 'package:decimal/decimal.dart';
 
 import 'package:admin/data/models/domain/product.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/product_repository.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 
@@ -14,9 +15,12 @@ class ProductEditViewModel extends GenericEditViewModel<Product> {
     Product? existing,
     Product? cloneFrom,
     super.useCommaAsDecimalPlace,
+    super.sync,
+    super.connectivity,
   }) : super(
          initialDraft: cloneFrom ?? existing ?? _emptyProduct(),
          original: existing,
+         companyId: companyId,
        );
 
   final ProductRepository repo;
@@ -32,12 +36,17 @@ class ProductEditViewModel extends GenericEditViewModel<Product> {
   }
 
   @override
-  Future<Product> performSave() async {
+  Future<SaveResult<Product>> performSave() async {
     if (isCreate) {
-      return await repo.create(companyId: companyId, draft: draft);
+      final result = await repo.create(
+        companyId: companyId,
+        draft: draft,
+        existingTempId: recoveryTempId,
+      );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(companyId: companyId, product: draft);
-    return draft;
+    return repo.save(companyId: companyId, product: draft);
   }
 
   void resetToEmpty() => reset(emptyDraft: _emptyProduct());

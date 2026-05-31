@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/expense_category_api_model.dart';
 import 'package:admin/data/models/domain/expense_category.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/expense_category_repository.dart';
 import 'package:admin/data/services/expense_categories_api.dart';
@@ -52,7 +53,7 @@ class _ExpenseCategoryFixture
   bool isDirtyOf(ExpenseCategory item) => item.isDirty;
 
   @override
-  Future<ExpenseCategory> create(
+  Future<SaveResult<ExpenseCategory>> create(
     BaseEntityRepository<ExpenseCategory, ExpenseCategoryApi> repo, {
     required String companyId,
     required ExpenseCategory draft,
@@ -62,7 +63,7 @@ class _ExpenseCategoryFixture
   );
 
   @override
-  Future<void> save(
+  Future<SaveResult<ExpenseCategory>> save(
     BaseEntityRepository<ExpenseCategory, ExpenseCategoryApi> repo, {
     required String companyId,
     required ExpenseCategory entity,

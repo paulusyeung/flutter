@@ -200,40 +200,54 @@ class ProjectRepository extends BaseEntityRepository<Project, ProjectApi>    imp
 
   /// Create a new project offline. Returns the project with its tmp id so
   /// the UI can navigate to the detail screen immediately.
-  Future<Project> create({
+  Future<SaveResult<Project>> create({
     required String companyId,
     required Project draft,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
 
+    var rowId = 0;
     await db.transaction(() async {
       await db.projectDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: stored.toApiJson(),
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
-  Future<void> save({
+  Future<SaveResult<Project>> save({
     required String companyId,
     required Project project,
   }) async {
     final companion = _domainToCompanion(project, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.projectDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: project.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: project.id,
         kind: MutationKind.update,
         payload: project.toApiJson(preserveTempId: true),
       );
     });
+    return SaveResult(entity: project, outboxRowId: rowId);
   }
 
   /// Apply a design / email template to this project. Mirrors

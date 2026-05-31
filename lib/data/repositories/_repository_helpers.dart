@@ -12,6 +12,18 @@ import 'package:admin/data/models/domain/schedule_item.dart';
 /// `_apiToCompanion` builders when persisting timestamp columns.
 int dateToEpochSeconds(DateTime d) => d.millisecondsSinceEpoch ~/ 1000;
 
+/// Return shape for entity-repo `create` / `save`: the optimistically-written
+/// domain entity plus the outbox row id that the sync engine will drain. The
+/// id lets `GenericEditViewModel.save()` await a specific row when online,
+/// flipping the form into a synchronous-feel UX (inline 422 / network errors
+/// land on the open form instead of via the dead-row banner after pop).
+class SaveResult<T> {
+  const SaveResult({required this.entity, required this.outboxRowId});
+
+  final T entity;
+  final int outboxRowId;
+}
+
 /// Decode a Drift `documents` text column back into typed domain
 /// [Document]s. Empty/malformed strings return `const <Document>[]` so the
 /// repository's `_fromRow` can overlay a non-nullable list without

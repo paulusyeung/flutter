@@ -1,4 +1,5 @@
 import 'package:admin/data/models/domain/transaction_rule.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/transaction_rule_repository.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 
@@ -8,7 +9,13 @@ class TransactionRuleEditViewModel extends GenericEditViewModel<TransactionRule>
     required this.repo,
     required this.companyId,
     TransactionRule? existing,
-  }) : super(initialDraft: existing ?? _emptyRule(), original: existing);
+    super.sync,
+    super.connectivity,
+  }) : super(
+          initialDraft: existing ?? _emptyRule(),
+          original: existing,
+          companyId: companyId,
+        );
 
   final TransactionRuleRepository repo;
   final String companyId;
@@ -18,12 +25,17 @@ class TransactionRuleEditViewModel extends GenericEditViewModel<TransactionRule>
       draft.name.isNotEmpty || draft.rules.isNotEmpty;
 
   @override
-  Future<TransactionRule> performSave() async {
+  Future<SaveResult<TransactionRule>> performSave() async {
     if (isCreate) {
-      return await repo.create(companyId: companyId, draft: draft);
+      final result = await repo.create(
+        companyId: companyId,
+        draft: draft,
+        existingTempId: recoveryTempId,
+      );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(companyId: companyId, rule: draft);
-    return draft;
+    return repo.save(companyId: companyId, rule: draft);
   }
 
   void setName(String v) => updateDraft(draft.copyWith(name: v));

@@ -2,6 +2,7 @@ import 'package:decimal/decimal.dart';
 
 import 'package:admin/data/models/domain/bank_transaction.dart';
 import 'package:admin/data/models/value/date.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/bank_transaction_repository.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 
@@ -15,9 +16,12 @@ class TransactionEditViewModel
     required this.repo,
     required this.companyId,
     BankTransaction? existing,
+    super.sync,
+    super.connectivity,
   }) : super(
           initialDraft: existing ?? _emptyTransaction(),
           original: existing,
+          companyId: companyId,
         );
 
   final BankTransactionRepository repo;
@@ -30,12 +34,17 @@ class TransactionEditViewModel
       draft.bankAccountId.isNotEmpty;
 
   @override
-  Future<BankTransaction> performSave() async {
+  Future<SaveResult<BankTransaction>> performSave() async {
     if (isCreate) {
-      return repo.create(companyId: companyId, draft: draft);
+      final result = await repo.create(
+        companyId: companyId,
+        draft: draft,
+        existingTempId: recoveryTempId,
+      );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(companyId: companyId, transaction: draft);
-    return draft;
+    return repo.save(companyId: companyId, transaction: draft);
   }
 
   void resetToEmpty() => reset(emptyDraft: _emptyTransaction());

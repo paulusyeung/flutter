@@ -8,6 +8,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/token_dao.dart';
 import 'package:admin/data/models/api/token_api_model.dart';
 import 'package:admin/data/models/domain/token.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/tokens_api.dart';
 import 'package:admin/domain/entity_state.dart';
@@ -171,37 +172,54 @@ class TokenRepository extends BaseEntityRepository<Token, TokenApi> {
     }
   }
 
-  Future<Token> create({
+  Future<SaveResult<Token>> create({
     required String companyId,
     required Token draft,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
 
+    var rowId = 0;
     await db.transaction(() async {
       await db.tokenDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: stored.toApiJson(),
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
-  Future<void> save({required String companyId, required Token token}) async {
+  Future<SaveResult<Token>> save({
+    required String companyId,
+    required Token token,
+  }) async {
     final companion = _domainToCompanion(token, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.tokenDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: token.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: token.id,
         kind: MutationKind.update,
         payload: token.toApiJson(preserveTempId: true),
       );
     });
+    return SaveResult(entity: token, outboxRowId: rowId);
   }
 
   @override

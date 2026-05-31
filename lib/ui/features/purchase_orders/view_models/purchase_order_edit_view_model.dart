@@ -5,6 +5,7 @@ import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/purchase_order.dart';
 import 'package:admin/data/models/domain/purchase_order_status.dart';
 import 'package:admin/data/models/value/date.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/purchase_order_repository.dart';
 import 'package:admin/domain/billing/totals_calculator.dart';
 import 'package:admin/ui/features/billing_shared/view_models/billing_doc_edit_view_model.dart';
@@ -21,9 +22,12 @@ class PurchaseOrderEditViewModel
     PurchaseOrder? existing,
     PurchaseOrder? cloneFrom,
     super.currencyPrecision,
+    super.sync,
+    super.connectivity,
   }) : super(
           initialDraft: cloneFrom ?? existing ?? emptyPurchaseOrder(),
           original: existing,
+          companyId: companyId,
         );
 
   final PurchaseOrderRepository repo;
@@ -54,23 +58,25 @@ class PurchaseOrderEditViewModel
   }
 
   @override
-  Future<PurchaseOrder> performSave() async {
+  Future<SaveResult<PurchaseOrder>> performSave() async {
     // One-shot SAVE-PARAM query (mark_sent / accept) set by the
     // edit-screen action bar; null on a plain Save.
     final extraQuery = consumeSaveQuery();
     if (isCreate) {
-      return await repo.create(
+      final result = await repo.create(
         companyId: companyId,
         draft: draft,
         extraQuery: extraQuery,
+        existingTempId: recoveryTempId,
       );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(
+    return repo.save(
       companyId: companyId,
       purchaseOrder: draft,
       extraQuery: extraQuery,
     );
-    return draft;
   }
 
   void resetToEmpty() => reset(emptyDraft: emptyPurchaseOrder());

@@ -4,6 +4,7 @@ import 'package:admin/data/models/api/design_api_model.dart' show DesignTemplate
 import 'package:admin/data/models/domain/company_settings.dart';
 import 'package:admin/data/models/domain/design.dart';
 import 'package:admin/data/models/domain/design_block_layout.dart' show kDesignerGridCols;
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/design_repository.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/block_library.dart';
@@ -25,9 +26,12 @@ class WysiwygDesignViewModel extends GenericEditViewModel<Design> {
     required this.companyId,
     Design? existing,
     CompanySettings? companySettings,
+    super.sync,
+    super.connectivity,
   }) : super(
          initialDraft: _seed(existing, companySettings),
          original: existing,
+         companyId: companyId,
        );
 
   final DesignRepository repo;
@@ -114,12 +118,17 @@ class WysiwygDesignViewModel extends GenericEditViewModel<Design> {
   }
 
   @override
-  Future<Design> performSave() async {
+  Future<SaveResult<Design>> performSave() async {
     if (isCreate) {
-      return repo.create(companyId: companyId, draft: draft);
+      final result = await repo.create(
+        companyId: companyId,
+        draft: draft,
+        existingTempId: recoveryTempId,
+      );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(companyId: companyId, design: draft);
-    return draft;
+    return repo.save(companyId: companyId, design: draft);
   }
 
   // ── Selection ──────────────────────────────────────────────────────

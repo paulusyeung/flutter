@@ -2,6 +2,7 @@ import 'package:admin/data/models/domain/report_schedule_seed.dart';
 import 'package:admin/data/models/domain/schedule.dart';
 import 'package:admin/data/models/domain/schedule_constants.dart';
 import 'package:admin/data/models/value/date.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/schedule_repository.dart';
 import 'package:admin/domain/reports/report_schedule.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
@@ -15,7 +16,13 @@ class ScheduleEditViewModel extends GenericEditViewModel<Schedule> {
     required this.repo,
     required this.companyId,
     Schedule? existing,
-  }) : super(initialDraft: existing ?? Schedule.empty(), original: existing);
+    super.sync,
+    super.connectivity,
+  }) : super(
+          initialDraft: existing ?? Schedule.empty(),
+          original: existing,
+          companyId: companyId,
+        );
 
   final ScheduleRepository repo;
   final String companyId;
@@ -27,12 +34,17 @@ class ScheduleEditViewModel extends GenericEditViewModel<Schedule> {
   }
 
   @override
-  Future<Schedule> performSave() async {
+  Future<SaveResult<Schedule>> performSave() async {
     if (isCreate) {
-      return await repo.create(companyId: companyId, draft: draft);
+      final result = await repo.create(
+        companyId: companyId,
+        draft: draft,
+        existingTempId: recoveryTempId,
+      );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(companyId: companyId, schedule: draft);
-    return draft;
+    return repo.save(companyId: companyId, schedule: draft);
   }
 
   void resetToEmpty() => reset(emptyDraft: Schedule.empty());

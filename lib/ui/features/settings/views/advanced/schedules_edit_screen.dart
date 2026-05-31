@@ -69,6 +69,8 @@ class SchedulesEditScreen extends StatelessWidget {
           repo: repo,
           companyId: companyId,
           existing: existing,
+          sync: services.sync,
+          connectivity: services.connectivity,
         );
         // Prefill on fresh creates. A report seed (from the reports
         // "Schedule" launcher) wins over a starter card; they never

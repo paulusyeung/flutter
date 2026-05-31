@@ -1,4 +1,5 @@
 import 'package:admin/data/models/domain/task_status.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/task_status_repository.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/accent_swatch_grid.dart'
@@ -16,7 +17,13 @@ class TaskStatusEditViewModel extends GenericEditViewModel<TaskStatus> {
     required this.repo,
     required this.companyId,
     TaskStatus? existing,
-  }) : super(initialDraft: existing ?? _emptyStatus(), original: existing);
+    super.sync,
+    super.connectivity,
+  }) : super(
+          initialDraft: existing ?? _emptyStatus(),
+          original: existing,
+          companyId: companyId,
+        );
 
   final TaskStatusRepository repo;
   final String companyId;
@@ -28,12 +35,17 @@ class TaskStatusEditViewModel extends GenericEditViewModel<TaskStatus> {
   }
 
   @override
-  Future<TaskStatus> performSave() async {
+  Future<SaveResult<TaskStatus>> performSave() async {
     if (isCreate) {
-      return await repo.create(companyId: companyId, draft: draft);
+      final result = await repo.create(
+        companyId: companyId,
+        draft: draft,
+        existingTempId: recoveryTempId,
+      );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(companyId: companyId, status: draft);
-    return draft;
+    return repo.save(companyId: companyId, status: draft);
   }
 
   void resetToEmpty() => reset(emptyDraft: _emptyStatus());

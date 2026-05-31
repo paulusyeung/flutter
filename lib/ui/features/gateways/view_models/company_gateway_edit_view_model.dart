@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:admin/data/models/domain/company_gateway.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/company_gateway_repository.dart';
 import 'package:admin/domain/gateway_constants.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
@@ -14,6 +15,8 @@ class CompanyGatewayEditViewModel extends GenericEditViewModel<CompanyGateway> {
     required this.companyId,
     CompanyGateway? existing,
     String? initialGatewayKey,
+    super.sync,
+    super.connectivity,
   }) : super(
          initialDraft:
              existing ??
@@ -24,6 +27,7 @@ class CompanyGatewayEditViewModel extends GenericEditViewModel<CompanyGateway> {
                tokenBilling: kAutoBillOff,
              ),
          original: existing,
+         companyId: companyId,
        );
 
   final CompanyGatewayRepository repo;
@@ -103,11 +107,16 @@ class CompanyGatewayEditViewModel extends GenericEditViewModel<CompanyGateway> {
   }
 
   @override
-  Future<CompanyGateway> performSave() async {
+  Future<SaveResult<CompanyGateway>> performSave() async {
     if (isCreate) {
-      return repo.create(companyId: companyId, draft: draft);
+      final result = await repo.create(
+        companyId: companyId,
+        draft: draft,
+        existingTempId: recoveryTempId,
+      );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(companyId: companyId, gateway: draft);
-    return draft;
+    return repo.save(companyId: companyId, gateway: draft);
   }
 }

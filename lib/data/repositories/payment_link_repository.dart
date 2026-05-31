@@ -9,6 +9,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/payment_link_dao.dart';
 import 'package:admin/data/models/api/subscription_api_model.dart';
 import 'package:admin/data/models/domain/payment_link.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/subscriptions_api.dart';
 import 'package:admin/domain/entity_state.dart';
@@ -159,39 +160,53 @@ class PaymentLinkRepository
     }
   }
 
-  Future<PaymentLink> create({
+  Future<SaveResult<PaymentLink>> create({
     required String companyId,
     required PaymentLink draft,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.paymentLinkDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: stored.toApiJson(),
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
-  Future<void> save({
+  Future<SaveResult<PaymentLink>> save({
     required String companyId,
     required PaymentLink paymentLink,
   }) async {
     final companion = _domainToCompanion(paymentLink, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.paymentLinkDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: paymentLink.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: paymentLink.id,
         kind: MutationKind.update,
         payload: paymentLink.toApiJson(preserveTempId: true),
       );
     });
+    return SaveResult(entity: paymentLink, outboxRowId: rowId);
   }
 
   /// Hard-delete on the server. Password-gated per [requiresPasswordFor].

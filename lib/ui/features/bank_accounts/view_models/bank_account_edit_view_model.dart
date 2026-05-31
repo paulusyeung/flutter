@@ -2,6 +2,7 @@ import 'package:decimal/decimal.dart';
 
 import 'package:admin/data/models/domain/bank_account.dart';
 import 'package:admin/data/models/value/date.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/bank_account_repository.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 
@@ -11,7 +12,13 @@ class BankAccountEditViewModel extends GenericEditViewModel<BankAccount> {
     required this.repo,
     required this.companyId,
     BankAccount? existing,
-  }) : super(initialDraft: existing ?? _emptyAccount(), original: existing);
+    super.sync,
+    super.connectivity,
+  }) : super(
+          initialDraft: existing ?? _emptyAccount(),
+          original: existing,
+          companyId: companyId,
+        );
 
   final BankAccountRepository repo;
   final String companyId;
@@ -20,12 +27,17 @@ class BankAccountEditViewModel extends GenericEditViewModel<BankAccount> {
   bool draftIsNonEmpty() => draft.name.isNotEmpty;
 
   @override
-  Future<BankAccount> performSave() async {
+  Future<SaveResult<BankAccount>> performSave() async {
     if (isCreate) {
-      return await repo.create(companyId: companyId, draft: draft);
+      final result = await repo.create(
+        companyId: companyId,
+        draft: draft,
+        existingTempId: recoveryTempId,
+      );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(companyId: companyId, account: draft);
-    return draft;
+    return repo.save(companyId: companyId, account: draft);
   }
 
   void setName(String v) => updateDraft(draft.copyWith(name: v));

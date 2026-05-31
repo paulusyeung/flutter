@@ -55,6 +55,8 @@ class ExpenseEditScreen extends StatelessWidget {
           companyId: companyId,
           existing: existing,
           cloneFrom: cloneFrom,
+          sync: services.sync,
+          connectivity: services.connectivity,
         );
         // Seed project + client from `?project=<id>` on first build (create
         // mode only). Wrapped in postFrame so listeners are attached before

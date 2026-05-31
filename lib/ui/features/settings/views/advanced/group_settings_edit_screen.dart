@@ -45,6 +45,8 @@ class GroupSettingsEditScreen extends StatelessWidget {
         repo: repo,
         companyId: companyId,
         existing: existing,
+        sync: services.sync,
+        connectivity: services.connectivity,
       ),
       isArchivedOf: (g) => g.archivedAt != null,
       isDeletedOf: (g) => g.isDeleted,

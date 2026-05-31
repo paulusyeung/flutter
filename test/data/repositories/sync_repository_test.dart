@@ -713,6 +713,89 @@ void main() {
       );
     });
   });
+
+  group('awaitRow (synchronous-when-online seam)', () {
+    test('returns success when the dispatcher drains the row', () async {
+      final disp = _ProgrammableDispatcher()..queueSuccess();
+      final engine = makeEngine(disp);
+      final rowId = await enqueueClient(entityId: 'c1');
+
+      final result = await engine.awaitRow(
+        rowId: rowId,
+        companyId: 'co',
+        pollInterval: const Duration(milliseconds: 5),
+      );
+
+      expect(result.outcome, SyncRowOutcome.success);
+      expect(await rowById(rowId), isNull);
+    });
+
+    test(
+      'returns validationFailed with fieldErrors when the dispatcher throws '
+      'ValidationException (422)',
+      () async {
+        final disp = _ProgrammableDispatcher()
+          ..queueThrow(
+            const ValidationException('Validation failed', {
+              'email': ['Must be unique'],
+            }),
+          );
+        final engine = makeEngine(disp);
+        final rowId = await enqueueClient(entityId: 'c1');
+
+        final result = await engine.awaitRow(
+          rowId: rowId,
+          companyId: 'co',
+          pollInterval: const Duration(milliseconds: 5),
+        );
+
+        expect(result.outcome, SyncRowOutcome.validationFailed);
+        expect(result.statusCode, 422);
+        expect(result.fieldErrors['email'], ['Must be unique']);
+      },
+    );
+
+    test(
+      'returns serverError when a transient failure parks the row with a '
+      'future nextAttemptAt (backoff scheduled)',
+      () async {
+        final disp = _ProgrammableDispatcher()
+          ..queueThrow(const NetworkException('Connection lost'));
+        final engine = makeEngine(disp);
+        final rowId = await enqueueClient(entityId: 'c1');
+
+        final result = await engine.awaitRow(
+          rowId: rowId,
+          companyId: 'co',
+          pollInterval: const Duration(milliseconds: 5),
+        );
+
+        expect(result.outcome, SyncRowOutcome.serverError);
+        expect(result.message, contains('Connection lost'));
+      },
+    );
+
+    test(
+      'returns timeout when the deadline elapses while the row is still '
+      'pending or in-flight',
+      () async {
+        final blocker = Completer<void>();
+        final disp = _GatedDispatcher(firstBlocker: blocker.future);
+        final engine = makeEngine(disp);
+        final rowId = await enqueueClient(entityId: 'c1');
+
+        final result = await engine.awaitRow(
+          rowId: rowId,
+          companyId: 'co',
+          timeout: const Duration(milliseconds: 50),
+          pollInterval: const Duration(milliseconds: 5),
+        );
+
+        expect(result.outcome, SyncRowOutcome.timeout);
+        blocker.complete();
+      },
+    );
+  });
 }
 
 class _GatedDispatcher implements SyncDispatcher {

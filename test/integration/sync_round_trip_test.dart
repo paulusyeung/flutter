@@ -78,7 +78,7 @@ void main() {
 
       // (1) Create offline. Returns the locally-stored row with a tmp id.
       final draft = Client.fromApi(apiClient('', name: 'Acme'));
-      final created = await repo.create(companyId: 'co', draft: draft);
+      final created = (await repo.create(companyId: 'co', draft: draft)).entity;
       expect(created.id.startsWith('tmp_'), isTrue);
       final tmpId = created.id;
 
@@ -156,7 +156,7 @@ void main() {
     final sync = SyncRepository(db: db, registry: registry);
 
     final draft = Client.fromApi(apiClient('', name: 'Acme'));
-    final created = await repo.create(companyId: 'co', draft: draft);
+    final created = (await repo.create(companyId: 'co', draft: draft)).entity;
     final tmpId = created.id;
 
     // Edit the just-created client while the create is still pending. The
@@ -228,7 +228,7 @@ void main() {
     final sync = SyncRepository(db: db, registry: registry);
 
     final draft = Client.fromApi(apiClient('', name: 'Bad'));
-    final created = await repo.create(companyId: 'co', draft: draft);
+    final created = (await repo.create(companyId: 'co', draft: draft)).entity;
     final tmpId = created.id;
 
     await sync.drainOnce(companyId: 'co');

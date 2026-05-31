@@ -43,6 +43,8 @@ class ProductEditScreen extends StatelessWidget {
                 ?.settings
                 .useCommaAsDecimalPlace ??
             false,
+        sync: services.sync,
+        connectivity: services.connectivity,
       ),
       titleWhileLoading: (ctx) =>
           existingId == null ? ctx.tr('new_product') : ctx.tr('edit'),

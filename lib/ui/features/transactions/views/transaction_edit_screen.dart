@@ -39,6 +39,8 @@ class TransactionEditScreen extends StatelessWidget {
           repo: services.bankTransactions,
           companyId: companyId,
           existing: existing,
+          sync: services.sync,
+          connectivity: services.connectivity,
         );
       },
       titleWhileLoading: (ctx) =>

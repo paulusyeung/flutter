@@ -8,6 +8,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/webhook_dao.dart';
 import 'package:admin/data/models/api/webhook_api_model.dart';
 import 'package:admin/data/models/domain/webhook.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/webhooks_api.dart';
 import 'package:admin/domain/entity_state.dart';
@@ -149,40 +150,54 @@ class WebhookRepository extends BaseEntityRepository<Webhook, WebhookApi> {
     }
   }
 
-  Future<Webhook> create({
+  Future<SaveResult<Webhook>> create({
     required String companyId,
     required Webhook draft,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
 
+    var rowId = 0;
     await db.transaction(() async {
       await db.webhookDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: stored.toApiJson(),
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
-  Future<void> save({
+  Future<SaveResult<Webhook>> save({
     required String companyId,
     required Webhook webhook,
   }) async {
     final companion = _domainToCompanion(webhook, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.webhookDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: webhook.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: webhook.id,
         kind: MutationKind.update,
         payload: webhook.toApiJson(preserveTempId: true),
       );
     });
+    return SaveResult(entity: webhook, outboxRowId: rowId);
   }
 
   @override

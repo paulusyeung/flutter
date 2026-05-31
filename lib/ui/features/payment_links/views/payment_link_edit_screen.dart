@@ -68,6 +68,8 @@ class PaymentLinkEditScreen extends StatelessWidget {
                 ?.settings
                 .useCommaAsDecimalPlace ??
             false,
+        sync: services.sync,
+        connectivity: services.connectivity,
       ),
       titleWhileLoading: (ctx) => existingId == null
           ? ctx.tr('new_payment_link')

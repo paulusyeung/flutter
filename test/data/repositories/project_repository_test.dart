@@ -6,6 +6,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/project_api_model.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/value/date.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/project_repository.dart';
 import 'package:admin/data/services/projects_api.dart';
@@ -47,14 +48,14 @@ class _ProjectFixture
   bool isDirtyOf(Project item) => item.isDirty;
 
   @override
-  Future<Project> create(
+  Future<SaveResult<Project>> create(
     BaseEntityRepository<Project, ProjectApi> repo, {
     required String companyId,
     required Project draft,
   }) => (repo as ProjectRepository).create(companyId: companyId, draft: draft);
 
   @override
-  Future<void> save(
+  Future<SaveResult<Project>> save(
     BaseEntityRepository<Project, ProjectApi> repo, {
     required String companyId,
     required Project entity,

@@ -205,7 +205,10 @@ abstract class DraftStreamHost<T> extends SettingsDraftHost {
       _submitError = e.message;
       return null;
     } catch (e) {
-      _submitError = e.toString();
+      // Strip the runtime-type prefix that `ApiException.toString()` adds
+      // (e.g. "ServerException: Connection lost") so the inline submit
+      // error renders the bare message.
+      _submitError = e is ApiException ? e.message : e.toString();
       return null;
     } finally {
       _isSaving = false;

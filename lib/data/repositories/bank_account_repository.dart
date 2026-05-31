@@ -8,6 +8,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/bank_account_dao.dart';
 import 'package:admin/data/models/api/bank_account_api_model.dart';
 import 'package:admin/data/models/domain/bank_account.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/bank_accounts_api.dart';
 import 'package:admin/domain/entity_state.dart';
@@ -201,40 +202,54 @@ class BankAccountRepository
     }
   }
 
-  Future<BankAccount> create({
+  Future<SaveResult<BankAccount>> create({
     required String companyId,
     required BankAccount draft,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
 
+    var rowId = 0;
     await db.transaction(() async {
       await db.bankAccountDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: stored.toApiJson(),
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
-  Future<void> save({
+  Future<SaveResult<BankAccount>> save({
     required String companyId,
     required BankAccount account,
   }) async {
     final companion = _domainToCompanion(account, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.bankAccountDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: account.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: account.id,
         kind: MutationKind.update,
         payload: account.toApiJson(preserveTempId: true),
       );
     });
+    return SaveResult(entity: account, outboxRowId: rowId);
   }
 
   /// Custom non-standard action: ask upstream providers (Yodlee/Nordigen)

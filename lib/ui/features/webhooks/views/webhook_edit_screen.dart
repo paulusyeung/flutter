@@ -38,6 +38,8 @@ class WebhookEditScreen extends StatelessWidget {
         repo: repo,
         companyId: companyId,
         existing: existing,
+        sync: services.sync,
+        connectivity: services.connectivity,
       ),
       isArchivedOf: (w) => w.archivedAt != null,
       isDeletedOf: (w) => w.isDeleted,

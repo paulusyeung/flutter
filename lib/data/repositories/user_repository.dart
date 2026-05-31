@@ -7,6 +7,7 @@ import 'package:logging/logging.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/user_api_model.dart';
 import 'package:admin/data/models/domain/user.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/users_api.dart';
 import 'package:admin/domain/entity_state.dart';
@@ -255,38 +256,55 @@ class UserRepository extends BaseEntityRepository<User, UserApi> {
 
   /// Create a new user offline. Server allocates the real id on the next
   /// online drain; the local row carries `tmp_<uuid>` until then.
-  Future<User> create({
+  Future<SaveResult<User>> create({
     required String companyId,
     required User draft,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId, isDirty: true);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.userDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: _toApiJson(stored),
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
   /// Save an existing user (admin "edit other user" flow).
-  Future<void> save({required String companyId, required User user}) async {
+  Future<SaveResult<User>> save({
+    required String companyId,
+    required User user,
+  }) async {
     final stored = user.copyWith(isDirty: true);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.userDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: stored.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: stored.id,
         kind: MutationKind.update,
         payload: _toApiJson(stored),
       );
     });
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
   /// `POST /api/v1/users/{id}/invite` — resend the invitation email.

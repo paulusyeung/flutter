@@ -8,6 +8,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/company_gateway_dao.dart';
 import 'package:admin/data/models/api/company_gateway_api_model.dart';
 import 'package:admin/data/models/domain/company_gateway.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/company_gateways_api.dart';
 import 'package:admin/domain/entity_state.dart';
@@ -170,40 +171,54 @@ class CompanyGatewayRepository
     }
   }
 
-  Future<CompanyGateway> create({
+  Future<SaveResult<CompanyGateway>> create({
     required String companyId,
     required CompanyGateway draft,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
 
+    var rowId = 0;
     await db.transaction(() async {
       await db.companyGatewayDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: stored.toApiJson(),
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
-  Future<void> save({
+  Future<SaveResult<CompanyGateway>> save({
     required String companyId,
     required CompanyGateway gateway,
   }) async {
     final companion = _domainToCompanion(gateway, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.companyGatewayDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: gateway.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: gateway.id,
         kind: MutationKind.update,
         payload: gateway.toApiJson(preserveTempId: true),
       );
     });
+    return SaveResult(entity: gateway, outboxRowId: rowId);
   }
 
   /// Phase 2: ping the gateway with its currently-saved credentials. Used

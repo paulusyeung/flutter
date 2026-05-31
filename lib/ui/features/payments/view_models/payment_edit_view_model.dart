@@ -2,6 +2,7 @@ import 'package:decimal/decimal.dart';
 
 import 'package:admin/data/models/domain/payment.dart';
 import 'package:admin/data/models/value/date.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/payment_repository.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
@@ -37,6 +38,8 @@ class PaymentEditViewModel extends GenericEditViewModel<Payment> {
     bool defaultSendEmail = false,
     this.enableApplyingPayments = true,
     String Function(String key)? translate,
+    super.sync,
+    super.connectivity,
   }) : _sendEmail = defaultSendEmail,
        // Lock the dirty flag for both edit (`existing`) and clone-from
        // (`cloneFrom`) entry points — either carries a user-meaningful
@@ -47,6 +50,7 @@ class PaymentEditViewModel extends GenericEditViewModel<Payment> {
        super(
          initialDraft: cloneFrom ?? existing ?? emptyPayment(),
          original: existing,
+         companyId: companyId,
        );
 
   final PaymentRepository repo;
@@ -134,7 +138,7 @@ class PaymentEditViewModel extends GenericEditViewModel<Payment> {
   }
 
   @override
-  Future<Payment> performSave() async {
+  Future<SaveResult<Payment>> performSave() async {
     final errorKey = validateForSave();
     if (errorKey != null) {
       // ValidationException routes through GenericEditViewModel.save's
@@ -143,18 +147,20 @@ class PaymentEditViewModel extends GenericEditViewModel<Payment> {
       throw ValidationException(_translate(errorKey), const {});
     }
     if (isCreate) {
-      return await repo.create(
+      final result = await repo.create(
         companyId: companyId,
         draft: draft,
         sendEmail: _sendEmail,
+        existingTempId: recoveryTempId,
       );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(
+    return repo.save(
       companyId: companyId,
       payment: draft,
       sendEmail: _sendEmail,
     );
-    return draft;
   }
 
   void resetToEmpty() => reset(emptyDraft: emptyPayment());

@@ -1,5 +1,6 @@
 {
   "_comment": "App-local strings not yet in Transifex. Each entry here is a key the UI uses today that does not exist in the upstream Transifex project for Invoice Ninja. When a key is submitted to Transifex and arrives in the next import, delete it from this file. Lookup order in lib/l10n/localization.dart is: active locale -> Transifex en.json -> this file -> raw key, so Transifex wins as soon as it carries the key.",
+  "saving_in_background": "Saving in background…",
   "visual_designer": "Visual designer",
   "design_name": "Design name",
   "components": "Components",

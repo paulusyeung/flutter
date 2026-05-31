@@ -4,6 +4,7 @@ import 'package:decimal/decimal.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import 'package:admin/data/models/domain/payment_link.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/payment_link_repository.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 
@@ -19,9 +20,12 @@ class PaymentLinkEditViewModel extends GenericEditViewModel<PaymentLink> {
     PaymentLink? existing,
     PaymentLink? cloneFrom,
     super.useCommaAsDecimalPlace,
+    super.sync,
+    super.connectivity,
   }) : super(
          initialDraft: cloneFrom ?? existing ?? emptyPaymentLink(),
          original: existing,
+         companyId: companyId,
        );
 
   final PaymentLinkRepository repo;
@@ -297,12 +301,17 @@ class PaymentLinkEditViewModel extends GenericEditViewModel<PaymentLink> {
   bool draftIsNonEmpty() => draft.name.trim().isNotEmpty;
 
   @override
-  Future<PaymentLink> performSave() async {
+  Future<SaveResult<PaymentLink>> performSave() async {
     if (isCreate) {
-      return repo.create(companyId: companyId, draft: draft);
+      final result = await repo.create(
+        companyId: companyId,
+        draft: draft,
+        existingTempId: recoveryTempId,
+      );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(companyId: companyId, paymentLink: draft);
-    return draft;
+    return repo.save(companyId: companyId, paymentLink: draft);
   }
 
   void resetToEmpty() => reset(emptyDraft: emptyPaymentLink());

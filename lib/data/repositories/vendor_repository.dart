@@ -199,39 +199,56 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi>    implem
 
   /// Create a new vendor offline. Returns the vendor with its tmp id so the
   /// UI can navigate to the detail screen immediately.
-  Future<Vendor> create({
+  Future<SaveResult<Vendor>> create({
     required String companyId,
     required Vendor draft,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
 
+    var rowId = 0;
     await db.transaction(() async {
       await db.vendorDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: stored.toApiJson(), // server allocates real id
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
   /// Save an existing vendor. The local row updates instantly via the watch
   /// stream; the outbox handles the round-trip.
-  Future<void> save({required String companyId, required Vendor vendor}) async {
+  Future<SaveResult<Vendor>> save({
+    required String companyId,
+    required Vendor vendor,
+  }) async {
     final companion = _domainToCompanion(vendor, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.vendorDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: vendor.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: vendor.id,
         kind: MutationKind.update,
         payload: vendor.toApiJson(preserveTempId: true),
       );
     });
+    return SaveResult(entity: vendor, outboxRowId: rowId);
   }
 
   /// Permanently destroy the vendor (irreversible). Outbox row carries

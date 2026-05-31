@@ -170,36 +170,49 @@ class RecurringInvoiceRepository
     }
   }
 
-  Future<RecurringInvoice> create({
+  Future<SaveResult<RecurringInvoice>> create({
     required String companyId,
     required RecurringInvoice draft,
     Map<String, String>? extraQuery,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.recurringInvoiceDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
         payload: _withSaveQuery(stored.toApiJson(), extraQuery),
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
-  Future<void> save({
+  Future<SaveResult<RecurringInvoice>> save({
     required String companyId,
     required RecurringInvoice recurringInvoice,
     Map<String, String>? extraQuery,
   }) async {
     final companion =
         _domainToCompanion(recurringInvoice, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.recurringInvoiceDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: recurringInvoice.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: recurringInvoice.id,
         kind: MutationKind.update,
@@ -209,6 +222,7 @@ class RecurringInvoiceRepository
         ),
       );
     });
+    return SaveResult(entity: recurringInvoice, outboxRowId: rowId);
   }
 
   /// Folds a SAVE-PARAM action's query map into the outbox payload under

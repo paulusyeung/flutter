@@ -203,18 +203,25 @@ class PaymentRepository extends BaseEntityRepository<Payment, PaymentApi>
   /// Create a new payment offline. [sendEmail] threads through the
   /// outbox as a synthetic `_send_email` flag that [PaymentsApi.create]
   /// lifts to `?email_receipt=…` (always-appended on create).
-  Future<Payment> create({
+  Future<SaveResult<Payment>> create({
     required String companyId,
     required Payment draft,
     required bool sendEmail,
+    String? existingTempId,
   }) async {
-    final tmpId = mintTempId();
+    final tmpId = existingTempId ?? mintTempId();
     final stored = draft.copyWith(id: tmpId);
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
 
+    var rowId = 0;
     await db.transaction(() async {
       await db.paymentDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
@@ -224,18 +231,24 @@ class PaymentRepository extends BaseEntityRepository<Payment, PaymentApi>
         },
       );
     });
-    return stored;
+    return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
-  Future<void> save({
+  Future<SaveResult<Payment>> save({
     required String companyId,
     required Payment payment,
     required bool sendEmail,
   }) async {
     final companion = _domainToCompanion(payment, companyId, isDirty: true);
+    var rowId = 0;
     await db.transaction(() async {
       await db.paymentDao.upsert(companion);
-      await enqueueMutation(
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: payment.id,
+        kind: MutationKind.update,
+      );
+      rowId = await enqueueMutation(
         companyId: companyId,
         entityId: payment.id,
         kind: MutationKind.update,
@@ -245,6 +258,7 @@ class PaymentRepository extends BaseEntityRepository<Payment, PaymentApi>
         },
       );
     });
+    return SaveResult(entity: payment, outboxRowId: rowId);
   }
 
   /// Refund a payment. Posts `POST /payments/refund` via the outbox.

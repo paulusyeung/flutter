@@ -217,7 +217,15 @@ class _EntityEditScreenScaffoldState<T, VM extends GenericEditViewModel<T>>
       return;
     }
     if (errors.isEmpty) return;
-    _vm!.applyFailedSync(rowId: row.id, errors: errors);
+    // Pass the dead row's entityId so the VM can stash it as recoveryTempId
+    // when it's a tmp_ id — the next Save then reuses that tmp id and
+    // dedupPendingMutations replaces the prior dead/pending row instead of
+    // creating a duplicate.
+    _vm!.applyFailedSync(
+      rowId: row.id,
+      errors: errors,
+      entityId: row.entityId,
+    );
   }
 
   /// Resolve the dead row id for the current entity. Prefers the VM's

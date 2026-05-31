@@ -1,4 +1,5 @@
 import 'package:admin/data/models/domain/token.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/token_repository.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 
@@ -9,7 +10,13 @@ class TokenEditViewModel extends GenericEditViewModel<Token> {
     required this.repo,
     required this.companyId,
     Token? existing,
-  }) : super(initialDraft: existing ?? _emptyToken(), original: existing);
+    super.sync,
+    super.connectivity,
+  }) : super(
+          initialDraft: existing ?? _emptyToken(),
+          original: existing,
+          companyId: companyId,
+        );
 
   final TokenRepository repo;
   final String companyId;
@@ -18,12 +25,17 @@ class TokenEditViewModel extends GenericEditViewModel<Token> {
   bool draftIsNonEmpty() => draft.name.trim().isNotEmpty;
 
   @override
-  Future<Token> performSave() async {
+  Future<SaveResult<Token>> performSave() async {
     if (isCreate) {
-      return await repo.create(companyId: companyId, draft: draft);
+      final result = await repo.create(
+        companyId: companyId,
+        draft: draft,
+        existingTempId: recoveryTempId,
+      );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(companyId: companyId, token: draft);
-    return draft;
+    return repo.save(companyId: companyId, token: draft);
   }
 
   void setName(String v) => updateDraft(draft.copyWith(name: v));

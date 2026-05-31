@@ -33,6 +33,8 @@ class CreditEditScreen extends StatelessWidget {
           crossClientLineItemsMessage: ctx.tr('cross_client_line_items'),
           existing: existing,
           cloneFrom: cloneFrom,
+          sync: services.sync,
+          connectivity: services.connectivity,
         );
       },
       titleWhileLoading: (ctx) =>

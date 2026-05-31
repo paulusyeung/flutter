@@ -5,6 +5,7 @@ import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/credit.dart';
 import 'package:admin/data/models/domain/credit_status.dart';
 import 'package:admin/data/models/value/date.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/credit_repository.dart';
 import 'package:admin/domain/billing/totals_calculator.dart';
 import 'package:admin/ui/features/billing_shared/view_models/billing_doc_edit_view_model.dart';
@@ -22,9 +23,12 @@ class CreditEditViewModel extends GenericBillingDocEditViewModel<Credit> {
     Credit? existing,
     Credit? cloneFrom,
     super.currencyPrecision,
+    super.sync,
+    super.connectivity,
   }) : super(
           initialDraft: cloneFrom ?? existing ?? emptyCredit(),
           original: existing,
+          companyId: companyId,
         );
 
   final CreditRepository repo;
@@ -57,23 +61,25 @@ class CreditEditViewModel extends GenericBillingDocEditViewModel<Credit> {
   }
 
   @override
-  Future<Credit> performSave() async {
+  Future<SaveResult<Credit>> performSave() async {
     // One-shot SAVE-PARAM query (mark_sent) set by the edit-screen action
     // bar; null on a plain Save.
     final extraQuery = consumeSaveQuery();
     if (isCreate) {
-      return await repo.create(
+      final result = await repo.create(
         companyId: companyId,
         draft: draft,
         extraQuery: extraQuery,
+        existingTempId: recoveryTempId,
       );
+      rememberCreateTempId(result.entity.id);
+      return result;
     }
-    await repo.save(
+    return repo.save(
       companyId: companyId,
       credit: draft,
       extraQuery: extraQuery,
     );
-    return draft;
   }
 
   void resetToEmpty() => reset(emptyDraft: emptyCredit());
