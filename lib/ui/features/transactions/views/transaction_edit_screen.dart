@@ -1,6 +1,5 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
@@ -13,6 +12,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/edit/edit_action_filter.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/core/widgets/in_date_field.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/transactions/view_models/transaction_edit_view_model.dart';
@@ -69,13 +69,12 @@ class TransactionEditScreen extends StatelessWidget {
           a as TransactionAction,
         );
       },
-      onSaved: (ctx, vm, saved) {
-        if (vm.isCreate) {
-          ctx.go('/transactions/${saved.id}');
-        } else {
-          ctx.pop();
-        }
-      },
+      onSaved: (ctx, vm, saved) => goAfterEntitySave(
+        ctx,
+        isCreate: vm.isCreate,
+        basePath: '/transactions',
+        savedId: saved.id,
+      ),
     );
   }
 }

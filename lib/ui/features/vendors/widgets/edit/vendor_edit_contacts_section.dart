@@ -4,6 +4,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/vendor_contact.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/edit/entity_edit_field.dart';
+import 'package:admin/ui/core/widgets/labeled_switch_group.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/vendors/view_models/vendor_edit_view_model.dart';
 
@@ -185,12 +186,14 @@ class _ContactEditor extends StatelessWidget {
           onChanged: onPhone,
           keyboardType: TextInputType.phone,
         ),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          dense: true,
-          value: contact.ccOnly,
-          onChanged: onCcOnly,
-          title: Text(context.tr('cc_only')),
+        LabeledSwitchGroup(
+          items: [
+            LabeledSwitchItem(
+              label: context.tr('cc_only'),
+              value: contact.ccOnly,
+              onChanged: onCcOnly,
+            ),
+          ],
         ),
       ],
     );

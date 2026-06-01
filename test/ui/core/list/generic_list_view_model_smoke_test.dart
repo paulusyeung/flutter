@@ -162,7 +162,11 @@ void main() {
       await vm.setSort(field: 'amount', ascending: false);
       expect(vm.sortField, 'amount');
       expect(vm.sortAscending, isFalse);
-      expect(vm.hasActiveFilters, isTrue);
+      expect(
+        vm.hasActiveFilters,
+        isFalse,
+        reason: 'sort is not a filter — a sort-only change must not count',
+      );
 
       // Bulk action declared in the registry is callable through the base.
       vm.toggleSelected('inv_1');

@@ -10,6 +10,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/clients/view_models/client_edit_view_model.dart';
 import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
 import 'package:admin/ui/core/edit/entity_edit_field.dart';
+import 'package:admin/ui/core/widgets/labeled_switch_group.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 
@@ -330,21 +331,21 @@ class _ContactEditor extends StatelessWidget {
             onCustomValue4,
           ],
         ),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          dense: true,
-          value: contact.sendEmail,
-          // CC-only and send_email are mutually exclusive; greyed out
-          // (onChanged: null) while CC-only is on.
-          onChanged: contact.ccOnly ? null : onSendEmail,
-          title: Text(context.tr('add_to_invoices')),
-        ),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          dense: true,
-          value: contact.ccOnly,
-          onChanged: onCcOnly,
-          title: Text(context.tr('cc_only')),
+        LabeledSwitchGroup(
+          items: [
+            LabeledSwitchItem(
+              label: context.tr('add_to_invoices'),
+              value: contact.sendEmail,
+              // CC-only and send_email are mutually exclusive; greyed out
+              // (onChanged: null) while CC-only is on.
+              onChanged: contact.ccOnly ? null : onSendEmail,
+            ),
+            LabeledSwitchItem(
+              label: context.tr('cc_only'),
+              value: contact.ccOnly,
+              onChanged: onCcOnly,
+            ),
+          ],
         ),
       ],
     );

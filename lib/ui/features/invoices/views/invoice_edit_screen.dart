@@ -12,6 +12,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/edit/edit_action_filter.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
 import 'package:admin/ui/features/invoices/widgets/edit/invoice_edit_layout.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_actions.dart';
@@ -187,13 +188,12 @@ class InvoiceEditScreen extends StatelessWidget {
           a as InvoiceAction,
         );
       },
-      onSaved: (ctx, vm, saved) {
-        if (vm.isCreate) {
-          ctx.go('/invoices/${saved.id}');
-        } else {
-          ctx.pop();
-        }
-      },
+      onSaved: (ctx, vm, saved) => goAfterEntitySave(
+        ctx,
+        isCreate: vm.isCreate,
+        basePath: '/invoices',
+        savedId: saved.id,
+      ),
     );
   }
 }

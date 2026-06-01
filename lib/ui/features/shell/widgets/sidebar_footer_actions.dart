@@ -9,15 +9,16 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/shell/widgets/about_dialog.dart';
 import 'package:admin/ui/features/shell/widgets/contact_us_dialog.dart';
+import 'package:admin/ui/features/shell/widgets/show_theme_menu.dart';
 
 const String _kForumUrl = 'https://forum.invoiceninja.com';
 const String _kDocsBaseUrl = 'https://invoiceninja.github.io/en';
 
 /// Bottom row pinned to the sidebar: Contact Us, Support Forum, User Guide,
-/// About — and, on the wide layout, the collapse toggle pinned right with a
-/// vertical divider between the two groups. When the wide sidebar is
-/// collapsed to a 64-px rail (`compact: true`), only the toggle remains;
-/// the four help/info actions hide entirely.
+/// About, a theme switcher — and, on the wide layout, the collapse toggle
+/// pinned right with a vertical divider between the two groups. When the wide
+/// sidebar is collapsed to a 64-px rail (`compact: true`), only the toggle
+/// remains; the action icons hide entirely.
 ///
 /// Visual language matches `SidebarNavItem` — `InkWell` + `Padding` over
 /// `tokens.ink3` icons rather than the default Material `IconButton` ripple,
@@ -68,6 +69,7 @@ class SidebarFooterActions extends StatelessWidget {
         tooltipKey: 'about',
         onTap: () => showAppAboutDialog(context),
       ),
+      _ThemeFooterAction(),
     ];
 
     final Widget body;
@@ -213,11 +215,58 @@ class _FooterAction extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(InRadii.r2),
           child: Padding(
-            padding: const EdgeInsets.all(8),
+            // 6, not 8: with the fifth (theme) action the expanded 232-px rail
+            // would otherwise sit flush against the divider + collapse toggle
+            // with no inter-icon breathing room.
+            padding: const EdgeInsets.all(6),
             child: Icon(icon, size: 18, color: tokens.ink3),
           ),
         ),
       ),
     );
   }
+}
+
+/// The theme switcher action. Unlike [_FooterAction] it owns a [GlobalKey] to
+/// anchor the popup ([showThemeMenu]) and a dynamic icon that reflects the
+/// active [ThemeMode] (sun / moon / auto), so the current theme reads at a
+/// glance. Mirrors `CompanySwitcherButton`'s stateless-holds-GlobalKey pattern;
+/// only one footer is ever mounted (rail XOR drawer) so the key can't collide.
+class _ThemeFooterAction extends StatelessWidget {
+  _ThemeFooterAction();
+
+  final GlobalKey _anchorKey = GlobalKey();
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final theme = context.read<Services>().theme;
+    return Tooltip(
+      message: context.tr('appearance'),
+      waitDuration: const Duration(milliseconds: 600),
+      child: Material(
+        key: _anchorKey,
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(InRadii.r2),
+        child: InkWell(
+          onTap: () => showThemeMenu(context, anchorKey: _anchorKey),
+          borderRadius: BorderRadius.circular(InRadii.r2),
+          child: Padding(
+            padding: const EdgeInsets.all(6),
+            child: ListenableBuilder(
+              listenable: theme,
+              builder: (context, _) =>
+                  Icon(_iconFor(theme.themeMode), size: 18, color: tokens.ink3),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static IconData _iconFor(ThemeMode mode) => switch (mode) {
+    ThemeMode.light => Icons.light_mode_outlined,
+    ThemeMode.dark => Icons.dark_mode_outlined,
+    ThemeMode.system => Icons.brightness_auto_outlined,
+  };
 }

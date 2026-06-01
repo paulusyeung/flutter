@@ -778,6 +778,31 @@ void goToCreateRoute(BuildContext context, String route) {
   GoRouter.of(context).go(route);
 }
 
+/// Post-save navigation for an entity edit/create screen hosted in a
+/// [MasterDetailLayout]. After a **create**, route to the new row's detail
+/// screen — full-width (`?view=full`) when this entity's editor opened
+/// full-width (see [editOpensFullWidth]), so the record stays on the wide
+/// canvas the user just saved from instead of collapsing into the narrow
+/// slide-over preview. After an **edit**, pop back where they came from.
+///
+/// `?view=full` is harmless for the slide-over entities (we don't append it)
+/// and on narrow viewports (the layout ignores `viewMode` there and always
+/// renders full-page); `NavStatePersister` strips `view` before persisting,
+/// so a restart still resolves the detail fresh to the slide-over preview.
+void goAfterEntitySave(
+  BuildContext context, {
+  required bool isCreate,
+  required String basePath,
+  required String savedId,
+}) {
+  if (!isCreate) {
+    context.pop();
+    return;
+  }
+  final detail = '$basePath/$savedId';
+  context.go(editOpensFullWidth(basePath) ? '$detail?view=full' : detail);
+}
+
 // ─── Width math + pane scope marker ──────────────────────────────────────
 
 double _lerp(double a, double b, double t) => a + (b - a) * t;

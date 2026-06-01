@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/labeled_switch_group.dart';
 import 'package:admin/ui/features/settings/view_models/user_details_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
@@ -95,33 +96,37 @@ class UserDetailsNotificationsScreen extends StatelessWidget {
         FormSection(
           title: context.tr('notifications'),
           children: [
-            _BoolRow(
-              labelKey: 'user_logged_in_notification',
-              value: settings.userLoggedInNotification,
-              onChanged: (v) => vm.updateCompanyUserSettings(
-                (s) => s.copyWith(userLoggedInNotification: v),
-              ),
-            ),
-            _BoolRow(
-              labelKey: 'task_assigned_notification',
-              value: settings.taskAssignedNotification,
-              onChanged: (v) => vm.updateCompanyUserSettings(
-                (s) => s.copyWith(taskAssignedNotification: v),
-              ),
-            ),
-            _BoolRow(
-              labelKey: 'disable_recurring_payment_notification',
-              value: settings.disableRecurringPaymentNotification,
-              onChanged: (v) => vm.updateCompanyUserSettings(
-                (s) => s.copyWith(disableRecurringPaymentNotification: v),
-              ),
-            ),
-            _BoolRow(
-              labelKey: 'enable_e_invoice_received_notification',
-              value: settings.enableEInvoiceReceivedNotification,
-              onChanged: (v) => vm.updateCompanyUserSettings(
-                (s) => s.copyWith(enableEInvoiceReceivedNotification: v),
-              ),
+            LabeledSwitchGroup(
+              items: [
+                LabeledSwitchItem(
+                  label: context.tr('user_logged_in_notification'),
+                  value: settings.userLoggedInNotification,
+                  onChanged: (v) => vm.updateCompanyUserSettings(
+                    (s) => s.copyWith(userLoggedInNotification: v),
+                  ),
+                ),
+                LabeledSwitchItem(
+                  label: context.tr('task_assigned_notification'),
+                  value: settings.taskAssignedNotification,
+                  onChanged: (v) => vm.updateCompanyUserSettings(
+                    (s) => s.copyWith(taskAssignedNotification: v),
+                  ),
+                ),
+                LabeledSwitchItem(
+                  label: context.tr('disable_recurring_payment_notification'),
+                  value: settings.disableRecurringPaymentNotification,
+                  onChanged: (v) => vm.updateCompanyUserSettings(
+                    (s) => s.copyWith(disableRecurringPaymentNotification: v),
+                  ),
+                ),
+                LabeledSwitchItem(
+                  label: context.tr('enable_e_invoice_received_notification'),
+                  value: settings.enableEInvoiceReceivedNotification,
+                  onChanged: (v) => vm.updateCompanyUserSettings(
+                    (s) => s.copyWith(enableEInvoiceReceivedNotification: v),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -190,28 +195,6 @@ class UserDetailsNotificationsScreen extends StatelessWidget {
         break;
     }
     vm.setNotificationsEmail(next);
-  }
-}
-
-class _BoolRow extends StatelessWidget {
-  const _BoolRow({
-    required this.labelKey,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String labelKey;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: Text(context.tr(labelKey))),
-        Switch(value: value, onChanged: onChanged),
-      ],
-    );
   }
 }
 

@@ -64,11 +64,12 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   /// TapRegion's hit area matches.
   final GlobalKey _fieldKey = GlobalKey();
 
-  /// Fallback anchor for the wide-mode dropdown's LEFT edge when the
-  /// `RenderEditable` walk in `_findRenderEditable` comes up empty (first
-  /// frame, detached). The primary anchor is the caret's global x-position
-  /// — see the positioning block in `overlayChildBuilder`. Mounted on the
-  /// `IntrinsicWidth` wrapping the TextField further down.
+  /// Key on the `IntrinsicWidth` wrapping the TextField. Two uses: (1) it's
+  /// the stable root `_findRenderEditable` walks down from to read the caret
+  /// (the focus node's context is too flaky); (2) its left edge anchors the
+  /// dropdown — under the caret while typing (via that walk), or at the input
+  /// start as a transient fallback. See the positioning block in
+  /// `overlayChildBuilder`.
   final GlobalKey _inputKey = GlobalKey();
 
   // Overlay visibility is intentionally decoupled from focus. It opens
@@ -93,15 +94,14 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   /// don't cross-clobber.
   final Object _tapGroup = Object();
 
-  /// Anchor `(left, top)` for the overlay menu, cached on the most recent
-  /// hidden→shown transition. While the overlay is visible, every
-  /// `overlayChildBuilder` rebuild reuses these values so the menu doesn't
-  /// chase the caret as the user types — the position freezes at the
-  /// cursor where the dropdown first opened. Reset to null in
-  /// `_showOverlay` / `_hideOverlay` so the next open re-anchors to the
-  /// new caret position (e.g. after a chip was added and the cursor moved).
-  double? _frozenMenuLeft;
-  double? _frozenLocalTop;
+  /// Last successfully-computed caret-based menu left, in GLOBAL coords (the
+  /// value before the overlay-origin subtraction). The dropdown re-anchors
+  /// under the caret on every build so it tracks what the user is typing;
+  /// this cache only covers the rare frame where the `RenderEditable` can't
+  /// be read mid-typing — we reuse the last good x instead of snapping to the
+  /// field's left edge (which would flicker left, then back). Reset to null in
+  /// `_hideOverlay` so a fresh open starts clean.
+  double? _lastCaretLeft;
 
   /// Global rect of the chip body that opened the main overlay via a
   /// plain-chip tap (checkbox / custom-field keys). When set, the overlay
@@ -453,24 +453,20 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
 
   // ── Overlay show/hide ────────────────────────────────────────────────
 
-  /// Show the dropdown after wiping the cached anchor so the next overlay
-  /// build re-anchors to the current caret. Replaces direct
-  /// `_overlay.show()` calls so every entry point shares this behavior
-  /// — the menu only re-positions when the user is about to add the next
-  /// filter, not on every keystroke in between.
+  /// Show the dropdown. The overlay re-anchors under the caret on every
+  /// build, so there's no cached position to wipe here — this just gives
+  /// every entry point a single show gesture (`_overlay.show()` is a no-op
+  /// when already visible).
   void _showOverlay() {
-    _frozenMenuLeft = null;
-    _frozenLocalTop = null;
     if (!_overlay.isShowing) _overlay.show();
   }
 
-  /// Hide the dropdown and drop the cached anchor so the next show
-  /// recomputes from a fresh layout.
+  /// Hide the dropdown and drop the chip anchor + last-caret cache so the
+  /// next show recomputes from a fresh layout.
   void _hideOverlay() {
     if (_overlay.isShowing) _overlay.hide();
-    _frozenMenuLeft = null;
-    _frozenLocalTop = null;
     _chipAnchorRect = null;
+    _lastCaretLeft = null;
     _controller.clearPinnedValueKey();
     _clearDanglingPrefix();
   }
@@ -493,15 +489,21 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
 
   // ── Caret position lookup ────────────────────────────────────────────
 
-  /// Walks the render tree below the focus node's context to find the
-  /// `RenderEditable` of the TextField. TextField doesn't expose its
-  /// internal EditableText via a key, and `CompositedTransformFollower`
-  /// produced TapRegion-hit-test bugs (see `_fieldKey` doc), so a direct
-  /// render-tree walk is the cleanest way to read the caret's pixel
-  /// position. Returns null on the first frame before the editable is
-  /// attached, in which case the overlay falls back to `_inputKey`.
+  /// Walks the render tree below `_inputKey` (the `IntrinsicWidth` wrapping
+  /// the TextField) to find the TextField's `RenderEditable`, so the overlay
+  /// can read the caret's pixel position. We deliberately start from
+  /// `_inputKey` rather than `_controller.focus.context`: the focus node's
+  /// context is null/detached on exactly the frames the overlay needs it
+  /// (first frame, focus handoff), which made the walk "come up empty" and
+  /// the dropdown silently anchor at the field's left edge. `_inputKey` is
+  /// always mounted while the wide field is built and always has the
+  /// `RenderEditable` as a descendant. TextField doesn't expose its internal
+  /// EditableText via a key, and `CompositedTransformFollower` produced
+  /// TapRegion-hit-test bugs (see `_fieldKey` doc), so a direct render-tree
+  /// walk is the cleanest way to read the caret. Returns null only before the
+  /// editable is laid out.
   RenderEditable? _findRenderEditable() {
-    final start = _controller.focus.context?.findRenderObject();
+    final start = _inputKey.currentContext?.findRenderObject();
     if (start == null) return null;
     RenderEditable? found;
     void visit(RenderObject obj) {
@@ -594,86 +596,88 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     final mainOverlay = OverlayPortal(
       controller: _overlay,
       overlayChildBuilder: (overlayContext) {
-        // Anchor the menu just below the field. The first build after a
-        // hidden→shown transition computes the position from the caret
-        // (see freeze logic below) and caches it; subsequent rebuilds
-        // while the overlay stays open reuse the cached values so the
-        // menu doesn't chase the caret as the user types. `_showOverlay`
-        // wipes the cache so the next open re-anchors. See `_fieldKey`
-        // doc for why CompositedTransformFollower didn't work here.
-        final double localLeft;
-        final double localTop;
-        if (_frozenMenuLeft != null && _frozenLocalTop != null) {
-          localLeft = _frozenMenuLeft!;
-          localTop = _frozenLocalTop!;
+        // Recompute the anchor on EVERY build (the subtree rebuilds per
+        // keystroke via the `ListenableBuilder` on `_controller.text`), so
+        // the menu's left edge follows the caret as the user types. See
+        // `_fieldKey` doc for why CompositedTransformFollower didn't work.
+        final fieldBox =
+            _fieldKey.currentContext?.findRenderObject() as RenderBox?;
+        if (fieldBox == null || !fieldBox.attached || !fieldBox.hasSize) {
+          return const SizedBox.shrink();
+        }
+        final topLeft = fieldBox.localToGlobal(Offset.zero);
+        // LEFT-edge anchor (global x, before the overlay-origin subtraction):
+        //  • chip tap → under the tapped chip's rect;
+        //  • typing   → under the CARET, tracked live so suggestions line up
+        //    with the key/value being entered;
+        //  • empty / first frame → the FIELD's left edge. Anchoring an empty
+        //    key-list to the caret would float it far to the right after
+        //    existing chips (a previously reported bug), so the field-left
+        //    fallback stays for the no-typed-text case.
+        // `− kMenuRowInsetLeft` aligns the row's padded text with the anchor,
+        // not the painted menu edge.
+        final chipRect = _chipAnchorRect;
+        double? menuLeft;
+        final double anchorBottom;
+        if (chipRect != null) {
+          menuLeft = chipRect.left - kMenuRowInsetLeft;
+          // Drop just below the tapped chip (it may sit on a lower wrap run
+          // than the field's bottom).
+          anchorBottom = chipRect.bottom;
         } else {
-          final fieldBox =
-              _fieldKey.currentContext?.findRenderObject() as RenderBox?;
-          if (fieldBox == null || !fieldBox.attached || !fieldBox.hasSize) {
-            return const SizedBox.shrink();
-          }
-          final topLeft = fieldBox.localToGlobal(Offset.zero);
-          // The popup's LEFT edge tracks the CARET's global x while the
-          // user is actively typing a `key:` query, so suggestions line
-          // up under what they're typing. But when the menu is opened
-          // WITHOUT typed text — the leading `tune` button, a chip tap,
-          // or a pinned value key — the caret sits after the chips and
-          // the menu would land far to the right (reported bug). In that
-          // case anchor to the FIELD's left edge instead. `−
-          // kMenuRowInsetLeft` so the row text content (padded inside
-          // the menu) lines up, not the painted menu edge.
-          double menuLeft = topLeft.dx - kMenuRowInsetLeft;
-          // Opened from a plain-chip tap (State / Status / custom-field):
-          // anchor under that chip's rect, not the field's left edge.
-          final chipRect = _chipAnchorRect;
-          if (chipRect != null) {
-            menuLeft = chipRect.left - kMenuRowInsetLeft;
-          } else {
-            final editable = _findRenderEditable();
-            if (_controller.text.text.isNotEmpty &&
-                editable != null &&
-                editable.attached &&
-                editable.hasSize) {
-              final sel = _controller.text.selection;
-              final offset = sel.isValid ? sel.extentOffset : 0;
-              final caretLocal = editable
-                  .getLocalRectForCaret(TextPosition(offset: offset))
-                  .topLeft;
+          // Below the whole field (recomputed so a value long enough to wrap
+          // the input to a new run keeps the menu under the grown field).
+          anchorBottom = topLeft.dy + fieldBox.size.height;
+          final text = _controller.text.text;
+          final editable = _findRenderEditable();
+          if (text.isNotEmpty &&
+              editable != null &&
+              editable.attached &&
+              editable.hasSize) {
+            final sel = _controller.text.selection;
+            final offset = sel.isValid ? sel.extentOffset : 0;
+            final caretLocal = editable
+                .getLocalRectForCaret(TextPosition(offset: offset))
+                .topLeft;
+            menuLeft =
+                editable.localToGlobal(caretLocal).dx - kMenuRowInsetLeft;
+            _lastCaretLeft = menuLeft;
+          } else if (text.isNotEmpty && _lastCaretLeft != null) {
+            // Mid-typing but the editable wasn't readable this frame — reuse
+            // the last good caret x rather than snapping to the field's left
+            // edge (that would jump the menu left, then back).
+            menuLeft = _lastCaretLeft;
+          } else if (text.isNotEmpty) {
+            // Typing, but the editable isn't readable yet and there's no prior
+            // caret x (the very first frame after the overlay opens). Anchor
+            // at the input's own left edge — the start of the typed text,
+            // after the chips — which is far closer to the caret than the
+            // field's left edge.
+            final inputBox =
+                _inputKey.currentContext?.findRenderObject() as RenderBox?;
+            if (inputBox != null && inputBox.attached && inputBox.hasSize) {
               menuLeft =
-                  editable.localToGlobal(caretLocal).dx - kMenuRowInsetLeft;
+                  inputBox.localToGlobal(Offset.zero).dx - kMenuRowInsetLeft;
             }
           }
-          // Convert from GLOBAL screen coords to the hosting Overlay's
-          // LOCAL coords. `OverlayPortal` mounts the menu in the closest
-          // ancestor Overlay — here the branch Navigator's Overlay inside
-          // `StatefulShellRoute`, NOT the root Overlay. The branch
-          // Overlay's local (0,0) is global (sidebar_width, 0) on wide
-          // layouts (`scaffold_with_nav.dart` renders the shell as
-          // `Row(InSidebar, Expanded(navigationShell))`), so feeding
-          // `Positioned` the raw global x lands the menu ~sidebar_width
-          // px too far right. Both axes are converted up-front so a
-          // future shell layout with a top bar wouldn't reintroduce the
-          // same bug for the vertical anchor.
-          final overlayOrigin = _overlayOrigin(overlayContext);
-          double computedLeft = menuLeft - overlayOrigin.dx;
-          // Clamped to 8 px so the menu can't escape the Overlay's left
-          // edge on narrow windows.
-          if (computedLeft < 8) computedLeft = 8;
-          localLeft = computedLeft;
-          // Drop just below the tapped chip when chip-anchored (it may sit
-          // on a lower wrap run than the field's bottom); otherwise below
-          // the field as before.
-          final double anchorBottom = chipRect != null
-              ? chipRect.bottom
-              : topLeft.dy + fieldBox.size.height;
-          localTop = anchorBottom + 4 - overlayOrigin.dy;
-          // Cache for subsequent rebuilds in this show cycle. Assigning
-          // to fields during build is safe — we never call `setState`
-          // from here, and the next build will simply take the early
-          // return above.
-          _frozenMenuLeft = localLeft;
-          _frozenLocalTop = localTop;
         }
+        // Empty key-list / first frame: the field's left content edge.
+        final double globalLeft = menuLeft ?? (topLeft.dx - kMenuRowInsetLeft);
+        // Convert from GLOBAL screen coords to the hosting Overlay's LOCAL
+        // coords. `OverlayPortal` mounts the menu in the closest ancestor
+        // Overlay — the branch Navigator's Overlay inside `StatefulShellRoute`,
+        // NOT the root Overlay. That Overlay's local (0,0) is global
+        // (sidebar_width, 0) on wide layouts (`scaffold_with_nav.dart` renders
+        // the shell as `Row(InSidebar, Expanded(navigationShell))`), so feeding
+        // `Positioned` the raw global x lands the menu ~sidebar_width px too far
+        // right. Both axes are converted so a future top-bar layout wouldn't
+        // reintroduce the same bug for the vertical anchor.
+        final overlayOrigin = _overlayOrigin(overlayContext);
+        // Clamped to 8 px so the menu can't escape the Overlay's left edge on
+        // narrow windows.
+        double localLeft = globalLeft - overlayOrigin.dx;
+        if (localLeft < 8) localLeft = 8;
+        final double localTop = anchorBottom + 4 - overlayOrigin.dy;
         return Positioned(
           top: localTop,
           left: localLeft,
@@ -873,8 +877,9 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                 ),
               ),
               // `hasActiveFilters` treats `{active}`/`{}` as "no status
-              // filter", so the clear button hides when `State: Active`
-              // (or no state chip) is the only thing applied — even
+              // filter" (and ignores a changed sort — sort isn't a filter),
+              // so the clear button hides when `State: Active` (or no state
+              // chip) is the only thing applied, regardless of sort — even
               // though `IsFilterKey` still renders that one chip.
               if (widget.vm.hasActiveFilters ||
                   _controller.text.text.isNotEmpty)

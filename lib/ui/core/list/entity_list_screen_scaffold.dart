@@ -980,8 +980,10 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
                     isLast: isLast,
                     selecting: selecting,
                     formatter: widget.wantsFormatter ? formatter : null,
-                    editable:
-                        !(_vm.isArchived(item) || _vm.isDeleted(item)),
+                    // Archived entities stay editable (matches legacy
+                    // Invoice Ninja: `isEditable => !isDeleted`); only
+                    // soft-deleted rows grey out the edit pencil.
+                    editable: !_vm.isDeleted(item),
                     // Highlight variant: null while navigating to a
                     // full-width editor so the row doesn't flash selected
                     // before the editor covers the list.

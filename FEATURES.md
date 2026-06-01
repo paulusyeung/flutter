@@ -1400,6 +1400,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Global search / command palette | ✅ | ✅ | ✅ | ✅ | |
 | Settings search | ✅ | ✅ | ✅ | ✅ | |
 | Dark mode / light mode toggle | ✅ | ✅ | ✅ | ✅ | |
+| Sidebar footer theme quick-switch (light/dark/system + settings shortcut) | — | — | ✅ | | |
 | Multi-language UI (40+ locales) | ✅ | ✅ | ✅ | ✅ | |
 | Company switcher | ✅ | ✅ | ✅ | ✅ | |
 | Keyboard shortcuts | ✅ | ✅ | ✅ | ✅ | |

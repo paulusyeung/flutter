@@ -28,9 +28,9 @@ class EntityActionsPopupButton<A> extends StatelessWidget {
   /// the same [items] list via a different widget) is unaffected.
   final bool splitEditAction;
 
-  /// Gates the standalone edit button. `false` for archived / soft-deleted
-  /// rows — the pencil renders greyed and non-tappable. Ignored unless
-  /// [splitEditAction] is true.
+  /// Gates the standalone edit button. `false` for soft-deleted rows —
+  /// the pencil renders greyed and non-tappable. Archived rows stay
+  /// editable. Ignored unless [splitEditAction] is true.
   final bool editEnabled;
 
   /// Compact, shrink-wrapped icon sizing so the edit pencil and the `…`
@@ -97,7 +97,7 @@ class EntityActionsPopupButton<A> extends StatelessWidget {
           visualDensity: VisualDensity.compact,
           constraints: _tightConstraints,
           // Null onPressed gives the standard greyed disabled state for
-          // archived / soft-deleted rows.
+          // soft-deleted rows.
           onPressed: (editEnabled && primary.enabled) ? primary.onTap : null,
         ),
         const SizedBox(width: InSpacing.sm),

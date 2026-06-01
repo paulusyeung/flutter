@@ -310,8 +310,13 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     return n;
   }
 
-  /// True when any filter is non-default. Drives the "active filters" strip
-  /// and the filtered-empty-state copy.
+  /// True when any filter is non-default. Drives the clear-filters button and
+  /// the filtered-empty-state copy.
+  ///
+  /// A changed SORT is deliberately NOT counted: sorting never changes whether
+  /// a filter is applied or whether a list is empty, so it isn't an "active
+  /// filter" (and the clear button shouldn't appear for a sort-only change).
+  /// `clearAllFilters` still resets sort via its own independent check.
   bool get hasActiveFilters {
     // `{}` (empty) and `{active}` are both "no status filter": the
     // server-side `client_status` param is omitted and the watch query
@@ -321,7 +326,6 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
         (_states.length != 1 || !_states.contains(EntityState.active))) {
       return true;
     }
-    if (_sortField != defaultSortField || !_sortAscending) return true;
     for (final values in _customFilters.values) {
       if (values.isNotEmpty) return true;
     }
