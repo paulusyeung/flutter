@@ -9,9 +9,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # Pinned to match local dev (3.41.9). Floating `channel: stable` picked up
+      # 3.44.1, which made IconData final and added TextInput members that
+      # material_design_icons_flutter / super_editor / re_editor don't implement
+      # (re_editor has no fixed release on pub.dev). Bump deliberately — verify
+      # those three deps compile first — never let stable drift do it.
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.41.9
 
       - name: Select Xcode 26.3
         run: sudo xcode-select -s /Applications/Xcode_26.3.app
@@ -139,9 +145,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # Keep in lockstep with the analyze-and-test job's pin above.
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.41.9
 
       - name: Enable web
         run: flutter config --enable-web
