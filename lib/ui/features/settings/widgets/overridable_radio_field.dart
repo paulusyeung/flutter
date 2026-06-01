@@ -67,17 +67,16 @@ class OverridableRadioField<T> extends StatelessWidget {
             child: RadioGroup<T>(
               groupValue: value,
               onChanged: onChanged ?? (_) {},
-              child: Row(
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (final o in options)
-                    Flexible(
-                      child: RadioListTile<T>(
-                        value: o.value,
-                        title: Text(o.label),
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                      ),
+                    RadioListTile<T>(
+                      value: o.value,
+                      title: Text(o.label),
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
                     ),
                 ],
               ),

@@ -37,9 +37,13 @@ class CompaniesApi extends BaseEntityApi<CompanyItemApi, CompanyItemApi> {
     required String idempotencyKey,
   }) async {
     final file = await source.toMultipartFile('company_logo');
+    // Logo goes through the company *update* endpoint (`PUT /companies/{id}`
+    // via POST + `_method` form-spoof), matching admin-portal / React — there
+    // is no `/upload` sub-route for the logo, and POST alone is "Method not
+    // supported for this route".
     final raw = await client.uploadMultipart(
-      path: '$basePath/$companyId/upload',
-      fields: const {'_method': 'POST'},
+      path: '$basePath/$companyId',
+      fields: const {'_method': 'PUT'},
       files: [file],
       idempotencyKey: idempotencyKey,
     );
@@ -54,9 +58,11 @@ class CompaniesApi extends BaseEntityApi<CompanyItemApi, CompanyItemApi> {
     required String idempotencyKey,
   }) async {
     final file = await source.toMultipartFile('documents[]');
+    // Company documents DO use the `/upload` sub-route (unlike logo / cert),
+    // POST + `_method=PUT` — matches admin-portal / React.
     final raw = await client.uploadMultipart(
       path: '$basePath/$companyId/upload',
-      fields: const {'_method': 'POST'},
+      fields: const {'_method': 'PUT'},
       files: [file],
       idempotencyKey: idempotencyKey,
     );
@@ -126,9 +132,12 @@ class CompaniesApi extends BaseEntityApi<CompanyItemApi, CompanyItemApi> {
     required String idempotencyKey,
   }) async {
     final file = await source.toMultipartFile('e_invoice_certificate');
+    // Certificate goes through the company *update* endpoint (`PUT
+    // /companies/{id}` via POST + `_method` form-spoof), same as the logo —
+    // no `/upload` sub-route.
     final raw = await client.uploadMultipart(
-      path: '$basePath/$companyId/upload',
-      fields: const {'_method': 'POST'},
+      path: '$basePath/$companyId',
+      fields: const {'_method': 'PUT'},
       files: [file],
       idempotencyKey: idempotencyKey,
     );

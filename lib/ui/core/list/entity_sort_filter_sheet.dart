@@ -95,6 +95,17 @@ class _EntitySortFilterSheetState extends State<EntitySortFilterSheet> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   FilledButton(
+                    // Size to content. The FilledButton theme defaults
+                    // `minimumSize` to `Size.fromHeight(44)` (= infinite min
+                    // width, for column-stacked forms); without this override a
+                    // bare button demands infinite width, and inside this modal
+                    // sheet (whose content width goes unbounded while the route
+                    // animates in) that throws "BoxConstraints forces an
+                    // infinite width" → a layout/hit-test/mouse_tracker assert
+                    // storm on macOS. See CLAUDE.md § Design system.
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(64, 44),
+                    ),
                     onPressed: () {
                       widget.onApply(field: _field, ascending: _ascending);
                       Navigator.of(context).pop();

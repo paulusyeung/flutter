@@ -61,12 +61,33 @@ void main() {
       expect(available, contains('\$purchase_order.balance_due'));
     });
 
-    test('total_columns default-selected does not include net_subtotal '
-        '(matches admin-portal default)', () {
+    test('total_columns default-selected leads with net_subtotal '
+        '(matches backend getEntityVariableDefaults)', () {
       final defaults =
           kPdfVariableSections[PdfVariableSection.totalColumns]!.defaultSelected;
-      expect(defaults, isNot(contains('\$net_subtotal')));
+      expect(defaults.first, '\$net_subtotal');
       expect(defaults, contains('\$subtotal'));
+    });
+
+    test('default-selected lists track the backend getEntityVariableDefaults '
+        'additions (audit follow-up)', () {
+      List<String> defaultsFor(String key) =>
+          kPdfVariableSections[key]!.defaultSelected;
+
+      // client_details leads with the location name.
+      expect(defaultsFor(PdfVariableSection.clientDetails).first,
+          '\$client.location_name');
+      // invoice / quote details carry the project column last.
+      expect(defaultsFor(PdfVariableSection.invoiceDetails).last,
+          '\$invoice.project');
+      expect(defaultsFor(PdfVariableSection.quoteDetails).last,
+          '\$quote.project');
+      // credit details include the valid-until date.
+      expect(defaultsFor(PdfVariableSection.creditDetails),
+          contains('\$credit.valid_until'));
+      // vendor details include country + phone.
+      expect(defaultsFor(PdfVariableSection.vendorDetails),
+          containsAll(<String>['\$vendor.country', '\$vendor.phone']));
     });
   });
 }

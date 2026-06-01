@@ -1,5 +1,3 @@
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -7,6 +5,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/file_drop_zone.dart';
 import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
@@ -58,13 +57,17 @@ class CertificateCard extends StatelessWidget {
     return FormSection(
       title: context.tr('upload_certificate'),
       children: [
-        _CertificateRow(
-          isSet: company.hasEInvoiceCertificate,
-          onUpload: () => _pickAndUpload(context),
-          onRemove: () => host.updateCompany(
-            (c) => c.copyWith(hasEInvoiceCertificate: false),
+        if (company.hasEInvoiceCertificate)
+          _CertificateRow(
+            onRemove: () => host.updateCompany(
+              (c) => c.copyWith(hasEInvoiceCertificate: false),
+            ),
+          )
+        else
+          FileDropZone(
+            allowedExtensions: _kCertExts,
+            onFiles: (sources) => _upload(context, sources),
           ),
-        ),
         _PassphraseRow(
           host: host,
           isSet: company.hasEInvoiceCertificatePassphrase,
@@ -73,7 +76,10 @@ class CertificateCard extends StatelessWidget {
     );
   }
 
-  Future<void> _pickAndUpload(BuildContext context) async {
+  /// Validate the dropped / picked certificate (single file) and enqueue it.
+  Future<void> _upload(BuildContext context, List<UploadSource> sources) async {
+    if (sources.isEmpty) return;
+    final source = sources.first;
     final services = context.read<Services>();
     final host = context.read<SettingsDraftHost>();
     final companyId = host.draft?.id;
@@ -87,30 +93,16 @@ class CertificateCard extends StatelessWidget {
     final uploadFailedTitle = context.tr('error_uploading_document');
 
     try {
-      final picked = await FilePicker.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: _kCertExts,
-      );
-      if (picked == null || picked.files.isEmpty) return;
-      final file = picked.files.first;
-      final path = file.path;
-      final name = file.name;
+      final name = source.fileName;
       final ext = name.substring(name.lastIndexOf('.') + 1).toLowerCase();
-      if (!context.mounted) return;
       if (!_kCertExts.contains(ext)) {
         Notify.warning(context, invalidTypeText);
         return;
       }
-      if (file.size > _kMaxCertBytes) {
+      final size = await source.length();
+      if (!context.mounted) return;
+      if (size > _kMaxCertBytes) {
         Notify.warning(context, tooLargeText);
-        return;
-      }
-      final UploadSource source;
-      if (!kIsWeb && path != null) {
-        source = fileUploadSource(path);
-      } else if (file.bytes != null) {
-        source = BytesUploadSource(file.bytes!, name);
-      } else {
         return;
       }
       await services.company.enqueueEInvoiceCertificateUpload(
@@ -126,15 +118,11 @@ class CertificateCard extends StatelessWidget {
   }
 }
 
+/// Shown once a certificate is set: status + Remove. The upload affordance is
+/// the [FileDropZone] rendered in its place while no certificate is set.
 class _CertificateRow extends StatelessWidget {
-  const _CertificateRow({
-    required this.isSet,
-    required this.onUpload,
-    required this.onRemove,
-  });
+  const _CertificateRow({required this.onRemove});
 
-  final bool isSet;
-  final VoidCallback onUpload;
   final VoidCallback onRemove;
 
   @override
@@ -144,25 +132,19 @@ class _CertificateRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Icon(
-          isSet ? Icons.check_circle : Icons.cancel_outlined,
-          color: isSet ? tokens.paid : tokens.ink3,
-        ),
+        Icon(Icons.check_circle, color: tokens.paid),
         SizedBox(width: InSpacing.md(context)),
         Expanded(
           child: Text(
-            context.tr(isSet ? 'certificate_set' : 'certificate_not_set'),
+            context.tr('certificate_set'),
             style: theme.textTheme.bodyMedium?.copyWith(color: tokens.ink),
           ),
         ),
         OutlinedButton.icon(
-          // Keep `.icon` for both states so the button width stays stable
-          // when the user toggles set / not-set — different shapes would
-          // shift the surrounding layout.
           style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
-          icon: Icon(isSet ? Icons.delete_outline : Icons.upload),
-          label: Text(context.tr(isSet ? 'remove' : 'upload_certificate')),
-          onPressed: isSet ? onRemove : onUpload,
+          icon: const Icon(Icons.delete_outline),
+          label: Text(context.tr('remove')),
+          onPressed: onRemove,
         ),
       ],
     );

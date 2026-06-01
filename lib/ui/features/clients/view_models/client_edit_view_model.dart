@@ -40,7 +40,11 @@ class ClientEditViewModel extends GenericEditViewModel<Client> {
         d.website.isNotEmpty ||
         d.address1.isNotEmpty ||
         d.privateNotes.isNotEmpty ||
-        d.publicNotes.isNotEmpty;
+        d.publicNotes.isNotEmpty ||
+        // The blank primary contact we seed on a new client is all-empty, so
+        // it doesn't count — but a contact the user actually filled in does,
+        // so navigating away from contact-only entry still prompts to discard.
+        d.contacts.any((c) => !_isBlankContact(c));
   }
 
   @override
@@ -147,6 +151,15 @@ class ClientEditViewModel extends GenericEditViewModel<Client> {
       );
   void setContactPasswordAt(int i, String v) =>
       _updateContactAt(i, (c) => c.copyWith(password: v));
+
+  void setContactCustomValue1At(int i, String v) =>
+      _updateContactAt(i, (c) => c.copyWith(customValue1: v));
+  void setContactCustomValue2At(int i, String v) =>
+      _updateContactAt(i, (c) => c.copyWith(customValue2: v));
+  void setContactCustomValue3At(int i, String v) =>
+      _updateContactAt(i, (c) => c.copyWith(customValue3: v));
+  void setContactCustomValue4At(int i, String v) =>
+      _updateContactAt(i, (c) => c.copyWith(customValue4: v));
 
   void _updateContactAt(int index, Contact Function(Contact) edit) {
     if (index < 0 || index >= draft.contacts.length) return;
@@ -325,7 +338,10 @@ Client _emptyClient() => Client(
   customValue2: '',
   customValue3: '',
   customValue4: '',
-  contacts: const [],
+  // The API enforces at least one contact per client, so a new client always
+  // starts with a blank primary contact visible (no "+ Add contact" needed
+  // first). `_emptyContact()` is already `isPrimary: true`.
+  contacts: [_emptyContact()],
 );
 
 Contact _emptyContact() => Contact(

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:logging/logging.dart';
 
@@ -73,6 +74,69 @@ void main() {
     expect(body, contains('[unit.test.logger]'));
     expect(body, contains('"password":"<redacted>"'));
     expect(body, isNot(contains('hunter2')));
+  });
+
+  test('collapses a storm of identical errors into one entry + tally', () async {
+    final diag = await openLog();
+    addTearDown(diag.close);
+    for (var i = 0; i < 5; i++) {
+      diag.recordError(
+        StateError('same'),
+        StackTrace.fromString('#0 frameA'),
+        context: 'storm',
+      );
+    }
+    await diag.flush(); // flushing emits the trailing repeat tally
+    final body = await File(diag.path).readAsString();
+    // The head is written exactly once; the other four are collapsed.
+    expect('Bad state: same'.allMatches(body).length, 1);
+    expect(body, contains('repeated 4 more time(s)'));
+  });
+
+  test('a different error flushes the pending repeat tally', () async {
+    final diag = await openLog();
+    addTearDown(diag.close);
+    diag.recordError(StateError('a'), null, context: 'c');
+    diag.recordError(StateError('a'), null, context: 'c'); // repeat
+    diag.recordError(StateError('b'), null, context: 'c'); // distinct → flush
+    await diag.flush();
+    final body = await File(diag.path).readAsString();
+    expect(body, contains('repeated 1 more time(s)'));
+    expect(body, contains('Bad state: b'));
+  });
+
+  test('recordFlutterError logs the relevant error-causing widget hint', () async {
+    final diag = await openLog();
+    addTearDown(diag.close);
+    diag.recordFlutterError(
+      FlutterErrorDetails(
+        exception: StateError('layout boom'),
+        stack: StackTrace.fromString('#0 frameX'),
+        library: 'rendering library',
+        context: ErrorDescription('during performLayout()'),
+        informationCollector: () => [
+          ErrorDescription(
+            'The relevant error-causing widget was: FilledButton',
+          ),
+          DiagnosticsProperty<String>(
+            'created by',
+            'package:admin/ui/core/list/entity_sort_filter_sheet.dart:97',
+          ),
+        ],
+      ),
+    );
+    await diag.flush();
+    final body = await File(diag.path).readAsString();
+    expect(body, contains('Bad state: layout boom'));
+    expect(body, contains('[during performLayout()]'));
+    expect(
+      body,
+      contains('The relevant error-causing widget was: FilledButton'),
+    );
+    expect(
+      body,
+      contains('package:admin/ui/core/list/entity_sort_filter_sheet.dart:97'),
+    );
   });
 
   test('rotates to .1 backup when threshold exceeded', () async {

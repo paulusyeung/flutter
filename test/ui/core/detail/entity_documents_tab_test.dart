@@ -6,6 +6,7 @@ import 'package:admin/app/theme.dart';
 import 'package:admin/data/models/domain/document.dart';
 import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/ui/core/detail/entity_documents_tab.dart';
+import 'package:admin/ui/core/widgets/file_drop_zone.dart';
 
 import '../../../_localization_helper.dart';
 
@@ -63,7 +64,7 @@ void main() {
           find.text('Save the record to upload documents'),
           findsOneWidget,
         );
-        expect(find.byType(FilledButton), findsNothing);
+        expect(find.byType(FileDropZone), findsNothing);
         expect(
           find.byWidgetPredicate((w) => w is PopupMenuButton),
           findsNothing,
@@ -78,9 +79,9 @@ void main() {
       'empty real entity renders the upload affordance + no-records line',
       (tester) async {
         await _pump(tester, entityId: 'real_123', documents: const []);
-        // Upload button is the FilledButton at the top.
-        expect(find.byType(FilledButton), findsOneWidget);
-        expect(find.byIcon(Icons.upload), findsOneWidget);
+        // The drop-or-click upload affordance is the shared FileDropZone.
+        expect(find.byType(FileDropZone), findsOneWidget);
+        expect(find.byIcon(Icons.upload_file_outlined), findsOneWidget);
         // Terse empty-state copy from `no_records_found`.
         expect(find.text('No records found'), findsOneWidget);
       },
@@ -108,9 +109,9 @@ void main() {
         documents: const [_docA],
         readOnly: true,
       );
-      // No upload button anywhere.
-      expect(find.byType(FilledButton), findsNothing);
-      expect(find.byIcon(Icons.upload), findsNothing);
+      // No upload affordance anywhere.
+      expect(find.byType(FileDropZone), findsNothing);
+      expect(find.byIcon(Icons.upload_file_outlined), findsNothing);
       // No actions menu on the row.
       expect(find.byWidgetPredicate((w) => w is PopupMenuButton), findsNothing);
       // The row itself still renders so users can see what's attached.

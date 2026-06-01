@@ -37,3 +37,17 @@ String? companyLogoUrl(Map<String, dynamic> settings) {
   if (v is String && v.trim().isNotEmpty) return v.trim();
   return null;
 }
+
+/// Appends a cache-busting `v=<updatedAt>` to a resolved logo URL. Invoice
+/// Ninja reuses the same `company_logo` URL when a logo is replaced (it
+/// overwrites the file at a stable path), so without this (a) the derived
+/// `AuthCompany.logoUrl` string wouldn't change, so `_onCompaniesChanged`'s
+/// diff never fires and the picker session never re-emits, and (b) the
+/// avatar's `Image.network` would serve the stale cached bytes. Mirrors the
+/// cache-bust in `logo_screen.dart`. Null / empty in → returned unchanged so
+/// the avatar still falls through to its initials path.
+String? cacheBustedLogoUrl(String? rawUrl, int updatedAt) {
+  if (rawUrl == null || rawUrl.isEmpty) return rawUrl;
+  final sep = rawUrl.contains('?') ? '&' : '?';
+  return '$rawUrl${sep}v=$updatedAt';
+}

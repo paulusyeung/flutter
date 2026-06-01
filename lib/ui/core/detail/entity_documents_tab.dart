@@ -1,6 +1,3 @@
-import 'package:desktop_drop/desktop_drop.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -11,6 +8,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/document.dart';
 import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/file_drop_zone.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 import 'package:admin/utils/document_upload_validation.dart';
@@ -76,15 +74,6 @@ class EntityDocumentsTab extends StatefulWidget {
 }
 
 class _EntityDocumentsTabState extends State<EntityDocumentsTab> {
-  bool _dragOver = false;
-
-  bool get _isDesktop {
-    final p = defaultTargetPlatform;
-    return p == TargetPlatform.macOS ||
-        p == TargetPlatform.linux ||
-        p == TargetPlatform.windows;
-  }
-
   bool get _isTmp => widget.entityId.startsWith('tmp_');
 
   @override
@@ -159,50 +148,11 @@ class _EntityDocumentsTabState extends State<EntityDocumentsTab> {
   }
 
   Widget _buildUploadAffordance(BuildContext context) {
-    final button = FilledButton.icon(
-      onPressed: _pickAndUpload,
-      icon: const Icon(Icons.upload),
-      label: Text(context.tr('upload')),
-      style: FilledButton.styleFrom(minimumSize: const Size(120, 40)),
-    );
-    if (!_isDesktop) {
-      return Align(alignment: Alignment.centerLeft, child: button);
-    }
-    return _Dropzone(
-      dragOver: _dragOver,
-      onEntered: () => setState(() => _dragOver = true),
-      onExited: () => setState(() => _dragOver = false),
-      onDrop: _onDrop,
-      child: button,
-    );
-  }
-
-  Future<void> _pickAndUpload() async {
-    final picked = await FilePicker.pickFiles(
-      type: FileType.custom,
+    return FileDropZone(
       allowedExtensions: kDocumentAllowedExtensions,
       allowMultiple: true,
-      // Web only ever has bytes (no path); request them explicitly so a
-      // platform that lazily loads bytes still populates `.bytes`.
-      withData: kIsWeb,
+      onFiles: _validateAndUpload,
     );
-    if (picked == null || picked.files.isEmpty) return;
-    final sources = <UploadSource>[];
-    for (final f in picked.files) {
-      final path = f.path;
-      if (!kIsWeb && path != null) {
-        sources.add(fileUploadSource(path));
-      } else if (f.bytes != null) {
-        sources.add(BytesUploadSource(f.bytes!, f.name));
-      }
-    }
-    if (!mounted) return;
-    await _validateAndUpload(sources);
-  }
-
-  Future<void> _onDrop(List<UploadSource> dropped) async {
-    setState(() => _dragOver = false);
-    await _validateAndUpload(dropped);
   }
 
   Future<void> _validateAndUpload(List<UploadSource> sources) async {
@@ -255,73 +205,6 @@ class _EntityDocumentsTabState extends State<EntityDocumentsTab> {
     // user taps "View document".
     if (!isSafeHttpsUrl(doc.url)) return;
     await launchUrl(Uri.parse(doc.url), mode: LaunchMode.externalApplication);
-  }
-}
-
-class _Dropzone extends StatelessWidget {
-  const _Dropzone({
-    required this.dragOver,
-    required this.onEntered,
-    required this.onExited,
-    required this.onDrop,
-    required this.child,
-  });
-
-  final bool dragOver;
-  final VoidCallback onEntered;
-  final VoidCallback onExited;
-  final Future<void> Function(List<UploadSource>) onDrop;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    final borderColor = dragOver ? tokens.accent : tokens.border;
-    return DropTarget(
-      onDragEntered: (_) => onEntered(),
-      onDragExited: (_) => onExited(),
-      onDragDone: (details) async {
-        final sources = <UploadSource>[];
-        for (final xf in details.files) {
-          if (!kIsWeb && xf.path.isNotEmpty) {
-            sources.add(fileUploadSource(xf.path));
-          } else {
-            // Web: `XFile.path` is a blob URL, not a filesystem path —
-            // read the bytes the drop handed us instead.
-            sources.add(BytesUploadSource(await xf.readAsBytes(), xf.name));
-          }
-        }
-        await onDrop(sources);
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        padding: EdgeInsets.all(InSpacing.lg(context)),
-        decoration: BoxDecoration(
-          color: dragOver ? tokens.accentSoft : Colors.transparent,
-          borderRadius: BorderRadius.circular(InRadii.r2),
-          border: Border.all(
-            color: borderColor,
-            width: dragOver ? 2 : 1,
-            style: BorderStyle.solid,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                context.tr(
-                  dragOver ? 'drop_files_here' : 'documents_drop_hint',
-                ),
-                style: TextStyle(color: tokens.ink2),
-              ),
-            ),
-            SizedBox(width: InSpacing.md(context)),
-            child,
-          ],
-        ),
-      ),
-    );
   }
 }
 

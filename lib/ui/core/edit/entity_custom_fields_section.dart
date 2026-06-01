@@ -27,8 +27,12 @@ import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 /// [DashboardCardShell] with [cardTitle] — sits alongside the other cards in
 /// the right column of a two-column edit layout. The card disappears
 /// entirely when all slots are unconfigured (mirroring the inner widget's
-/// `SizedBox.shrink()` collapse). Set `wrapInCard: false` for legacy layouts
-/// that already host the section inside their own container.
+/// `SizedBox.shrink()` collapse). The card is also skipped — fields render
+/// inline — when [cardTitle] is null or empty, even with `wrapInCard: true`:
+/// a titleless `DashboardCardShell` would otherwise draw an empty header box.
+/// Hosts that nest this section inside their own card (client/vendor details,
+/// billing-doc edit tabs) simply pass no [cardTitle]; `wrapInCard: false` is
+/// equivalent and reads more explicitly.
 class EntityCustomFieldsSection extends StatelessWidget {
   const EntityCustomFieldsSection({
     super.key,
@@ -102,8 +106,14 @@ class EntityCustomFieldsSection extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: fields,
         );
-        if (!wrapInCard) return column;
-        return DashboardCardShell(title: cardTitle ?? '', child: column);
+        // Wrap in a card only when there's an actual title to show. A
+        // null/empty title would otherwise render `DashboardCardShell` with an
+        // empty header row (it treats `title: ''` as "has header"), drawing a
+        // stray empty box — the case for every host that nests this section
+        // inside its own card (client/vendor details, billing-doc edit tabs).
+        final title = cardTitle;
+        if (!wrapInCard || title == null || title.isEmpty) return column;
+        return DashboardCardShell(title: title, child: column);
       },
     );
   }

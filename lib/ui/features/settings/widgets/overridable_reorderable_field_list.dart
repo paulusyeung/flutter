@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -96,14 +97,35 @@ class OverridableReorderableFieldList extends StatelessWidget {
             },
           ),
         const SizedBox(height: InSpacing.sm),
-        _AddVariableButton(
-          available: catalog.available
-              .where((v) => !selected.contains(v))
-              .toList(),
-          onPicked: (key) {
-            final list = [...selected, key];
-            write(list);
-          },
+        Row(
+          children: [
+            Expanded(
+              child: _AddVariableButton(
+                available: catalog.available
+                    .where((v) => !selected.contains(v))
+                    .toList(),
+                onPicked: (key) {
+                  final list = [...selected, key];
+                  write(list);
+                },
+              ),
+            ),
+            // Bottom-right per tab: restore the catalog default for this
+            // section. Disabled when the list already equals the default so it
+            // never pointlessly dirties the draft. Sits inside the
+            // `OverridableField.bindInline` child, so at group/client scope it
+            // inherits the same override-gating as the rows above.
+            Tooltip(
+              message: context.tr('use_default'),
+              child: TextButton.icon(
+                icon: const Icon(Icons.restart_alt, size: 18),
+                label: Text(context.tr('reset')),
+                onPressed: listEquals(selected, catalog.defaultSelected)
+                    ? null
+                    : () => write(catalog.defaultSelected),
+              ),
+            ),
+          ],
         ),
       ],
     );

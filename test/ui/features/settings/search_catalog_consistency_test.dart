@@ -447,10 +447,11 @@ final _trKey = RegExp(r"""\w+\.tr\(\s*['"]([\w]+)['"]""");
 final _apiKey = RegExp(r"""apiKey:\s*['"]([\w]+)['"]""");
 final _labelText = RegExp(r"""labelText:\s*\w+\.tr\(\s*['"]([\w]+)['"]""");
 // Wrapper widgets (SettingsTextField, ColumnDefinition, SortOption,
-// EntityListBulkAction, ...) take a `labelKey: 'xxx'` string and call
-// `context.tr(labelKey)` internally. From the source-rendering check's
-// perspective these are equivalent references.
-final _labelKey = RegExp(r"""labelKey:\s*['"]([\w]+)['"]""");
+// EntityListBulkAction, FileDropZone, ...) take a `labelKey: 'xxx'` /
+// `idleLabelKey: 'xxx'` string and call `context.tr(labelKey)` internally.
+// From the source-rendering check's perspective these are equivalent
+// references.
+final _labelKey = RegExp(r"""(?:idle)?[lL]abelKey:\s*['"]([\w]+)['"]""");
 
 Set<String> _extractReferencedKeys(String source) {
   final keys = <String>{};

@@ -775,8 +775,9 @@ void main() {
         );
         expect(
           c.logoUrl,
-          'https://logo.example/acme.png',
-          reason: 'logo_url column should survive the round-trip',
+          startsWith('https://logo.example/acme.png'),
+          reason: 'logo_url column should survive the round-trip '
+              '(now cache-busted with ?v=<updatedAt>)',
         );
       },
     );

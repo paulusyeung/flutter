@@ -166,10 +166,28 @@ void main() {
   });
 
   group('multi-contact editing', () {
+    test('create mode seeds one blank primary contact', () {
+      final vm = ClientEditViewModel(repo: repo, companyId: 'co');
+      expect(vm.draft.contacts, hasLength(1));
+      final seeded = vm.draft.contacts.single;
+      expect(seeded.isPrimary, isTrue);
+      expect(seeded.firstName, isEmpty);
+      expect(seeded.lastName, isEmpty);
+      expect(seeded.email, isEmpty);
+      expect(seeded.phone, isEmpty);
+      // A blank seeded contact must not make an untouched form dirty.
+      expect(vm.isDirty, isFalse);
+      vm.dispose();
+    });
+
     test(
       'addContact appends an empty row and marks it primary when list was empty',
       () {
         final vm = ClientEditViewModel(repo: repo, companyId: 'co');
+        // New clients seed one blank primary contact; drop it to exercise the
+        // empty-list branch of addContact.
+        vm.removeContact(0);
+        expect(vm.draft.contacts, isEmpty);
         vm.addContact();
         expect(vm.draft.contacts, hasLength(1));
         expect(vm.draft.contacts.single.isPrimary, isTrue);
@@ -290,7 +308,7 @@ void main() {
   group('applyImportedContact', () {
     test('fills the first all-blank contact row in place', () {
       final vm = ClientEditViewModel(repo: repo, companyId: 'co');
-      vm.addContact(); // one blank primary row
+      // New clients already seed one blank primary row to fill in place.
       final r = vm.applyImportedContact(
         const DeviceContactImport(
           firstName: 'Dana',
@@ -401,7 +419,12 @@ void main() {
         countryId: '',
       );
       expect(vm.draft.name, 'OrgOnly');
-      expect(vm.draft.contacts, isEmpty);
+      expect(
+        vm.draft.contacts,
+        hasLength(1),
+        reason: 'seeded blank contact remains; no person on the card',
+      );
+      expect(vm.draft.contacts.single.firstName, isEmpty);
       expect(r.contactAdded, isFalse);
       expect(r.filledClientFields, contains('name'));
       expect(r.appliedChanges, isTrue);
@@ -452,7 +475,12 @@ void main() {
       );
       expect(r.changedNothing, isTrue);
       expect(vm.draft.name, '');
-      expect(vm.draft.contacts, isEmpty);
+      expect(
+        vm.draft.contacts,
+        hasLength(1),
+        reason: 'seeded blank contact remains; import added nothing',
+      );
+      expect(vm.draft.contacts.single.firstName, isEmpty);
       vm.dispose();
     });
 
@@ -481,7 +509,12 @@ void main() {
       expect(vm.draft.contacts, hasLength(1));
       vm.restoreDraft(before);
       expect(vm.draft.name, '');
-      expect(vm.draft.contacts, isEmpty);
+      expect(
+        vm.draft.contacts,
+        hasLength(1),
+        reason: 'restores the seeded blank contact snapshot',
+      );
+      expect(vm.draft.contacts.single.firstName, isEmpty);
       vm.dispose();
     });
 

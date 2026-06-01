@@ -23,6 +23,10 @@ abstract class Contact with _$Contact {
     required DateTime updatedAt,
     required bool isDeleted,
     @Default('') String link,
+    @Default('') String customValue1,
+    @Default('') String customValue2,
+    @Default('') String customValue3,
+    @Default('') String customValue4,
   }) = _Contact;
 
   factory Contact.fromApi(ContactApi a) => Contact(
@@ -39,6 +43,10 @@ abstract class Contact with _$Contact {
     updatedAt: epochSecondsToUtc(a.updatedAt),
     isDeleted: a.isDeleted,
     link: a.link,
+    customValue1: a.customValue1,
+    customValue2: a.customValue2,
+    customValue3: a.customValue3,
+    customValue4: a.customValue4,
   );
 }
 
@@ -54,5 +62,9 @@ extension ContactCopy on Contact {
     'cc_only': ccOnly,
     if (password.isNotEmpty) 'password': password,
     'link': link,
+    'custom_value1': customValue1,
+    'custom_value2': customValue2,
+    'custom_value3': customValue3,
+    'custom_value4': customValue4,
   };
 }

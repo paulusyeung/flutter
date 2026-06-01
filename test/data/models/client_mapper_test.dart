@@ -109,6 +109,36 @@ void main() {
       expect(contactsJson[1]['cc_only'], isFalse);
     });
 
+    test('round-trips contact custom_value1..4 (defaults empty, written back)', () {
+      final api = ClientApi.fromJson({
+        'id': 'a',
+        'name': 'Acme',
+        'contacts': [
+          {
+            'id': 'c1',
+            'email': 'a@x.test',
+            'custom_value1': 'one',
+            'custom_value2': 'two',
+            'custom_value3': 'three',
+            'custom_value4': 'four',
+          },
+          {'id': 'c2', 'email': 'b@x.test'},
+        ],
+      });
+
+      final c = Client.fromApi(api);
+      expect(c.contacts[0].customValue1, 'one');
+      expect(c.contacts[0].customValue4, 'four');
+      expect(c.contacts[1].customValue1, isEmpty, reason: 'defaults empty');
+
+      final json = c.toApiJson();
+      final contactsJson =
+          (json['contacts'] as List).cast<Map<String, dynamic>>();
+      expect(contactsJson[0]['custom_value1'], 'one');
+      expect(contactsJson[0]['custom_value4'], 'four');
+      expect(contactsJson[1]['custom_value1'], isEmpty);
+    });
+
     test('embeds locations read-side; toApiJson omits them (written via '
         'the standalone /api/v1/locations resource)', () {
       final api = ClientApi.fromJson({

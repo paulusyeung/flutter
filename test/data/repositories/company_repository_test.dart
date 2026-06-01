@@ -51,6 +51,7 @@ void main() {
     String name = 'Acme',
     Map<String, dynamic> settings = const {'name': 'Acme'},
     Map<String, String> customFields = const {},
+    String? logoUrl,
   }) async {
     await db.companiesDao.upsertAll([
       CompaniesCompanion.insert(
@@ -59,6 +60,7 @@ void main() {
         displayName: Value(name),
         settings: jsonEncode(settings),
         customFields: Value(jsonEncode(customFields)),
+        logoUrl: Value(logoUrl),
         permissions: '',
         accountId: 'acct',
         token: 'tok',
@@ -272,6 +274,39 @@ void main() {
           jsonDecode(row.customFields) as Map<String, dynamic>;
       expect(decodedCustom['company1'], 'Department|single_line_text');
       expect(row.updatedAt, 1900000000);
+    });
+
+    test('refreshes the logo_url column from settings.company_logo', () async {
+      // Regression: the dedicated logo_url column must follow the applied
+      // settings. `_onCompaniesChanged` / `restore` prefer the column, so a
+      // stale value left the company-picker avatar on the old logo after an
+      // upload (Invoice Ninja returns a new logo URL per upload).
+      const companyId = 'co';
+      await seedCompany(
+        companyId,
+        settings: const {
+          'name': 'Acme',
+          'company_logo': 'https://old.example/old.png',
+        },
+        logoUrl: 'https://old.example/old.png',
+      );
+      final repo = makeRepo();
+
+      await repo.applyUpdateResponse(
+        companyId: companyId,
+        serverResponse: CompanyApi(
+          id: companyId,
+          name: 'Acme',
+          settings: const {
+            'name': 'Acme',
+            'company_logo': 'https://new.example/new.png',
+          },
+          updatedAt: 1900000000,
+        ),
+      );
+
+      final row = await db.companiesDao.byId(companyId);
+      expect(row!.logoUrl, 'https://new.example/new.png');
     });
   });
 

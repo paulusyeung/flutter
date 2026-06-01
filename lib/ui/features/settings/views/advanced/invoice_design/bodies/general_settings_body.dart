@@ -248,11 +248,6 @@ class GeneralSettingsBody extends StatelessWidget {
               label: context.tr('page_numbering'),
               apiKey: 'page_numbering',
             ),
-            OverridableSwitchField(
-              label: context.tr('invoice_embed_documents'),
-              apiKey: 'embed_documents',
-              subtitle: context.tr('invoice_embed_documents_help'),
-            ),
             if (hasPageNumbering)
               OverridableDropdownField<String>(
                 label: context.tr('page_numbering_alignment'),
@@ -263,6 +258,11 @@ class GeneralSettingsBody extends StatelessWidget {
                   (s) => s.copyWith(pageNumberingAlignment: v),
                 ),
               ),
+            OverridableSwitchField(
+              label: context.tr('invoice_embed_documents'),
+              apiKey: 'embed_documents',
+              subtitle: context.tr('invoice_embed_documents_help'),
+            ),
           ],
         ),
       ],

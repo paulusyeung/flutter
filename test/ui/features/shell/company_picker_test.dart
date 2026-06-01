@@ -72,7 +72,10 @@ void main() {
         .toList();
     final acmeAvatar = avatars.firstWhere((a) => a.seed == 'c1');
     final starkAvatar = avatars.firstWhere((a) => a.seed == 'c2');
-    expect(acmeAvatar.logoUrl, 'https://example.com/logo.png');
+    // Cache-busted with `?v=<updatedAt>` (see cacheBustedLogoUrl) so a logo
+    // replace — same server URL — still invalidates the image cache.
+    expect(acmeAvatar.logoUrl, startsWith('https://example.com/logo.png'));
+    expect(acmeAvatar.logoUrl, contains('?v='));
     expect(starkAvatar.logoUrl, isNull);
 
     await _drain(tester, fixture);

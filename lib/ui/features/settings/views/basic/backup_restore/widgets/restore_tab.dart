@@ -1,8 +1,5 @@
 import 'dart:io' show FileSystemException;
 
-import 'package:desktop_drop/desktop_drop.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -12,6 +9,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/file_drop_zone.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
@@ -38,7 +36,6 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
   UploadSource? _source;
   String _fileName = '';
   int _fileLength = 0;
-  bool _dragOver = false;
   bool _importSettings = false;
   // UX default: most users restoring a backup want their data back. Settings
   // is the rarer ask and stays opt-in.
@@ -81,33 +78,10 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
     });
   }
 
-  Future<void> _pickFile() async {
-    final picked = await FilePicker.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: const ['zip'],
-      withData: kIsWeb,
-    );
-    if (picked == null || picked.files.isEmpty) return;
-    final f = picked.files.first;
-    final path = f.path;
-    if (!kIsWeb && path != null) {
-      await _accept(fileUploadSource(path), f.name);
-    } else if (f.bytes != null) {
-      await _accept(BytesUploadSource(f.bytes!, f.name), f.name);
-    }
-  }
-
-  Future<void> _onDropped(
-    List<({UploadSource source, String name})> files,
-  ) async {
-    final zip = files.where((f) => f.name.toLowerCase().endsWith('.zip'));
-    if (zip.isEmpty) {
-      if (!mounted) return;
-      Notify.warning(context, context.tr('dropzone_invalid_file_type'));
-      return;
-    }
-    final first = zip.first;
-    await _accept(first.source, first.name);
+  Future<void> _onFiles(List<UploadSource> sources) async {
+    if (sources.isEmpty) return;
+    final source = sources.first;
+    await _accept(source, source.fileName);
   }
 
   Future<void> _confirmAndRestore() async {
@@ -227,22 +201,33 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
         FormSection(
           title: context.tr('restore'),
           children: [
-            _Dropzone(
-              fileName: _source == null ? null : _fileName,
-              fileLength: _fileLength,
-              dragOver: _dragOver,
-              onEntered: () => setState(() => _dragOver = true),
-              onExited: () => setState(() => _dragOver = false),
-              onDrop: _onDropped,
-              onPick: _pickFile,
-              onClear: () => setState(() {
-                _source = null;
-                _fileName = '';
-                _fileLength = 0;
-                _completedNeedsBanner = false;
-              }),
-              enabled: !_busy,
-            ),
+            if (_source == null)
+              FileDropZone(
+                allowedExtensions: const ['zip'],
+                enabled: !_busy,
+                idleLabelKey: 'company_backup_file',
+                onFiles: _onFiles,
+              )
+            else
+              Container(
+                padding: EdgeInsets.all(InSpacing.lg(context)),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(InRadii.r2),
+                  border: Border.all(color: context.inTheme.border),
+                ),
+                child: _PickedFileRow(
+                  name: _fileName,
+                  sizeText: _formatBytes(_fileLength),
+                  onClear: _busy
+                      ? null
+                      : () => setState(() {
+                          _source = null;
+                          _fileName = '';
+                          _fileLength = 0;
+                          _completedNeedsBanner = false;
+                        }),
+                ),
+              ),
             SizedBox(height: InSpacing.lg(context)),
             _ImportToggles(
               importSettings: _importSettings,
@@ -301,146 +286,10 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
   }
 }
 
-class _Dropzone extends StatelessWidget {
-  const _Dropzone({
-    required this.fileName,
-    required this.fileLength,
-    required this.dragOver,
-    required this.onEntered,
-    required this.onExited,
-    required this.onDrop,
-    required this.onPick,
-    required this.onClear,
-    required this.enabled,
-  });
-
-  final String? fileName;
-  final int fileLength;
-  final bool dragOver;
-  final VoidCallback onEntered;
-  final VoidCallback onExited;
-  final void Function(List<({UploadSource source, String name})> files) onDrop;
-  final VoidCallback onPick;
-  final VoidCallback onClear;
-  final bool enabled;
-
-  static String _formatBytes(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    return '${(bytes / 1024 / 1024).toStringAsFixed(1)} MB';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    final borderColor = dragOver ? tokens.accent : tokens.border;
-    return DropTarget(
-      enable: enabled,
-      onDragEntered: (_) => onEntered(),
-      onDragExited: (_) => onExited(),
-      onDragDone: (details) async {
-        final files = <({UploadSource source, String name})>[];
-        for (final xf in details.files) {
-          if (!kIsWeb && xf.path.isNotEmpty) {
-            files.add((source: fileUploadSource(xf.path), name: xf.name));
-          } else {
-            files.add((
-              source: BytesUploadSource(await xf.readAsBytes(), xf.name),
-              name: xf.name,
-            ));
-          }
-        }
-        onDrop(files);
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        padding: EdgeInsets.all(InSpacing.lg(context)),
-        decoration: BoxDecoration(
-          color: dragOver ? tokens.accentSoft : Colors.transparent,
-          borderRadius: BorderRadius.circular(InRadii.r2),
-          border: Border.all(
-            color: borderColor,
-            width: dragOver ? 2 : 1,
-            style: BorderStyle.solid,
-          ),
-        ),
-        child: fileName == null
-            ? _EmptyDropzone(onPick: enabled ? onPick : null)
-            : _PickedFileRow(
-                name: fileName!,
-                sizeText: _formatBytes(fileLength),
-                onClear: enabled ? onClear : null,
-              ),
-      ),
-    );
-  }
-}
-
-class _EmptyDropzone extends StatelessWidget {
-  const _EmptyDropzone({required this.onPick});
-  final VoidCallback? onPick;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Below ~480 px the inline button squeezes the help text; stack on a
-        // column instead.
-        final narrow = constraints.maxWidth < 480;
-        final icon = Icon(
-          Icons.cloud_upload_outlined,
-          color: tokens.ink3,
-          size: 36,
-        );
-        final text = Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              context.tr('company_backup_file'),
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            SizedBox(height: InSpacing.sm / 2),
-            Text(
-              context.tr('company_backup_file_help'),
-              style: TextStyle(color: tokens.ink2),
-            ),
-          ],
-        );
-        final button = OutlinedButton.icon(
-          icon: const Icon(Icons.attach_file),
-          label: Text(context.tr('select_file')),
-          style: OutlinedButton.styleFrom(minimumSize: const Size(120, 40)),
-          onPressed: onPick,
-        );
-        if (narrow) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  icon,
-                  SizedBox(width: InSpacing.md(context)),
-                  Expanded(child: text),
-                ],
-              ),
-              SizedBox(height: InSpacing.md(context)),
-              Align(alignment: Alignment.centerLeft, child: button),
-            ],
-          );
-        }
-        return Row(
-          children: [
-            icon,
-            SizedBox(width: InSpacing.md(context)),
-            Expanded(child: text),
-            SizedBox(width: InSpacing.md(context)),
-            button,
-          ],
-        );
-      },
-    );
-  }
+String _formatBytes(int bytes) {
+  if (bytes < 1024) return '$bytes B';
+  if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  return '${(bytes / 1024 / 1024).toStringAsFixed(1)} MB';
 }
 
 class _PickedFileRow extends StatelessWidget {

@@ -1039,6 +1039,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Quote Product Columns selector | ✅ | ✅ | ✅ | ✅ | |
 | Task Columns selector | ✅ | ✅ | ✅ | ✅ | |
 | Total Fields selector | ✅ | ✅ | ✅ | ✅ | |
+| Reset field list to default — per tab, restores backend `getEntityVariableDefaults` | — | — | ✅ | | |
 | Custom Designs (CRUD: header / body / footer / includes / product / task) | ✅ | ✅ | ✅ | ✅ | |
 | Custom design editor — live PDF preview of in-progress design | ✅ | ❌ | ✅ | ✅ | |
 | Custom design editor — syntax-highlighted code editor + line numbers | ✅ | ❌ | ✅ | ✅ | |

@@ -3,10 +3,12 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/contact.dart';
 import 'package:admin/data/services/device_contacts_service.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/clients/view_models/client_edit_view_model.dart';
+import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
 import 'package:admin/ui/core/edit/entity_edit_field.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
@@ -29,6 +31,10 @@ class ClientEditContactsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    final services = context.read<Services>();
+    // Drives the per-contact custom fields (gated by the company's
+    // `contact1..4` labels), same source the Details card uses for `client*`.
+    final companyStream = services.company.watchCompany(vm.companyId);
     final contacts = vm.draft.contacts;
     final canDelete = contacts.length > 1;
     return DashboardCardShell(
@@ -57,6 +63,7 @@ class ClientEditContactsSection extends StatelessWidget {
                 index: i,
                 contact: contacts[i],
                 canDelete: canDelete,
+                companyStream: companyStream,
                 onMakePrimary: () => vm.setContactPrimary(i),
                 onDelete: () => vm.removeContact(i),
                 onFirstName: (v) => vm.setContactFirstNameAt(i, v),
@@ -66,6 +73,10 @@ class ClientEditContactsSection extends StatelessWidget {
                 onSendEmail: (v) => vm.setContactSendEmailAt(i, v),
                 onCcOnly: (v) => vm.setContactCcOnlyAt(i, v),
                 onPassword: (v) => vm.setContactPasswordAt(i, v),
+                onCustomValue1: (v) => vm.setContactCustomValue1At(i, v),
+                onCustomValue2: (v) => vm.setContactCustomValue2At(i, v),
+                onCustomValue3: (v) => vm.setContactCustomValue3At(i, v),
+                onCustomValue4: (v) => vm.setContactCustomValue4At(i, v),
               ),
             ],
           SizedBox(height: InSpacing.md(context)),
@@ -80,7 +91,7 @@ class ClientEditContactsSection extends StatelessWidget {
           ),
           // Native address-book import (iOS). Hidden on web / non-iOS where the
           // device contacts service reports unavailable.
-          if (context.read<Services>().deviceContacts.isAvailable) ...[
+          if (services.deviceContacts.isAvailable) ...[
             const SizedBox(height: InSpacing.sm),
             OutlinedButton.icon(
               onPressed: () => _importFromDevice(context),
@@ -189,6 +200,7 @@ class _ContactEditor extends StatelessWidget {
     required this.index,
     required this.contact,
     required this.canDelete,
+    required this.companyStream,
     required this.onMakePrimary,
     required this.onDelete,
     required this.onFirstName,
@@ -198,11 +210,16 @@ class _ContactEditor extends StatelessWidget {
     required this.onSendEmail,
     required this.onCcOnly,
     required this.onPassword,
+    required this.onCustomValue1,
+    required this.onCustomValue2,
+    required this.onCustomValue3,
+    required this.onCustomValue4,
   });
 
   final int index;
   final Contact contact;
   final bool canDelete;
+  final Stream<Company?> companyStream;
   final VoidCallback onMakePrimary;
   final VoidCallback onDelete;
   final ValueChanged<String> onFirstName;
@@ -212,6 +229,10 @@ class _ContactEditor extends StatelessWidget {
   final ValueChanged<bool> onSendEmail;
   final ValueChanged<bool> onCcOnly;
   final ValueChanged<String> onPassword;
+  final ValueChanged<String> onCustomValue1;
+  final ValueChanged<String> onCustomValue2;
+  final ValueChanged<String> onCustomValue3;
+  final ValueChanged<String> onCustomValue4;
 
   @override
   Widget build(BuildContext context) {
@@ -289,6 +310,25 @@ class _ContactEditor extends StatelessWidget {
           label: context.tr('password'),
           initial: contact.password,
           onChanged: onPassword,
+        ),
+        // Per-contact custom fields (contact1..4). Renders inline, gated by
+        // the company's configured labels — invisible when none are set.
+        EntityCustomFieldsSection(
+          keyPrefix: 'contact',
+          companyStream: companyStream,
+          wrapInCard: false,
+          values: [
+            contact.customValue1,
+            contact.customValue2,
+            contact.customValue3,
+            contact.customValue4,
+          ],
+          onChanged: [
+            onCustomValue1,
+            onCustomValue2,
+            onCustomValue3,
+            onCustomValue4,
+          ],
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,

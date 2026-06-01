@@ -673,10 +673,11 @@ class AuthRepository {
             // settings blob for rows that pre-date the v7 migration / for
             // logs that survived a codegen mishap that truncated the JSON.
             final logoFromColumn = c.logoUrl;
-            final logoUrl =
+            final rawLogo =
                 (logoFromColumn != null && logoFromColumn.isNotEmpty)
                 ? logoFromColumn
                 : companyLogoUrl(settings);
+            final logoUrl = cacheBustedLogoUrl(rawLogo, c.updatedAt);
             return AuthCompany(
               id: c.id,
               name: c.name,
@@ -1085,6 +1086,11 @@ class AuthRepository {
                 displayName: uc.company.displayName,
                 name: uc.company.name,
               ),
+              // Raw URL here: the login envelope carries no `updated_at`, and
+              // this is the cold-start initial paint (empty image cache, so the
+              // current logo loads correctly anyway). The reactive
+              // `_onCompaniesChanged` path applies the `?v=` cache-bust on the
+              // next Drift emission (and `restore()` does on cold start).
               logoUrl: companyLogoUrl(uc.company.settings),
               permissions: uc.permissions,
               enabledModules: uc.company.enabledModules,
@@ -1156,9 +1162,10 @@ class AuthRepository {
       if (decoded is Map<String, dynamic>) settings = decoded;
     } catch (_) {}
     final logoFromColumn = c.logoUrl;
-    final logoUrl = (logoFromColumn != null && logoFromColumn.isNotEmpty)
+    final rawLogo = (logoFromColumn != null && logoFromColumn.isNotEmpty)
         ? logoFromColumn
         : companyLogoUrl(settings);
+    final logoUrl = cacheBustedLogoUrl(rawLogo, c.updatedAt);
     return AuthCompany(
       id: c.id,
       name: c.name,
@@ -1202,9 +1209,10 @@ class AuthRepository {
       // Mirror restore()'s logo precedence: dedicated column wins, settings
       // blob is the fallback for pre-v7 rows.
       final logoFromColumn = row.logoUrl;
-      final logoUrl = (logoFromColumn != null && logoFromColumn.isNotEmpty)
+      final rawLogo = (logoFromColumn != null && logoFromColumn.isNotEmpty)
           ? logoFromColumn
           : companyLogoUrl(settings);
+      final logoUrl = cacheBustedLogoUrl(rawLogo, row.updatedAt);
       final displayName = companyDisplayName(
         settings: settings,
         displayName: row.displayName ?? '',

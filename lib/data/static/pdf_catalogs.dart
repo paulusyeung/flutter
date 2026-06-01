@@ -2,6 +2,11 @@
 /// shipped by `/api/v1/statics` — fonts, page sizes, page layouts, and the
 /// available PDF variables per section are hardcoded in the legacy admin-portal
 /// and the React web client too. Keep them in sync with those sources.
+///
+/// Each section's `defaultSelected` tracks the server's first-load default,
+/// `CompanySettings::getEntityVariableDefaults()` in the invoiceninja backend —
+/// the per-tab `Reset` button restores exactly this list. Update these when
+/// that method changes.
 library;
 
 /// `settings.page_layout` wire values.
@@ -195,6 +200,7 @@ class _QuoteFields {
 class _CreditFields {
   static const number = 'number';
   static const poNumber = 'po_number';
+  static const validUntil = 'valid_until';
   static const date = 'date';
   static const total = 'total';
   static const balance = 'balance';
@@ -214,6 +220,7 @@ class _VendorFields {
   static const postalCityState = 'postal_city_state';
   static const postalCity = 'postal_city';
   static const country = 'country';
+  static const phone = 'phone';
   static const customValue1 = 'custom1';
   static const customValue2 = 'custom2';
   static const customValue3 = 'custom3';
@@ -323,6 +330,7 @@ final Map<String, PdfVariableCatalog> kPdfVariableSections = {
     ],
     defaultSelected: [
       ..._prefix('client', [
+        _ClientFields.locationName,
         _ClientFields.name,
         _ClientFields.number,
         _ClientFields.vatNumber,
@@ -425,6 +433,7 @@ final Map<String, PdfVariableCatalog> kPdfVariableSections = {
       _InvoiceFields.dueDate,
       _InvoiceFields.total,
       _InvoiceFields.balanceDue,
+      _InvoiceFields.project,
     ]),
   ),
 
@@ -452,6 +461,7 @@ final Map<String, PdfVariableCatalog> kPdfVariableSections = {
       _QuoteFields.date,
       _QuoteFields.validUntil,
       _QuoteFields.total,
+      _QuoteFields.project,
     ]),
   ),
 
@@ -463,6 +473,7 @@ final Map<String, PdfVariableCatalog> kPdfVariableSections = {
         _CreditFields.number,
         _CreditFields.poNumber,
         _CreditFields.date,
+        _CreditFields.validUntil,
         _CreditFields.total,
         _CreditFields.balance,
         _CreditFields.customValue1,
@@ -475,6 +486,7 @@ final Map<String, PdfVariableCatalog> kPdfVariableSections = {
     defaultSelected: _prefix('credit', [
       _CreditFields.number,
       _CreditFields.poNumber,
+      _CreditFields.validUntil,
       _CreditFields.date,
       _CreditFields.balance,
       _CreditFields.total,
@@ -495,6 +507,7 @@ final Map<String, PdfVariableCatalog> kPdfVariableSections = {
         _VendorFields.postalCityState,
         _VendorFields.postalCity,
         _VendorFields.country,
+        _VendorFields.phone,
         _VendorFields.customValue1,
         _VendorFields.customValue2,
         _VendorFields.customValue3,
@@ -510,6 +523,8 @@ final Map<String, PdfVariableCatalog> kPdfVariableSections = {
         _VendorFields.address1,
         _VendorFields.address2,
         _VendorFields.cityStatePostal,
+        _VendorFields.country,
+        _VendorFields.phone,
       ]),
       ..._prefix('contact', [_ContactFields.email]),
     ],
@@ -646,6 +661,7 @@ final Map<String, PdfVariableCatalog> kPdfVariableSections = {
       '\$${_TotalFields.outstanding}',
     ],
     defaultSelected: <String>[
+      '\$${_TotalFields.netSubtotal}',
       '\$${_TotalFields.subtotal}',
       '\$${_TotalFields.discount}',
       '\$${_TotalFields.customSurcharge1}',

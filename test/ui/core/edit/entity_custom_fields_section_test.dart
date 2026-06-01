@@ -5,6 +5,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/theme.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
+import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 
 import '../../../_localization_helper.dart';
 
@@ -64,4 +65,32 @@ void main() {
     expect(find.text('Slot One'), findsNothing);
     expect(find.text('Slot Three'), findsNothing);
   });
+
+  testWidgets(
+    'wrapInCard:true with no cardTitle renders inline, no empty card',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildInTheme(InTheme.light),
+          localizationsDelegates: kTestLocalizationsDelegates,
+          supportedLocales: kTestSupportedLocales,
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: EntityCustomFieldsSection(
+                keyPrefix: 'invoice',
+                companyStream: Stream.value(_company),
+                values: const ['', '', '', ''],
+                onChanged: [(_) {}, (_) {}, (_) {}, (_) {}],
+                // wrapInCard defaults to true; no cardTitle → must not draw a
+                // titleless DashboardCardShell (the stray empty box).
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Slot One'), findsOneWidget);
+      expect(find.byType(DashboardCardShell), findsNothing);
+    },
+  );
 }

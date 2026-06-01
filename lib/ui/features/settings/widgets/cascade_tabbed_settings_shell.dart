@@ -425,7 +425,7 @@ class _PreviewBarButton extends StatelessWidget {
         InSpacing.lg(context),
         InSpacing.md(context),
         InSpacing.lg(context),
-        0,
+        InSpacing.md(context),
       ),
       child: Row(
         children: [

@@ -1,8 +1,5 @@
-import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -15,6 +12,7 @@ import 'package:admin/data/models/domain/import_preview.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/import_api.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/file_drop_zone.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
@@ -101,25 +99,13 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
           ?.enabledModules ??
       0;
 
-  Future<void> _pickFile() async {
-    final picked = await FilePicker.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: const ['csv'],
-      allowMultiple: false,
-      withData: true,
-    );
-    if (picked == null || picked.files.isEmpty) return;
-    final f = picked.files.first;
-    var bytes = f.bytes;
-    if (bytes == null && !kIsWeb && f.path != null) {
-      bytes = await File(f.path!).readAsBytes();
-    }
-    if (bytes == null) {
-      if (mounted) Notify.error(context, context.tr('no_file_selected'));
-      return;
-    }
+  Future<void> _onCsvFiles(List<UploadSource> sources) async {
+    if (sources.isEmpty) return;
+    final source = sources.first;
+    final bytes = await source.readRange(0, await source.length());
+    if (!mounted) return;
     setState(() {
-      _fileName = f.name;
+      _fileName = source.fileName;
       _bytes = bytes;
     });
   }
@@ -227,28 +213,12 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     }
   }
 
-  Future<void> _pickMigrationFile() async {
-    final picked = await FilePicker.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: const ['zip', 'json'],
-      allowMultiple: false,
-      withData: kIsWeb,
-    );
-    if (picked == null || picked.files.isEmpty) return;
-    final f = picked.files.first;
-    final path = f.path;
-    final UploadSource source;
-    if (!kIsWeb && path != null) {
-      source = fileUploadSource(path);
-    } else if (f.bytes != null) {
-      source = BytesUploadSource(f.bytes!, f.name);
-    } else {
-      if (mounted) Notify.error(context, context.tr('no_file_selected'));
-      return;
-    }
+  Future<void> _onMigrationFiles(List<UploadSource> sources) async {
+    if (sources.isEmpty) return;
+    final source = sources.first;
     setState(() {
       _migrationSource = source;
-      _migrationFileName = f.name;
+      _migrationFileName = source.fileName;
     });
   }
 
@@ -283,15 +253,18 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
           style: TextStyle(fontSize: 13, color: context.inTheme.ink3),
         ),
         SizedBox(height: InSpacing.md(context)),
-        OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(double.infinity, 44),
-            alignment: Alignment.centerLeft,
-          ),
-          icon: const Icon(Icons.upload_file, size: 18),
-          label: Text(_migrationFileName ?? context.tr('select_file')),
-          onPressed: _migrationBusy ? null : _pickMigrationFile,
+        FileDropZone(
+          allowedExtensions: const ['zip', 'json'],
+          enabled: !_migrationBusy,
+          onFiles: _onMigrationFiles,
         ),
+        if (_migrationFileName != null) ...[
+          const SizedBox(height: InSpacing.sm),
+          Text(
+            _migrationFileName!,
+            style: TextStyle(fontSize: 13, color: context.inTheme.ink2),
+          ),
+        ],
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           dense: true,
@@ -442,15 +415,18 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
           ],
         ),
         if (_entity == 'bank_transaction') _bankAccountField(context),
-        OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(double.infinity, 44),
-            alignment: Alignment.centerLeft,
-          ),
-          icon: const Icon(Icons.upload_file, size: 18),
-          label: Text(_fileName ?? context.tr('select_file')),
-          onPressed: _busy ? null : _pickFile,
+        FileDropZone(
+          allowedExtensions: const ['csv'],
+          enabled: !_busy,
+          onFiles: _onCsvFiles,
         ),
+        if (_fileName != null) ...[
+          const SizedBox(height: InSpacing.sm),
+          Text(
+            _fileName!,
+            style: TextStyle(fontSize: 13, color: context.inTheme.ink2),
+          ),
+        ],
         Align(
           alignment: Alignment.centerRight,
           child: FilledButton(

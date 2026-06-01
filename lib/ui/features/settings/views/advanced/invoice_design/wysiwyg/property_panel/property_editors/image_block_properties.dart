@@ -1,13 +1,13 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
-import 'package:desktop_drop/desktop_drop.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/design.dart';
+import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/file_drop_zone.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/property_panel/property_inputs.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/wysiwyg_design_view_model.dart';
@@ -38,7 +38,6 @@ class ImageBlockProperties extends StatefulWidget {
 class _ImageBlockPropertiesState extends State<ImageBlockProperties> {
   late final TextEditingController _source;
   String _lastBlockId = '';
-  bool _dropHover = false;
 
   @override
   void initState() {
@@ -98,39 +97,17 @@ class _ImageBlockPropertiesState extends State<ImageBlockProperties> {
     _write('source', dataUrl);
   }
 
-  Future<void> _pickAndUpload() async {
-    final picked = await FilePicker.pickFiles(
-      type: FileType.image,
-      withData: true,
-    );
-    if (picked == null || picked.files.isEmpty) return;
-    final file = picked.files.first;
-    final bytes = file.bytes;
-    if (bytes == null) {
-      if (!mounted) return;
-      Notify.error(context, context.tr('error_unable_to_upload'));
-      return;
-    }
-    await _commitBytes(bytes, file.name);
-  }
-
-  Future<void> _onDrop(DropDoneDetails details) async {
-    setState(() => _dropHover = false);
-    if (details.files.isEmpty) return;
-    final f = details.files.first;
+  Future<void> _onImageFiles(List<UploadSource> sources) async {
+    if (sources.isEmpty) return;
+    final source = sources.first;
     try {
-      final bytes = await f.readAsBytes();
-      await _commitBytes(bytes, f.name);
+      final bytes = await source.readRange(0, await source.length());
+      await _commitBytes(bytes, source.fileName);
     } catch (_) {
       if (!mounted) return;
       Notify.error(context, context.tr('error_unable_to_upload'));
     }
   }
-
-  static bool get _isDesktop =>
-      defaultTargetPlatform == TargetPlatform.macOS ||
-      defaultTargetPlatform == TargetPlatform.windows ||
-      defaultTargetPlatform == TargetPlatform.linux;
 
   @override
   Widget build(BuildContext context) {
@@ -151,16 +128,11 @@ class _ImageBlockPropertiesState extends State<ImageBlockProperties> {
         if (!isLogo) _ImageUploader(
           hasImage: hasImage,
           src: src,
-          dropHover: _dropHover,
-          canDrop: _isDesktop,
-          onPick: _pickAndUpload,
           onRemove: () {
             setState(() => _source.clear());
             _write('source', null);
           },
-          onDropEnter: () => setState(() => _dropHover = true),
-          onDropLeave: () => setState(() => _dropHover = false),
-          onDrop: _onDrop,
+          onFiles: _onImageFiles,
         ),
         if (!isLogo) SizedBox(height: InSpacing.md(context)),
         OutlinedButton.icon(
@@ -243,24 +215,14 @@ class _ImageUploader extends StatelessWidget {
   const _ImageUploader({
     required this.hasImage,
     required this.src,
-    required this.dropHover,
-    required this.canDrop,
-    required this.onPick,
     required this.onRemove,
-    required this.onDropEnter,
-    required this.onDropLeave,
-    required this.onDrop,
+    required this.onFiles,
   });
 
   final bool hasImage;
   final String src;
-  final bool dropHover;
-  final bool canDrop;
-  final VoidCallback onPick;
   final VoidCallback onRemove;
-  final VoidCallback onDropEnter;
-  final VoidCallback onDropLeave;
-  final void Function(DropDoneDetails) onDrop;
+  final Future<void> Function(List<UploadSource>) onFiles;
 
   @override
   Widget build(BuildContext context) {
@@ -268,6 +230,9 @@ class _ImageUploader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // The current-image preview stays ABOVE the drop zone (not inside its
+        // tappable area) so the remove (X) gesture doesn't conflict with the
+        // box's click-to-pick.
         if (hasImage)
           Padding(
             padding: EdgeInsets.only(bottom: InSpacing.sm),
@@ -313,68 +278,21 @@ class _ImageUploader extends StatelessWidget {
               ],
             ),
           ),
-        canDrop
-            ? DropTarget(
-                onDragEntered: (_) => onDropEnter(),
-                onDragExited: (_) => onDropLeave(),
-                onDragDone: onDrop,
-                child: _DashedDropArea(
-                  hover: dropHover,
-                  hasImage: hasImage,
-                  onTap: onPick,
-                ),
-              )
-            : _DashedDropArea(
-                hover: false,
-                hasImage: hasImage,
-                onTap: onPick,
-              ),
-      ],
-    );
-  }
-}
-
-class _DashedDropArea extends StatelessWidget {
-  const _DashedDropArea({
-    required this.hover,
-    required this.hasImage,
-    required this.onTap,
-  });
-
-  final bool hover;
-  final bool hasImage;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    return InkWell(
-      borderRadius: BorderRadius.circular(InRadii.r2),
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.all(InSpacing.lg(context)),
-        decoration: BoxDecoration(
-          color: hover ? tokens.accentSoft : tokens.bg,
-          border: Border.all(
-            color: hover ? tokens.accent : tokens.border,
-            width: 2,
-            style: BorderStyle.solid,
-          ),
-          borderRadius: BorderRadius.circular(InRadii.r2),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.image_outlined, size: 32, color: tokens.ink3),
-            SizedBox(height: InSpacing.sm),
-            Text(
-              context.tr(hasImage ? 'upload' : 'drag_and_drop_to_add'),
-              style: TextStyle(fontSize: 13, color: tokens.ink),
-              textAlign: TextAlign.center,
-            ),
+        FileDropZone(
+          allowedExtensions: const [
+            'png',
+            'jpg',
+            'jpeg',
+            'gif',
+            'webp',
+            'svg',
+            'bmp',
+            'heic',
           ],
+          idleLabelKey: 'drag_and_drop_to_add',
+          onFiles: onFiles,
         ),
-      ),
+      ],
     );
   }
 }

@@ -10,6 +10,7 @@ import 'package:admin/data/models/api/company_settings_api_model.dart';
 import 'package:admin/data/models/api/tax_config_api_model.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
+import 'package:admin/data/repositories/auth/auth_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/companies_api.dart';
 import 'package:admin/domain/entity_type.dart';
@@ -486,6 +487,12 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
     )..where((c) => c.id.equals(serverResponse.id))).write(
       CompaniesCompanion(
         settings: Value(jsonEncode(serverResponse.settings)),
+        // Keep the dedicated logo_url column in sync with the freshly-applied
+        // settings. `_onCompaniesChanged` / `restore` prefer this column over
+        // the settings blob, so without this a logo upload (Invoice Ninja
+        // returns a new logo URL) leaves the picker avatar on the old logo
+        // even though the Logo tab preview — which reads settings — updates.
+        logoUrl: Value(companyLogoUrl(serverResponse.settings)),
         customFields: Value(jsonEncode(serverResponse.customFields)),
         sizeId: Value(serverResponse.sizeId),
         industryId: Value(serverResponse.industryId),

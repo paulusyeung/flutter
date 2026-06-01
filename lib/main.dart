@@ -226,11 +226,10 @@ Future<DiagnosticsLog?> _initDiagnostics() async {
     final diag = await DiagnosticsLog.open();
     final priorFlutterOnError = FlutterError.onError;
     FlutterError.onError = (details) {
-      diag.recordError(
-        details.exception,
-        details.stack,
-        context: details.context?.toString(),
-      );
+      // recordFlutterError (not recordError) so the "relevant error-causing
+      // widget" hints land in the on-disk log — otherwise it's framework-only
+      // and can't name the culprit widget.
+      diag.recordFlutterError(details);
       if (priorFlutterOnError != null) {
         priorFlutterOnError(details);
       } else {
