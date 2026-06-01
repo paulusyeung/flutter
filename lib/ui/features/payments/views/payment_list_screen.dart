@@ -19,11 +19,7 @@ import 'package:admin/ui/features/payments/widgets/payment_token_search_field.da
 
 /// Payments list screen.
 class PaymentListScreen extends StatelessWidget {
-  const PaymentListScreen({
-    super.key,
-    this.clientId,
-    this.embedded = false,
-  });
+  const PaymentListScreen({super.key, this.clientId, this.embedded = false});
 
   /// When set, the list is filtered to one client.
   final String? clientId;
@@ -41,9 +37,9 @@ class PaymentListScreen extends StatelessWidget {
       embeddedNewOverride: cid == null
           ? null
           : (ctx) => ctx.go(
-                '/payments/new',
-                extra: emptyPayment().copyWith(clientId: cid),
-              ),
+              '/payments/new',
+              extra: emptyPayment().copyWith(clientId: cid),
+            ),
       emptyIcon: Icons.payments_outlined,
       emptyTitleKey: 'no_payments_yet',
       wantsFormatter: true,
@@ -96,12 +92,12 @@ class PaymentListScreen extends StatelessWidget {
           onAction: options.selecting
               ? null
               : (action) => PaymentActions.dispatch(
-                    context,
-                    context.read<Services>(),
-                    vm.companyId,
-                    payment,
-                    action,
-                  ),
+                  context,
+                  context.read<Services>(),
+                  vm.companyId,
+                  payment,
+                  action,
+                ),
         );
       },
       bulkActions: const [

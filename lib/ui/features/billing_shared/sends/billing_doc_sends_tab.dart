@@ -192,10 +192,7 @@ class _BillingDocSendsTabState extends State<BillingDocSendsTab> {
     if (client == null) return const {};
     return {
       for (final c in client.contacts)
-        c.id: (
-          label: '${c.firstName} ${c.lastName}'.trim(),
-          email: c.email,
-        ),
+        c.id: (label: '${c.firstName} ${c.lastName}'.trim(), email: c.email),
     };
   }
 
@@ -205,10 +202,7 @@ class _BillingDocSendsTabState extends State<BillingDocSendsTab> {
     if (vendor == null) return const {};
     return {
       for (final c in vendor.contacts)
-        c.id: (
-          label: '${c.firstName} ${c.lastName}'.trim(),
-          email: c.email,
-        ),
+        c.id: (label: '${c.firstName} ${c.lastName}'.trim(), email: c.email),
     };
   }
 
@@ -270,9 +264,7 @@ class _InvitationRow extends StatelessWidget {
         '${context.tr('viewed')}: ${_fmt(context, invitation.viewedDate)}',
     ].join('  •  ');
     final showReactivate =
-        isHosted &&
-        (bounced || errored) &&
-        invitation.messageId.isNotEmpty;
+        isHosted && (bounced || errored) && invitation.messageId.isNotEmpty;
 
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: kEntityListRowHeight),

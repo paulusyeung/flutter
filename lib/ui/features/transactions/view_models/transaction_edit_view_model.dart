@@ -10,8 +10,7 @@ import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 /// transactions land via sync; this VM is for the rare manual-entry
 /// path. The form covers the wire fields the API accepts on create:
 /// amount, currency, date, bank-account, description, baseType.
-class TransactionEditViewModel
-    extends GenericEditViewModel<BankTransaction> {
+class TransactionEditViewModel extends GenericEditViewModel<BankTransaction> {
   TransactionEditViewModel({
     required this.repo,
     required this.companyId,
@@ -19,10 +18,10 @@ class TransactionEditViewModel
     super.sync,
     super.connectivity,
   }) : super(
-          initialDraft: existing ?? _emptyTransaction(),
-          original: existing,
-          companyId: companyId,
-        );
+         initialDraft: existing ?? _emptyTransaction(),
+         original: existing,
+         companyId: companyId,
+       );
 
   final BankTransactionRepository repo;
   final String companyId;
@@ -50,13 +49,11 @@ class TransactionEditViewModel
   void resetToEmpty() => reset(emptyDraft: _emptyTransaction());
 
   void setAmount(Decimal v) => updateDraft(draft.copyWith(amount: v));
-  void setCurrencyId(String v) =>
-      updateDraft(draft.copyWith(currencyId: v));
+  void setCurrencyId(String v) => updateDraft(draft.copyWith(currencyId: v));
   void setDate(Date? v) => updateDraft(draft.copyWith(date: v));
   void setBankAccountId(String v) =>
       updateDraft(draft.copyWith(bankAccountId: v));
-  void setDescription(String v) =>
-      updateDraft(draft.copyWith(description: v));
+  void setDescription(String v) => updateDraft(draft.copyWith(description: v));
   void setBaseType(String v) => updateDraft(draft.copyWith(baseType: v));
 }
 

@@ -49,8 +49,7 @@ class _ImageBlockPropertiesState extends State<ImageBlockProperties> {
   void _sync() {
     if (_lastBlockId == widget.block.id) return;
     _lastBlockId = widget.block.id;
-    _source.text =
-        (widget.block.properties['source'] as String?) ?? '';
+    _source.text = (widget.block.properties['source'] as String?) ?? '';
   }
 
   @override
@@ -68,8 +67,7 @@ class _ImageBlockPropertiesState extends State<ImageBlockProperties> {
   void _write(String key, Object? value) {
     widget.vm.updateBlock(
       widget.block.copyWith(
-        properties:
-            mergePropertyOrOmit(widget.block.properties, key, value),
+        properties: mergePropertyOrOmit(widget.block.properties, key, value),
       ),
     );
   }
@@ -114,7 +112,8 @@ class _ImageBlockPropertiesState extends State<ImageBlockProperties> {
     final props = widget.block.properties;
     final src = _source.text;
     final isLogo = widget.block.type == 'logo';
-    final hasImage = src.startsWith('data:') ||
+    final hasImage =
+        src.startsWith('data:') ||
         src.startsWith('http://') ||
         src.startsWith('https://');
 
@@ -125,15 +124,16 @@ class _ImageBlockPropertiesState extends State<ImageBlockProperties> {
         // `block.type !== 'logo'` guard. Logo blocks are driven by the
         // company's stored logo (and a "Use Company Logo" button
         // re-attaches if the user typed something else).
-        if (!isLogo) _ImageUploader(
-          hasImage: hasImage,
-          src: src,
-          onRemove: () {
-            setState(() => _source.clear());
-            _write('source', null);
-          },
-          onFiles: _onImageFiles,
-        ),
+        if (!isLogo)
+          _ImageUploader(
+            hasImage: hasImage,
+            src: src,
+            onRemove: () {
+              setState(() => _source.clear());
+              _write('source', null);
+            },
+            onFiles: _onImageFiles,
+          ),
         if (!isLogo) SizedBox(height: InSpacing.md(context)),
         OutlinedButton.icon(
           icon: const Icon(Icons.business_outlined, size: 16),
@@ -188,11 +188,26 @@ class _ImageBlockPropertiesState extends State<ImageBlockProperties> {
           // CSS object-fit value labels — React renders these literal
           // strings too; they're CSS keywords more than natural prose.
           items: const [
-            DropdownMenuItem(value: 'contain', child: Text('Contain')), // i18n-exempt: CSS keyword
-            DropdownMenuItem(value: 'cover', child: Text('Cover')), // i18n-exempt: CSS keyword
-            DropdownMenuItem(value: 'fill', child: Text('Fill')), // i18n-exempt: CSS keyword
-            DropdownMenuItem(value: 'scale-down', child: Text('Scale down')), // i18n-exempt: CSS keyword
-            DropdownMenuItem(value: 'none', child: Text('None')), // i18n-exempt: CSS keyword
+            DropdownMenuItem(
+              value: 'contain',
+              child: Text('Contain'),
+            ), // i18n-exempt: CSS keyword
+            DropdownMenuItem(
+              value: 'cover',
+              child: Text('Cover'),
+            ), // i18n-exempt: CSS keyword
+            DropdownMenuItem(
+              value: 'fill',
+              child: Text('Fill'),
+            ), // i18n-exempt: CSS keyword
+            DropdownMenuItem(
+              value: 'scale-down',
+              child: Text('Scale down'),
+            ), // i18n-exempt: CSS keyword
+            DropdownMenuItem(
+              value: 'none',
+              child: Text('None'),
+            ), // i18n-exempt: CSS keyword
           ],
           onChanged: (v) {
             if (v != null) _write('objectFit', v);
@@ -252,8 +267,11 @@ class _ImageUploader extends StatelessWidget {
                       src,
                       fit: BoxFit.contain,
                       errorBuilder: (_, _, _) => Center(
-                        child: Icon(Icons.broken_image_outlined,
-                            color: tokens.ink3, size: 32),
+                        child: Icon(
+                          Icons.broken_image_outlined,
+                          color: tokens.ink3,
+                          size: 32,
+                        ),
                       ),
                     ),
                   ),
@@ -269,8 +287,7 @@ class _ImageUploader extends StatelessWidget {
                       onTap: onRemove,
                       child: const Padding(
                         padding: EdgeInsets.all(4),
-                        child: Icon(Icons.close,
-                            size: 14, color: Colors.white),
+                        child: Icon(Icons.close, size: 14, color: Colors.white),
                       ),
                     ),
                   ),

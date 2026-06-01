@@ -125,11 +125,7 @@ class PaymentLinkListTile extends StatelessWidget {
           const SizedBox(width: 4),
           EntityActionsPopupButton<PaymentLinkAction>(
             icon: Icons.more_horiz,
-            items: PaymentLinkActions.itemsFor(
-              context,
-              paymentLink,
-              onAction!,
-            ),
+            items: PaymentLinkActions.itemsFor(context, paymentLink, onAction!),
           ),
         ],
       ],

@@ -83,8 +83,7 @@ class _ClientEmailHistoryTabState extends State<ClientEmailHistoryTab> {
       padding: EdgeInsets.symmetric(vertical: InSpacing.lg(context)),
       child: AnimatedBuilder(
         animation: _vm,
-        builder: (context, _) =>
-            ActivityListCard(child: _buildBody(context)),
+        builder: (context, _) => ActivityListCard(child: _buildBody(context)),
       ),
     );
   }
@@ -180,9 +179,7 @@ class _RecordBlock extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 '${context.tr('recipients')}: ${record.recipients}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: tokens.ink3,
-                ),
+                style: theme.textTheme.bodySmall?.copyWith(color: tokens.ink3),
               ),
             ],
             for (final event in record.events)
@@ -235,9 +232,7 @@ class _EventRow extends StatelessWidget {
         Row(
           children: [
             Icon(
-              isBounce
-                  ? Icons.error_outline
-                  : Icons.check_circle_outline,
+              isBounce ? Icons.error_outline : Icons.check_circle_outline,
               size: 14,
               color: color,
             ),
@@ -279,9 +274,7 @@ class _EventRow extends StatelessWidget {
                       )
                     : const Icon(Icons.mark_email_read_outlined, size: 18),
                 label: Text(
-                  context.tr(
-                    isReactivating ? 'in_flight' : 'reactivate_email',
-                  ),
+                  context.tr(isReactivating ? 'in_flight' : 'reactivate_email'),
                 ),
               ),
             ),

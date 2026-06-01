@@ -150,12 +150,15 @@ class VendorDao extends BaseEntityDao<$VendorsTable, VendorRow>
             vendors.archivedAt.isNull(),
       )
       ..orderBy([OrderingTerm(expression: vendors.displayName.lower())]);
-    return q.map((row) {
-      return (
-        id: row.read<String>(vendors.id) ?? '',
-        name: row.read<String>(vendors.displayName) ?? '',
-      );
-    }).watch().distinctRows();
+    return q
+        .map((row) {
+          return (
+            id: row.read<String>(vendors.id) ?? '',
+            name: row.read<String>(vendors.displayName) ?? '',
+          );
+        })
+        .watch()
+        .distinctRows();
   }
 
   /// Distinct non-empty values of `custom_value{columnIndex}` for the given

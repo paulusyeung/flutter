@@ -35,27 +35,26 @@ void main() {
     String taxRate2 = '0',
     String taxName3 = '',
     String taxRate3 = '0',
-  }) =>
-      LineItem(
-        productKey: productKey,
-        notes: '',
-        cost: d(cost),
-        productCost: Decimal.zero,
-        quantity: d(quantity),
-        taxName1: taxName1,
-        taxName2: taxName2,
-        taxName3: taxName3,
-        taxRate1: d(taxRate1),
-        taxRate2: d(taxRate2),
-        taxRate3: d(taxRate3),
-        typeId: LineItemType.standard,
-        customValue1: '',
-        customValue2: '',
-        customValue3: '',
-        customValue4: '',
-        discount: d(discount),
-        taxCategoryId: '',
-      );
+  }) => LineItem(
+    productKey: productKey,
+    notes: '',
+    cost: d(cost),
+    productCost: Decimal.zero,
+    quantity: d(quantity),
+    taxName1: taxName1,
+    taxName2: taxName2,
+    taxName3: taxName3,
+    taxRate1: d(taxRate1),
+    taxRate2: d(taxRate2),
+    taxRate3: d(taxRate3),
+    typeId: LineItemType.standard,
+    customValue1: '',
+    customValue2: '',
+    customValue3: '',
+    customValue4: '',
+    discount: d(discount),
+    taxCategoryId: '',
+  );
 
   BillingTotalsInput input({
     required List<LineItem> lineItems,
@@ -76,27 +75,26 @@ void main() {
     bool customTaxes2 = false,
     bool customTaxes3 = false,
     bool customTaxes4 = false,
-  }) =>
-      BillingTotalsInput(
-        lineItems: lineItems,
-        discount: d(discount),
-        isAmountDiscount: isAmountDiscount,
-        usesInclusiveTaxes: usesInclusiveTaxes,
-        taxName1: taxName1,
-        taxRate1: d(taxRate1),
-        taxName2: taxName2,
-        taxRate2: d(taxRate2),
-        taxName3: taxName3,
-        taxRate3: d(taxRate3),
-        customSurcharge1: d(customSurcharge1),
-        customSurcharge2: d(customSurcharge2),
-        customSurcharge3: d(customSurcharge3),
-        customSurcharge4: d(customSurcharge4),
-        customTaxes1: customTaxes1,
-        customTaxes2: customTaxes2,
-        customTaxes3: customTaxes3,
-        customTaxes4: customTaxes4,
-      );
+  }) => BillingTotalsInput(
+    lineItems: lineItems,
+    discount: d(discount),
+    isAmountDiscount: isAmountDiscount,
+    usesInclusiveTaxes: usesInclusiveTaxes,
+    taxName1: taxName1,
+    taxRate1: d(taxRate1),
+    taxName2: taxName2,
+    taxRate2: d(taxRate2),
+    taxName3: taxName3,
+    taxRate3: d(taxRate3),
+    customSurcharge1: d(customSurcharge1),
+    customSurcharge2: d(customSurcharge2),
+    customSurcharge3: d(customSurcharge3),
+    customSurcharge4: d(customSurcharge4),
+    customTaxes1: customTaxes1,
+    customTaxes2: customTaxes2,
+    customTaxes3: customTaxes3,
+    customTaxes4: customTaxes4,
+  );
 
   group('subtotal', () {
     test('empty line items → zero', () {
@@ -109,7 +107,9 @@ void main() {
 
     test('single line: qty × cost, no taxes, no discount', () {
       final result = computeTotals(
-        input(lineItems: [item(cost: '50', quantity: '3')]),
+        input(
+          lineItems: [item(cost: '50', quantity: '3')],
+        ),
         2,
       );
       expect(result.subtotal, d('150'));
@@ -119,10 +119,12 @@ void main() {
 
     test('multi-line subtotal sums correctly', () {
       final result = computeTotals(
-        input(lineItems: [
-          item(cost: '10', quantity: '2'),
-          item(cost: '5.50', quantity: '4'),
-        ]),
+        input(
+          lineItems: [
+            item(cost: '10', quantity: '2'),
+            item(cost: '5.50', quantity: '4'),
+          ],
+        ),
         2,
       );
       // 20.00 + 22.00 = 42.00
@@ -143,7 +145,9 @@ void main() {
 
     test('item-level percent discount subtracts before subtotal', () {
       final result = computeTotals(
-        input(lineItems: [item(cost: '100', quantity: '1', discount: '10')]),
+        input(
+          lineItems: [item(cost: '100', quantity: '1', discount: '10')],
+        ),
         2,
       );
       // 100 − 10% = 90
@@ -223,10 +227,12 @@ void main() {
   group('per-item taxes', () {
     test('two items with same tax name accumulate into one breakdown row', () {
       final result = computeTotals(
-        input(lineItems: [
-          item(cost: '100', taxName1: 'VAT', taxRate1: '10'),
-          item(cost: '50', taxName1: 'VAT', taxRate1: '10'),
-        ]),
+        input(
+          lineItems: [
+            item(cost: '100', taxName1: 'VAT', taxRate1: '10'),
+            item(cost: '50', taxName1: 'VAT', taxRate1: '10'),
+          ],
+        ),
         2,
       );
       // 100 × 10% + 50 × 10% = 15
@@ -235,10 +241,12 @@ void main() {
 
     test('different tax names produce separate breakdown rows', () {
       final result = computeTotals(
-        input(lineItems: [
-          item(cost: '100', taxName1: 'GST', taxRate1: '5'),
-          item(cost: '50', taxName1: 'PST', taxRate1: '7'),
-        ]),
+        input(
+          lineItems: [
+            item(cost: '100', taxName1: 'GST', taxRate1: '5'),
+            item(cost: '50', taxName1: 'PST', taxRate1: '7'),
+          ],
+        ),
         2,
       );
       expect(result.taxBreakdown['GST'], d('5.00'));
@@ -247,17 +255,19 @@ void main() {
 
     test('three taxes per item all apply against the same lineTotal', () {
       final result = computeTotals(
-        input(lineItems: [
-          item(
-            cost: '100',
-            taxName1: 'A',
-            taxRate1: '5',
-            taxName2: 'B',
-            taxRate2: '7',
-            taxName3: 'C',
-            taxRate3: '3',
-          ),
-        ]),
+        input(
+          lineItems: [
+            item(
+              cost: '100',
+              taxName1: 'A',
+              taxRate1: '5',
+              taxName2: 'B',
+              taxRate2: '7',
+              taxName3: 'C',
+              taxRate3: '3',
+            ),
+          ],
+        ),
         2,
       );
       expect(result.taxBreakdown['A'], d('5.00'));
@@ -271,9 +281,7 @@ void main() {
       // 100 × 5.12345% — legacy mixin rounds rate to 5.123 first.
       final result = computeTotals(
         input(
-          lineItems: [
-            item(cost: '100', taxName1: 'X', taxRate1: '5.12345'),
-          ],
+          lineItems: [item(cost: '100', taxName1: 'X', taxRate1: '5.12345')],
         ),
         2,
       );

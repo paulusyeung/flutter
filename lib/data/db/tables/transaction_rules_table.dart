@@ -17,8 +17,7 @@ class TransactionRules extends Table
         EntityTimestampColumns,
         EntityFlagColumns,
         EntityPayloadColumn {
-  TextColumn get name =>
-      text().named('name').withDefault(const Constant(''))();
+  TextColumn get name => text().named('name').withDefault(const Constant(''))();
 
   /// `DEBIT` (withdrawal — match to expense) or `CREDIT` (deposit — match
   /// to payment/invoice).

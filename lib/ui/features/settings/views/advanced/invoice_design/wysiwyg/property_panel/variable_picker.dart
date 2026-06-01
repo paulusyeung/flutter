@@ -61,8 +61,7 @@ class _VariablePickerDialog extends StatelessWidget {
             Expanded(
               child: ListView(
                 children: [
-                  for (final cat in categories)
-                    _CategorySection(category: cat),
+                  for (final cat in categories) _CategorySection(category: cat),
                 ],
               ),
             ),
@@ -119,12 +118,12 @@ class _CategorySection extends StatelessWidget {
   }
 
   String _categoryKey(VariableCategory c) => switch (c) {
-        VariableCategory.client => 'client_details',
-        VariableCategory.company => 'company_details',
-        VariableCategory.contact => 'contact_details',
-        VariableCategory.invoice => 'invoice_details',
-        VariableCategory.shipping => 'shipping_address',
-      };
+    VariableCategory.client => 'client_details',
+    VariableCategory.company => 'company_details',
+    VariableCategory.contact => 'contact_details',
+    VariableCategory.invoice => 'invoice_details',
+    VariableCategory.shipping => 'shipping_address',
+  };
 }
 
 class _VariableEntry {

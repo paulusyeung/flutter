@@ -43,9 +43,9 @@ class PurchaseOrderListScreen extends StatelessWidget {
       embeddedNewOverride: vid == null
           ? null
           : (ctx) => ctx.go(
-                '/purchase_orders/new',
-                extra: emptyPurchaseOrder().copyWith(vendorId: vid),
-              ),
+              '/purchase_orders/new',
+              extra: emptyPurchaseOrder().copyWith(vendorId: vid),
+            ),
       emptyIcon: Icons.shopping_bag_outlined,
       emptyTitleKey: 'no_purchase_orders_yet',
       wantsFormatter: true,
@@ -112,12 +112,12 @@ class PurchaseOrderListScreen extends StatelessWidget {
           onAction: options.selecting
               ? null
               : (action) => PurchaseOrderActions.dispatch(
-                    context,
-                    context.read<Services>(),
-                    vm.companyId,
-                    po,
-                    action,
-                  ),
+                  context,
+                  context.read<Services>(),
+                  vm.companyId,
+                  po,
+                  action,
+                ),
         );
       },
       bulkActions: [

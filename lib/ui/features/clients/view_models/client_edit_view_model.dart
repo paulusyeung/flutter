@@ -146,9 +146,9 @@ class ClientEditViewModel extends GenericEditViewModel<Client> {
   // CC-only and send_email are mutually exclusive: turning CC-only on
   // forces send_email off (mirrors the React web client).
   void setContactCcOnlyAt(int i, bool v) => _updateContactAt(
-        i,
-        (c) => c.copyWith(ccOnly: v, sendEmail: v ? false : c.sendEmail),
-      );
+    i,
+    (c) => c.copyWith(ccOnly: v, sendEmail: v ? false : c.sendEmail),
+  );
   void setContactPasswordAt(int i, String v) =>
       _updateContactAt(i, (c) => c.copyWith(password: v));
 
@@ -250,8 +250,8 @@ class ClientEditViewModel extends GenericEditViewModel<Client> {
         contactWasDuplicate = true;
       } else {
         final blankIdx = contacts.indexWhere(_isBlankContact);
-        final filledContact = (blankIdx >= 0 ? contacts[blankIdx] : _emptyContact())
-            .copyWith(
+        final filledContact =
+            (blankIdx >= 0 ? contacts[blankIdx] : _emptyContact()).copyWith(
               firstName: first,
               lastName: last,
               email: email,

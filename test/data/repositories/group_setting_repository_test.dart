@@ -208,16 +208,8 @@ void main() {
         await repo.applyBundle(
           companyId: 'co',
           bundle: const [
-            GroupSettingApi(
-              id: 'g_a',
-              name: 'Alpha',
-              updatedAt: 1700000100,
-            ),
-            GroupSettingApi(
-              id: 'g_b',
-              name: 'Beta',
-              updatedAt: 1700000200,
-            ),
+            GroupSettingApi(id: 'g_a', name: 'Alpha', updatedAt: 1700000100),
+            GroupSettingApi(id: 'g_b', name: 'Beta', updatedAt: 1700000200),
           ],
         );
         final rows = await repo.watchAll(companyId: 'co').first;

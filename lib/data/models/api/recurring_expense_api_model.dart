@@ -68,9 +68,7 @@ abstract class RecurringExpenseApi with _$RecurringExpenseApi {
     @JsonKey(name: 'tax_rate2') @Default('0') Object taxRate2,
     @JsonKey(name: 'tax_rate3') @Default('0') Object taxRate3,
     @JsonKey(name: 'is_deleted') @Default(false) bool isDeleted,
-    @JsonKey(name: 'should_be_invoiced')
-    @Default(false)
-    bool shouldBeInvoiced,
+    @JsonKey(name: 'should_be_invoiced') @Default(false) bool shouldBeInvoiced,
     @JsonKey(name: 'invoice_documents') @Default(false) bool invoiceDocuments,
     @JsonKey(name: 'uses_inclusive_taxes')
     @Default(false)

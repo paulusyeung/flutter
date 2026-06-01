@@ -28,8 +28,10 @@ class _PurchaseOrderPdfRouteScreenState
     super.initState();
     _services = context.read<Services>();
     _companyId = _services.auth.session.value!.currentCompanyId;
-    _stream = _services.purchaseOrders
-        .watch(companyId: _companyId, id: widget.id);
+    _stream = _services.purchaseOrders.watch(
+      companyId: _companyId,
+      id: widget.id,
+    );
   }
 
   @override
@@ -48,10 +50,10 @@ class _PurchaseOrderPdfRouteScreenState
           entityNumber: po.number,
           fetcher: ({String? designId, required bool deliveryNote}) =>
               _services.purchaseOrders.api.downloadPdf(
-            entityJson: po.toApiJson(),
-            designId: designId ??
-                (po.designId.isEmpty ? null : po.designId),
-          ),
+                entityJson: po.toApiJson(),
+                designId:
+                    designId ?? (po.designId.isEmpty ? null : po.designId),
+              ),
         );
       },
     );

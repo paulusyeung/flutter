@@ -180,10 +180,7 @@ void main() {
         expect(vm.loadedPages, 1);
         expect(api.calls.single.page, 1);
         expect(api.calls.single.filters['status'], 'active,archived');
-        expect(
-          api.calls.single.filters.containsKey('client_status'),
-          isFalse,
-        );
+        expect(api.calls.single.filters.containsKey('client_status'), isFalse);
       },
     );
 

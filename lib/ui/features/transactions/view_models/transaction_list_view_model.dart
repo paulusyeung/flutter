@@ -14,8 +14,7 @@ import 'package:admin/ui/core/list/standard_crud_bulk_actions.dart';
 /// The optional [bankAccountId] gates the watch+fetch to a single bank
 /// integration — set when this VM drives the embedded list (the standalone
 /// screen leaves it null and shows transactions across all integrations).
-class TransactionListViewModel
-    extends GenericListViewModel<BankTransaction> {
+class TransactionListViewModel extends GenericListViewModel<BankTransaction> {
   TransactionListViewModel({
     required this.repo,
     required super.companyId,
@@ -123,10 +122,8 @@ class TransactionListViewModel
       id: 'unlink',
       labelKey: 'unlink',
       eligible: (t) => t.isMatched || t.isConverted,
-      apply: (id) => repo.unlinkTransactions(
-        companyId: companyId,
-        transactionIds: [id],
-      ),
+      apply: (id) =>
+          repo.unlinkTransactions(companyId: companyId, transactionIds: [id]),
     ),
   ];
 }

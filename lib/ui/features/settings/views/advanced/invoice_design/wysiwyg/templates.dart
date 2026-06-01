@@ -32,6 +32,7 @@ class DesignTemplateStarter {
   final String id;
   final String nameKey;
   final String descriptionKey;
+
   /// Category for the gallery filter chips. Mirrors React's
   /// `modern` / `classic` / `minimal` / `creative` values.
   final String category;
@@ -46,79 +47,77 @@ DesignBlock _b(String type, int x, int y, {int? w, int? h}) {
   if (spec == null) {
     throw ArgumentError('Unknown block type "$type" in starter template');
   }
-  return spec.newInstance(
-    idPrefix: spec.type,
-    x: x,
-    y: y,
-  ).copyWith(
-    gridPosition: GridPosition(
-      x: x,
-      y: y,
-      w: w ?? spec.defaultWidth,
-      h: h ?? spec.defaultHeight,
-    ),
-  );
+  return spec
+      .newInstance(idPrefix: spec.type, x: x, y: y)
+      .copyWith(
+        gridPosition: GridPosition(
+          x: x,
+          y: y,
+          w: w ?? spec.defaultWidth,
+          h: h ?? spec.defaultHeight,
+        ),
+      );
 }
 
 /// Get the three Phase-4 starters fresh — re-evaluated per call so each
 /// pick produces blocks with brand-new ids.
 List<DesignTemplateStarter> buildStarterTemplates() => [
-      DesignTemplateStarter(
-        id: 'standard',
-        nameKey: 'starter_standard',
-        descriptionKey: 'starter_standard_hint',
-        category: 'classic',
-        blocks: _standardLayout(),
-      ),
-      DesignTemplateStarter(
-        id: 'minimal',
-        nameKey: 'starter_minimal',
-        descriptionKey: 'starter_minimal_hint',
-        category: 'minimal',
-        blocks: _minimalLayout(),
-      ),
-      DesignTemplateStarter(
-        id: 'quote_friendly',
-        nameKey: 'starter_quote_friendly',
-        descriptionKey: 'starter_quote_friendly_hint',
-        category: 'modern',
-        blocks: _quoteFriendlyLayout(),
-      ),
-    ];
+  DesignTemplateStarter(
+    id: 'standard',
+    nameKey: 'starter_standard',
+    descriptionKey: 'starter_standard_hint',
+    category: 'classic',
+    blocks: _standardLayout(),
+  ),
+  DesignTemplateStarter(
+    id: 'minimal',
+    nameKey: 'starter_minimal',
+    descriptionKey: 'starter_minimal_hint',
+    category: 'minimal',
+    blocks: _minimalLayout(),
+  ),
+  DesignTemplateStarter(
+    id: 'quote_friendly',
+    nameKey: 'starter_quote_friendly',
+    descriptionKey: 'starter_quote_friendly_hint',
+    category: 'modern',
+    blocks: _quoteFriendlyLayout(),
+  ),
+];
 
 /// Classic two-column header: logo + invoice details up top, client info
 /// + ship-to side by side, products table, then totals on the right.
 List<DesignBlock> _standardLayout() => [
-      _b('logo', 0, 0, w: 4, h: 4),
-      _b('invoice-details', 6, 0, w: 6, h: 4),
-      _b('client-info', 0, 4, w: 6, h: 4),
-      _b('client-shipping-info', 6, 4, w: 6, h: 4),
-      _b('table', 0, 8, w: 12, h: 8),
-      _b('total', 6, 16, w: 6, h: 6),
-      _b('public-notes', 0, 22, w: 12, h: 3),
-      _b('footer', 0, 25, w: 12, h: 2),
-    ];
+  _b('logo', 0, 0, w: 4, h: 4),
+  _b('invoice-details', 6, 0, w: 6, h: 4),
+  _b('client-info', 0, 4, w: 6, h: 4),
+  _b('client-shipping-info', 6, 4, w: 6, h: 4),
+  _b('table', 0, 8, w: 12, h: 8),
+  _b('total', 6, 16, w: 6, h: 6),
+  _b('public-notes', 0, 22, w: 12, h: 3),
+  _b('footer', 0, 25, w: 12, h: 2),
+];
 
 /// Minimal layout — single-column flow without the shipping block.
 List<DesignBlock> _minimalLayout() => [
-      _b('logo', 0, 0, w: 3, h: 3),
-      _b('invoice-details', 8, 0, w: 4, h: 3),
-      _b('client-info', 0, 3, w: 12, h: 4),
-      _b('table', 0, 7, w: 12, h: 8),
-      _b('total', 6, 15, w: 6, h: 6),
-      _b('footer', 0, 21, w: 12, h: 2),
-    ];
+  _b('logo', 0, 0, w: 3, h: 3),
+  _b('invoice-details', 8, 0, w: 4, h: 3),
+  _b('client-info', 0, 3, w: 12, h: 4),
+  _b('table', 0, 7, w: 12, h: 8),
+  _b('total', 6, 15, w: 6, h: 6),
+  _b('footer', 0, 21, w: 12, h: 2),
+];
 
 /// Quote-friendly — emphasizes terms + public notes alongside the totals.
 List<DesignBlock> _quoteFriendlyLayout() => [
-      _b('logo', 0, 0, w: 4, h: 3),
-      _b('company-info', 8, 0, w: 4, h: 3),
-      _b('client-info', 0, 3, w: 6, h: 4),
-      _b('invoice-details', 6, 3, w: 6, h: 4),
-      _b('table', 0, 7, w: 12, h: 8),
-      _b('public-notes', 0, 15, w: 6, h: 4),
-      _b('total', 6, 15, w: 6, h: 4),
-      _b('terms', 0, 19, w: 12, h: 3),
-      _b('signature', 0, 22, w: 4, h: 3),
-      _b('footer', 0, 25, w: 12, h: 2),
-    ];
+  _b('logo', 0, 0, w: 4, h: 3),
+  _b('company-info', 8, 0, w: 4, h: 3),
+  _b('client-info', 0, 3, w: 6, h: 4),
+  _b('invoice-details', 6, 3, w: 6, h: 4),
+  _b('table', 0, 7, w: 12, h: 8),
+  _b('public-notes', 0, 15, w: 6, h: 4),
+  _b('total', 6, 15, w: 6, h: 4),
+  _b('terms', 0, 19, w: 12, h: 3),
+  _b('signature', 0, 22, w: 4, h: 3),
+  _b('footer', 0, 25, w: 12, h: 2),
+];

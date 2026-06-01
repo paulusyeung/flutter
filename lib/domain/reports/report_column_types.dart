@@ -12,10 +12,10 @@ enum ReportColumnType {
   string,
   number,
   money,
-  date,      // calendar date — no time / timezone
-  dateTime,  // timestamp
-  age,       // days; -1 sentinel = "paid"
-  duration,  // seconds
+  date, // calendar date — no time / timezone
+  dateTime, // timestamp
+  age, // days; -1 sentinel = "paid"
+  duration, // seconds
   boolean,
 }
 
@@ -67,12 +67,7 @@ ReportColumnType inferColumnType(String identifier) {
   // Identifier-style fields look numeric but mustn't sort or sum like
   // numbers (e.g. invoice.number is "INV-0042", vat_number is a tax id).
   // Keep them as strings — the user expects lexicographic order.
-  const identifierTails = {
-    'number',
-    'id_number',
-    'vat_number',
-    'routing_id',
-  };
+  const identifierTails = {'number', 'id_number', 'vat_number', 'routing_id'};
   if (identifierTails.contains(tail)) {
     return ReportColumnType.string;
   }

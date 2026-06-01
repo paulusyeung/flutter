@@ -44,14 +44,9 @@ void main() {
       final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
       final notifier = ValueNotifier<bool>(true);
       addTearDown(notifier.dispose);
-      await tester.pumpWidget(_wrap(
-        WysiwygCanvas(vm: vm, showGrid: notifier),
-      ));
+      await tester.pumpWidget(_wrap(WysiwygCanvas(vm: vm, showGrid: notifier)));
       await tester.pump();
-      expect(
-        find.byKey(const ValueKey('canvas-grid-guides')),
-        findsOneWidget,
-      );
+      expect(find.byKey(const ValueKey('canvas-grid-guides')), findsOneWidget);
       expect(
         find.descendant(
           of: find.byKey(const ValueKey('canvas-grid-guides')),
@@ -61,14 +56,11 @@ void main() {
       );
     });
 
-    testWidgets('grid disappears when showGrid flips to false',
-        (tester) async {
+    testWidgets('grid disappears when showGrid flips to false', (tester) async {
       final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
       final notifier = ValueNotifier<bool>(true);
       addTearDown(notifier.dispose);
-      await tester.pumpWidget(_wrap(
-        WysiwygCanvas(vm: vm, showGrid: notifier),
-      ));
+      await tester.pumpWidget(_wrap(WysiwygCanvas(vm: vm, showGrid: notifier)));
       await tester.pump();
       expect(
         find.descendant(
@@ -88,8 +80,9 @@ void main() {
       );
     });
 
-    testWidgets('legacy callers without showGrid still see the grid',
-        (tester) async {
+    testWidgets('legacy callers without showGrid still see the grid', (
+      tester,
+    ) async {
       final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
       await tester.pumpWidget(_wrap(WysiwygCanvas(vm: vm)));
       await tester.pump();

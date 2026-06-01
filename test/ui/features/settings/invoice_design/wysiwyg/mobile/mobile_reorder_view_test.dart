@@ -18,8 +18,7 @@ class _FakeDesignsApi implements DesignsApi {
   Object? noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
 
-BlockSpec _spec(String type) =>
-    kBlockLibrary.firstWhere((s) => s.type == type);
+BlockSpec _spec(String type) => kBlockLibrary.firstWhere((s) => s.type == type);
 
 Widget _wrap(WysiwygDesignViewModel vm, {Size? viewport}) {
   final size = viewport ?? const Size(320, 800);
@@ -58,21 +57,20 @@ void main() {
       expect(find.byType(ReorderableListView), findsNothing);
     });
 
-    testWidgets(
-      'renders one row per block with drag handle + delete icon',
-      (tester) async {
-        final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
-        vm.addBlock(_spec('logo'));
-        vm.addBlock(_spec('text'));
-        vm.addBlock(_spec('terms'));
-        await tester.pumpWidget(_wrap(vm));
-        await tester.pump();
-        expect(find.byType(ReorderableListView), findsOneWidget);
-        // 3 drag handles + 3 delete icons.
-        expect(find.byIcon(Icons.drag_handle), findsNWidgets(3));
-        expect(find.byIcon(Icons.delete_outline), findsNWidgets(3));
-      },
-    );
+    testWidgets('renders one row per block with drag handle + delete icon', (
+      tester,
+    ) async {
+      final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
+      vm.addBlock(_spec('logo'));
+      vm.addBlock(_spec('text'));
+      vm.addBlock(_spec('terms'));
+      await tester.pumpWidget(_wrap(vm));
+      await tester.pump();
+      expect(find.byType(ReorderableListView), findsOneWidget);
+      // 3 drag handles + 3 delete icons.
+      expect(find.byIcon(Icons.drag_handle), findsNWidgets(3));
+      expect(find.byIcon(Icons.delete_outline), findsNWidgets(3));
+    });
 
     testWidgets('renders the hint banner at the top', (tester) async {
       final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
@@ -121,9 +119,9 @@ void main() {
   group('vm.reorderBlocks contract', () {
     test('moving the first block to the end re-orders + re-stacks y', () {
       final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
-      vm.addBlock(_spec('logo'));   // h=4
-      vm.addBlock(_spec('text'));   // h=2
-      vm.addBlock(_spec('terms'));  // h=3
+      vm.addBlock(_spec('logo')); // h=4
+      vm.addBlock(_spec('text')); // h=2
+      vm.addBlock(_spec('terms')); // h=3
       // ReorderableListView reports oldIndex=0, newIndex=3 when moving the
       // first item to the end (newIndex is post-removal).
       vm.reorderBlocks(0, 3);

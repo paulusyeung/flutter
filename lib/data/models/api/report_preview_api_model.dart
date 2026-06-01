@@ -35,11 +35,13 @@ ReportPreview decodeReportPreview(Object? raw) {
     if (c is! Map) continue;
     final identifier = c['identifier']?.toString() ?? '';
     if (identifier.isEmpty) continue;
-    columns.add(ReportColumn(
-      identifier: identifier,
-      displayLabel: c['display_value']?.toString() ?? identifier,
-      type: inferColumnType(identifier),
-    ));
+    columns.add(
+      ReportColumn(
+        identifier: identifier,
+        displayLabel: c['display_value']?.toString() ?? identifier,
+        type: inferColumnType(identifier),
+      ),
+    );
   }
 
   // Collect numeric-keyed entries; PHP's json encoder may emit them as
@@ -201,9 +203,7 @@ ReportCell _parseTyped({
 /// Decode the per-currency exchange rates the server bundles into the static
 /// data response. We hold this on the engine so the converted-totals math
 /// doesn't depend on a stale `Decimal` snapshot — keyed by currency id.
-Map<String, Decimal> exchangeRatesFrom(
-  Map<String, dynamic>? currenciesRaw,
-) {
+Map<String, Decimal> exchangeRatesFrom(Map<String, dynamic>? currenciesRaw) {
   final out = <String, Decimal>{};
   if (currenciesRaw == null) return out;
   currenciesRaw.forEach((id, raw) {

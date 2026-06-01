@@ -139,7 +139,8 @@ abstract class Quote with _$Quote {
 
 extension QuoteCalculation on Quote {
   Decimal get netAmount => amount - taxAmount;
-  Decimal get balanceOrAmount => statusId == QuoteStatus.draft ? amount : balance;
+  Decimal get balanceOrAmount =>
+      statusId == QuoteStatus.draft ? amount : balance;
 
   bool get isDraft => statusId == QuoteStatus.draft;
   bool get isSent => statusId == QuoteStatus.sent;
@@ -154,8 +155,7 @@ extension QuoteCalculation on Quote {
     return due.compareTo(today) < 0;
   }
 
-  bool get hasViewedInvitation =>
-      invitations.any((i) => i.hasBeenViewed);
+  bool get hasViewedInvitation => invitations.any((i) => i.hasBeenViewed);
 
   /// Any invitation whose email bounced or errored — drives the red
   /// alert overlay on the list status chip.

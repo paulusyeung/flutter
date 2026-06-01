@@ -329,8 +329,7 @@ class _CompanyTogglesCard extends StatelessWidget {
           titleKey: 'activate_company',
           subtitleKey: 'activate_company_help',
           value: !company.isDisabled,
-          onChanged: (v) =>
-              _save(context, company.copyWith(isDisabled: !v)),
+          onChanged: (v) => _save(context, company.copyWith(isDisabled: !v)),
         ),
         _ToggleRow(
           titleKey: 'enable_pdf_markdown',

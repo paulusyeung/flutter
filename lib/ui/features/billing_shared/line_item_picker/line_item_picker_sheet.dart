@@ -74,8 +74,7 @@ Future<LineItemPickerResult?> showLineItemPickerSheet(
       final maxHeight = MediaQuery.of(ctx).size.height * 0.85;
       return Material(
         color: tokens.surface,
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(InRadii.r3)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(InRadii.r3)),
         child: SafeArea(
           top: false,
           child: LineItemPickerBody(

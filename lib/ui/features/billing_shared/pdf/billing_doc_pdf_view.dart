@@ -71,7 +71,8 @@ class BillingDocPdfView extends StatefulWidget {
   final Future<Uint8List> Function({
     String? designId,
     required bool deliveryNote,
-  }) fetcher;
+  })
+  fetcher;
 
   @override
   State<BillingDocPdfView> createState() => _BillingDocPdfViewState();
@@ -142,10 +143,7 @@ class _BillingDocPdfViewState extends State<BillingDocPdfView> {
       return const Center(child: CircularProgressIndicator());
     }
     if (bytes == null && err != null) {
-      return ErrorView(
-        message: '$err',
-        onRetry: _load,
-      );
+      return ErrorView(message: '$err', onRetry: _load);
     }
     if (bytes == null) {
       return EmptyState(

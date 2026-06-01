@@ -21,7 +21,7 @@ class _SgStubApi implements CompaniesApi {
 
   @override
   Future<({CompanyItemApi company, String? corppassUrl})>
-      peppolSetupWithRedirect({
+  peppolSetupWithRedirect({
     required Map<String, dynamic> payload,
     required String idempotencyKey,
   }) async {
@@ -55,14 +55,14 @@ void main() {
   }
 
   CompanyItemApi resp(String id, {int legalEntityId = 42}) => CompanyItemApi(
-        data: CompanyApi(
-          id: id,
-          name: 'Acme',
-          settings: const {'name': 'Acme', 'country_id': '702'},
-          legalEntityId: legalEntityId,
-          updatedAt: 1900000000,
-        ),
-      );
+    data: CompanyApi(
+      id: id,
+      name: 'Acme',
+      settings: const {'name': 'Acme', 'country_id': '702'},
+      legalEntityId: legalEntityId,
+      updatedAt: 1900000000,
+    ),
+  );
 
   test('peppolSetupDirect applies the company to Drift, returns corppassUrl, '
       'and creates NO outbox row', () async {
@@ -95,8 +95,11 @@ void main() {
       companyId: companyId,
       now: 1 << 60,
     );
-    expect(pending, isEmpty,
-        reason: 'SG setup is a direct request, not an outbox mutation');
+    expect(
+      pending,
+      isEmpty,
+      reason: 'SG setup is a direct request, not an outbox mutation',
+    );
   });
 
   test('empty corppass_url → null (registration was immediate)', () async {

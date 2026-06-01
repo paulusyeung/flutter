@@ -14,27 +14,32 @@ void main() {
     EntityRepositoryContractFixture<Webhook, WebhookApi>.build(
       entityType: 'webhook',
       buildRepo: (db) => WebhookRepository(db: db, api: _FakeWebhooksApi()),
-      buildApiModel: ({
-        required String id,
-        String? displayValue,
-        int updatedAt = 1700000000,
-      }) => WebhookApi(
-        id: id,
-        targetUrl: displayValue ?? 'https://example.test/$id',
-        eventId: '1',
-        updatedAt: updatedAt,
-      ),
+      buildApiModel:
+          ({
+            required String id,
+            String? displayValue,
+            int updatedAt = 1700000000,
+          }) => WebhookApi(
+            id: id,
+            targetUrl: displayValue ?? 'https://example.test/$id',
+            eventId: '1',
+            updatedAt: updatedAt,
+          ),
       fromApi: Webhook.fromApi,
       editCopy: (item, {required String displayValue}) =>
           item.copyWith(targetUrl: displayValue),
       idOf: (item) => item.id,
       isDirtyOf: (item) => item.isDirty,
       create: (repo, {required companyId, required draft}) =>
-          (repo as WebhookRepository)
-              .create(companyId: companyId, draft: draft),
+          (repo as WebhookRepository).create(
+            companyId: companyId,
+            draft: draft,
+          ),
       save: (repo, {required companyId, required entity}) =>
-          (repo as WebhookRepository)
-              .save(companyId: companyId, webhook: entity),
+          (repo as WebhookRepository).save(
+            companyId: companyId,
+            webhook: entity,
+          ),
       delete: (repo, {required companyId, required id}) =>
           (repo as WebhookRepository).delete(companyId: companyId, id: id),
     ),
@@ -140,8 +145,7 @@ void main() {
         const WebhookApi(eventId: '1', targetUrl: 'https://offline.test'),
       );
       await repo.create(companyId: 'co', draft: draft);
-      final dirtyBefore =
-          (await repo.watchPage(companyId: 'co').first).single;
+      final dirtyBefore = (await repo.watchPage(companyId: 'co').first).single;
       expect(dirtyBefore.isDirty, isTrue);
 
       await repo.applyBundle(
@@ -157,12 +161,13 @@ void main() {
       );
       final all = await repo.watchPage(companyId: 'co').first;
       expect(all, hasLength(2));
-      expect(
-        all.map((w) => w.targetUrl).toSet(),
-        {'https://offline.test', 'https://server.test'},
+      expect(all.map((w) => w.targetUrl).toSet(), {
+        'https://offline.test',
+        'https://server.test',
+      });
+      final stillDirty = all.firstWhere(
+        (w) => w.targetUrl == 'https://offline.test',
       );
-      final stillDirty =
-          all.firstWhere((w) => w.targetUrl == 'https://offline.test');
       expect(stillDirty.isDirty, isTrue);
     });
   });

@@ -125,16 +125,16 @@ enum NotificationChoice {
 
 extension NotificationChoiceToken on NotificationChoice {
   String? tokenFor(String eventId) => switch (this) {
-        NotificationChoice.all => '${eventId}_all',
-        NotificationChoice.user => '${eventId}_user',
-        NotificationChoice.none => null,
-      };
+    NotificationChoice.all => '${eventId}_all',
+    NotificationChoice.user => '${eventId}_user',
+    NotificationChoice.none => null,
+  };
 
   String get labelKey => switch (this) {
-        NotificationChoice.all => 'all_records',
-        NotificationChoice.user => 'owned_by_user',
-        NotificationChoice.none => 'none',
-      };
+    NotificationChoice.all => 'all_records',
+    NotificationChoice.user => 'owned_by_user',
+    NotificationChoice.none => 'none',
+  };
 }
 
 /// 3-state global selector at the top of the tab.
@@ -151,16 +151,16 @@ enum NotificationGlobal {
 
 extension NotificationGlobalToken on NotificationGlobal {
   String? get token => switch (this) {
-        NotificationGlobal.allRecords => kNotificationsAll,
-        NotificationGlobal.ownedByUser => kNotificationsAllUser,
-        NotificationGlobal.custom => null,
-      };
+    NotificationGlobal.allRecords => kNotificationsAll,
+    NotificationGlobal.ownedByUser => kNotificationsAllUser,
+    NotificationGlobal.custom => null,
+  };
 
   String get labelKey => switch (this) {
-        NotificationGlobal.allRecords => 'all_records',
-        NotificationGlobal.ownedByUser => 'owned_by_user',
-        NotificationGlobal.custom => 'custom',
-      };
+    NotificationGlobal.allRecords => 'all_records',
+    NotificationGlobal.ownedByUser => 'owned_by_user',
+    NotificationGlobal.custom => 'custom',
+  };
 }
 
 /// Read the global selector state from the stored `notifications.email[]`.

@@ -38,8 +38,7 @@ class Clients extends Table
   TextColumn get countryId => text().named('country_id').nullable()();
   TextColumn get industryId => text().named('industry_id').nullable()();
   TextColumn get sizeId => text().named('size_id').nullable()();
-  TextColumn get classification =>
-      text().named('classification').nullable()();
+  TextColumn get classification => text().named('classification').nullable()();
   TextColumn get vatNumber => text().named('vat_number').nullable()();
   TextColumn get groupSettingsId =>
       text().named('group_settings_id').nullable()();

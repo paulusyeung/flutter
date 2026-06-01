@@ -14,11 +14,7 @@ import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg
 /// `invoice-details`. Phase 7c added per-row inline expansion with
 /// label / prefix / suffix / hideIfEmpty + label/value style sub-cards.
 class InfoBlockProperties extends StatefulWidget {
-  const InfoBlockProperties({
-    super.key,
-    required this.vm,
-    required this.block,
-  });
+  const InfoBlockProperties({super.key, required this.vm, required this.block});
 
   final WysiwygDesignViewModel vm;
   final DesignBlock block;
@@ -42,8 +38,7 @@ class _InfoBlockPropertiesState extends State<InfoBlockProperties> {
   void _updateProperty(String key, Object? value) {
     widget.vm.updateBlock(
       widget.block.copyWith(
-        properties:
-            mergePropertyOrOmit(widget.block.properties, key, value),
+        properties: mergePropertyOrOmit(widget.block.properties, key, value),
       ),
     );
   }
@@ -106,9 +101,9 @@ class _InfoBlockPropertiesState extends State<InfoBlockProperties> {
   Future<void> _addField() async {
     final categories = switch (widget.block.type) {
       'client-shipping-info' => {
-          VariableCategory.shipping,
-          VariableCategory.client,
-        },
+        VariableCategory.shipping,
+        VariableCategory.client,
+      },
       'company-info' => {VariableCategory.company},
       _ => {VariableCategory.client, VariableCategory.contact},
     };
@@ -239,10 +234,8 @@ class _InfoBlockPropertiesState extends State<InfoBlockProperties> {
           FontStyleInput(
             fontWeight: props['titleFontWeight'] as String?,
             fontStyle: props['titleFontStyle'] as String?,
-            onFontWeightChanged: (v) =>
-                _updateProperty('titleFontWeight', v),
-            onFontStyleChanged: (v) =>
-                _updateProperty('titleFontStyle', v),
+            onFontWeightChanged: (v) => _updateProperty('titleFontWeight', v),
+            onFontStyleChanged: (v) => _updateProperty('titleFontStyle', v),
           ),
           SizedBox(height: InSpacing.md(context)),
           ColorInput(

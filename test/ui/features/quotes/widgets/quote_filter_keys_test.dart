@@ -137,10 +137,7 @@ void main() {
       expect(vm.extraFilters['client_status'], {'upcoming'});
 
       await key.clear(vm, ctx);
-      expect(
-        vm.extraFilters['client_status'] ?? const <String>{},
-        isEmpty,
-      );
+      expect(vm.extraFilters['client_status'] ?? const <String>{}, isEmpty);
 
       vm.dispose();
     });

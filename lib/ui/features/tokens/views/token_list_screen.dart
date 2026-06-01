@@ -80,8 +80,9 @@ class _TokenListScreenState extends State<TokenListScreen> {
                 ? const {EntityState.active, EntityState.archived}
                 : const {EntityState.active},
           )
-          .map((list) =>
-              list.where((t) => !t.isSystem).toList(growable: false)),
+          .map(
+            (list) => list.where((t) => !t.isSystem).toList(growable: false),
+          ),
       isArchivedOf: (t) => t.archivedAt != null,
       isDeletedOf: (t) => t.isDeleted,
       rowBuilder: (t) => _TokenRow(key: ValueKey(t.id), token: t),
@@ -103,8 +104,9 @@ class _TokenRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final displayName =
-        token.name.trim().isEmpty ? context.tr('untitled') : token.name;
+    final displayName = token.name.trim().isEmpty
+        ? context.tr('untitled')
+        : token.name;
     final subtitleParts = <String>[
       token.tokenHint,
       if (token.isSystem) context.tr('system'),
@@ -143,13 +145,12 @@ class _TokenRow extends StatelessWidget {
                   ),
                 )
               : token.isSystem
-                  ? Icon(Icons.lock_outline, color: tokens.ink3)
-                  : const Icon(Icons.chevron_right),
+              ? Icon(Icons.lock_outline, color: tokens.ink3)
+              : const Icon(Icons.chevron_right),
           onTap: token.isSystem
               ? null
-              : () => context.go(
-                    '/settings/integrations/api_tokens/${token.id}',
-                  ),
+              : () =>
+                    context.go('/settings/integrations/api_tokens/${token.id}'),
         ),
         const Divider(height: 1),
       ],

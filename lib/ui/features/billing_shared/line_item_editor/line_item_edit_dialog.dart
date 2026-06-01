@@ -112,24 +112,24 @@ class _LineItemEditDialogState extends State<_LineItemEditDialog> {
       Decimal.zero;
 
   LineItem _build() => _draft.copyWith(
-        productKey: _productKey.text.trim(),
-        notes: _notes.text,
-        cost: _parseOrZero(_cost),
-        quantity: parseDecimal(_quantity.text,
-                useCommaAsDecimalPlace: widget.useComma) ??
-            Decimal.one,
-        discount: _parseOrZero(_discount),
-        customValue1: _custom1.text,
-        customValue2: _custom2.text,
-        customValue3: _custom3.text,
-        customValue4: _custom4.text,
-        taxName1: _taxName1.text,
-        taxRate1: _parseOrZero(_taxRate1),
-        taxName2: _taxName2.text,
-        taxRate2: _parseOrZero(_taxRate2),
-        taxName3: _taxName3.text,
-        taxRate3: _parseOrZero(_taxRate3),
-      );
+    productKey: _productKey.text.trim(),
+    notes: _notes.text,
+    cost: _parseOrZero(_cost),
+    quantity:
+        parseDecimal(_quantity.text, useCommaAsDecimalPlace: widget.useComma) ??
+        Decimal.one,
+    discount: _parseOrZero(_discount),
+    customValue1: _custom1.text,
+    customValue2: _custom2.text,
+    customValue3: _custom3.text,
+    customValue4: _custom4.text,
+    taxName1: _taxName1.text,
+    taxRate1: _parseOrZero(_taxRate1),
+    taxName2: _taxName2.text,
+    taxRate2: _parseOrZero(_taxRate2),
+    taxName3: _taxName3.text,
+    taxRate3: _parseOrZero(_taxRate3),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -200,27 +200,15 @@ class _LineItemEditDialogState extends State<_LineItemEditDialog> {
               ],
               if (config.taxColumnCount >= 1) ...[
                 SizedBox(height: InSpacing.md(context)),
-                _TaxRow(
-                  name: _taxName1,
-                  rate: _taxRate1,
-                  index: 1,
-                ),
+                _TaxRow(name: _taxName1, rate: _taxRate1, index: 1),
               ],
               if (config.taxColumnCount >= 2) ...[
                 SizedBox(height: InSpacing.md(context)),
-                _TaxRow(
-                  name: _taxName2,
-                  rate: _taxRate2,
-                  index: 2,
-                ),
+                _TaxRow(name: _taxName2, rate: _taxRate2, index: 2),
               ],
               if (config.taxColumnCount >= 3) ...[
                 SizedBox(height: InSpacing.md(context)),
-                _TaxRow(
-                  name: _taxName3,
-                  rate: _taxRate3,
-                  index: 3,
-                ),
+                _TaxRow(name: _taxName3, rate: _taxRate3, index: 3),
               ],
               if (config.showCustom1) ...[
                 SizedBox(height: InSpacing.md(context)),
@@ -268,17 +256,13 @@ class _LineItemEditDialogState extends State<_LineItemEditDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(64, 40),
-              ),
+              style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
               onPressed: () => Navigator.of(context).pop(),
               child: Text(context.tr('cancel')),
             ),
             const SizedBox(width: 8),
             FilledButton(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(64, 44),
-              ),
+              style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
               onPressed: () => Navigator.of(context).pop(_build()),
               child: Text(context.tr('save')),
             ),
@@ -290,11 +274,7 @@ class _LineItemEditDialogState extends State<_LineItemEditDialog> {
 }
 
 class _TaxRow extends StatelessWidget {
-  const _TaxRow({
-    required this.name,
-    required this.rate,
-    required this.index,
-  });
+  const _TaxRow({required this.name, required this.rate, required this.index});
 
   final TextEditingController name;
   final TextEditingController rate;

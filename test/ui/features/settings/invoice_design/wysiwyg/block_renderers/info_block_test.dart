@@ -31,31 +31,30 @@ DesignBlock _clientBlock({Map<String, dynamic>? overrides}) {
 }
 
 void main() {
-  testWidgets(
-    'renders one row per fieldConfig with the substituted value',
-    (tester) async {
-      await tester.pumpWidget(_wrap(
-        InfoBlock(
-          block: _clientBlock(),
-          sample: DesignerSampleData.fallback,
-        ),
-      ));
-      await tester.pump();
-      // Default client-info fields: name / address1 / city_state_postal /
-      // phone / email — all populated by the Acme fixture.
-      expect(find.text('Acme Corporation'), findsOneWidget);
-      expect(find.text('123 Business Street'), findsOneWidget);
-      expect(find.text('New York, NY 10001'), findsOneWidget);
-      expect(find.text('(555) 123-4567'), findsOneWidget);
-      expect(find.text('billing@acme.com'), findsOneWidget);
-    },
-  );
+  testWidgets('renders one row per fieldConfig with the substituted value', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        InfoBlock(block: _clientBlock(), sample: DesignerSampleData.fallback),
+      ),
+    );
+    await tester.pump();
+    // Default client-info fields: name / address1 / city_state_postal /
+    // phone / email — all populated by the Acme fixture.
+    expect(find.text('Acme Corporation'), findsOneWidget);
+    expect(find.text('123 Business Street'), findsOneWidget);
+    expect(find.text('New York, NY 10001'), findsOneWidget);
+    expect(find.text('(555) 123-4567'), findsOneWidget);
+    expect(find.text('billing@acme.com'), findsOneWidget);
+  });
 
-  testWidgets(
-    'hideIfEmpty drops rows with empty resolved values',
-    (tester) async {
-      // Override one field to point at a sample field that resolves empty.
-      final block = _clientBlock(overrides: {
+  testWidgets('hideIfEmpty drops rows with empty resolved values', (
+    tester,
+  ) async {
+    // Override one field to point at a sample field that resolves empty.
+    final block = _clientBlock(
+      overrides: {
         'fieldConfigs': [
           {
             'id': 'name',
@@ -71,45 +70,48 @@ void main() {
             'hideIfEmpty': true,
           },
         ],
-      });
-      await tester.pumpWidget(_wrap(
-        InfoBlock(block: block, sample: DesignerSampleData.fallback),
-      ));
-      await tester.pump();
-      expect(find.text('Acme Corporation'), findsOneWidget);
-      // The empty field is dropped — no SizedBox.shrink leakage of text.
-      expect(find.byType(Text), findsOneWidget);
-    },
-  );
+      },
+    );
+    await tester.pumpWidget(
+      _wrap(InfoBlock(block: block, sample: DesignerSampleData.fallback)),
+    );
+    await tester.pump();
+    expect(find.text('Acme Corporation'), findsOneWidget);
+    // The empty field is dropped — no SizedBox.shrink leakage of text.
+    expect(find.byType(Text), findsOneWidget);
+  });
 
-  testWidgets(
-    'showTitle renders the translated title above the fields',
-    (tester) async {
-      final block = _clientBlock(overrides: {'showTitle': true, 'title': 'bill_to'});
-      await tester.pumpWidget(_wrap(
-        InfoBlock(block: block, sample: DesignerSampleData.fallback),
-      ));
-      await tester.pump();
-      // 'bill_to' translates to "Bill To" in en.json.
-      expect(find.textContaining('Bill', findRichText: false), findsOneWidget);
-    },
-  );
+  testWidgets('showTitle renders the translated title above the fields', (
+    tester,
+  ) async {
+    final block = _clientBlock(
+      overrides: {'showTitle': true, 'title': 'bill_to'},
+    );
+    await tester.pumpWidget(
+      _wrap(InfoBlock(block: block, sample: DesignerSampleData.fallback)),
+    );
+    await tester.pump();
+    // 'bill_to' translates to "Bill To" in en.json.
+    expect(find.textContaining('Bill', findRichText: false), findsOneWidget);
+  });
 
   testWidgets('prefix and suffix wrap the resolved value', (tester) async {
-    final block = _clientBlock(overrides: {
-      'fieldConfigs': [
-        {
-          'id': 'name',
-          'label': 'client_name',
-          'variable': r'$client.name',
-          'prefix': '[',
-          'suffix': ']',
-        },
-      ],
-    });
-    await tester.pumpWidget(_wrap(
-      InfoBlock(block: block, sample: DesignerSampleData.fallback),
-    ));
+    final block = _clientBlock(
+      overrides: {
+        'fieldConfigs': [
+          {
+            'id': 'name',
+            'label': 'client_name',
+            'variable': r'$client.name',
+            'prefix': '[',
+            'suffix': ']',
+          },
+        ],
+      },
+    );
+    await tester.pumpWidget(
+      _wrap(InfoBlock(block: block, sample: DesignerSampleData.fallback)),
+    );
     await tester.pump();
     expect(find.text('[Acme Corporation]'), findsOneWidget);
   });

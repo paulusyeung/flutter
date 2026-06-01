@@ -48,4 +48,3 @@ class LocalizationShell extends StatelessWidget {
     );
   }
 }
-

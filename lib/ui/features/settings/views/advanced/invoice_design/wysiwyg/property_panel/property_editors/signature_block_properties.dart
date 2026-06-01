@@ -24,8 +24,9 @@ class SignatureBlockProperties extends StatefulWidget {
 }
 
 class _SignatureBlockPropertiesState extends State<SignatureBlockProperties> {
-  late final TextEditingController _label =
-      TextEditingController(text: _labelText());
+  late final TextEditingController _label = TextEditingController(
+    text: _labelText(),
+  );
   String _lastBlockId = '';
 
   String _labelText() => (widget.block.properties['label'] as String?) ?? '';
@@ -54,8 +55,7 @@ class _SignatureBlockPropertiesState extends State<SignatureBlockProperties> {
   void _write(String key, Object? value) {
     widget.vm.updateBlock(
       widget.block.copyWith(
-        properties:
-            mergePropertyOrOmit(widget.block.properties, key, value),
+        properties: mergePropertyOrOmit(widget.block.properties, key, value),
       ),
     );
   }

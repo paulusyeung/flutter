@@ -61,101 +61,98 @@ class BillingDocSettingsTab extends StatelessWidget {
     final tokens = context.inTheme;
 
     Widget design() => StreamBuilder<List<Design>>(
-          stream: services.designs.watchAll(companyId: companyId),
-          builder: (context, snap) {
-            final designs = snap.data ?? const <Design>[];
-            Design? sel;
-            for (final d in designs) {
-              if (d.id == designId) {
-                sel = d;
-                break;
-              }
-            }
-            return SearchableDropdownField<Design>(
-              label: context.tr('design'),
-              items: designs,
-              initialValue: sel,
-              displayString: (d) => d.name,
-              idOf: (d) => d.id,
-              onChanged: (d) => onDesignChanged(d?.id ?? ''),
-            );
-          },
+      stream: services.designs.watchAll(companyId: companyId),
+      builder: (context, snap) {
+        final designs = snap.data ?? const <Design>[];
+        Design? sel;
+        for (final d in designs) {
+          if (d.id == designId) {
+            sel = d;
+            break;
+          }
+        }
+        return SearchableDropdownField<Design>(
+          label: context.tr('design'),
+          items: designs,
+          initialValue: sel,
+          displayString: (d) => d.name,
+          idOf: (d) => d.id,
+          onChanged: (d) => onDesignChanged(d?.id ?? ''),
         );
+      },
+    );
 
     Widget user() => StreamBuilder<List<User>>(
-          stream: services.user.watchPage(
-            companyId: companyId,
-            loadedPages: 100,
-          ),
-          builder: (context, snap) {
-            final users = snap.data ?? const <User>[];
-            User? sel;
-            for (final u in users) {
-              if (u.id == userId) {
-                sel = u;
-                break;
-              }
-            }
-            return SearchableDropdownField<User>(
-              label: context.tr('user'),
-              items: users,
-              initialValue: sel,
-              displayString: (u) => u.displayName,
-              idOf: (u) => u.id,
-              onChanged: (u) => onUserChanged(u?.id ?? ''),
-            );
-          },
+      stream: services.user.watchPage(companyId: companyId, loadedPages: 100),
+      builder: (context, snap) {
+        final users = snap.data ?? const <User>[];
+        User? sel;
+        for (final u in users) {
+          if (u.id == userId) {
+            sel = u;
+            break;
+          }
+        }
+        return SearchableDropdownField<User>(
+          label: context.tr('user'),
+          items: users,
+          initialValue: sel,
+          displayString: (u) => u.displayName,
+          idOf: (u) => u.id,
+          onChanged: (u) => onUserChanged(u?.id ?? ''),
         );
+      },
+    );
 
     Widget project() => StreamBuilder<List<Project>>(
-          stream: services.projects.watchPage(
-            companyId: companyId,
-            loadedPages: 100,
-          ),
-          builder: (context, snap) {
-            final projects = snap.data ?? const <Project>[];
-            Project? sel;
-            for (final p in projects) {
-              if (p.id == projectId) {
-                sel = p;
-                break;
-              }
-            }
-            return SearchableDropdownField<Project>(
-              label: context.tr('project'),
-              items: projects,
-              initialValue: sel,
-              displayString: (p) => p.name,
-              idOf: (p) => p.id,
-              onChanged: (p) => onProjectChanged(p?.id ?? ''),
-            );
-          },
+      stream: services.projects.watchPage(
+        companyId: companyId,
+        loadedPages: 100,
+      ),
+      builder: (context, snap) {
+        final projects = snap.data ?? const <Project>[];
+        Project? sel;
+        for (final p in projects) {
+          if (p.id == projectId) {
+            sel = p;
+            break;
+          }
+        }
+        return SearchableDropdownField<Project>(
+          label: context.tr('project'),
+          items: projects,
+          initialValue: sel,
+          displayString: (p) => p.name,
+          idOf: (p) => p.id,
+          onChanged: (p) => onProjectChanged(p?.id ?? ''),
         );
+      },
+    );
 
     Widget vendor() => StreamBuilder<List<Vendor>>(
-          stream: services.vendors.watchPage(
-            companyId: companyId,
-            loadedPages: 100,
-          ),
-          builder: (context, snap) {
-            final vendors = snap.data ?? const <Vendor>[];
-            Vendor? sel;
-            for (final v in vendors) {
-              if (v.id == vendorId) {
-                sel = v;
-                break;
-              }
-            }
-            return SearchableDropdownField<Vendor>(
-              label: context.tr('vendor'),
-              items: vendors,
-              initialValue: sel,
-              displayString: (v) => v.name,
-              idOf: (v) => v.id,
-              onChanged: (v) => onVendorChanged(v?.id ?? ''),
-            );
-          },
+      stream: services.vendors.watchPage(
+        companyId: companyId,
+        loadedPages: 100,
+      ),
+      builder: (context, snap) {
+        final vendors = snap.data ?? const <Vendor>[];
+        Vendor? sel;
+        for (final v in vendors) {
+          if (v.id == vendorId) {
+            sel = v;
+            break;
+          }
+        }
+        return SearchableDropdownField<Vendor>(
+          label: context.tr('vendor'),
+          items: vendors,
+          initialValue: sel,
+          displayString: (v) => v.name,
+          idOf: (v) => v.id,
+          onChanged: (v) => onVendorChanged(v?.id ?? ''),
         );
+      },
+    );
 
     // TextFormField (not TextField + a build-created controller): its
     // State retains the controller across the parent's frequent

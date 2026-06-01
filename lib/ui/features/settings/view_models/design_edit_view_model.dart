@@ -23,10 +23,10 @@ class DesignEditViewModel extends GenericEditViewModel<Design> {
     super.sync,
     super.connectivity,
   }) : super(
-          initialDraft: existing ?? _emptyDesign(),
-          original: existing,
-          companyId: companyId,
-        );
+         initialDraft: existing ?? _emptyDesign(),
+         original: existing,
+         companyId: companyId,
+       );
 
   final DesignRepository repo;
   final String companyId;
@@ -151,8 +151,7 @@ class DesignEditViewModel extends GenericEditViewModel<Design> {
       updateDraft(
         draft.copyWith(
           isTemplate: false,
-          entities:
-              draft.entities.where(supportedEntities.contains).toList(),
+          entities: draft.entities.where(supportedEntities.contains).toList(),
         ),
       );
     }

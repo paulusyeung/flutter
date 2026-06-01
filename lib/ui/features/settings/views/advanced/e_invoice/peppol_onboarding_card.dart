@@ -214,7 +214,8 @@ class _PeppolOnboardingCardState extends State<PeppolOnboardingCard> {
     _county.text = settings.state ?? '';
     _zip.text = settings.postalCode ?? '';
     final seededCountry = settings.countryId;
-    _countryId = (seededCountry != null && kPeppolCountries.contains(seededCountry))
+    _countryId =
+        (seededCountry != null && kPeppolCountries.contains(seededCountry))
         ? seededCountry
         : null;
     _seeded = true;
@@ -232,8 +233,7 @@ class _PeppolOnboardingCardState extends State<PeppolOnboardingCard> {
     if (_isSingapore && !_seededSigner) {
       final s = services.auth.session.value;
       if (s != null) {
-        _signerName.text =
-            '${s.userFirstName} ${s.userLastName}'.trim();
+        _signerName.text = '${s.userFirstName} ${s.userLastName}'.trim();
         _signerEmail.text = s.userEmail;
         // Latch only once we've actually seeded — a null session (not
         // expected on an authenticated settings screen) still gets a
@@ -241,10 +241,11 @@ class _PeppolOnboardingCardState extends State<PeppolOnboardingCard> {
         _seededSigner = true;
       }
     }
-    final countries = services.statics.countries.values
-        .where((c) => kPeppolCountries.contains(c.id))
-        .toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
+    final countries =
+        services.statics.countries.values
+            .where((c) => kPeppolCountries.contains(c.id))
+            .toList()
+          ..sort((a, b) => a.name.compareTo(b.name));
     final selectedCountry = _countryId == null
         ? null
         : countries.firstWhere(
@@ -329,20 +330,11 @@ class _PeppolOnboardingCardState extends State<PeppolOnboardingCard> {
             idOf: (c) => c.id,
             onChanged: (c) => setState(() => _countryId = c?.id),
           ),
-          _OnboardingField(
-            controller: _line1,
-            label: context.tr('address1'),
-          ),
-          _OnboardingField(
-            controller: _line2,
-            label: context.tr('address2'),
-          ),
+          _OnboardingField(controller: _line1, label: context.tr('address1')),
+          _OnboardingField(controller: _line2, label: context.tr('address2')),
           _OnboardingField(controller: _city, label: context.tr('city')),
           _OnboardingField(controller: _county, label: context.tr('state')),
-          _OnboardingField(
-            controller: _zip,
-            label: context.tr('postal_code'),
-          ),
+          _OnboardingField(controller: _zip, label: context.tr('postal_code')),
           SwitchListTile(
             title: Text(context.tr('act_as_sender')),
             contentPadding: EdgeInsets.zero,
@@ -387,8 +379,7 @@ class _PeppolOnboardingCardState extends State<PeppolOnboardingCard> {
       tenantId: company.id,
       signerName: _signerName.text.trim(),
       signerEmail: _signerEmail.text.trim(),
-      eInvoicingToken:
-          services.auth.session.value?.eInvoicingToken ?? '',
+      eInvoicingToken: services.auth.session.value?.eInvoicingToken ?? '',
     );
 
     setState(() => _saving = true);

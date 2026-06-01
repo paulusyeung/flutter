@@ -64,9 +64,9 @@ class TaskListScreen extends StatelessWidget {
           : cid == null
           ? null
           : (ctx) => ctx.go(
-                '/tasks/new',
-                extra: emptyTask().copyWith(clientId: cid),
-              ),
+              '/tasks/new',
+              extra: emptyTask().copyWith(clientId: cid),
+            ),
       emptyIcon: Icons.task_outlined,
       emptyTitleKey: 'no_tasks',
       embedded: embedded,

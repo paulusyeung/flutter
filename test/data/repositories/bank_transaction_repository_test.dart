@@ -16,31 +16,38 @@ void main() {
       entityType: 'bank_transaction',
       buildRepo: (db) =>
           BankTransactionRepository(db: db, api: _FakeBankTransactionsApi()),
-      buildApiModel: ({
-        required String id,
-        String? displayValue,
-        int updatedAt = 1700000000,
-      }) => BankTransactionApi(
-        id: id,
-        description: displayValue ?? id,
-        baseType: kTransactionTypeDebit,
-        statusId: kTransactionStatusUnmatched,
-        updatedAt: updatedAt,
-      ),
+      buildApiModel:
+          ({
+            required String id,
+            String? displayValue,
+            int updatedAt = 1700000000,
+          }) => BankTransactionApi(
+            id: id,
+            description: displayValue ?? id,
+            baseType: kTransactionTypeDebit,
+            statusId: kTransactionStatusUnmatched,
+            updatedAt: updatedAt,
+          ),
       fromApi: BankTransaction.fromApi,
       editCopy: (item, {required String displayValue}) =>
           item.copyWith(description: displayValue),
       idOf: (item) => item.id,
       isDirtyOf: (item) => item.isDirty,
       create: (repo, {required companyId, required draft}) =>
-          (repo as BankTransactionRepository)
-              .create(companyId: companyId, draft: draft),
+          (repo as BankTransactionRepository).create(
+            companyId: companyId,
+            draft: draft,
+          ),
       save: (repo, {required companyId, required entity}) =>
-          (repo as BankTransactionRepository)
-              .save(companyId: companyId, transaction: entity),
+          (repo as BankTransactionRepository).save(
+            companyId: companyId,
+            transaction: entity,
+          ),
       delete: (repo, {required companyId, required id}) =>
-          (repo as BankTransactionRepository)
-              .delete(companyId: companyId, id: id),
+          (repo as BankTransactionRepository).delete(
+            companyId: companyId,
+            id: id,
+          ),
     ),
   );
 
@@ -64,10 +71,9 @@ void main() {
         transactionId: 'tx_1',
         invoiceIds: const ['inv_a', 'inv_b'],
       );
-      final row = (await db.outboxDao.watchAll('co').first)
-          .firstWhere(
-            (r) => r.mutationKind == MutationKind.matchToPayment.wireName,
-          );
+      final row = (await db.outboxDao.watchAll('co').first).firstWhere(
+        (r) => r.mutationKind == MutationKind.matchToPayment.wireName,
+      );
       expect(row.payload, contains('"invoice_ids":"inv_a,inv_b"'));
     });
 
@@ -78,29 +84,29 @@ void main() {
         transactionId: 'tx_1',
         paymentId: 'pay_x',
       );
-      final row = (await db.outboxDao.watchAll('co').first)
-          .firstWhere(
-            (r) => r.mutationKind == MutationKind.linkToPayment.wireName,
-          );
+      final row = (await db.outboxDao.watchAll('co').first).firstWhere(
+        (r) => r.mutationKind == MutationKind.linkToPayment.wireName,
+      );
       expect(row.payload, contains('"payment_id":"pay_x"'));
     });
 
-    test('matchToExpense payload carries vendor_id + ninja_category_id',
-        () async {
-      final repo = makeRepo();
-      await repo.matchToExpense(
-        companyId: 'co',
-        transactionId: 'tx_1',
-        vendorId: 'v1',
-        categoryId: 'c1',
-      );
-      final row = (await db.outboxDao.watchAll('co').first)
-          .firstWhere(
-            (r) => r.mutationKind == MutationKind.matchToExpense.wireName,
-          );
-      expect(row.payload, contains('"vendor_id":"v1"'));
-      expect(row.payload, contains('"ninja_category_id":"c1"'));
-    });
+    test(
+      'matchToExpense payload carries vendor_id + ninja_category_id',
+      () async {
+        final repo = makeRepo();
+        await repo.matchToExpense(
+          companyId: 'co',
+          transactionId: 'tx_1',
+          vendorId: 'v1',
+          categoryId: 'c1',
+        );
+        final row = (await db.outboxDao.watchAll('co').first).firstWhere(
+          (r) => r.mutationKind == MutationKind.matchToExpense.wireName,
+        );
+        expect(row.payload, contains('"vendor_id":"v1"'));
+        expect(row.payload, contains('"ninja_category_id":"c1"'));
+      },
+    );
 
     test('linkToExpense payload carries expense_id', () async {
       final repo = makeRepo();
@@ -109,70 +115,65 @@ void main() {
         transactionId: 'tx_1',
         expenseId: 'exp_x',
       );
-      final row = (await db.outboxDao.watchAll('co').first)
-          .firstWhere(
-            (r) => r.mutationKind == MutationKind.linkToExpense.wireName,
-          );
+      final row = (await db.outboxDao.watchAll('co').first).firstWhere(
+        (r) => r.mutationKind == MutationKind.linkToExpense.wireName,
+      );
       expect(row.payload, contains('"expense_id":"exp_x"'));
     });
 
-    test(
-      'convertMatched payload carries ids array and uses the synthetic '
-      'kBulkTransactionEntityId for the outbox row',
-      () async {
-        final repo = makeRepo();
-        await repo.convertMatched(
-          companyId: 'co',
-          transactionIds: const ['tx_1', 'tx_2'],
-        );
-        final row = (await db.outboxDao.watchAll('co').first).firstWhere(
-          (r) => r.mutationKind == MutationKind.convertMatched.wireName,
-        );
-        expect(row.payload, contains('"ids"'));
-        // Bulk action — the row shouldn't pretend to point at the first
-        // transaction; the full id list lives in the payload.
-        expect(row.entityId, kBulkTransactionEntityId);
-      },
-    );
-
-    test('unlinkTransactions uses the synthetic kBulkTransactionEntityId',
-        () async {
+    test('convertMatched payload carries ids array and uses the synthetic '
+        'kBulkTransactionEntityId for the outbox row', () async {
       final repo = makeRepo();
-      await repo.unlinkTransactions(
+      await repo.convertMatched(
         companyId: 'co',
-        transactionIds: const ['tx_1', 'tx_2', 'tx_3'],
+        transactionIds: const ['tx_1', 'tx_2'],
       );
       final row = (await db.outboxDao.watchAll('co').first).firstWhere(
-        (r) => r.mutationKind == MutationKind.unlinkTransaction.wireName,
+        (r) => r.mutationKind == MutationKind.convertMatched.wireName,
       );
-      expect(row.entityId, kBulkTransactionEntityId);
       expect(row.payload, contains('"ids"'));
+      // Bulk action — the row shouldn't pretend to point at the first
+      // transaction; the full id list lives in the payload.
+      expect(row.entityId, kBulkTransactionEntityId);
     });
 
     test(
-      'single-id convertMatched / unlink keep the transaction id on the '
-      'outbox row so the Outbox screen renders meaningfully',
+      'unlinkTransactions uses the synthetic kBulkTransactionEntityId',
       () async {
         final repo = makeRepo();
-        await repo.convertMatched(
-          companyId: 'co',
-          transactionIds: const ['tx_solo'],
-        );
         await repo.unlinkTransactions(
           companyId: 'co',
-          transactionIds: const ['tx_solo'],
+          transactionIds: const ['tx_1', 'tx_2', 'tx_3'],
         );
-        final rows = await db.outboxDao.watchAll('co').first;
-        final convert = rows.firstWhere(
-          (r) => r.mutationKind == MutationKind.convertMatched.wireName,
-        );
-        final unlink = rows.firstWhere(
+        final row = (await db.outboxDao.watchAll('co').first).firstWhere(
           (r) => r.mutationKind == MutationKind.unlinkTransaction.wireName,
         );
-        expect(convert.entityId, 'tx_solo');
-        expect(unlink.entityId, 'tx_solo');
+        expect(row.entityId, kBulkTransactionEntityId);
+        expect(row.payload, contains('"ids"'));
       },
     );
+
+    test('single-id convertMatched / unlink keep the transaction id on the '
+        'outbox row so the Outbox screen renders meaningfully', () async {
+      final repo = makeRepo();
+      await repo.convertMatched(
+        companyId: 'co',
+        transactionIds: const ['tx_solo'],
+      );
+      await repo.unlinkTransactions(
+        companyId: 'co',
+        transactionIds: const ['tx_solo'],
+      );
+      final rows = await db.outboxDao.watchAll('co').first;
+      final convert = rows.firstWhere(
+        (r) => r.mutationKind == MutationKind.convertMatched.wireName,
+      );
+      final unlink = rows.firstWhere(
+        (r) => r.mutationKind == MutationKind.unlinkTransaction.wireName,
+      );
+      expect(convert.entityId, 'tx_solo');
+      expect(unlink.entityId, 'tx_solo');
+    });
 
     test('linkedInvoiceIds / linkedExpenseIds parse CSV correctly', () {
       final domain = BankTransaction.fromApi(

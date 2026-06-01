@@ -37,37 +37,41 @@ void main() {
       .first
       .then((rows) => rows.map((r) => r.id).toList()..sort());
 
-  test('apostrophe in the search term matches as a literal, never throws',
-      () async {
-    await db.quoteDao.upsert(
-      quote(id: 'a', publicNotes: "O'Brien consulting retainer"),
-    );
-    await db.quoteDao.upsert(quote(id: 'b', publicNotes: 'unrelated'));
+  test(
+    'apostrophe in the search term matches as a literal, never throws',
+    () async {
+      await db.quoteDao.upsert(
+        quote(id: 'a', publicNotes: "O'Brien consulting retainer"),
+      );
+      await db.quoteDao.upsert(quote(id: 'b', publicNotes: 'unrelated'));
 
-    expect(await search("O'Brien"), ['a']);
-    expect(await search("o'br"), ['a']);
-  });
+      expect(await search("O'Brien"), ['a']);
+      expect(await search("o'br"), ['a']);
+    },
+  );
 
-  test('injection payload is treated as a literal substring, not SQL',
-      () async {
-    // None of these rows contain the literal injection string, so a
-    // correctly-parameterized query returns nothing. The old interpolated
-    // form would have made `x' OR '1'='1` a tautology and returned every row.
-    await db.quoteDao.upsert(quote(id: 'a', publicNotes: 'alpha'));
-    await db.quoteDao.upsert(quote(id: 'b', privateNotes: 'beta'));
+  test(
+    'injection payload is treated as a literal substring, not SQL',
+    () async {
+      // None of these rows contain the literal injection string, so a
+      // correctly-parameterized query returns nothing. The old interpolated
+      // form would have made `x' OR '1'='1` a tautology and returned every row.
+      await db.quoteDao.upsert(quote(id: 'a', publicNotes: 'alpha'));
+      await db.quoteDao.upsert(quote(id: 'b', privateNotes: 'beta'));
 
-    expect(await search("x' OR '1'='1"), isEmpty);
-    expect(await search("'; DROP TABLE quotes; --"), isEmpty);
+      expect(await search("x' OR '1'='1"), isEmpty);
+      expect(await search("'; DROP TABLE quotes; --"), isEmpty);
 
-    // The table is intact and normal search still works afterwards.
-    expect(await search('alpha'), ['a']);
+      // The table is intact and normal search still works afterwards.
+      expect(await search('alpha'), ['a']);
 
-    // A row that genuinely contains the quote-bearing text is still found.
-    await db.quoteDao.upsert(
-      quote(id: 'c', privateNotes: "note with x' OR '1'='1 inside"),
-    );
-    expect(await search("x' OR '1'='1"), ['c']);
-  });
+      // A row that genuinely contains the quote-bearing text is still found.
+      await db.quoteDao.upsert(
+        quote(id: 'c', privateNotes: "note with x' OR '1'='1 inside"),
+      );
+      expect(await search("x' OR '1'='1"), ['c']);
+    },
+  );
 
   test('matches public and private notes, scoped to the company', () async {
     await db.quoteDao.upsert(quote(id: 'a', publicNotes: 'shared keyword'));

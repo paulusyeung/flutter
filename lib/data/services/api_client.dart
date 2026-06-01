@@ -714,8 +714,7 @@ class ApiClient {
       message = json!['message'].toString();
     } else if (status >= 500 && response.body.isNotEmpty) {
       final body = response.body;
-      final preview =
-          body.length > 240 ? '${body.substring(0, 240)}…' : body;
+      final preview = body.length > 240 ? '${body.substring(0, 240)}…' : body;
       message = '${response.reasonPhrase ?? 'HTTP $status'} — $preview';
     } else {
       message = response.reasonPhrase ?? 'HTTP $status';
@@ -729,9 +728,7 @@ class ApiClient {
     if (status >= 500 && json?['message'] == null && response.body.isNotEmpty) {
       final body = response.body;
       final capped = body.length > 4096 ? '${body.substring(0, 4096)}…' : body;
-      _log.warning(
-        'HTTP $status from ${response.request?.url}: $capped',
-      );
+      _log.warning('HTTP $status from ${response.request?.url}: $capped');
     }
 
     final errorType = json?['error_type']?.toString().toLowerCase();

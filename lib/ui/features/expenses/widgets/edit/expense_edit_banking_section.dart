@@ -14,8 +14,8 @@ class ExpenseEditBankingSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final linked = vm.draft.bankId.isNotEmpty ||
-        vm.draft.transactionId.isNotEmpty;
+    final linked =
+        vm.draft.bankId.isNotEmpty || vm.draft.transactionId.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,

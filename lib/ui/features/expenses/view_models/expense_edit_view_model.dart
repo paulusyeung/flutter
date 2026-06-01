@@ -85,9 +85,7 @@ class ExpenseEditViewModel extends GenericEditViewModel<Expense> {
     ),
   );
   void setExchangeRate(String input) => updateDraft(
-    draft.copyWith(
-      exchangeRate: Decimal.tryParse(input.trim()) ?? Decimal.one,
-    ),
+    draft.copyWith(exchangeRate: Decimal.tryParse(input.trim()) ?? Decimal.one),
   );
   void setTaxName1(String v) => updateDraft(draft.copyWith(taxName1: v));
   void setTaxName2(String v) => updateDraft(draft.copyWith(taxName2: v));

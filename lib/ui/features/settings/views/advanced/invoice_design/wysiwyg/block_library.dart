@@ -39,7 +39,11 @@ class BlockSpec {
   /// block. Reserved for future hint chips.
   final bool essential;
 
-  DesignBlock newInstance({required String idPrefix, required int x, required int y}) {
+  DesignBlock newInstance({
+    required String idPrefix,
+    required int x,
+    required int y,
+  }) {
     return DesignBlock(
       id: newBlockId(type),
       type: type,
@@ -107,7 +111,11 @@ final List<BlockSpec> kBlockLibrary = <BlockSpec>[
       fieldConfigs: [
         _field('name', 'company_name', r'$company.name'),
         _field('address1', 'address1', r'$company.address1'),
-        _field('city_state_postal', 'city_state_postal', r'$company.city_state_postal'),
+        _field(
+          'city_state_postal',
+          'city_state_postal',
+          r'$company.city_state_postal',
+        ),
         _field('phone', 'phone', r'$company.phone'),
         _field('email', 'email', r'$company.email'),
       ],
@@ -144,7 +152,11 @@ final List<BlockSpec> kBlockLibrary = <BlockSpec>[
       fieldConfigs: [
         _field('name', 'client_name', r'$client.name'),
         _field('address1', 'address1', r'$client.address1'),
-        _field('city_state_postal', 'city_state_postal', r'$client.city_state_postal'),
+        _field(
+          'city_state_postal',
+          'city_state_postal',
+          r'$client.city_state_postal',
+        ),
         _field('phone', 'phone', r'$client.phone'),
         _field('email', 'email', r'$client.email'),
       ],
@@ -179,10 +191,25 @@ final List<BlockSpec> kBlockLibrary = <BlockSpec>[
     defaultHeight: 5,
     defaultProperties: {
       'fieldConfigs': [
-        _field('number', r'$number_label', r'$number', prefix: r'$number_label: '),
+        _field(
+          'number',
+          r'$number_label',
+          r'$number',
+          prefix: r'$number_label: ',
+        ),
         _field('date', r'$date_label', r'$date', prefix: r'$date_label: '),
-        _field('due_date', r'$due_date_label', r'$due_date', prefix: r'$due_date_label: '),
-        _field('balance', r'$balance_label', r'$balance', prefix: r'$balance_label: '),
+        _field(
+          'due_date',
+          r'$due_date_label',
+          r'$due_date',
+          prefix: r'$due_date_label: ',
+        ),
+        _field(
+          'balance',
+          r'$balance_label',
+          r'$balance',
+          prefix: r'$balance_label: ',
+        ),
       ],
       'lineHeight': '1.3',
       'align': 'right',
@@ -313,8 +340,17 @@ final List<BlockSpec> kBlockLibrary = <BlockSpec>[
         {'label': r'$subtotal_label', 'field': r'$subtotal', 'show': true},
         {'label': r'$discount_label', 'field': r'$discount', 'show': true},
         {'label': r'$taxes_label', 'field': r'$taxes', 'show': true},
-        {'label': r'$total_label', 'field': r'$total', 'show': true, 'isTotal': true},
-        {'label': r'$paid_to_date_label', 'field': r'$paid_to_date', 'show': true},
+        {
+          'label': r'$total_label',
+          'field': r'$total',
+          'show': true,
+          'isTotal': true,
+        },
+        {
+          'label': r'$paid_to_date_label',
+          'field': r'$paid_to_date',
+          'show': true,
+        },
         {
           'label': r'$balance_due_label',
           'field': r'$balance_due',

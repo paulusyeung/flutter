@@ -131,11 +131,11 @@ class _SplashOverlayState extends State<SplashOverlay>
               final reduce = _reduceMotion();
               final entryT = Curves.easeOut.transform(_entry.value);
               final entryOpacity = reduce ? 1.0 : entryT; // 0 → 1
-              final entryScale =
-                  reduce ? 1.0 : 0.90 + entryT * 0.10; // 0.90 → 1.0
+              final entryScale = reduce
+                  ? 1.0
+                  : 0.90 + entryT * 0.10; // 0.90 → 1.0
               final exitT = _exit.value;
-              final opacity =
-                  (entryOpacity * (1.0 - exitT)).clamp(0.0, 1.0);
+              final opacity = (entryOpacity * (1.0 - exitT)).clamp(0.0, 1.0);
               // Bold expand-from-center on exit: 1.0 → 1.30 (Transform.scale
               // is center-anchored, so the logo blooms outward as it fades).
               final scale = reduce ? 1.0 : entryScale + exitT * 0.30;

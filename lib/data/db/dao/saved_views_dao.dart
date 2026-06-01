@@ -18,7 +18,8 @@ class SavedViewsDao extends DatabaseAccessor<AppDatabase>
       (select(savedViews)
             ..where((v) => v.companyId.equals(companyId))
             ..orderBy([(v) => OrderingTerm.asc(v.name)]))
-          .watch().distinctRows();
+          .watch()
+          .distinctRows();
 
   /// Saved views for a single `(companyId, entityType)`. Drives the bookmark
   /// sheet's existing-views list.
@@ -33,7 +34,8 @@ class SavedViewsDao extends DatabaseAccessor<AppDatabase>
                   v.entityType.equals(entityType),
             )
             ..orderBy([(v) => OrderingTerm.asc(v.name)]))
-          .watch().distinctRows();
+          .watch()
+          .distinctRows();
 
   Future<SavedViewRow?> byId(String id) =>
       (select(savedViews)..where((v) => v.id.equals(id))).getSingleOrNull();

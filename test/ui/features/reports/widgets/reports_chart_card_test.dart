@@ -39,8 +39,7 @@ class _SeededRepo implements ReportsRepository {
     int maxRetries = ReportsApi.defaultPreviewRetries,
     Duration pollInterval = ReportsApi.defaultPollInterval,
     ReportPollingCancellation? isCancelled,
-  }) async =>
-      _preview;
+  }) async => _preview;
 
   @override
   Future<ReportPreview> continuePreview({
@@ -48,8 +47,7 @@ class _SeededRepo implements ReportsRepository {
     int maxRetries = ReportsApi.defaultPreviewRetries,
     Duration pollInterval = ReportsApi.defaultPollInterval,
     ReportPollingCancellation? isCancelled,
-  }) async =>
-      _preview;
+  }) async => _preview;
 
   @override
   Future<void> sendEmail({
@@ -71,8 +69,7 @@ class _SeededRepo implements ReportsRepository {
     int maxRetries = ReportsApi.defaultExportRetries,
     Duration pollInterval = ReportsApi.defaultPollInterval,
     ReportPollingCancellation? isCancelled,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<ReportExportResult> continueExport({
@@ -81,8 +78,7 @@ class _SeededRepo implements ReportsRepository {
     int maxRetries = ReportsApi.defaultExportRetries,
     Duration pollInterval = ReportsApi.defaultPollInterval,
     ReportPollingCancellation? isCancelled,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   ReportsApi get api => throw UnsupportedError('not used by tests');
@@ -93,8 +89,7 @@ class _NullStaticsService implements StaticsService {
   Future<Map<String, dynamic>> fetch({
     bool includeStatic = true,
     bool? includeData,
-  }) async =>
-      const <String, dynamic>{};
+  }) async => const <String, dynamic>{};
 
   @override
   Object? noSuchMethod(Invocation invocation) => null;
@@ -140,9 +135,7 @@ GroupTotals _group(
 }) {
   return GroupTotals(
     key: key,
-    rows: [
-      for (var i = 0; i < rowCount; i++) const ReportRow(cells: []),
-    ],
+    rows: [for (var i = 0; i < rowCount; i++) const ReportRow(cells: [])],
     numericTotals: totals,
   );
 }
@@ -164,11 +157,11 @@ Future<ReportsViewModel> _seedVm(
 }
 
 Formatter _testFormatter() => Formatter(
-      settings: CompanyFormatSettings.fallback,
-      currencies: const {},
-      countries: const {},
-      dateFormats: const {},
-    );
+  settings: CompanyFormatSettings.fallback,
+  currencies: const {},
+  countries: const {},
+  dateFormats: const {},
+);
 
 Future<void> _pump(
   WidgetTester tester, {
@@ -208,17 +201,19 @@ void main() {
       ),
     );
 
-    final view = _viewWith(groups: [
-      _group('Acme', {
-        'invoice.amount': {'1': Decimal.fromInt(50)},
-      }),
-      _group('Beta', {
-        'invoice.amount': {'1': Decimal.fromInt(200)},
-      }),
-      _group('Gamma', {
-        'invoice.amount': {'1': Decimal.fromInt(120)},
-      }),
-    ]);
+    final view = _viewWith(
+      groups: [
+        _group('Acme', {
+          'invoice.amount': {'1': Decimal.fromInt(50)},
+        }),
+        _group('Beta', {
+          'invoice.amount': {'1': Decimal.fromInt(200)},
+        }),
+        _group('Gamma', {
+          'invoice.amount': {'1': Decimal.fromInt(120)},
+        }),
+      ],
+    );
     await _pump(tester, vm: vm, view: view, formatter: _testFormatter());
 
     expect(find.byType(BarChart), findsOneWidget);
@@ -239,17 +234,16 @@ void main() {
   ) async {
     final vm = await _seedVm(
       tester,
-      const ReportPreview(
-        columns: [_clientCol, _amountCol],
-        rows: [],
-      ),
+      const ReportPreview(columns: [_clientCol, _amountCol], rows: []),
     );
 
-    final view = _viewWith(groups: [
-      _group('Acme', {
-        'invoice.amount': {'1': Decimal.zero},
-      }),
-    ]);
+    final view = _viewWith(
+      groups: [
+        _group('Acme', {
+          'invoice.amount': {'1': Decimal.zero},
+        }),
+      ],
+    );
     await _pump(tester, vm: vm, view: view, formatter: _testFormatter());
 
     expect(find.byType(BarChart), findsNothing);
@@ -262,17 +256,16 @@ void main() {
   testWidgets('close button calls setChartVisible(false)', (tester) async {
     final vm = await _seedVm(
       tester,
-      const ReportPreview(
-        columns: [_clientCol, _amountCol],
-        rows: [],
-      ),
+      const ReportPreview(columns: [_clientCol, _amountCol], rows: []),
     );
 
-    final view = _viewWith(groups: [
-      _group('Acme', {
-        'invoice.amount': {'1': Decimal.fromInt(10)},
-      }),
-    ]);
+    final view = _viewWith(
+      groups: [
+        _group('Acme', {
+          'invoice.amount': {'1': Decimal.fromInt(10)},
+        }),
+      ],
+    );
     await _pump(tester, vm: vm, view: view, formatter: _testFormatter());
 
     expect(vm.chartVisible, isTrue);
@@ -281,24 +274,24 @@ void main() {
     expect(vm.chartVisible, isFalse);
   });
 
-  testWidgets('currency picker hidden when only one currency is present',
-      (tester) async {
+  testWidgets('currency picker hidden when only one currency is present', (
+    tester,
+  ) async {
     final vm = await _seedVm(
       tester,
-      const ReportPreview(
-        columns: [_clientCol, _amountCol],
-        rows: [],
-      ),
+      const ReportPreview(columns: [_clientCol, _amountCol], rows: []),
     );
 
-    final view = _viewWith(groups: [
-      _group('Acme', {
-        'invoice.amount': {'1': Decimal.fromInt(10)},
-      }),
-      _group('Beta', {
-        'invoice.amount': {'1': Decimal.fromInt(20)},
-      }),
-    ]);
+    final view = _viewWith(
+      groups: [
+        _group('Acme', {
+          'invoice.amount': {'1': Decimal.fromInt(10)},
+        }),
+        _group('Beta', {
+          'invoice.amount': {'1': Decimal.fromInt(20)},
+        }),
+      ],
+    );
     await _pump(tester, vm: vm, view: view, formatter: _testFormatter());
 
     // Only one numeric column AND one currency → no dropdowns at all.
@@ -313,23 +306,22 @@ void main() {
       'multi-currency data', (tester) async {
     final vm = await _seedVm(
       tester,
-      const ReportPreview(
-        columns: [_clientCol, _amountCol],
-        rows: [],
-      ),
+      const ReportPreview(columns: [_clientCol, _amountCol], rows: []),
     );
 
-    final view = _viewWith(groups: [
-      _group('Acme', {
-        'invoice.amount': {
-          '1': Decimal.fromInt(10),
-          '2': Decimal.fromInt(50),
-        },
-      }),
-      _group('Beta', {
-        'invoice.amount': {'1': Decimal.fromInt(20)},
-      }),
-    ]);
+    final view = _viewWith(
+      groups: [
+        _group('Acme', {
+          'invoice.amount': {
+            '1': Decimal.fromInt(10),
+            '2': Decimal.fromInt(50),
+          },
+        }),
+        _group('Beta', {
+          'invoice.amount': {'1': Decimal.fromInt(20)},
+        }),
+      ],
+    );
     await _pump(tester, vm: vm, view: view, formatter: _testFormatter());
 
     // Currency dropdown visible.
@@ -351,12 +343,14 @@ void main() {
       ),
     );
 
-    final view = _viewWith(groups: [
-      _group('Acme', {
-        'invoice.amount': {'1': Decimal.fromInt(10)},
-        'invoice.count': {'1': Decimal.fromInt(2)},
-      }),
-    ]);
+    final view = _viewWith(
+      groups: [
+        _group('Acme', {
+          'invoice.amount': {'1': Decimal.fromInt(10)},
+          'invoice.count': {'1': Decimal.fromInt(2)},
+        }),
+      ],
+    );
     await _pump(tester, vm: vm, view: view, formatter: _testFormatter());
 
     // Two numeric columns → picker exists. Open it and verify the menu

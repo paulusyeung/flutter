@@ -85,14 +85,12 @@ class _UnappliedPaymentRow extends StatelessWidget {
     final tokens = context.inTheme;
     final f = services.formatterIfReady(companyId);
     final unapplied = f == null ? '—' : f.money(payment.unapplied);
-    final canApply = invoice.balance > Decimal.zero &&
+    final canApply =
+        invoice.balance > Decimal.zero &&
         !invoice.isPaid &&
         !invoice.isCancelled;
     return ListTile(
-      leading: Icon(
-        Icons.account_balance_wallet_outlined,
-        color: tokens.ink2,
-      ),
+      leading: Icon(Icons.account_balance_wallet_outlined, color: tokens.ink2),
       title: Text('#${payment.number}'),
       subtitle: Text(
         '${context.tr('unapplied')}: $unapplied',
@@ -100,9 +98,7 @@ class _UnappliedPaymentRow extends StatelessWidget {
       ),
       trailing: canApply
           ? FilledButton.tonal(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(64, 40),
-              ),
+              style: FilledButton.styleFrom(minimumSize: const Size(64, 40)),
               onPressed: () => _apply(context),
               child: Text(context.tr('apply_payment')),
             )
@@ -130,9 +126,7 @@ class _UnappliedPaymentRow extends StatelessWidget {
           },
         ],
       );
-      messenger.showSnackBar(
-        SnackBar(content: Text(tr('applied_payment'))),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(tr('applied_payment'))));
     } catch (_) {
       if (context.mounted) {
         Notify.error(context, tr('an_error_occurred'));

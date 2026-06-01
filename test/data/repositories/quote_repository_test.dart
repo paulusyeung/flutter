@@ -59,11 +59,7 @@ void main() {
       entityType: 'quote',
       buildRepo: (db) => QuoteRepository(db: db, api: _FakeQuotesApi(const {})),
       buildApiModel: ({required id, displayValue, updatedAt = 1700000000}) =>
-          QuoteApi(
-            id: id,
-            number: displayValue ?? id,
-            updatedAt: updatedAt,
-          ),
+          QuoteApi(id: id, number: displayValue ?? id, updatedAt: updatedAt),
       fromApi: Quote.fromApi,
       editCopy: (item, {required displayValue}) =>
           item.copyWith(number: displayValue),
@@ -87,7 +83,8 @@ void main() {
         expect(
           () => Quote.fromApi(a),
           returnsNormally,
-          reason: 'Quote.fromApi threw on demo quote id=${a.id} '
+          reason:
+              'Quote.fromApi threw on demo quote id=${a.id} '
               'status_id=${a.statusId}',
         );
       }
@@ -115,7 +112,8 @@ void main() {
       expect(
         rows,
         hasLength(25),
-        reason: 'all active demo quotes must survive upsert + watchPage; '
+        reason:
+            'all active demo quotes must survive upsert + watchPage; '
             'a shortfall is the demo-suite "0 QuoteListTile" bug reproduced',
       );
     });

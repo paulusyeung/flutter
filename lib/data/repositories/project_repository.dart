@@ -31,7 +31,8 @@ final _log = Logger('ProjectRepository');
 /// is the source of truth for cascades; tasks keep their `projectId`
 /// referencing the now-archived/deleted project and the Project card on
 /// Task detail still renders (with the archived/deleted state indicator).
-class ProjectRepository extends BaseEntityRepository<Project, ProjectApi>    implements DocumentBearingRepository {
+class ProjectRepository extends BaseEntityRepository<Project, ProjectApi>
+    implements DocumentBearingRepository {
   ProjectRepository({
     required super.db,
     required this.api,
@@ -151,20 +152,18 @@ class ProjectRepository extends BaseEntityRepository<Project, ProjectApi>    imp
   /// Lazily hydrate one project by id when a reference (e.g. a task's
   /// project) isn't in the prefetched page so a `*NameLabel` would show
   /// the raw id. See [ensureLoadedTemplate].
-  Future<void> ensureLoaded({
-    required String companyId,
-    required String id,
-  }) => ensureLoadedTemplate(
-    companyId: companyId,
-    id: id,
-    fetch: (id) async => (await api.get(id)).data,
-    idOf: (a) => a.id,
-    toCompanion: (a) => _apiToCompanion(a, companyId),
-    upsert: (byId) => db.projectDao.upsertAllPreservingDirty(
-      companyId: companyId,
-      byId: byId,
-    ),
-  );
+  Future<void> ensureLoaded({required String companyId, required String id}) =>
+      ensureLoadedTemplate(
+        companyId: companyId,
+        id: id,
+        fetch: (id) async => (await api.get(id)).data,
+        idOf: (a) => a.id,
+        toCompanion: (a) => _apiToCompanion(a, companyId),
+        upsert: (byId) => db.projectDao.upsertAllPreservingDirty(
+          companyId: companyId,
+          byId: byId,
+        ),
+      );
 
   Future<void> refreshAll({
     required String companyId,
@@ -256,19 +255,17 @@ class ProjectRepository extends BaseEntityRepository<Project, ProjectApi>    imp
     required String companyId,
     required String id,
     required String templateId,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.runTemplate,
-        payload: {'id': id, 'template_id': templateId},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: MutationKind.runTemplate,
+    payload: {'id': id, 'template_id': templateId},
+  );
 
   /// Queue a document upload. Mirrors `ProductRepository.uploadDocument` —
   /// the dispatcher's `MutationKind.documentUpload` handler streams the
   /// local file via multipart upload.
   @override
-
   Future<void> uploadDocument({
     required String companyId,
     required String entityId,
@@ -283,7 +280,6 @@ class ProjectRepository extends BaseEntityRepository<Project, ProjectApi>    imp
   }
 
   @override
-
   Future<void> deleteDocument({
     required String companyId,
     required String entityId,
@@ -298,7 +294,6 @@ class ProjectRepository extends BaseEntityRepository<Project, ProjectApi>    imp
   }
 
   @override
-
   Future<void> setDocumentVisibility({
     required String companyId,
     required String entityId,
@@ -376,11 +371,12 @@ class ProjectRepository extends BaseEntityRepository<Project, ProjectApi>    imp
     final next = current.where((d) => d.id != documentId).toList();
     if (next.length == current.length) return;
     await (db.update(db.projects)
-          ..where((p) => p.companyId.equals(companyId) & p.id.equals(entityId))).write(
-      ProjectsCompanion(
-        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
-      ),
-    );
+          ..where((p) => p.companyId.equals(companyId) & p.id.equals(entityId)))
+        .write(
+          ProjectsCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   /// Replace (or insert) one document in the project's local `documents`
@@ -403,11 +399,12 @@ class ProjectRepository extends BaseEntityRepository<Project, ProjectApi>    imp
       next.add(document);
     }
     await (db.update(db.projects)
-          ..where((p) => p.companyId.equals(companyId) & p.id.equals(entityId))).write(
-      ProjectsCompanion(
-        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
-      ),
-    );
+          ..where((p) => p.companyId.equals(companyId) & p.id.equals(entityId)))
+        .write(
+          ProjectsCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   // -------------------- conversions --------------------

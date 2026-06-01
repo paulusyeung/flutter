@@ -599,8 +599,7 @@ void main() {
       vm.dispose();
     });
 
-    test('chip resolves the name SYNCHRONOUSLY via the injected resolver',
-        () {
+    test('chip resolves the name SYNCHRONOUSLY via the injected resolver', () {
       final key = GroupFilterKey(
         groups: GroupSettingRepository(db: db, api: _FakeGroupSettingsApi()),
         companyId: 'co',
@@ -733,8 +732,7 @@ void main() {
     // classification/vat/number/custom_value, so those keys are now
     // available. `email` (still exact `whereHas`), `currency_id` /
     // `language_id` (settings-JSON, §A2 — not columns) stay gated.
-    test('flipped keys are available; out-of-scope keys stay gated',
-        () async {
+    test('flipped keys are available; out-of-scope keys stay gated', () async {
       final vm = await makeVm();
       final fakeStatics = _FakeStaticsRepository(
         db: db,
@@ -771,15 +769,17 @@ void main() {
   });
 
   group('BalanceFilterKey', () {
-    test('addValue writes canonical PREFIX wire `op:value` — the server '
-        '`split()` parses prefix; suffix `value:op` was a zero-row no-op',
-        () async {
-      final vm = await makeVm();
-      const key = BalanceFilterKey();
-      await key.addValue(vm, '1000');
-      expect(vm.extraFilters['balance'], {'gt:1000'});
-      vm.dispose();
-    });
+    test(
+      'addValue writes canonical PREFIX wire `op:value` — the server '
+      '`split()` parses prefix; suffix `value:op` was a zero-row no-op',
+      () async {
+        final vm = await makeVm();
+        const key = BalanceFilterKey();
+        await key.addValue(vm, '1000');
+        expect(vm.extraFilters['balance'], {'gt:1000'});
+        vm.dispose();
+      },
+    );
 
     test('addValue decodes the legacy SUFFIX wire and self-heals to '
         'canonical prefix', () async {
@@ -904,14 +904,16 @@ void main() {
       vm.dispose();
     });
 
-    test('BalanceFilterKey: `gt:5000` → `gt:5000` (already canonical)',
-        () async {
-      final vm = await makeVm();
-      const key = BalanceFilterKey();
-      await key.addValue(vm, 'gt:5000');
-      expect(vm.extraFilters['balance'], {'gt:5000'});
-      vm.dispose();
-    });
+    test(
+      'BalanceFilterKey: `gt:5000` → `gt:5000` (already canonical)',
+      () async {
+        final vm = await makeVm();
+        const key = BalanceFilterKey();
+        await key.addValue(vm, 'gt:5000');
+        expect(vm.extraFilters['balance'], {'gt:5000'});
+        vm.dispose();
+      },
+    );
   });
 
   group('UpdatedFilterKey', () {
@@ -1551,22 +1553,19 @@ void main() {
       expect(key.editableValueText('tes*'), 'tes');
     });
 
-    test(
-      'BalanceFilterKey: any wire → `symbol+value` (round-trip)',
-      () async {
-        final vm = await makeVm();
-        const key = BalanceFilterKey();
-        // Canonical prefix, legacy suffix, and pretty unicode all decode.
-        expect(key.editableValueText('gt:1000'), '>1000');
-        expect(key.editableValueText('1000:lt'), '<1000');
-        expect(key.editableValueText('gte:250'), '≥250');
-        expect(key.editableValueText('lte:99'), '≤99');
-        // Re-submitting an unchanged edit round-trips to canonical wire.
-        await key.addValue(vm, '>1000');
-        expect(vm.extraFilters['balance'], {'gt:1000'});
-        vm.dispose();
-      },
-    );
+    test('BalanceFilterKey: any wire → `symbol+value` (round-trip)', () async {
+      final vm = await makeVm();
+      const key = BalanceFilterKey();
+      // Canonical prefix, legacy suffix, and pretty unicode all decode.
+      expect(key.editableValueText('gt:1000'), '>1000');
+      expect(key.editableValueText('1000:lt'), '<1000');
+      expect(key.editableValueText('gte:250'), '≥250');
+      expect(key.editableValueText('lte:99'), '≤99');
+      // Re-submitting an unchanged edit round-trips to canonical wire.
+      await key.addValue(vm, '>1000');
+      expect(vm.extraFilters['balance'], {'gt:1000'});
+      vm.dispose();
+    });
 
     test('BalanceFilterKey: legacy suffix `value:op` → `symbol+value`', () {
       const key = BalanceFilterKey();

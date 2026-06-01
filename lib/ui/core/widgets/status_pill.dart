@@ -58,7 +58,8 @@ class StatusPill extends StatelessWidget {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: textStyle ??
+              style:
+                  textStyle ??
                   TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,

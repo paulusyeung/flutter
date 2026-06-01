@@ -29,10 +29,10 @@ class InvoiceEditViewModel extends GenericBillingDocEditViewModel<Invoice> {
     super.sync,
     super.connectivity,
   }) : super(
-          initialDraft: cloneFrom ?? existing ?? emptyInvoice(),
-          original: existing,
-          companyId: companyId,
-        );
+         initialDraft: cloneFrom ?? existing ?? emptyInvoice(),
+         original: existing,
+         companyId: companyId,
+       );
 
   final InvoiceRepository repo;
   final String companyId;
@@ -146,25 +146,25 @@ class InvoiceEditViewModel extends GenericBillingDocEditViewModel<Invoice> {
 
   @override
   BillingTotalsInput totalsInputOf(Invoice d) => BillingTotalsInput(
-        lineItems: d.lineItems,
-        discount: d.discount,
-        isAmountDiscount: d.isAmountDiscount,
-        usesInclusiveTaxes: d.usesInclusiveTaxes,
-        taxName1: d.taxName1,
-        taxRate1: d.taxRate1,
-        taxName2: d.taxName2,
-        taxRate2: d.taxRate2,
-        taxName3: d.taxName3,
-        taxRate3: d.taxRate3,
-        customSurcharge1: d.customSurcharge1,
-        customSurcharge2: d.customSurcharge2,
-        customSurcharge3: d.customSurcharge3,
-        customSurcharge4: d.customSurcharge4,
-        customTaxes1: d.customTaxes1,
-        customTaxes2: d.customTaxes2,
-        customTaxes3: d.customTaxes3,
-        customTaxes4: d.customTaxes4,
-      );
+    lineItems: d.lineItems,
+    discount: d.discount,
+    isAmountDiscount: d.isAmountDiscount,
+    usesInclusiveTaxes: d.usesInclusiveTaxes,
+    taxName1: d.taxName1,
+    taxRate1: d.taxRate1,
+    taxName2: d.taxName2,
+    taxRate2: d.taxRate2,
+    taxName3: d.taxName3,
+    taxRate3: d.taxRate3,
+    customSurcharge1: d.customSurcharge1,
+    customSurcharge2: d.customSurcharge2,
+    customSurcharge3: d.customSurcharge3,
+    customSurcharge4: d.customSurcharge4,
+    customTaxes1: d.customTaxes1,
+    customTaxes2: d.customTaxes2,
+    customTaxes3: d.customTaxes3,
+    customTaxes4: d.customTaxes4,
+  );
 
   // ── Identity / dates ───────────────────────────────────────────────
 
@@ -186,19 +186,17 @@ class InvoiceEditViewModel extends GenericBillingDocEditViewModel<Invoice> {
   // ── Money + amounts ────────────────────────────────────────────────
 
   void setPartial(String input) => updateDraft(
-        draft.copyWith(partial: Decimal.tryParse(input.trim()) ?? Decimal.zero),
-      );
+    draft.copyWith(partial: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+  );
   void setExchangeRate(String input) => updateDraft(
-        draft.copyWith(
-          exchangeRate: Decimal.tryParse(input.trim()) ?? Decimal.one,
-        ),
-      );
+    draft.copyWith(exchangeRate: Decimal.tryParse(input.trim()) ?? Decimal.one),
+  );
   void setDiscount(String input, {required bool isAmount}) => updateDraft(
-        draft.copyWith(
-          discount: Decimal.tryParse(input.trim()) ?? Decimal.zero,
-          isAmountDiscount: isAmount,
-        ),
-      );
+    draft.copyWith(
+      discount: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+      isAmountDiscount: isAmount,
+    ),
+  );
 
   // ── Design + tax ───────────────────────────────────────────────────
 
@@ -209,37 +207,37 @@ class InvoiceEditViewModel extends GenericBillingDocEditViewModel<Invoice> {
   void setTaxName2(String v) => updateDraft(draft.copyWith(taxName2: v));
   void setTaxName3(String v) => updateDraft(draft.copyWith(taxName3: v));
   void setTaxRate1(String input) => updateDraft(
-        draft.copyWith(taxRate1: Decimal.tryParse(input.trim()) ?? Decimal.zero),
-      );
+    draft.copyWith(taxRate1: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+  );
   void setTaxRate2(String input) => updateDraft(
-        draft.copyWith(taxRate2: Decimal.tryParse(input.trim()) ?? Decimal.zero),
-      );
+    draft.copyWith(taxRate2: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+  );
   void setTaxRate3(String input) => updateDraft(
-        draft.copyWith(taxRate3: Decimal.tryParse(input.trim()) ?? Decimal.zero),
-      );
+    draft.copyWith(taxRate3: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+  );
 
   // ── Surcharges ─────────────────────────────────────────────────────
 
   void setCustomSurcharge1(String input) => updateDraft(
-        draft.copyWith(
-          customSurcharge1: Decimal.tryParse(input.trim()) ?? Decimal.zero,
-        ),
-      );
+    draft.copyWith(
+      customSurcharge1: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+    ),
+  );
   void setCustomSurcharge2(String input) => updateDraft(
-        draft.copyWith(
-          customSurcharge2: Decimal.tryParse(input.trim()) ?? Decimal.zero,
-        ),
-      );
+    draft.copyWith(
+      customSurcharge2: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+    ),
+  );
   void setCustomSurcharge3(String input) => updateDraft(
-        draft.copyWith(
-          customSurcharge3: Decimal.tryParse(input.trim()) ?? Decimal.zero,
-        ),
-      );
+    draft.copyWith(
+      customSurcharge3: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+    ),
+  );
   void setCustomSurcharge4(String input) => updateDraft(
-        draft.copyWith(
-          customSurcharge4: Decimal.tryParse(input.trim()) ?? Decimal.zero,
-        ),
-      );
+    draft.copyWith(
+      customSurcharge4: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+    ),
+  );
   void setCustomTaxes1(bool v) => updateDraft(draft.copyWith(customTaxes1: v));
   void setCustomTaxes2(bool v) => updateDraft(draft.copyWith(customTaxes2: v));
   void setCustomTaxes3(bool v) => updateDraft(draft.copyWith(customTaxes3: v));
@@ -271,15 +269,13 @@ class InvoiceEditViewModel extends GenericBillingDocEditViewModel<Invoice> {
   // ── Recurring fields (used when this is a RecurringInvoice) ────────
 
   void setFrequencyId(String v) => updateDraft(draft.copyWith(frequencyId: v));
-  void setNextSendDate(Date? d) =>
-      updateDraft(draft.copyWith(nextSendDate: d));
+  void setNextSendDate(Date? d) => updateDraft(draft.copyWith(nextSendDate: d));
   void setRemainingCycles(int v) =>
       updateDraft(draft.copyWith(remainingCycles: v));
   void setAutoBill(String v) => updateDraft(draft.copyWith(autoBill: v));
   void setAutoBillEnabled(bool v) =>
       updateDraft(draft.copyWith(autoBillEnabled: v));
-  void setDueDateDays(String v) =>
-      updateDraft(draft.copyWith(dueDateDays: v));
+  void setDueDateDays(String v) => updateDraft(draft.copyWith(dueDateDays: v));
 }
 
 /// Empty draft for new invoices. Defaults match admin-portal's create

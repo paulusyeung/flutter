@@ -20,10 +20,7 @@ void main() {
             'status': 'bounced',
             'bounce_id': 'bid-123',
           },
-          {
-            'date': '2026-05-02 09:00:00',
-            'status': 'delivered',
-          },
+          {'date': '2026-05-02 09:00:00', 'status': 'delivered'},
         ],
       });
 

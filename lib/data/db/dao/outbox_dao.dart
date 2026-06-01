@@ -149,12 +149,14 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
     required String companyId,
     required String entityType,
     required String entityId,
-  }) => (delete(outbox)..where(
-        (o) =>
-            o.companyId.equals(companyId) &
-            o.entityType.equals(entityType) &
-            o.entityId.equals(entityId),
-      )).go();
+  }) =>
+      (delete(outbox)..where(
+            (o) =>
+                o.companyId.equals(companyId) &
+                o.entityType.equals(entityType) &
+                o.entityId.equals(entityId),
+          ))
+          .go();
 
   /// Drop only `pending` rows for the given tuple. Used by repo `create` /
   /// `save` to suppress duplicates when the user retries from a synchronous-
@@ -169,14 +171,16 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
     required String entityType,
     required String entityId,
     required String mutationKind,
-  }) => (delete(outbox)..where(
-        (o) =>
-            o.companyId.equals(companyId) &
-            o.entityType.equals(entityType) &
-            o.entityId.equals(entityId) &
-            o.mutationKind.equals(mutationKind) &
-            o.state.equals('pending'),
-      )).go();
+  }) =>
+      (delete(outbox)..where(
+            (o) =>
+                o.companyId.equals(companyId) &
+                o.entityType.equals(entityType) &
+                o.entityId.equals(entityId) &
+                o.mutationKind.equals(mutationKind) &
+                o.state.equals('pending'),
+          ))
+          .go();
 
   /// Snapshot of `pending` rows for [companyId] (excludes `dead` and
   /// `in_flight`) — same predicate as [deletePendingForCompany], but

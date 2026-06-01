@@ -8,8 +8,7 @@ void main() {
       expect(sentryShouldSend(reportErrors: true), isTrue);
     });
 
-    test('drops when the account has not opted in (privacy-safe default)',
-        () {
+    test('drops when the account has not opted in (privacy-safe default)', () {
       expect(sentryShouldSend(reportErrors: false), isFalse);
     });
   });

@@ -34,17 +34,19 @@ class RecurringInvoiceListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cid = clientId;
-    return EntityListScreenScaffold<RecurringInvoice,
-        RecurringInvoiceListViewModel>(
+    return EntityListScreenScaffold<
+      RecurringInvoice,
+      RecurringInvoiceListViewModel
+    >(
       titleKey: 'recurring_invoices',
       newRoute: '/recurring_invoices/new',
       newLabelKey: 'new_recurring_invoice',
       embeddedNewOverride: cid == null
           ? null
           : (ctx) => ctx.go(
-                '/recurring_invoices/new',
-                extra: emptyRecurringInvoice().copyWith(clientId: cid),
-              ),
+              '/recurring_invoices/new',
+              extra: emptyRecurringInvoice().copyWith(clientId: cid),
+            ),
       emptyIcon: Icons.event_repeat_outlined,
       emptyTitleKey: 'no_recurring_invoices_yet',
       wantsFormatter: true,
@@ -115,12 +117,12 @@ class RecurringInvoiceListScreen extends StatelessWidget {
           onAction: options.selecting
               ? null
               : (action) => RecurringInvoiceActions.dispatch(
-                    context,
-                    context.read<Services>(),
-                    vm.companyId,
-                    ri,
-                    action,
-                  ),
+                  context,
+                  context.read<Services>(),
+                  vm.companyId,
+                  ri,
+                  action,
+                ),
         );
       },
       bulkActions: [

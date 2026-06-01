@@ -319,7 +319,9 @@ class _HexPickerDialogState extends State<_HexPickerDialog> {
               height: 160,
               child: Row(
                 children: [
-                  Expanded(child: _SVBox(hsv: _hsv, onChanged: _setHsv)),
+                  Expanded(
+                    child: _SVBox(hsv: _hsv, onChanged: _setHsv),
+                  ),
                   SizedBox(width: InSpacing.md(context)),
                   Container(
                     width: 44,
@@ -367,8 +369,7 @@ class _HexPickerDialogState extends State<_HexPickerDialog> {
         SizedBox(width: InSpacing.md(context)),
         FilledButton(
           style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
-          onPressed: () =>
-              Navigator.of(context).pop(formatHexColor(_color)),
+          onPressed: () => Navigator.of(context).pop(formatHexColor(_color)),
           child: Text(context.tr('save')),
         ),
       ],
@@ -470,8 +471,7 @@ class _SVPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_SVPainter old) =>
-      old.hsv != hsv || old.border != border;
+  bool shouldRepaint(_SVPainter old) => old.hsv != hsv || old.border != border;
 }
 
 /// Full-spectrum hue selector.
@@ -561,8 +561,7 @@ class _HuePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_HuePainter old) =>
-      old.hue != hue || old.border != border;
+  bool shouldRepaint(_HuePainter old) => old.hue != hue || old.border != border;
 }
 
 class _Swatch extends StatelessWidget {

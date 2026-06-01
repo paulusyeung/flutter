@@ -47,9 +47,7 @@ Schedule reportEmailSchedule(
       'pdf_email_attachment': p.pdfEmailAttachment,
       'send_email': true,
     });
-  final runAt = now == null
-      ? Date.today()
-      : Date(now.year, now.month, now.day);
+  final runAt = now == null ? Date.today() : Date(now.year, now.month, now.day);
   return base.copyWith(
     name: (name == null || name.isEmpty) ? seed.reportIdentifier : name,
     nextRun: runAt,

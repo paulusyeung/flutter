@@ -259,9 +259,7 @@ class _MultiPickSheetState<T> extends State<_MultiPickSheet<T>> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
-                  style: TextButton.styleFrom(
-                    minimumSize: const Size(64, 40),
-                  ),
+                  style: TextButton.styleFrom(minimumSize: const Size(64, 40)),
                   onPressed: () => Navigator.of(context).pop(),
                   child: Text(context.tr('cancel')),
                 ),

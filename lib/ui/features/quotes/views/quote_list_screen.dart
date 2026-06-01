@@ -52,9 +52,9 @@ class QuoteListScreen extends StatelessWidget {
           : cid == null
           ? null
           : (ctx) => ctx.go(
-                '/quotes/new',
-                extra: emptyQuote().copyWith(clientId: cid),
-              ),
+              '/quotes/new',
+              extra: emptyQuote().copyWith(clientId: cid),
+            ),
       emptyIcon: Icons.request_quote_outlined,
       emptyTitleKey: 'no_quotes_yet',
       wantsFormatter: true,
@@ -107,12 +107,12 @@ class QuoteListScreen extends StatelessWidget {
           onAction: options.selecting
               ? null
               : (action) => QuoteActions.dispatch(
-                    context,
-                    context.read<Services>(),
-                    vm.companyId,
-                    quote,
-                    action,
-                  ),
+                  context,
+                  context.read<Services>(),
+                  vm.companyId,
+                  quote,
+                  action,
+                ),
         );
       },
       bulkActions: [

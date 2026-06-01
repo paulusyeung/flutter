@@ -57,16 +57,15 @@ void main() {
   Finder handlesFinder() =>
       find.byKey(const ValueKey('wysiwyg-resize-handles'));
 
-  testWidgets(
-    'resize handles render when a non-locked block is selected',
-    (tester) async {
-      final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
-      vm.addBlock(_specByType('text'));
-      await tester.pumpWidget(_wrap(vm, null));
-      await tester.pump();
-      expect(handlesFinder(), findsOneWidget);
-    },
-  );
+  testWidgets('resize handles render when a non-locked block is selected', (
+    tester,
+  ) async {
+    final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
+    vm.addBlock(_specByType('text'));
+    await tester.pumpWidget(_wrap(vm, null));
+    await tester.pump();
+    expect(handlesFinder(), findsOneWidget);
+  });
 
   testWidgets('locked block hides the resize handles', (tester) async {
     final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
@@ -151,44 +150,38 @@ void main() {
     });
 
     test('NE-SW corners share resizeUpDown (macOS-supported)', () {
-      expect(
-        ResizeHandleKind.topRight.cursor,
-        SystemMouseCursors.resizeUpDown,
-      );
+      expect(ResizeHandleKind.topRight.cursor, SystemMouseCursors.resizeUpDown);
       expect(
         ResizeHandleKind.bottomLeft.cursor,
         SystemMouseCursors.resizeUpDown,
       );
     });
 
-    test(
-      'no handle uses a cursor that falls back to basic on macOS',
-      () {
-        // Per the per-platform docstrings in Flutter's mouse_cursor.dart,
-        // these cursors have no macOS line and fall through to the basic
-        // arrow:
-        //   - per-corner: resizeUpLeft / UpRight / DownLeft / DownRight
-        //   - diagonal:   resizeUpLeftDownRight / resizeUpRightDownLeft
-        //   - generic:    move / allScroll
-        final macOsUnsupported = {
-          SystemMouseCursors.resizeUpLeft,
-          SystemMouseCursors.resizeUpRight,
-          SystemMouseCursors.resizeDownLeft,
-          SystemMouseCursors.resizeDownRight,
-          SystemMouseCursors.resizeUpLeftDownRight,
-          SystemMouseCursors.resizeUpRightDownLeft,
-          SystemMouseCursors.move,
-          SystemMouseCursors.allScroll,
-        };
-        for (final kind in ResizeHandleKind.values) {
-          expect(
-            macOsUnsupported.contains(kind.cursor),
-            isFalse,
-            reason: '$kind uses a cursor that falls through to basic on macOS',
-          );
-        }
-      },
-    );
+    test('no handle uses a cursor that falls back to basic on macOS', () {
+      // Per the per-platform docstrings in Flutter's mouse_cursor.dart,
+      // these cursors have no macOS line and fall through to the basic
+      // arrow:
+      //   - per-corner: resizeUpLeft / UpRight / DownLeft / DownRight
+      //   - diagonal:   resizeUpLeftDownRight / resizeUpRightDownLeft
+      //   - generic:    move / allScroll
+      final macOsUnsupported = {
+        SystemMouseCursors.resizeUpLeft,
+        SystemMouseCursors.resizeUpRight,
+        SystemMouseCursors.resizeDownLeft,
+        SystemMouseCursors.resizeDownRight,
+        SystemMouseCursors.resizeUpLeftDownRight,
+        SystemMouseCursors.resizeUpRightDownLeft,
+        SystemMouseCursors.move,
+        SystemMouseCursors.allScroll,
+      };
+      for (final kind in ResizeHandleKind.values) {
+        expect(
+          macOsUnsupported.contains(kind.cursor),
+          isFalse,
+          reason: '$kind uses a cursor that falls through to basic on macOS',
+        );
+      }
+    });
   });
 
   group('computeResizedGridPosition (Step 4.5 — multi-cell resize)', () {

@@ -70,15 +70,19 @@ Widget _wrap(Widget child) => MaterialApp(
 );
 
 void main() {
-  testWidgets('renders the PDF returned by renderDesignPreview', (tester) async {
+  testWidgets('renders the PDF returned by renderDesignPreview', (
+    tester,
+  ) async {
     final service = _StubLiveDesignService();
-    await tester.pumpWidget(_wrap(
-      WysiwygPreviewSheet(
-        service: service,
-        design: _design(),
-        debounce: Duration.zero,
+    await tester.pumpWidget(
+      _wrap(
+        WysiwygPreviewSheet(
+          service: service,
+          design: _design(),
+          debounce: Duration.zero,
+        ),
       ),
-    ));
+    );
     // Allow the initial async render to complete.
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
@@ -88,51 +92,52 @@ void main() {
     expect(service.lastDesign?.id, 'd1');
   });
 
-  testWidgets(
-    'defaults entity type to design.entities.first',
-    (tester) async {
-      final service = _StubLiveDesignService();
-      await tester.pumpWidget(_wrap(
+  testWidgets('defaults entity type to design.entities.first', (tester) async {
+    final service = _StubLiveDesignService();
+    await tester.pumpWidget(
+      _wrap(
         WysiwygPreviewSheet(
           service: service,
           design: _design(entities: const ['credit', 'quote']),
           debounce: Duration.zero,
         ),
-      ));
-      await tester.pump();
-      expect(service.lastEntityType, 'credit');
-    },
-  );
+      ),
+    );
+    await tester.pump();
+    expect(service.lastEntityType, 'credit');
+  });
 
-  testWidgets(
-    'falls back to "invoice" when the design has no entities',
-    (tester) async {
-      final service = _StubLiveDesignService();
-      await tester.pumpWidget(_wrap(
+  testWidgets('falls back to "invoice" when the design has no entities', (
+    tester,
+  ) async {
+    final service = _StubLiveDesignService();
+    await tester.pumpWidget(
+      _wrap(
         WysiwygPreviewSheet(
           service: service,
           design: _design(entities: const []),
           debounce: Duration.zero,
         ),
-      ));
-      await tester.pump();
-      expect(service.lastEntityType, 'invoice');
-    },
-  );
+      ),
+    );
+    await tester.pump();
+    expect(service.lastEntityType, 'invoice');
+  });
 
   testWidgets('422 surfaces the error message in a banner', (tester) async {
     final service = _StubLiveDesignService()
-      ..throwOnNext = const ValidationException(
-        'Body has invalid Twig',
-        {'design.design.body': ['Unexpected end of expression']},
-      );
-    await tester.pumpWidget(_wrap(
-      WysiwygPreviewSheet(
-        service: service,
-        design: _design(),
-        debounce: Duration.zero,
+      ..throwOnNext = const ValidationException('Body has invalid Twig', {
+        'design.design.body': ['Unexpected end of expression'],
+      });
+    await tester.pumpWidget(
+      _wrap(
+        WysiwygPreviewSheet(
+          service: service,
+          design: _design(),
+          debounce: Duration.zero,
+        ),
       ),
-    ));
+    );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
     expect(find.text('Unexpected end of expression'), findsOneWidget);
@@ -143,24 +148,28 @@ void main() {
     (tester) async {
       final service = _StubLiveDesignService();
       final design = _design();
-      await tester.pumpWidget(_wrap(
-        WysiwygPreviewSheet(
-          service: service,
-          design: design,
-          debounce: const Duration(milliseconds: 50),
+      await tester.pumpWidget(
+        _wrap(
+          WysiwygPreviewSheet(
+            service: service,
+            design: design,
+            debounce: const Duration(milliseconds: 50),
+          ),
         ),
-      ));
+      );
       await tester.pump(); // initial immediate render
       expect(service.callCount, 1);
 
       // Replace the design — should schedule a debounced render.
-      await tester.pumpWidget(_wrap(
-        WysiwygPreviewSheet(
-          service: service,
-          design: design.copyWith(name: 'Changed'),
-          debounce: const Duration(milliseconds: 50),
+      await tester.pumpWidget(
+        _wrap(
+          WysiwygPreviewSheet(
+            service: service,
+            design: design.copyWith(name: 'Changed'),
+            debounce: const Duration(milliseconds: 50),
+          ),
         ),
-      ));
+      );
       // Before the debounce fires, no extra call.
       await tester.pump(const Duration(milliseconds: 10));
       expect(service.callCount, 1);
@@ -171,80 +180,86 @@ void main() {
     },
   );
 
-  testWidgets(
-    'cancelling debounce on a new edit drops the queued render',
-    (tester) async {
-      // Two updates within one debounce window → only ONE call lands.
-      final service = _StubLiveDesignService();
-      await tester.pumpWidget(_wrap(
+  testWidgets('cancelling debounce on a new edit drops the queued render', (
+    tester,
+  ) async {
+    // Two updates within one debounce window → only ONE call lands.
+    final service = _StubLiveDesignService();
+    await tester.pumpWidget(
+      _wrap(
         WysiwygPreviewSheet(
           service: service,
           design: _design(),
           debounce: const Duration(milliseconds: 50),
         ),
-      ));
-      await tester.pump(); // initial immediate
-      expect(service.callCount, 1);
+      ),
+    );
+    await tester.pump(); // initial immediate
+    expect(service.callCount, 1);
 
-      // Two rapid updates.
-      await tester.pumpWidget(_wrap(
+    // Two rapid updates.
+    await tester.pumpWidget(
+      _wrap(
         WysiwygPreviewSheet(
           service: service,
           design: _design().copyWith(name: 'A'),
           debounce: const Duration(milliseconds: 50),
         ),
-      ));
-      await tester.pump(const Duration(milliseconds: 10));
-      await tester.pumpWidget(_wrap(
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 10));
+    await tester.pumpWidget(
+      _wrap(
         WysiwygPreviewSheet(
           service: service,
           design: _design().copyWith(name: 'B'),
           debounce: const Duration(milliseconds: 50),
         ),
-      ));
-      // Let the debounce fire once.
-      await tester.pump(const Duration(milliseconds: 100));
-      expect(service.callCount, 2, reason: 'second render coalesced into one');
-      expect(service.lastDesign?.name, 'B');
-    },
-  );
+      ),
+    );
+    // Let the debounce fire once.
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(service.callCount, 2, reason: 'second render coalesced into one');
+    expect(service.lastDesign?.name, 'B');
+  });
 
-  testWidgets(
-    'empty PDF bytes are treated as no-preview, never rastered '
-    '(guards the printing RangeError)',
-    (tester) async {
-      final service = _StubLiveDesignService()..result = Uint8List(0);
-      await tester.pumpWidget(_wrap(
+  testWidgets('empty PDF bytes are treated as no-preview, never rastered '
+      '(guards the printing RangeError)', (tester) async {
+    final service = _StubLiveDesignService()..result = Uint8List(0);
+    await tester.pumpWidget(
+      _wrap(
         WysiwygPreviewSheet(
           service: service,
           design: _design(),
           debounce: Duration.zero,
         ),
-      ));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
 
-      expect(service.callCount, 1);
-      // An empty body must NOT reach printing's rasterizer, which throws
-      // "RangeError (index): ... Valid value range is empty: 0" on a
-      // zero-page document (the diagnostics-log error this guards).
-      expect(find.byType(PdfPreview), findsNothing);
-      expect(tester.takeException(), isNull);
-    },
-  );
+    expect(service.callCount, 1);
+    // An empty body must NOT reach printing's rasterizer, which throws
+    // "RangeError (index): ... Valid value range is empty: 0" on a
+    // zero-page document (the diagnostics-log error this guards).
+    expect(find.byType(PdfPreview), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'a non-PDF response body is treated as no-preview, never rastered',
     (tester) async {
       final service = _StubLiveDesignService()
         ..result = Uint8List.fromList(utf8.encode('<html>error</html>'));
-      await tester.pumpWidget(_wrap(
-        WysiwygPreviewSheet(
-          service: service,
-          design: _design(),
-          debounce: Duration.zero,
+      await tester.pumpWidget(
+        _wrap(
+          WysiwygPreviewSheet(
+            service: service,
+            design: _design(),
+            debounce: Duration.zero,
+          ),
         ),
-      ));
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
 
@@ -254,17 +269,18 @@ void main() {
   );
 
   group('Phase 8l — free-user PDF preview watermark', () {
-    testWidgets('renders the watermark when isPro is false',
-        (tester) async {
+    testWidgets('renders the watermark when isPro is false', (tester) async {
       final service = _StubLiveDesignService();
-      await tester.pumpWidget(_wrap(
-        WysiwygPreviewSheet(
-          service: service,
-          design: _design(),
-          debounce: Duration.zero,
-          isPro: false,
+      await tester.pumpWidget(
+        _wrap(
+          WysiwygPreviewSheet(
+            service: service,
+            design: _design(),
+            debounce: Duration.zero,
+            isPro: false,
+          ),
         ),
-      ));
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
       // PDF still renders; watermark sits over it inside a Stack.
@@ -277,14 +293,16 @@ void main() {
 
     testWidgets('omits the watermark when isPro is true', (tester) async {
       final service = _StubLiveDesignService();
-      await tester.pumpWidget(_wrap(
-        WysiwygPreviewSheet(
-          service: service,
-          design: _design(),
-          debounce: Duration.zero,
-          isPro: true,
+      await tester.pumpWidget(
+        _wrap(
+          WysiwygPreviewSheet(
+            service: service,
+            design: _design(),
+            debounce: Duration.zero,
+            isPro: true,
+          ),
         ),
-      ));
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
       expect(find.byType(PdfPreview), findsOneWidget);
@@ -300,26 +318,28 @@ void main() {
       'non-template design surfaces invoice + quote + credit + purchase_order',
       (tester) async {
         final service = _StubLiveDesignService();
-        await tester.pumpWidget(_wrap(
-          WysiwygPreviewSheet(
-            // Bound to only `invoice` but the dropdown should still
-            // expose every supported entity for preview.
-            service: service,
-            design: _design(entities: const ['invoice']),
-            debounce: Duration.zero,
+        await tester.pumpWidget(
+          _wrap(
+            WysiwygPreviewSheet(
+              // Bound to only `invoice` but the dropdown should still
+              // expose every supported entity for preview.
+              service: service,
+              design: _design(entities: const ['invoice']),
+              debounce: Duration.zero,
+            ),
           ),
-        ));
+        );
         await tester.pump();
 
-        final dropdown =
-            tester.widget<DropdownButton<String>>(find.byType(DropdownButton<String>));
-        final values = dropdown.items?.map((i) => i.value).toSet() ?? <String?>{};
-        expect(values, containsAll(<String>[
-          'invoice',
-          'quote',
-          'credit',
-          'purchase_order',
-        ]));
+        final dropdown = tester.widget<DropdownButton<String>>(
+          find.byType(DropdownButton<String>),
+        );
+        final values =
+            dropdown.items?.map((i) => i.value).toSet() ?? <String?>{};
+        expect(
+          values,
+          containsAll(<String>['invoice', 'quote', 'credit', 'purchase_order']),
+        );
       },
     );
 
@@ -327,57 +347,63 @@ void main() {
       'template design carries the broader supported-template-entities list',
       (tester) async {
         final service = _StubLiveDesignService();
-        await tester.pumpWidget(_wrap(
-          WysiwygPreviewSheet(
-            service: service,
-            design: _design().copyWith(isTemplate: true),
-            debounce: Duration.zero,
+        await tester.pumpWidget(
+          _wrap(
+            WysiwygPreviewSheet(
+              service: service,
+              design: _design().copyWith(isTemplate: true),
+              debounce: Duration.zero,
+            ),
           ),
-        ));
+        );
         await tester.pump();
 
-        final dropdown =
-            tester.widget<DropdownButton<String>>(find.byType(DropdownButton<String>));
-        final values = dropdown.items?.map((i) => i.value).toSet() ?? <String?>{};
+        final dropdown = tester.widget<DropdownButton<String>>(
+          find.byType(DropdownButton<String>),
+        );
+        final values =
+            dropdown.items?.map((i) => i.value).toSet() ?? <String?>{};
         // Templates additionally cover payment / client / project /
         // task / expense per DesignEditViewModel.supportedTemplateEntities.
-        expect(values, containsAll(<String>[
-          'invoice',
-          'payment',
-          'client',
-          'project',
-          'task',
-          'expense',
-        ]));
+        expect(
+          values,
+          containsAll(<String>[
+            'invoice',
+            'payment',
+            'client',
+            'project',
+            'task',
+            'expense',
+          ]),
+        );
       },
     );
   });
 
   group('Phase 20c — NetworkException → friendly banner', () {
-    testWidgets(
-      'a NetworkException surfaces as the network_error i18n string, '
-      'not the raw exception',
-      (tester) async {
-        final service = _StubLiveDesignService()
-          ..throwOnNext = const NetworkException(
-            'SocketException: Failed host lookup …',
-          );
-        await tester.pumpWidget(_wrap(
+    testWidgets('a NetworkException surfaces as the network_error i18n string, '
+        'not the raw exception', (tester) async {
+      final service = _StubLiveDesignService()
+        ..throwOnNext = const NetworkException(
+          'SocketException: Failed host lookup …',
+        );
+      await tester.pumpWidget(
+        _wrap(
           WysiwygPreviewSheet(
             service: service,
             design: _design(),
             debounce: Duration.zero,
           ),
-        ));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 50));
-        // _ErrorBanner renders the translated message; we don't lock to
-        // the full sentence (kept in `_app_pending.json`) but assert
-        // (a) the raw exception text doesn't leak and (b) a
-        // recognisable hint surfaces.
-        expect(find.textContaining('SocketException'), findsNothing);
-        expect(find.textContaining('Network error'), findsOneWidget);
-      },
-    );
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      // _ErrorBanner renders the translated message; we don't lock to
+      // the full sentence (kept in `_app_pending.json`) but assert
+      // (a) the raw exception text doesn't leak and (b) a
+      // recognisable hint surfaces.
+      expect(find.textContaining('SocketException'), findsNothing);
+      expect(find.textContaining('Network error'), findsOneWidget);
+    });
   });
 }

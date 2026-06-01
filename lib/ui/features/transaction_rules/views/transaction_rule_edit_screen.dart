@@ -156,10 +156,10 @@ class _RuleMatchPreviewState extends State<_RuleMatchPreview> {
 
   void _bind() {
     _tx = context.read<Services>().bankTransactions.watchPage(
-          companyId: widget.companyId,
-          statusIds: const {kTransactionStatusUnmatched},
-          baseType: kTransactionTypeDebit,
-        );
+      companyId: widget.companyId,
+      statusIds: const {kTransactionStatusUnmatched},
+      baseType: kTransactionTypeDebit,
+    );
   }
 
   @override
@@ -204,8 +204,11 @@ class _RuleMatchPreviewState extends State<_RuleMatchPreview> {
           ),
           child: Row(
             children: [
-              Icon(Icons.filter_alt_outlined,
-                  size: 18, color: tokens.accentInk),
+              Icon(
+                Icons.filter_alt_outlined,
+                size: 18,
+                color: tokens.accentInk,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -309,8 +312,8 @@ class _CriterionRow extends StatelessWidget {
         : labelForOperator(criterion.operator);
     final valueLabel =
         criterion.operator == kRuleOperatorIsEmpty || criterion.value.isEmpty
-            ? '—'
-            : criterion.value;
+        ? '—'
+        : criterion.value;
     return Container(
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: tokens.border)),

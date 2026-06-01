@@ -45,12 +45,8 @@ abstract class SubscriptionApi with _$SubscriptionApi {
     @JsonKey(name: 'promo_discount') @Default('0') Object promoDiscount,
     @JsonKey(name: 'promo_price') @Default('0') Object promoPrice,
     @JsonKey(name: 'is_amount_discount') @Default(true) bool isAmountDiscount,
-    @JsonKey(name: 'allow_cancellation')
-    @Default(false)
-    bool allowCancellation,
-    @JsonKey(name: 'allow_plan_changes')
-    @Default(false)
-    bool allowPlanChanges,
+    @JsonKey(name: 'allow_cancellation') @Default(false) bool allowCancellation,
+    @JsonKey(name: 'allow_plan_changes') @Default(false) bool allowPlanChanges,
     @JsonKey(name: 'allow_query_overrides')
     @Default(false)
     bool allowQueryOverrides,
@@ -84,9 +80,7 @@ abstract class SubscriptionApi with _$SubscriptionApi {
 /// coerce a non-Map value to an empty map and stringify values defensively.
 Map<String, String> _headersFromJson(Object? value) {
   if (value is Map) {
-    return value.map(
-      (k, v) => MapEntry(k.toString(), v?.toString() ?? ''),
-    );
+    return value.map((k, v) => MapEntry(k.toString(), v?.toString() ?? ''));
   }
   return const <String, String>{};
 }
@@ -98,18 +92,14 @@ Map<String, String> _headersFromJson(Object? value) {
 abstract class WebhookConfigurationApi with _$WebhookConfigurationApi {
   const factory WebhookConfigurationApi({
     @JsonKey(name: 'return_url') @Default('') String returnUrl,
-    @JsonKey(name: 'post_purchase_url')
-    @Default('')
-    String postPurchaseUrl,
+    @JsonKey(name: 'post_purchase_url') @Default('') String postPurchaseUrl,
     @JsonKey(name: 'post_purchase_rest_method')
     @Default('')
     String postPurchaseRestMethod,
     @JsonKey(name: 'post_purchase_headers', fromJson: _headersFromJson)
     @Default(<String, String>{})
     Map<String, String> postPurchaseHeaders,
-    @JsonKey(name: 'post_purchase_body')
-    @Default('')
-    String postPurchaseBody,
+    @JsonKey(name: 'post_purchase_body') @Default('') String postPurchaseBody,
   }) = _WebhookConfigurationApi;
 
   factory WebhookConfigurationApi.fromJson(Map<String, dynamic> json) =>
@@ -119,9 +109,8 @@ abstract class WebhookConfigurationApi with _$WebhookConfigurationApi {
 /// `GET /subscriptions` response envelope.
 @freezed
 abstract class SubscriptionListApi with _$SubscriptionListApi {
-  const factory SubscriptionListApi({
-    @Default([]) List<SubscriptionApi> data,
-  }) = _SubscriptionListApi;
+  const factory SubscriptionListApi({@Default([]) List<SubscriptionApi> data}) =
+      _SubscriptionListApi;
 
   factory SubscriptionListApi.fromJson(Map<String, dynamic> json) =>
       _$SubscriptionListApiFromJson(json);

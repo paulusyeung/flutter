@@ -22,11 +22,7 @@ final _log = Logger('ReportsViewModel');
 enum ReportRunStatus { idle, loading, ready, error }
 
 class ReportRunState {
-  const ReportRunState({
-    required this.status,
-    this.preview,
-    this.error,
-  });
+  const ReportRunState({required this.status, this.preview, this.error});
 
   factory ReportRunState.idle() =>
       const ReportRunState(status: ReportRunStatus.idle);
@@ -35,10 +31,7 @@ class ReportRunState {
   /// restore it without an additional VM field — the table stays visible
   /// while the user reruns, and a cancel reverts to what was on screen.
   factory ReportRunState.loading({ReportPreview? previousPreview}) =>
-      ReportRunState(
-        status: ReportRunStatus.loading,
-        preview: previousPreview,
-      );
+      ReportRunState(status: ReportRunStatus.loading, preview: previousPreview);
   factory ReportRunState.ready(ReportPreview preview) =>
       ReportRunState(status: ReportRunStatus.ready, preview: preview);
   factory ReportRunState.error(ReportError error, {ReportPreview? lastGood}) =>
@@ -77,10 +70,10 @@ class ReportsViewModel extends ChangeNotifier {
     this.companyId,
     DateTime Function()? now,
     Duration persistDebounce = const Duration(milliseconds: 600),
-  })  : _reportIdentifier = initialReport,
-        _payload = const ReportPayload(),
-        _now = now ?? DateTime.now,
-        _persistDebounce = persistDebounce {
+  }) : _reportIdentifier = initialReport,
+       _payload = const ReportPayload(),
+       _now = now ?? DateTime.now,
+       _persistDebounce = persistDebounce {
     // Restore the last report + filters + view state for this company
     // (CLAUDE.md: app restart restores where the user left off). No-op when
     // persistence isn't wired (tests). Run is gated on [_hydrated] so a
@@ -226,29 +219,29 @@ class ReportsViewModel extends ChangeNotifier {
         case ReportFilterField.categoriesMulti:
           changed = (_payload.categories ?? '') != defaultStr('categories');
         case ReportFilterField.activityType:
-          changed = (_payload.activityTypeId ?? '') !=
-              defaultStr('activity_type_id');
+          changed =
+              (_payload.activityTypeId ?? '') != defaultStr('activity_type_id');
         case ReportFilterField.productKey:
           changed = (_payload.productKey ?? '') != defaultStr('product_key');
         case ReportFilterField.template:
           changed = (_payload.templateId ?? '') != defaultStr('template');
         case ReportFilterField.documentEmailAttachment:
-          changed = _payload.documentEmailAttachment !=
+          changed =
+              _payload.documentEmailAttachment !=
               defaultBool('document_email_attachment');
         case ReportFilterField.pdfEmailAttachment:
-          changed = _payload.pdfEmailAttachment !=
+          changed =
+              _payload.pdfEmailAttachment !=
               defaultBool('pdf_email_attachment');
         case ReportFilterField.includeDeleted:
-          changed =
-              _payload.includeDeleted != defaultBool('include_deleted');
+          changed = _payload.includeDeleted != defaultBool('include_deleted');
         case ReportFilterField.includeTax:
           changed = _payload.includeTax != defaultBool('include_tax');
         case ReportFilterField.isExpenseBilled:
           changed =
               _payload.isExpenseBilled != defaultBool('is_expense_billed');
         case ReportFilterField.isIncomeBilled:
-          changed =
-              _payload.isIncomeBilled != defaultBool('is_income_billed');
+          changed = _payload.isIncomeBilled != defaultBool('is_income_billed');
       }
       if (changed) n++;
     }
@@ -287,7 +280,8 @@ class ReportsViewModel extends ChangeNotifier {
     Map<String, Decimal>? exchangeRatesOverride,
   }) {
     final preview = _run.preview ?? ReportPreview.empty;
-    final rates = exchangeRatesOverride ??
+    final rates =
+        exchangeRatesOverride ??
         {
           for (final entry in statics.currencies.entries)
             entry.key: entry.value.exchangeRate,
@@ -385,17 +379,13 @@ class ReportsViewModel extends ChangeNotifier {
     }
     final cf = s['columnFilters'];
     if (cf is Map) {
-      _columnFilters = Map.unmodifiable(
-        cf.map((k, v) => MapEntry('$k', '$v')),
-      );
+      _columnFilters = Map.unmodifiable(cf.map((k, v) => MapEntry('$k', '$v')));
     }
     final g = s['group'];
     if (g is String) _group = g;
     final sg = s['subgroup'];
     if (sg is String) {
-      _subgroup = ReportSubgroup.values
-          .where((e) => e.name == sg)
-          .firstOrNull;
+      _subgroup = ReportSubgroup.values.where((e) => e.name == sg).firstOrNull;
     }
     final sf = s['sortField'];
     if (sf is String) _sortField = sf;
@@ -433,7 +423,8 @@ class ReportsViewModel extends ChangeNotifier {
     Date? d(Object? v) => v is String ? Date.tryParse(v) : null;
     String? s(Object? v) => v is String && v.isNotEmpty ? v : null;
     return ReportPayload(
-      datePreset: ReportDatePreset.values
+      datePreset:
+          ReportDatePreset.values
               .where((e) => e.name == m['datePreset'])
               .firstOrNull ??
           ReportDatePreset.allTime,
@@ -476,9 +467,7 @@ class ReportsViewModel extends ChangeNotifier {
         doc = <String, dynamic>{};
       } else {
         final decoded = jsonDecode(existing);
-        doc = decoded is Map<String, dynamic>
-            ? decoded
-            : <String, dynamic>{};
+        doc = decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
       }
       final companyBlob = doc[cid];
       final companyMap = companyBlob is Map<String, dynamic>
@@ -705,8 +694,7 @@ class ReportsViewModel extends ChangeNotifier {
       if (_visibleColumnIds.isEmpty) {
         // First Run on this report: default visible columns to the
         // server's returned set so the column picker has a baseline.
-        _visibleColumnIds =
-            preview.columns.map((c) => c.identifier).toSet();
+        _visibleColumnIds = preview.columns.map((c) => c.identifier).toSet();
       } else {
         // Hydrated/customized set: keep it but drop columns the report no
         // longer returns and surface any new server columns.

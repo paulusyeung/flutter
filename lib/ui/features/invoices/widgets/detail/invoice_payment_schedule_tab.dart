@@ -23,10 +23,7 @@ import 'package:admin/ui/core/widgets/notify_async.dart';
 /// React `useTabs.tsx`: tab available on Draft / Sent, or Partial when the
 /// user can view/edit the invoice. (`canViewOrEdit` resolved at the call
 /// site from company permissions.)
-bool invoiceSupportsPaymentSchedule(
-  Invoice i, {
-  required bool canViewOrEdit,
-}) {
+bool invoiceSupportsPaymentSchedule(Invoice i, {required bool canViewOrEdit}) {
   if (i.isDeleted) return false;
   return i.statusId == InvoiceStatus.draft ||
       i.statusId == InvoiceStatus.sent ||
@@ -53,9 +50,7 @@ class InvoicePaymentScheduleTab extends StatelessWidget {
         action: isTmp
             ? null
             : FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(64, 44),
-                ),
+                style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
                 icon: const Icon(Icons.add),
                 label: Text(context.tr('create_payment_schedule')),
                 onPressed: () => _showCreateDialog(context, invoice),
@@ -105,9 +100,7 @@ class InvoicePaymentScheduleTab extends StatelessWidget {
                   ),
                   SizedBox(width: InSpacing.md(context)),
                   Icon(
-                    r.autoBill
-                        ? Icons.bolt
-                        : Icons.bolt_outlined,
+                    r.autoBill ? Icons.bolt : Icons.bolt_outlined,
                     size: 16,
                     color: r.autoBill ? tokens.accent : tokens.ink3,
                   ),
@@ -141,9 +134,7 @@ class InvoicePaymentScheduleTab extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               FilledButton(
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(64, 44),
-                ),
+                style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
                 onPressed: () => Navigator.of(ctx).pop(true),
                 child: Text(ctx.tr('remove')),
               ),
@@ -215,10 +206,12 @@ class _CreatePaymentScheduleDialogState
 
   bool get _customValid =>
       _rows.isNotEmpty &&
-      _rows.every((r) =>
-          r.date != null &&
-          (Decimal.tryParse(r.amount.text.trim()) ?? Decimal.zero) >
-              Decimal.zero);
+      _rows.every(
+        (r) =>
+            r.date != null &&
+            (Decimal.tryParse(r.amount.text.trim()) ?? Decimal.zero) >
+                Decimal.zero,
+      );
 
   bool get _valid => _mode == 'count'
       ? (int.tryParse(_count.text.trim()) ?? 0) >= 1 && _firstPayment != null
@@ -263,11 +256,9 @@ class _CreatePaymentScheduleDialogState
           'schedule': [
             for (final r in _rows)
               <String, dynamic>{
-                'date':
-                    Date(r.date!.year, r.date!.month, r.date!.day).toIso(),
+                'date': Date(r.date!.year, r.date!.month, r.date!.day).toIso(),
                 'amount':
-                    (Decimal.tryParse(r.amount.text.trim()) ??
-                            Decimal.zero)
+                    (Decimal.tryParse(r.amount.text.trim()) ?? Decimal.zero)
                         .toDouble(),
                 'is_amount': true,
               },
@@ -305,8 +296,9 @@ class _CreatePaymentScheduleDialogState
           Expanded(
             child: TextField(
               controller: row.amount,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
                 labelText: context.tr('amount'),
@@ -388,8 +380,7 @@ class _CreatePaymentScheduleDialogState
                   ),
                   onChanged: _busy
                       ? null
-                      : (v) =>
-                          setState(() => _frequencyId = v ?? _frequencyId),
+                      : (v) => setState(() => _frequencyId = v ?? _frequencyId),
                   items: [
                     for (final e in kScheduleFrequencies.entries)
                       DropdownMenuItem(
@@ -435,18 +426,13 @@ class _CreatePaymentScheduleDialogState
           mainAxisSize: MainAxisSize.min,
           children: [
             OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(64, 40),
-              ),
-              onPressed:
-                  _busy ? null : () => Navigator.of(context).pop(),
+              style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+              onPressed: _busy ? null : () => Navigator.of(context).pop(),
               child: Text(context.tr('cancel')),
             ),
             const SizedBox(width: 8),
             FilledButton(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(64, 44),
-              ),
+              style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
               onPressed: (_busy || !_valid) ? null : _submit,
               child: _busy
                   ? const SizedBox.square(

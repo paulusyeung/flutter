@@ -36,9 +36,7 @@ class PdfVariableListBody extends StatelessWidget {
       sections: [
         FormSection(
           title: context.tr(catalog.titleKey),
-          children: [
-            OverridableReorderableFieldList(catalog: catalog),
-          ],
+          children: [OverridableReorderableFieldList(catalog: catalog)],
         ),
       ],
     );

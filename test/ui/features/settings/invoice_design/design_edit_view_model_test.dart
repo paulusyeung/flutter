@@ -105,9 +105,7 @@ void main() {
   test('importFromJson parses the exported (toApiJson) shape', () {
     final vm = DesignEditViewModel(repo: repo, companyId: companyId);
     final exported = _design(name: 'Imported').toApiJson();
-    final err = vm.importFromJson(
-      const JsonEncoder().convert(exported),
-    );
+    final err = vm.importFromJson(const JsonEncoder().convert(exported));
     expect(err, isNull);
     expect(vm.draft.name, 'Imported');
     expect(vm.draft.entities, ['invoice', 'quote']);

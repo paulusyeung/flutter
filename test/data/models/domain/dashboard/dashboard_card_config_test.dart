@@ -54,8 +54,9 @@ void main() {
     });
 
     test('non-task field can never decode as time → coerced to money', () {
-      final parsed =
-          DashboardCardConfig.tryParse('active_invoices|current|sum|time');
+      final parsed = DashboardCardConfig.tryParse(
+        'active_invoices|current|sum|time',
+      );
       expect(parsed, isNotNull);
       expect(parsed!.format, CardFormat.money);
       expect(parsed.key, 'active_invoices|current|sum|money');

@@ -44,8 +44,7 @@ final List<CreditColumn> kAllCreditColumns = <CreditColumn>[
     id: CreditFieldIds.clientId,
     labelKey: 'client',
     width: 200,
-    cellBuilder: (c, _) =>
-        c.clientId.isEmpty
+    cellBuilder: (c, _) => c.clientId.isEmpty
         ? cellEmpty()
         : ClientNameLabel(clientId: c.clientId, link: true),
     valueBuilder: (c) => cellNonZeroString(c.clientId),
@@ -54,9 +53,8 @@ final List<CreditColumn> kAllCreditColumns = <CreditColumn>[
     id: CreditFieldIds.date,
     labelKey: 'credit_date',
     width: 120,
-    cellBuilder: (c, ctx) => c.date == null
-        ? cellEmpty()
-        : cellDate(c.date!.toDateTime(), ctx),
+    cellBuilder: (c, ctx) =>
+        c.date == null ? cellEmpty() : cellDate(c.date!.toDateTime(), ctx),
     valueBuilder: (c) => c.date?.toIso(),
   ),
   CreditColumn(

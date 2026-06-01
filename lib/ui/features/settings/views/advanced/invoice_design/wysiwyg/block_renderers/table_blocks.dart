@@ -24,11 +24,14 @@ class TableBlock extends StatelessWidget {
     final columns = propMapList(props, 'columns');
     if (columns.isEmpty) return const SizedBox.shrink();
 
-    final headerBg =
-        parseCssColor(props['headerBg'] as String?, fallback: const Color(0xFFF3F4F6));
+    final headerBg = parseCssColor(
+      props['headerBg'] as String?,
+      fallback: const Color(0xFFF3F4F6),
+    );
     final headerColor = parseCssColor(props['headerColor'] as String?);
-    final headerFontWeight =
-        parseFontWeight(props['headerFontWeight'] as String? ?? 'bold');
+    final headerFontWeight = parseFontWeight(
+      props['headerFontWeight'] as String? ?? 'bold',
+    );
     final rowBg = parseCssColor(
       props['rowBg'] as String?,
       fallback: const Color(0xFFFFFFFF),

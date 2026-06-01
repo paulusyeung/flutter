@@ -56,13 +56,8 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
       emptyTitle: context.tr('expense_not_found'),
       actionsForItem: (context, e) => ExpenseDetailActionsRow(
         expense: e,
-        onAction: (a) => ExpenseActions.dispatch(
-          context,
-          _services,
-          _companyId,
-          e,
-          a,
-        ),
+        onAction: (a) =>
+            ExpenseActions.dispatch(context, _services, _companyId, e, a),
       ),
       bodyBuilder: (context, e) {
         return SingleChildScrollView(

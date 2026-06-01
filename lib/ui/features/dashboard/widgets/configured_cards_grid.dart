@@ -115,8 +115,7 @@ class _CardCell extends StatelessWidget {
     // The converted hint takes the single caption slot over the date range.
     final isAll = vm.filter.currencyId == kDashboardCurrencyAll;
     final isMoney =
-        config.format == CardFormat.money &&
-        config.calculate != CardCalc.count;
+        config.format == CardFormat.money && config.calculate != CardCalc.count;
     String? secondCaption;
     if (isAll && isMoney) {
       final baseCode =

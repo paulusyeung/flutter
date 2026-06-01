@@ -44,8 +44,7 @@ class EntityActionsPopupButton<A> extends StatelessWidget {
     // regardless of the icon a tile passes for its standalone screen; split
     // mode (wide tables) likewise always uses the vertical 3-dot menu next
     // to the circled pencil, matching the old app.
-    final effectiveIcon =
-        (EmbeddedListScope.of(context) || splitEditAction)
+    final effectiveIcon = (EmbeddedListScope.of(context) || splitEditAction)
         ? Icons.more_vert
         : icon;
 

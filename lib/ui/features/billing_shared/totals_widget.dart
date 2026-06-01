@@ -31,8 +31,8 @@ class TotalsWidget extends StatelessWidget {
     this.dense = false,
     this.slim = false,
     this.bordered = true,
-  })  : discount = discount ?? Decimal.zero,
-        partial = partial ?? Decimal.zero;
+  }) : discount = discount ?? Decimal.zero,
+       partial = partial ?? Decimal.zero;
 
   /// The computed result from `computeTotals(...)`.
   final BillingTotalsResult totals;
@@ -207,7 +207,8 @@ class TotalsWidget extends StatelessWidget {
     final formatter = NumberFormat.decimalPattern()
       ..minimumFractionDigits = 2
       ..maximumFractionDigits = 2;
-    final amountText = rawText ??
+    final amountText =
+        rawText ??
         (amount == null
             ? '—'
             : '${subtractive && amount > Decimal.zero ? '-' : ''}${formatter.format(amount.toDouble())}');

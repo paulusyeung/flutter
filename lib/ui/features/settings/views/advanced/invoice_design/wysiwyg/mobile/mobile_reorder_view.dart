@@ -144,11 +144,7 @@ class _MobileBlockRow extends StatelessWidget {
               children: [
                 ReorderableDragStartListener(
                   index: index,
-                  child: Icon(
-                    Icons.drag_handle,
-                    color: tokens.ink3,
-                    size: 24,
-                  ),
+                  child: Icon(Icons.drag_handle, color: tokens.ink3, size: 24),
                 ),
                 SizedBox(width: InSpacing.md(context)),
                 Icon(
@@ -170,10 +166,7 @@ class _MobileBlockRow extends StatelessWidget {
                       Text(
                         '${block.gridPosition.w}×${block.gridPosition.h}'
                         '${block.locked ? '  ·  ${context.tr('locked')}' : ''}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: tokens.ink3,
-                        ),
+                        style: TextStyle(fontSize: 11, color: tokens.ink3),
                       ),
                     ],
                   ),

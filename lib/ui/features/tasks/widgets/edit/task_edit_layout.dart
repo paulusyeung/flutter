@@ -52,9 +52,7 @@ class TaskEditLayout extends StatelessWidget {
             final twoCol = constraints.maxWidth >= _twoColumnBreakpoint;
             return SingleChildScrollView(
               padding: EdgeInsets.all(InSpacing.lg(context)),
-              child: twoCol
-                  ? _wide(context, locked)
-                  : _narrow(context, locked),
+              child: twoCol ? _wide(context, locked) : _narrow(context, locked),
             );
           },
         );
@@ -104,11 +102,7 @@ class TaskEditLayout extends StatelessWidget {
             ],
             _IdentitySection(vm: vm, locked: locked),
             SizedBox(height: InSpacing.lg(context)),
-            TaskEditTimesSection(
-              vm: vm,
-              locked: locked,
-              formatter: formatter,
-            ),
+            TaskEditTimesSection(vm: vm, locked: locked, formatter: formatter),
           ],
         ),
       ),

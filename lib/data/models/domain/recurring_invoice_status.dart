@@ -15,18 +15,18 @@ enum RecurringInvoiceStatus {
   final String wireId;
 
   static RecurringInvoiceStatus fromWire(String? raw) => switch (raw) {
-        '2' => RecurringInvoiceStatus.active,
-        '3' => RecurringInvoiceStatus.paused,
-        '4' => RecurringInvoiceStatus.completed,
-        _ => RecurringInvoiceStatus.draft,
-      };
+    '2' => RecurringInvoiceStatus.active,
+    '3' => RecurringInvoiceStatus.paused,
+    '4' => RecurringInvoiceStatus.completed,
+    _ => RecurringInvoiceStatus.draft,
+  };
 
   String get labelKey => switch (this) {
-        RecurringInvoiceStatus.draft => 'draft',
-        RecurringInvoiceStatus.active => 'active',
-        RecurringInvoiceStatus.paused => 'paused',
-        RecurringInvoiceStatus.completed => 'completed',
-      };
+    RecurringInvoiceStatus.draft => 'draft',
+    RecurringInvoiceStatus.active => 'active',
+    RecurringInvoiceStatus.paused => 'paused',
+    RecurringInvoiceStatus.completed => 'completed',
+  };
 }
 
 /// Computed pseudo-statuses (never stored on the wire).
@@ -37,6 +37,6 @@ class RecurringInvoiceStatusComputed {
 }
 
 String recurringInvoiceStatusLabelKey(String id) => switch (id) {
-      RecurringInvoiceStatusComputed.pending => 'pending',
-      _ => RecurringInvoiceStatus.fromWire(id).labelKey,
-    };
+  RecurringInvoiceStatusComputed.pending => 'pending',
+  _ => RecurringInvoiceStatus.fromWire(id).labelKey,
+};

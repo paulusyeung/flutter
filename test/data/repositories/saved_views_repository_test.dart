@@ -458,23 +458,26 @@ void main() {
       expect(active?.id, view.id);
     });
 
-    test('scoped to the entity — a different entity slot is not a match', () async {
-      final clientView = await repo.create(
-        companyId: 'co',
-        entityType: EntityType.client,
-        name: 'Acme',
-        snapshot: {'search': 'acme'},
-      );
-      await repo.apply(clientView.id);
+    test(
+      'scoped to the entity — a different entity slot is not a match',
+      () async {
+        final clientView = await repo.create(
+          companyId: 'co',
+          entityType: EntityType.client,
+          name: 'Acme',
+          snapshot: {'search': 'acme'},
+        );
+        await repo.apply(clientView.id);
 
-      // The product branch has no matching slot.
-      expect(
-        await repo
-            .watchActiveView(companyId: 'co', entityType: EntityType.product)
-            .first,
-        isNull,
-      );
-    });
+        // The product branch has no matching slot.
+        expect(
+          await repo
+              .watchActiveView(companyId: 'co', entityType: EntityType.product)
+              .first,
+          isNull,
+        );
+      },
+    );
   });
 
   group('clearAppliedViewFilters', () {

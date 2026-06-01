@@ -109,21 +109,14 @@ class WysiwygDesignScreen extends StatelessWidget {
       // Phase 1.5 #8: actually clear the draft on discard so the
       // unsaved-changes guard doesn't keep firing on every navigation.
       onDiscard: (vm) => vm.resetToEmpty(company.settings),
-      customBodyBuilder: (context, vm) => _Workspace(
-        vm: vm,
-        seedFrom: seedFrom,
-        isPro: isPro,
-      ),
+      customBodyBuilder: (context, vm) =>
+          _Workspace(vm: vm, seedFrom: seedFrom, isPro: isPro),
     );
   }
 }
 
 class _Workspace extends StatefulWidget {
-  const _Workspace({
-    required this.vm,
-    this.seedFrom,
-    required this.isPro,
-  });
+  const _Workspace({required this.vm, this.seedFrom, required this.isPro});
 
   final WysiwygDesignViewModel vm;
   final Design? seedFrom;
@@ -233,14 +226,22 @@ class _WorkspaceState extends State<_Workspace> {
         // Arrow-key nudging — moves the selected block one grid cell.
         // Shift + arrow resizes by one cell (anchored at the top-left;
         // grow / shrink on the right or bottom edge).
-        SingleActivator(LogicalKeyboardKey.arrowLeft):
-            _NudgeIntent(dx: -1, dy: 0),
-        SingleActivator(LogicalKeyboardKey.arrowRight):
-            _NudgeIntent(dx: 1, dy: 0),
-        SingleActivator(LogicalKeyboardKey.arrowUp):
-            _NudgeIntent(dx: 0, dy: -1),
-        SingleActivator(LogicalKeyboardKey.arrowDown):
-            _NudgeIntent(dx: 0, dy: 1),
+        SingleActivator(LogicalKeyboardKey.arrowLeft): _NudgeIntent(
+          dx: -1,
+          dy: 0,
+        ),
+        SingleActivator(LogicalKeyboardKey.arrowRight): _NudgeIntent(
+          dx: 1,
+          dy: 0,
+        ),
+        SingleActivator(LogicalKeyboardKey.arrowUp): _NudgeIntent(
+          dx: 0,
+          dy: -1,
+        ),
+        SingleActivator(LogicalKeyboardKey.arrowDown): _NudgeIntent(
+          dx: 0,
+          dy: 1,
+        ),
         SingleActivator(LogicalKeyboardKey.arrowLeft, shift: true):
             _ResizeNudgeIntent(dw: -1, dh: 0),
         SingleActivator(LogicalKeyboardKey.arrowRight, shift: true):
@@ -318,8 +319,8 @@ class _WorkspaceState extends State<_Workspace> {
                     child: width < 600
                         ? _PhoneLayout(vm: widget.vm)
                         : width < 1024
-                            ? _TabletLayout(vm: widget.vm, showGrid: _showGrid)
-                            : _DesktopLayout(vm: widget.vm, showGrid: _showGrid),
+                        ? _TabletLayout(vm: widget.vm, showGrid: _showGrid)
+                        : _DesktopLayout(vm: widget.vm, showGrid: _showGrid),
                   ),
                 ],
               );
@@ -359,7 +360,11 @@ class _TwigCoexistenceBanner extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.warning_amber_outlined, size: 18, color: tokens.partial),
+              Icon(
+                Icons.warning_amber_outlined,
+                size: 18,
+                color: tokens.partial,
+              ),
               SizedBox(width: InSpacing.sm),
               Expanded(
                 child: Text(
@@ -382,9 +387,7 @@ class _TwigCoexistenceBanner extends StatelessWidget {
               ),
               SizedBox(width: InSpacing.md(context)),
               FilledButton(
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(64, 44),
-                ),
+                style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
                 onPressed: onStartVisual,
                 child: Text(context.tr('start_visual_design')),
               ),
@@ -456,6 +459,7 @@ class _ResizeNudgeIntent extends Intent {
 class _TopBar extends StatelessWidget {
   const _TopBar({required this.vm, required this.showGrid});
   final WysiwygDesignViewModel vm;
+
   /// Phase 16: workspace-owned grid-visibility flag. The toggle button
   /// flips it; `WysiwygCanvas` listens to show/hide `_GridGuides`.
   final ValueNotifier<bool> showGrid;
@@ -515,9 +519,7 @@ class _TopBar extends StatelessWidget {
             valueListenable: showGrid,
             builder: (context, visible, _) => IconButton(
               icon: Icon(
-                visible
-                    ? Icons.grid_on_outlined
-                    : Icons.grid_off_outlined,
+                visible ? Icons.grid_on_outlined : Icons.grid_off_outlined,
                 size: 18,
               ),
               tooltip: context.tr(visible ? 'hide_grid' : 'show_grid'),
@@ -607,10 +609,7 @@ class _TopBar extends StatelessWidget {
     final bytes = Uint8List.fromList(utf8.encode(json));
     final name = 'invoice-design-${DateTime.now().millisecondsSinceEpoch}.json';
     try {
-      final path = await FilePicker.saveFile(
-        fileName: name,
-        bytes: bytes,
-      );
+      final path = await FilePicker.saveFile(fileName: name, bytes: bytes);
       if (path == null) return;
       // Desktop returns a path without writing; web writes via `bytes`
       // and may return a synthesized URL. Native: write defensively.
@@ -622,9 +621,7 @@ class _TopBar extends StatelessWidget {
       }
       messenger.showSnackBar(SnackBar(content: Text(tr('exported'))));
     } catch (_) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(tr('an_error_occurred'))),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(tr('an_error_occurred'))));
     }
   }
 
@@ -774,11 +771,7 @@ class _ToolbarDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: InSpacing.md(context)),
-      child: Container(
-        width: 1,
-        height: 20,
-        color: context.inTheme.border,
-      ),
+      child: Container(width: 1, height: 20, color: context.inTheme.border),
     );
   }
 }
@@ -797,13 +790,13 @@ class _InlineDesignNameField extends StatefulWidget {
   final WysiwygDesignViewModel vm;
 
   @override
-  State<_InlineDesignNameField> createState() =>
-      _InlineDesignNameFieldState();
+  State<_InlineDesignNameField> createState() => _InlineDesignNameFieldState();
 }
 
 class _InlineDesignNameFieldState extends State<_InlineDesignNameField> {
-  late final TextEditingController _controller =
-      TextEditingController(text: widget.vm.draft.name);
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.vm.draft.name,
+  );
   String? _lastSyncedId;
 
   @override
@@ -819,8 +812,7 @@ class _InlineDesignNameFieldState extends State<_InlineDesignNameField> {
     // draft id changes (e.g. Import JSON loaded a different design) and
     // the on-screen text doesn't already match.
     final nextId = widget.vm.draft.id;
-    if (nextId != _lastSyncedId &&
-        widget.vm.draft.name != _controller.text) {
+    if (nextId != _lastSyncedId && widget.vm.draft.name != _controller.text) {
       _lastSyncedId = nextId;
       final text = widget.vm.draft.name;
       _controller.value = TextEditingValue(
@@ -844,10 +836,7 @@ class _InlineDesignNameFieldState extends State<_InlineDesignNameField> {
       child: TextField(
         controller: _controller,
         textInputAction: TextInputAction.done,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         decoration: InputDecoration(
           hintText: context.tr('untitled'),
           isDense: true,
@@ -889,7 +878,9 @@ class _DesktopLayout extends StatelessWidget {
             children: [
               ComponentPalette(vm: vm),
               const VerticalDivider(width: 1),
-              Expanded(child: WysiwygCanvas(vm: vm, showGrid: showGrid)),
+              Expanded(
+                child: WysiwygCanvas(vm: vm, showGrid: showGrid),
+              ),
               const VerticalDivider(width: 1),
               PropertyPanel(vm: vm),
             ],
@@ -914,7 +905,9 @@ class _TabletLayout extends StatelessWidget {
           children: [
             ComponentPalette(vm: vm),
             const VerticalDivider(width: 1),
-            Expanded(child: WysiwygCanvas(vm: vm, showGrid: showGrid)),
+            Expanded(
+              child: WysiwygCanvas(vm: vm, showGrid: showGrid),
+            ),
           ],
         ),
         if (vm.panelMode == PropertyPanelMode.block)
@@ -924,10 +917,7 @@ class _TabletLayout extends StatelessWidget {
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(context).size.height * 0.4,
               ),
-              child: Material(
-                elevation: 8,
-                child: PropertyPanel(vm: vm),
-              ),
+              child: Material(elevation: 8, child: PropertyPanel(vm: vm)),
             ),
           ),
       ],

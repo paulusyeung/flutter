@@ -119,8 +119,9 @@ void main() {
     ),
   );
 
-  testWidgets('fires exactly one render on first mount when body present',
-      (tester) async {
+  testWidgets('fires exactly one render on first mount when body present', (
+    tester,
+  ) async {
     final service = _CountingService();
     final vm = vmWith(existing: _design());
 
@@ -132,8 +133,9 @@ void main() {
     expect(service.lastEntity, 'invoice');
   });
 
-  testWidgets('empty template renders the empty-state and zero requests',
-      (tester) async {
+  testWidgets('empty template renders the empty-state and zero requests', (
+    tester,
+  ) async {
     final service = _CountingService();
     final vm = vmWith(); // create-mode: empty template
 
@@ -143,13 +145,16 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
 
     expect(service.calls, 0);
-    expect(find.text('Pick a starting template to see a preview'),
-        findsOneWidget);
+    expect(
+      find.text('Pick a starting template to see a preview'),
+      findsOneWidget,
+    );
     expect(errors.last, isEmpty);
   });
 
-  testWidgets('a draft mutation triggers exactly one debounced re-render',
-      (tester) async {
+  testWidgets('a draft mutation triggers exactly one debounced re-render', (
+    tester,
+  ) async {
     final service = _CountingService();
     final vm = vmWith(existing: _design());
 
@@ -164,8 +169,7 @@ void main() {
     expect(service.calls, 2);
   });
 
-  testWidgets('422 maps to section errors via onSectionErrors',
-      (tester) async {
+  testWidgets('422 maps to section errors via onSectionErrors', (tester) async {
     final service = _CountingService()
       ..throwOnce = const ValidationException('invalid', {
         'design.design.body': ['Template syntax error on line 1.'],
@@ -183,25 +187,27 @@ void main() {
     expect(received, {'body': 'Template syntax error on line 1.'});
   });
 
-  testWidgets('entity-type choice persists across a remount of the same design',
-      (tester) async {
-    final service = _CountingService();
-    final vm = vmWith(existing: _design());
+  testWidgets(
+    'entity-type choice persists across a remount of the same design',
+    (tester) async {
+      final service = _CountingService();
+      final vm = vmWith(existing: _design());
 
-    await tester.pumpWidget(harness(service, vm));
-    await tester.pump(const Duration(milliseconds: 50));
-    expect(service.lastEntity, 'invoice');
+      await tester.pumpWidget(harness(service, vm));
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(service.lastEntity, 'invoice');
 
-    await tester.tap(find.text('Quote'));
-    await tester.pump(const Duration(milliseconds: 50));
-    expect(service.lastEntity, 'quote'); // entity tap fires a render
+      await tester.tap(find.text('Quote'));
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(service.lastEntity, 'quote'); // entity tap fires a render
 
-    // Rebuild a fresh pane State for the same design id — the remembered
-    // entity type should drive the first render, not snap back to invoice.
-    await tester.pumpWidget(const SizedBox());
-    await tester.pumpWidget(harness(service, vm));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 50));
-    expect(service.lastEntity, 'quote');
-  });
+      // Rebuild a fresh pane State for the same design id — the remembered
+      // entity type should drive the first render, not snap back to invoice.
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpWidget(harness(service, vm));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(service.lastEntity, 'quote');
+    },
+  );
 }

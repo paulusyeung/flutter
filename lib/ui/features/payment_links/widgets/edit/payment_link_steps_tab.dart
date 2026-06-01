@@ -69,9 +69,9 @@ class _PaymentLinkStepsTabState extends State<PaymentLinkStepsTab> {
             SizedBox(height: InSpacing.sm),
             Text(
               context.tr('steps_order_help'),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: context.inTheme.ink3,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: context.inTheme.ink3),
             ),
           ],
         ),
@@ -121,9 +121,7 @@ class _StepPickers extends StatelessWidget {
         Expanded(
           child: DropdownButtonFormField<String>(
             initialValue: null,
-            decoration: InputDecoration(
-              labelText: context.tr('other_steps'),
-            ),
+            decoration: InputDecoration(labelText: context.tr('other_steps')),
             items: [
               for (final s in otherOptions)
                 DropdownMenuItem(value: s.id, child: Text(s.label)),
@@ -150,10 +148,7 @@ class _StepList extends StatelessWidget {
     if (ids.isEmpty) {
       return Padding(
         padding: EdgeInsets.symmetric(vertical: InSpacing.md(context)),
-        child: Text(
-          '—',
-          style: TextStyle(color: context.inTheme.ink3),
-        ),
+        child: Text('—', style: TextStyle(color: context.inTheme.ink3)),
       );
     }
     final byId = {for (final s in catalog) s.id: s};
@@ -214,8 +209,7 @@ class _StepRow extends StatelessWidget {
           ),
           if (hasError)
             Tooltip(
-              message:
-                  '${context.tr('depends_on')}: $missingDependency',
+              message: '${context.tr('depends_on')}: $missingDependency',
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Container(

@@ -148,9 +148,9 @@ class _PeppolPreferencesCardState extends State<PeppolPreferencesCard> {
               SizedBox(width: InSpacing.md(context)),
               Text(
                 _quota?.toString() ?? '—',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -206,11 +206,7 @@ class _PeppolPreferencesCardState extends State<PeppolPreferencesCard> {
       Notify.success(context, context.tr('token_regenerated'));
     } catch (e) {
       if (!mounted) return;
-      Notify.error(
-        context,
-        context.tr('token_regeneration_failed'),
-        error: e,
-      );
+      Notify.error(context, context.tr('token_regeneration_failed'), error: e);
     }
   }
 
@@ -228,9 +224,7 @@ class _PeppolPreferencesCardState extends State<PeppolPreferencesCard> {
         content: Text(context.tr('peppol_disconnect_long')),
         actions: [
           OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size(64, 40),
-            ),
+            style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
             onPressed: () => Navigator.of(ctx).pop(false),
             child: Text(context.tr('cancel')),
           ),
@@ -262,8 +256,7 @@ class _PeppolPreferencesCardState extends State<PeppolPreferencesCard> {
           'company_key': company.companyKey,
           'legal_entity_id': company.legalEntityId,
           'tax_data': company.taxData?.toJson() ?? const <String, dynamic>{},
-          if (eInvoicingToken.isNotEmpty)
-            'e_invoicing_token': eInvoicingToken,
+          if (eInvoicingToken.isNotEmpty) 'e_invoicing_token': eInvoicingToken,
         },
       );
       if (!context.mounted) return;

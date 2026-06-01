@@ -87,8 +87,7 @@ class PaymentUnappliedBand extends StatelessWidget {
 
 Future<void> _autoApplyOldest(BuildContext context, Payment payment) async {
   final services = context.read<Services>();
-  final companyId =
-      services.auth.session.value!.currentCompanyId;
+  final companyId = services.auth.session.value!.currentCompanyId;
   // Make sure the client's invoices are in Drift before we read the local
   // cache. Without this, a user landing on the payment detail screen
   // before ever opening the invoices list would see "no unpaid invoices"
@@ -103,14 +102,13 @@ Future<void> _autoApplyOldest(BuildContext context, Payment payment) async {
   final invoices = await services.invoices
       .watchForClient(companyId: companyId, clientId: payment.clientId)
       .first;
-  final candidates = invoices
-      .where((i) => i.balance > Decimal.zero && !i.isDeleted)
-      .toList()
-    ..sort((a, b) {
-      final ad = a.date?.toIso() ?? '';
-      final bd = b.date?.toIso() ?? '';
-      return ad.compareTo(bd);
-    });
+  final candidates =
+      invoices.where((i) => i.balance > Decimal.zero && !i.isDeleted).toList()
+        ..sort((a, b) {
+          final ad = a.date?.toIso() ?? '';
+          final bd = b.date?.toIso() ?? '';
+          return ad.compareTo(bd);
+        });
   if (candidates.isEmpty) {
     if (context.mounted) {
       Notify.error(context, context.tr('no_unpaid_invoices'));

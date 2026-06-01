@@ -117,7 +117,10 @@ abstract class BankTransaction with _$BankTransaction {
   /// Parsed list of comma-separated linked invoice ids. Empty when none.
   List<String> get linkedInvoiceIds => invoiceIds.isEmpty
       ? const <String>[]
-      : invoiceIds.split(',').where((e) => e.isNotEmpty).toList(growable: false);
+      : invoiceIds
+            .split(',')
+            .where((e) => e.isNotEmpty)
+            .toList(growable: false);
 
   /// Parsed list of comma-separated linked expense ids.
   List<String> get linkedExpenseIds => expenseId.isEmpty

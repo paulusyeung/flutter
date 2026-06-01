@@ -95,11 +95,15 @@ class _WysiwygCanvasState extends State<WysiwygCanvas> {
   }
 
   ({int w, int h}) _payloadSize(CanvasDropPayload payload) => switch (payload) {
-        PalettePayload(:final spec) =>
-          (w: spec.defaultWidth, h: spec.defaultHeight),
-        BlockMovePayload(:final block) =>
-          (w: block.gridPosition.w, h: block.gridPosition.h),
-      };
+    PalettePayload(:final spec) => (
+      w: spec.defaultWidth,
+      h: spec.defaultHeight,
+    ),
+    BlockMovePayload(:final block) => (
+      w: block.gridPosition.w,
+      h: block.gridPosition.h,
+    ),
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -125,183 +129,183 @@ class _WysiwygCanvasState extends State<WysiwygCanvas> {
       child: DefaultTextStyle.merge(
         style: fontStyle ?? const TextStyle(),
         child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: AspectRatio(
-            aspectRatio: 210 / 297, // A4 portrait
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final cellWidth = constraints.maxWidth / kGridCols;
-                final cellHeight = constraints.maxWidth * _rowAspect;
-                final selectedBlock = vm.selectedBlock;
-                return DragTarget<CanvasDropPayload>(
-                  // Step 5b: as the user drags, snap the cursor to a grid
-                  // cell and store it as `_dragGhost` so the ghost overlay
-                  // + alignment guides render at the snap target.
-                  onMove: (details) {
-                    final size = _payloadSize(details.data);
-                    final snap = _snapDragToGrid(
-                      globalOffset: details.offset,
-                      width: size.w,
-                      height: size.h,
-                      cellWidth: cellWidth,
-                      cellHeight: cellHeight,
-                    );
-                    if (snap == null) return;
-                    if (snap != _dragGhost) {
-                      setState(() => _dragGhost = snap);
-                    }
-                  },
-                  onLeave: (_) {
-                    if (_dragGhost != null) {
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: AspectRatio(
+              aspectRatio: 210 / 297, // A4 portrait
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final cellWidth = constraints.maxWidth / kGridCols;
+                  final cellHeight = constraints.maxWidth * _rowAspect;
+                  final selectedBlock = vm.selectedBlock;
+                  return DragTarget<CanvasDropPayload>(
+                    // Step 5b: as the user drags, snap the cursor to a grid
+                    // cell and store it as `_dragGhost` so the ghost overlay
+                    // + alignment guides render at the snap target.
+                    onMove: (details) {
+                      final size = _payloadSize(details.data);
+                      final snap = _snapDragToGrid(
+                        globalOffset: details.offset,
+                        width: size.w,
+                        height: size.h,
+                        cellWidth: cellWidth,
+                        cellHeight: cellHeight,
+                      );
+                      if (snap == null) return;
+                      if (snap != _dragGhost) {
+                        setState(() => _dragGhost = snap);
+                      }
+                    },
+                    onLeave: (_) {
+                      if (_dragGhost != null) {
+                        setState(() => _dragGhost = null);
+                      }
+                    },
+                    // Drop at cursor coords. Convert the global drop offset
+                    // to local Stack coords via the canvas RenderBox, snap
+                    // to grid cells, then either add a fresh block from the
+                    // palette or move an existing block to the drop target.
+                    onAcceptWithDetails: (details) {
                       setState(() => _dragGhost = null);
-                    }
-                  },
-                  // Drop at cursor coords. Convert the global drop offset
-                  // to local Stack coords via the canvas RenderBox, snap
-                  // to grid cells, then either add a fresh block from the
-                  // palette or move an existing block to the drop target.
-                  onAcceptWithDetails: (details) {
-                    setState(() => _dragGhost = null);
-                    final box = _canvasKey.currentContext?.findRenderObject()
-                        as RenderBox?;
-                    final payload = details.data;
-                    if (box == null) {
-                      // Safe fallback: append at next-free slot.
-                      if (payload is PalettePayload) vm.addBlock(payload.spec);
-                      return;
-                    }
-                    final local = box.globalToLocal(details.offset);
-                    final gx = (local.dx / cellWidth).floor();
-                    final gy = (local.dy / cellHeight).floor();
-                    switch (payload) {
-                      case PalettePayload(:final spec):
-                        vm.addBlockAt(spec, gx, gy);
-                      case BlockMovePayload(:final block):
-                        // Drop coord is the new top-left; reuse the
-                        // existing w/h.
-                        vm.moveBlock(
-                          block.id,
-                          GridPosition(
-                            x: gx.clamp(0, kGridCols - block.gridPosition.w),
-                            y: gy < 0 ? 0 : gy,
-                            w: block.gridPosition.w,
-                            h: block.gridPosition.h,
+                      final box =
+                          _canvasKey.currentContext?.findRenderObject()
+                              as RenderBox?;
+                      final payload = details.data;
+                      if (box == null) {
+                        // Safe fallback: append at next-free slot.
+                        if (payload is PalettePayload)
+                          vm.addBlock(payload.spec);
+                        return;
+                      }
+                      final local = box.globalToLocal(details.offset);
+                      final gx = (local.dx / cellWidth).floor();
+                      final gy = (local.dy / cellHeight).floor();
+                      switch (payload) {
+                        case PalettePayload(:final spec):
+                          vm.addBlockAt(spec, gx, gy);
+                        case BlockMovePayload(:final block):
+                          // Drop coord is the new top-left; reuse the
+                          // existing w/h.
+                          vm.moveBlock(
+                            block.id,
+                            GridPosition(
+                              x: gx.clamp(0, kGridCols - block.gridPosition.w),
+                              y: gy < 0 ? 0 : gy,
+                              w: block.gridPosition.w,
+                              h: block.gridPosition.h,
+                            ),
+                          );
+                      }
+                    },
+                    builder: (context, candidate, rejected) {
+                      final highlighted = candidate.isNotEmpty;
+                      return Container(
+                        key: _canvasKey,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(
+                            color: highlighted ? tokens.accent : tokens.border,
+                            width: highlighted ? 2 : 1,
                           ),
-                        );
-                    }
-                  },
-                  builder: (context, candidate, rejected) {
-                    final highlighted = candidate.isNotEmpty;
-                    return Container(
-                      key: _canvasKey,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(
-                          color: highlighted ? tokens.accent : tokens.border,
-                          width: highlighted ? 2 : 1,
-                        ),
-                        borderRadius: BorderRadius.circular(InRadii.r2),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          // Phase 16: hidden when the workspace's
-                          // showGrid notifier is false. Wrapped in
-                          // its own ValueListenableBuilder so a toggle
-                          // doesn't trigger the surrounding block
-                          // tree to rebuild.
-                          ValueListenableBuilder<bool>(
-                            valueListenable:
-                                widget.showGrid ?? _alwaysShown,
-                            key: const ValueKey('canvas-grid-guides'),
-                            builder: (_, shown, _) => shown
-                                ? _GridGuides(
-                                    cellWidth: cellWidth,
-                                    cellHeight: cellHeight,
-                                    color: tokens.border,
-                                  )
-                                : const SizedBox.shrink(),
-                          ),
-                          // Deselect when the user clicks empty canvas.
-                          Positioned.fill(
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.translucent,
-                              onTap: () => vm.selectBlock(null),
-                            ),
-                          ),
-                          if (blocks.isEmpty)
-                            const Center(child: _EmptyHint()),
-                          for (final block in blocks)
-                            _CanvasBlock(
-                              vm: vm,
-                              block: block,
-                              cellWidth: cellWidth,
-                              cellHeight: cellHeight,
-                              sample: sample,
-                              selected: block.id == vm.selectedBlockId,
-                            ),
-                          // Phase 1.5 #4: render the selection toolbar in
-                          // the outer canvas Stack (not inside the block's
-                          // tree) so it can render above a y=0 block
-                          // without being clipped by the block's bounds.
-                          if (selectedBlock != null)
-                            _FloatingSelectionToolbar(
-                              vm: vm,
-                              block: selectedBlock,
-                              cellWidth: cellWidth,
-                              cellHeight: cellHeight,
-                            ),
-                          // Resize handles overlay (Step 4c). Only on the
-                          // currently-selected, non-locked block.
-                          if (selectedBlock != null && !selectedBlock.locked)
-                            _ResizeHandles(
-                              vm: vm,
-                              block: selectedBlock,
-                              cellWidth: cellWidth,
-                              cellHeight: cellHeight,
-                            ),
-                          // Step 5b + 5c: ghost preview + alignment guides
-                          // during drag. Drawn last so they render on top
-                          // of blocks. `_dragGhost` is set by `onMove`
-                          // above and cleared on `onLeave`/`onAccept`.
-                          if (_dragGhost != null) ...[
-                            _AlignmentGuides(
-                              ghost: _dragGhost!,
-                              blocks: blocks,
-                              cellWidth: cellWidth,
-                              cellHeight: cellHeight,
-                              color: tokens.accent,
-                            ),
-                            _DragGhost(
-                              ghost: _dragGhost!,
-                              cellWidth: cellWidth,
-                              cellHeight: cellHeight,
-                              color: tokens.accent,
+                          borderRadius: BorderRadius.circular(InRadii.r2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
                             ),
                           ],
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
+                        ),
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            // Phase 16: hidden when the workspace's
+                            // showGrid notifier is false. Wrapped in
+                            // its own ValueListenableBuilder so a toggle
+                            // doesn't trigger the surrounding block
+                            // tree to rebuild.
+                            ValueListenableBuilder<bool>(
+                              valueListenable: widget.showGrid ?? _alwaysShown,
+                              key: const ValueKey('canvas-grid-guides'),
+                              builder: (_, shown, _) => shown
+                                  ? _GridGuides(
+                                      cellWidth: cellWidth,
+                                      cellHeight: cellHeight,
+                                      color: tokens.border,
+                                    )
+                                  : const SizedBox.shrink(),
+                            ),
+                            // Deselect when the user clicks empty canvas.
+                            Positioned.fill(
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.translucent,
+                                onTap: () => vm.selectBlock(null),
+                              ),
+                            ),
+                            if (blocks.isEmpty)
+                              const Center(child: _EmptyHint()),
+                            for (final block in blocks)
+                              _CanvasBlock(
+                                vm: vm,
+                                block: block,
+                                cellWidth: cellWidth,
+                                cellHeight: cellHeight,
+                                sample: sample,
+                                selected: block.id == vm.selectedBlockId,
+                              ),
+                            // Phase 1.5 #4: render the selection toolbar in
+                            // the outer canvas Stack (not inside the block's
+                            // tree) so it can render above a y=0 block
+                            // without being clipped by the block's bounds.
+                            if (selectedBlock != null)
+                              _FloatingSelectionToolbar(
+                                vm: vm,
+                                block: selectedBlock,
+                                cellWidth: cellWidth,
+                                cellHeight: cellHeight,
+                              ),
+                            // Resize handles overlay (Step 4c). Only on the
+                            // currently-selected, non-locked block.
+                            if (selectedBlock != null && !selectedBlock.locked)
+                              _ResizeHandles(
+                                vm: vm,
+                                block: selectedBlock,
+                                cellWidth: cellWidth,
+                                cellHeight: cellHeight,
+                              ),
+                            // Step 5b + 5c: ghost preview + alignment guides
+                            // during drag. Drawn last so they render on top
+                            // of blocks. `_dragGhost` is set by `onMove`
+                            // above and cleared on `onLeave`/`onAccept`.
+                            if (_dragGhost != null) ...[
+                              _AlignmentGuides(
+                                ghost: _dragGhost!,
+                                blocks: blocks,
+                                cellWidth: cellWidth,
+                                cellHeight: cellHeight,
+                                color: tokens.accent,
+                              ),
+                              _DragGhost(
+                                ghost: _dragGhost!,
+                                cellWidth: cellWidth,
+                                cellHeight: cellHeight,
+                                color: tokens.accent,
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
           ),
-        ),
         ),
       ),
     );
   }
 }
-
 
 class _GridGuides extends StatelessWidget {
   const _GridGuides({
@@ -472,7 +476,8 @@ class _DraggableBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = defaultTargetPlatform == TargetPlatform.macOS ||
+    final isDesktop =
+        defaultTargetPlatform == TargetPlatform.macOS ||
         defaultTargetPlatform == TargetPlatform.windows ||
         defaultTargetPlatform == TargetPlatform.linux;
     final payload = BlockMovePayload(block);
@@ -483,8 +488,10 @@ class _DraggableBlock extends StatelessWidget {
         child: SizedBox(width: width, height: height, child: child),
       ),
     );
-    final childWhenDragging =
-        Opacity(opacity: 0.3, child: IgnorePointer(child: child));
+    final childWhenDragging = Opacity(
+      opacity: 0.3,
+      child: IgnorePointer(child: child),
+    );
 
     if (isDesktop) {
       return Draggable<CanvasDropPayload>(

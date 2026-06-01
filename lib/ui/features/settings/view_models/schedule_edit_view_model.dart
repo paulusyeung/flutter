@@ -19,10 +19,10 @@ class ScheduleEditViewModel extends GenericEditViewModel<Schedule> {
     super.sync,
     super.connectivity,
   }) : super(
-          initialDraft: existing ?? Schedule.empty(),
-          original: existing,
-          companyId: companyId,
-        );
+         initialDraft: existing ?? Schedule.empty(),
+         original: existing,
+         companyId: companyId,
+       );
 
   final ScheduleRepository repo;
   final String companyId;
@@ -66,8 +66,7 @@ class ScheduleEditViewModel extends GenericEditViewModel<Schedule> {
 
   void setNextRun(Date? v) => updateDraft(draft.copyWith(nextRun: v));
 
-  void setFrequencyId(String v) =>
-      updateDraft(draft.copyWith(frequencyId: v));
+  void setFrequencyId(String v) => updateDraft(draft.copyWith(frequencyId: v));
 
   void setRemainingCycles(int v) =>
       updateDraft(draft.copyWith(remainingCycles: v));
@@ -125,18 +124,15 @@ class ScheduleEditViewModel extends GenericEditViewModel<Schedule> {
 
   void setRecordEntityId(String v) => _patchParameters({'entity_id': v});
 
-  void setRecordEmailTemplate(String v) =>
-      _patchParameters({'template': v});
+  void setRecordEmailTemplate(String v) => _patchParameters({'template': v});
 
   // ----- email_report parameters -----
 
   void setReportName(String v) => _patchParameters({'report_name': v});
 
-  void setReportDateRange(String v) =>
-      _patchParameters({'date_range': v});
+  void setReportDateRange(String v) => _patchParameters({'date_range': v});
 
-  void setReportStartDate(String v) =>
-      _patchParameters({'start_date': v});
+  void setReportStartDate(String v) => _patchParameters({'start_date': v});
 
   void setReportEndDate(String v) => _patchParameters({'end_date': v});
 
@@ -156,20 +152,16 @@ class ScheduleEditViewModel extends GenericEditViewModel<Schedule> {
   void setReportIsIncomeBilled(bool v) =>
       _patchParameters({'is_income_billed': v});
 
-  void setReportIncludeTax(bool v) =>
-      _patchParameters({'include_tax': v});
+  void setReportIncludeTax(bool v) => _patchParameters({'include_tax': v});
 
   void setReportIncludeDeleted(bool v) =>
       _patchParameters({'include_deleted': v});
 
-  void setReportProductKey(String v) =>
-      _patchParameters({'product_key': v});
+  void setReportProductKey(String v) => _patchParameters({'product_key': v});
 
-  void setReportClientId(String v) =>
-      _patchParameters({'client_id': v});
+  void setReportClientId(String v) => _patchParameters({'client_id': v});
 
-  void setReportClients(List<String> ids) =>
-      _patchParameters({'clients': ids});
+  void setReportClients(List<String> ids) => _patchParameters({'clients': ids});
 
   void setReportVendorsCsv(List<String> ids) =>
       _patchParameters({'vendors': ids.join(',')});
@@ -180,8 +172,7 @@ class ScheduleEditViewModel extends GenericEditViewModel<Schedule> {
   void setReportCategoriesCsv(List<String> ids) =>
       _patchParameters({'categories': ids.join(',')});
 
-  void setReportTemplateId(String v) =>
-      _patchParameters({'template_id': v});
+  void setReportTemplateId(String v) => _patchParameters({'template_id': v});
 
   void setReportGroupBy(String v) => _patchParameters({'group_by': v});
 
@@ -190,8 +181,7 @@ class ScheduleEditViewModel extends GenericEditViewModel<Schedule> {
   void setPaymentScheduleInvoiceId(String v) =>
       _patchParameters({'invoice_id': v});
 
-  void setPaymentScheduleAutoBill(bool v) =>
-      _patchParameters({'auto_bill': v});
+  void setPaymentScheduleAutoBill(bool v) => _patchParameters({'auto_bill': v});
 
   void setPaymentScheduleRows(List<ScheduleParamsRow> rows) {
     _patchParameters({

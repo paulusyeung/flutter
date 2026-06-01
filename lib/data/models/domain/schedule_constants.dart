@@ -75,14 +75,15 @@ const Map<String, List<String>> kEmailRecordTemplatesPerEntity =
         'custom2',
         'custom3',
       ],
-      'quote': <String>['initial', 'reminder1', 'custom1', 'custom2', 'custom3'],
-      'credit': <String>['initial', 'custom1', 'custom2', 'custom3'],
-      'purchase_order': <String>[
+      'quote': <String>[
         'initial',
+        'reminder1',
         'custom1',
         'custom2',
         'custom3',
       ],
+      'credit': <String>['initial', 'custom1', 'custom2', 'custom3'],
+      'purchase_order': <String>['initial', 'custom1', 'custom2', 'custom3'],
     };
 
 // ---------- email_report ----------

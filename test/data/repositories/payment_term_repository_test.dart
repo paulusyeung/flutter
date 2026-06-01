@@ -214,40 +214,37 @@ void main() {
       },
     );
 
-    test(
-      'delta applyBundle advances the cursor on a strictly greater '
-      'updatedAt without claiming a full sync',
-      () async {
-        final repo = makeRepo();
-        await repo.applyBundle(
-          companyId: 'co',
-          bundle: const [
-            PaymentTermApi(id: 'pt_a', name: 'A', numDays: 7, updatedAt: 200),
-          ],
-        );
-        final afterFull = await db.syncStateDao.read(
-          companyId: 'co',
-          entityType: 'payment_term',
-        );
+    test('delta applyBundle advances the cursor on a strictly greater '
+        'updatedAt without claiming a full sync', () async {
+      final repo = makeRepo();
+      await repo.applyBundle(
+        companyId: 'co',
+        bundle: const [
+          PaymentTermApi(id: 'pt_a', name: 'A', numDays: 7, updatedAt: 200),
+        ],
+      );
+      final afterFull = await db.syncStateDao.read(
+        companyId: 'co',
+        entityType: 'payment_term',
+      );
 
-        await repo.applyBundle(
-          companyId: 'co',
-          fullSync: false,
-          bundle: const [
-            PaymentTermApi(id: 'pt_z', name: 'Z', numDays: 9, updatedAt: 999),
-          ],
-        );
-        final afterDelta = await db.syncStateDao.read(
-          companyId: 'co',
-          entityType: 'payment_term',
-        );
-        // Forward move is legitimate (server's updated_at window is complete).
-        expect(afterDelta.updatedAt, 999);
-        expect(afterDelta.id, 'pt_z');
-        // But it must NOT be recorded as a full snapshot.
-        expect(afterDelta.lastFullAt, afterFull.lastFullAt);
-      },
-    );
+      await repo.applyBundle(
+        companyId: 'co',
+        fullSync: false,
+        bundle: const [
+          PaymentTermApi(id: 'pt_z', name: 'Z', numDays: 9, updatedAt: 999),
+        ],
+      );
+      final afterDelta = await db.syncStateDao.read(
+        companyId: 'co',
+        entityType: 'payment_term',
+      );
+      // Forward move is legitimate (server's updated_at window is complete).
+      expect(afterDelta.updatedAt, 999);
+      expect(afterDelta.id, 'pt_z');
+      // But it must NOT be recorded as a full snapshot.
+      expect(afterDelta.lastFullAt, afterFull.lastFullAt);
+    });
 
     test('applyBundle preserves the local payload of an is_dirty row '
         'so an offline edit is not clobbered by a re-bundle', () async {

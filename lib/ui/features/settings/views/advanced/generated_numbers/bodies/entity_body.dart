@@ -17,8 +17,7 @@ import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
 /// PHP date-format reference linked from the entity tabs. The variable
 /// `{\$date:<format>}` uses PHP's `date()` syntax server-side.
-const _kPhpDateFormatsUrl =
-    'https://www.php.net/manual/en/datetime.format.php';
+const _kPhpDateFormatsUrl = 'https://www.php.net/manual/en/datetime.format.php';
 
 /// Body reused for every per-entity tab on the Generated Numbers settings
 /// page. Renders one [FormSection] with:
@@ -89,9 +88,8 @@ class GeneratedNumbersEntityBody extends StatelessWidget {
               child: LinkText(
                 label: context.tr('view_date_formats'),
                 color: context.inTheme.accent,
-                onTap: () => unawaited(
-                  launchUrl(Uri.parse(_kPhpDateFormatsUrl)),
-                ),
+                onTap: () =>
+                    unawaited(launchUrl(Uri.parse(_kPhpDateFormatsUrl))),
               ),
             ),
           ],
@@ -296,4 +294,3 @@ class _TokenSpec {
   final String token;
   final String labelKey;
 }
-

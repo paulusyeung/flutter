@@ -41,8 +41,7 @@ class PaymentLinkOverviewTab extends StatelessWidget {
             _GroupPicker(vm: vm, services: services),
             // Purchase Page is server-computed — read-only and only
             // meaningful on edit. Hide on Create.
-            if (!vm.isCreate)
-              _PurchasePageReadOnly(url: vm.draft.purchasePage),
+            if (!vm.isCreate) _PurchasePageReadOnly(url: vm.draft.purchasePage),
           ],
         ),
         FormSection(
@@ -98,13 +97,13 @@ class _GroupPicker extends StatelessWidget {
       stream: services.groupSettings.watchAll(companyId: vm.companyId),
       builder: (context, snapshot) {
         final all = snapshot.data ?? const <GroupSetting>[];
-        final active = all
-            .where((g) => g.archivedAt == null && !g.isDeleted)
-            .toList(growable: false)
-          ..sort(
-            (a, b) =>
-                a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-          );
+        final active =
+            all
+                .where((g) => g.archivedAt == null && !g.isDeleted)
+                .toList(growable: false)
+              ..sort(
+                (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+              );
         final selected = vm.draft.groupId.isEmpty
             ? null
             : active
@@ -156,14 +155,15 @@ class _ProductSection extends StatelessWidget {
       ),
       builder: (context, snapshot) {
         final all = snapshot.data ?? const <Product>[];
-        final available = all
-            .where((p) => p.archivedAt == null && !p.isDeleted)
-            .toList(growable: false)
-          ..sort(
-            (a, b) => a.productKey
-                .toLowerCase()
-                .compareTo(b.productKey.toLowerCase()),
-          );
+        final available =
+            all
+                .where((p) => p.archivedAt == null && !p.isDeleted)
+                .toList(growable: false)
+              ..sort(
+                (a, b) => a.productKey.toLowerCase().compareTo(
+                  b.productKey.toLowerCase(),
+                ),
+              );
         return MultiProductPicker(
           labelKey: labelKey,
           value: ids,

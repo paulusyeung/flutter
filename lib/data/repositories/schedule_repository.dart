@@ -247,8 +247,7 @@ class ScheduleRepository extends BaseEntityRepository<Schedule, ScheduleApi> {
     realId: serverResponse.id,
     companion: _apiToCompanion(serverResponse, companyId),
     upsert: db.scheduleDao.upsert,
-    deleteById: (id) =>
-        db.scheduleDao.deleteById(companyId: companyId, id: id),
+    deleteById: (id) => db.scheduleDao.deleteById(companyId: companyId, id: id),
   );
 
   @override
@@ -288,9 +287,7 @@ class ScheduleRepository extends BaseEntityRepository<Schedule, ScheduleApi> {
       isPaused: Value(a.isPaused),
       updatedAt: a.updatedAt,
       createdAt: Value(a.createdAt),
-      archivedAt: a.archivedAt > 0
-          ? Value(a.archivedAt)
-          : const Value.absent(),
+      archivedAt: a.archivedAt > 0 ? Value(a.archivedAt) : const Value.absent(),
       isDirty: const Value(false),
       isDeleted: Value(a.isDeleted),
       payload: jsonEncode(a.toJson()),
@@ -339,9 +336,7 @@ class ScheduleRepository extends BaseEntityRepository<Schedule, ScheduleApi> {
       // Force the parameters map back to a plain Map so the JSON decoder
       // doesn't trip on nested LinkedHashMap edge cases.
       if (payload['parameters'] is Map)
-        'parameters': Map<String, dynamic>.from(
-          payload['parameters'] as Map,
-        ),
+        'parameters': Map<String, dynamic>.from(payload['parameters'] as Map),
     };
   }
 }

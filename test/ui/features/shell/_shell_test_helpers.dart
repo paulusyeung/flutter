@@ -30,8 +30,9 @@ import 'package:provider/provider.dart';
 /// after the widget tree was disposed". Failing fast completes those futures
 /// synchronously (no pending Timer) and hands the precheck flush the
 /// `NetworkException` it expects (`ApiClient` maps any client error to it).
-http.Client _failFastClient() =>
-    MockClient((_) async => throw http.ClientException('offline (test fixture)'));
+http.Client _failFastClient() => MockClient(
+  (_) async => throw http.ClientException('offline (test fixture)'),
+);
 
 class FakeCompany {
   const FakeCompany({

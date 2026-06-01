@@ -91,10 +91,7 @@ class _RemindRow extends StatelessWidget {
               style: TextStyle(color: tokens.ink, fontSize: 13),
             ),
           ),
-          Text(
-            dateText,
-            style: TextStyle(color: tokens.ink3, fontSize: 13),
-          ),
+          Text(dateText, style: TextStyle(color: tokens.ink3, fontSize: 13)),
         ],
       ),
     );

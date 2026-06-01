@@ -199,40 +199,37 @@ void main() {
     return vm;
   }
 
-  test(
-    'an unrelated nav_state write (route) does not clear a freshly '
-    'applied deep-link intent',
-    () async {
-      // Long persist debounce so the intent stays only in memory.
-      final vm = await makeSeededVm(filtersJson: baselineJson);
+  test('an unrelated nav_state write (route) does not clear a freshly '
+      'applied deep-link intent', () async {
+    // Long persist debounce so the intent stays only in memory.
+    final vm = await makeSeededVm(filtersJson: baselineJson);
 
-      await vm.applyDeepLinkIntent(
-        ListFilterIntent(
-          extraFilters: const {
-            'overdue': {'true'},
-          },
-          token: 'navt1',
-        ),
-      );
-      expect(vm.extraFilters['overdue'], {'true'});
+    await vm.applyDeepLinkIntent(
+      ListFilterIntent(
+        extraFilters: const {
+          'overdue': {'true'},
+        },
+        token: 'navt1',
+      ),
+    );
+    expect(vm.extraFilters['overdue'], {'true'});
 
-      // Route persister touches the SAME nav_state row → watchCurrent
-      // re-emits with the still-old filters_json slot.
-      await db.navStateDao.saveRoute(
-        route: '/invoices',
-        now: DateTime.now().millisecondsSinceEpoch,
-      );
-      for (var i = 0; i < 5; i++) {
-        await Future<void>.delayed(Duration.zero);
-      }
+    // Route persister touches the SAME nav_state row → watchCurrent
+    // re-emits with the still-old filters_json slot.
+    await db.navStateDao.saveRoute(
+      route: '/invoices',
+      now: DateTime.now().millisecondsSinceEpoch,
+    );
+    for (var i = 0; i < 5; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
 
-      // The intent must survive (bug: it was reset to the stale slot).
-      expect(vm.extraFilters['overdue'], {'true'});
-      expect(vm.states, {EntityState.active});
+    // The intent must survive (bug: it was reset to the stale slot).
+    expect(vm.extraFilters['overdue'], {'true'});
+    expect(vm.states, {EntityState.active});
 
-      vm.dispose();
-    },
-  );
+    vm.dispose();
+  });
 
   test(
     'a genuine external slot change (saved-view apply) still re-hydrates',

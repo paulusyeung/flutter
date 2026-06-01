@@ -373,10 +373,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     if (!key.singleValue) {
       unawaited(key.removeValue(widget.vm, raw));
     }
-    _controller.selectKey(
-      key,
-      initialValueText: key.editableValueText(raw),
-    );
+    _controller.selectKey(key, initialValueText: key.editableValueText(raw));
     _showOverlay();
   }
 
@@ -704,7 +701,8 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                           if (k is! ComparableFilterKey) {
                             return (Rect r) => _onChipTap(c, r);
                           }
-                          final isWindow = k is DateColumnFilterKey &&
+                          final isWindow =
+                              k is DateColumnFilterKey &&
                               k.isWindowWire(c.rawValues.single);
                           if (isWindow) {
                             return (Rect r) =>
@@ -722,8 +720,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                         // changeOp / addValue — never writes text into
                         // the search field).
                         onComparatorTap: c.key.supportedOps.isNotEmpty
-                            ? (r) =>
-                                  _openSegment(c, SegmentKind.comparator, r)
+                            ? (r) => _openSegment(c, SegmentKind.comparator, r)
                             : null,
                         onValueTap: c.key.supportedOps.isNotEmpty
                             ? (r) => _openSegment(c, SegmentKind.value, r)
@@ -849,14 +846,14 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
 
   /// Other comparable keys of the same [FilterValueType] this chip can
   /// switch its field to (includes [current], rendered check-marked).
-  List<ComparableFilterKey> _fieldSwitchCandidates(ComparableFilterKey current) =>
-      widget.filterKeys
-          .whereType<ComparableFilterKey>()
-          .where(
-            (k) =>
-                k.valueType == current.valueType && k.isAvailable(widget.vm),
-          )
-          .toList();
+  List<ComparableFilterKey> _fieldSwitchCandidates(
+    ComparableFilterKey current,
+  ) => widget.filterKeys
+      .whereType<ComparableFilterKey>()
+      .where(
+        (k) => k.valueType == current.valueType && k.isAvailable(widget.vm),
+      )
+      .toList();
 
   /// Builds the per-segment dropdown, anchored just below the tapped
   /// segment's global rect (converted to the hosting Overlay's local

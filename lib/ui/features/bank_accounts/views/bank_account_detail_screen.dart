@@ -82,8 +82,7 @@ class _BankAccountDetailScreenState extends State<BankAccountDetailScreen> {
           vm: _vm,
           emptyIcon: Icons.account_balance_outlined,
           emptyTitle: context.tr('bank_account_not_found'),
-          actionsForItem: (context, account) =>
-              _ActionsRow(account: account),
+          actionsForItem: (context, account) => _ActionsRow(account: account),
           bodyBuilder: (context, account) {
             return SingleChildScrollView(
               controller: DetailScrollScope.maybeOf(context),
@@ -123,8 +122,9 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final displayName =
-        account.name.trim().isEmpty ? context.tr('untitled') : account.name;
+    final displayName = account.name.trim().isEmpty
+        ? context.tr('untitled')
+        : account.name;
     final balanceText = _formatBalance();
     return Container(
       padding: EdgeInsets.all(InSpacing.lg(context)),
@@ -227,10 +227,7 @@ class _Header extends StatelessWidget {
         }
       }
     }
-    final formatted = formatter!.money(
-      account.balance,
-      currencyId: resolvedId,
-    );
+    final formatted = formatter!.money(account.balance, currencyId: resolvedId);
     if (formatted.isNotEmpty) return formatted;
     final prefix = account.currency.isEmpty ? '' : '${account.currency} ';
     return '$prefix${account.balance}';
@@ -248,10 +245,7 @@ class _RecentTransactionsSection extends StatelessWidget {
     // `embedded: true`: it renders its own slim toolbar (filter + New)
     // and grows with the detail page (single scrollbar, no card chrome) —
     // consistent with the client/vendor related-entity tabs.
-    return TransactionListScreen(
-      bankAccountId: bankAccountId,
-      embedded: true,
-    );
+    return TransactionListScreen(bankAccountId: bankAccountId, embedded: true);
   }
 }
 
@@ -266,14 +260,12 @@ class _ActionsRow extends StatelessWidget {
       mainAxisSize: MainAxisSize.max,
       children: [
         TextButton.icon(
-          style: TextButton.styleFrom(
-            minimumSize: const Size(64, 40),
-          ),
+          style: TextButton.styleFrom(minimumSize: const Size(64, 40)),
           icon: const Icon(Icons.edit_outlined, size: 18),
           label: Text(context.tr('edit')),
-          onPressed: () => GoRouter.of(context).go(
-            '/settings/bank_accounts/${account.id}/edit',
-          ),
+          onPressed: () => GoRouter.of(
+            context,
+          ).go('/settings/bank_accounts/${account.id}/edit'),
         ),
       ],
     );

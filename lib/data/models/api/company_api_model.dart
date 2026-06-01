@@ -99,9 +99,7 @@ abstract class CompanyApi with _$CompanyApi {
     // invent values; `Company.fromApi` always overlays whatever the wire
     // sent.
     @JsonKey(name: 'track_inventory') @Default(false) bool trackInventory,
-    @JsonKey(name: 'stock_notification')
-    @Default(false)
-    bool stockNotification,
+    @JsonKey(name: 'stock_notification') @Default(false) bool stockNotification,
     @JsonKey(name: 'inventory_notification_threshold')
     @Default(0)
     int inventoryNotificationThreshold,

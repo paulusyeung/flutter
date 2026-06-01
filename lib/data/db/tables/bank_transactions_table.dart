@@ -61,13 +61,11 @@ class BankTransactions extends Table
   /// Provider's transaction id (int) cast to text.
   TextColumn get transactionId =>
       text().named('transaction_id').withDefault(const Constant(''))();
-  TextColumn get transactionRuleId => text()
-      .named('transaction_rule_id')
-      .withDefault(const Constant(''))();
+  TextColumn get transactionRuleId =>
+      text().named('transaction_rule_id').withDefault(const Constant(''))();
 
-  TextColumn get participantName => text()
-      .named('participant_name')
-      .withDefault(const Constant(''))();
+  TextColumn get participantName =>
+      text().named('participant_name').withDefault(const Constant(''))();
   TextColumn get participant =>
       text().named('participant').withDefault(const Constant(''))();
 

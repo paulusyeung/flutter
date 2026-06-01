@@ -25,8 +25,7 @@ import 'package:go_router/go_router.dart';
 import '../../../_localization_helper.dart';
 
 void main() {
-  Widget stub(String label) =>
-      Scaffold(body: Center(child: Text(label)));
+  Widget stub(String label) => Scaffold(body: Center(child: Text(label)));
 
   // Last `state.extra` observed by the edit builder. Each `pumpApp` resets it.
   // Used by the extras-preservation tests to assert that the auto-promote
@@ -136,37 +135,33 @@ void main() {
     },
   );
 
-  testWidgets(
-    'full-default entity: detail stays slide-over (no ?view=full)',
-    (tester) async {
-      final router = await pumpApp(tester);
+  testWidgets('full-default entity: detail stays slide-over (no ?view=full)', (
+    tester,
+  ) async {
+    final router = await pumpApp(tester);
 
-      router.go('/things/1');
-      await tester.pumpAndSettle();
-      expect(currentUri(router), '/things/1');
-    },
-  );
+    router.go('/things/1');
+    await tester.pumpAndSettle();
+    expect(currentUri(router), '/things/1');
+  });
 
-  testWidgets(
-    'slide-over-default entity (/products): edit is never promoted, '
-    'on first or subsequent opens',
-    (tester) async {
-      final router = await pumpApp(tester);
+  testWidgets('slide-over-default entity (/products): edit is never promoted, '
+      'on first or subsequent opens', (tester) async {
+    final router = await pumpApp(tester);
 
-      router.go('/products');
-      await tester.pumpAndSettle();
+    router.go('/products');
+    await tester.pumpAndSettle();
 
-      router.go('/products/1/edit');
-      await tester.pumpAndSettle();
-      expect(currentUri(router), '/products/1/edit');
+    router.go('/products/1/edit');
+    await tester.pumpAndSettle();
+    expect(currentUri(router), '/products/1/edit');
 
-      router.go('/products');
-      await tester.pumpAndSettle();
-      router.go('/products/1/edit');
-      await tester.pumpAndSettle();
-      expect(currentUri(router), '/products/1/edit');
-    },
-  );
+    router.go('/products');
+    await tester.pumpAndSettle();
+    router.go('/products/1/edit');
+    await tester.pumpAndSettle();
+    expect(currentUri(router), '/products/1/edit');
+  });
 
   // Regression guards for the seed-extra propagation through the auto-promote
   // redirect (`_toggleFullScreenInUrl`) — every cross-entity / clone "new X"
@@ -215,31 +210,30 @@ void main() {
     },
   );
 
-  testWidgets(
-    'F-key toggle to slide does not infinite-re-promote',
-    (tester) async {
-      final router = await pumpApp(tester);
+  testWidgets('F-key toggle to slide does not infinite-re-promote', (
+    tester,
+  ) async {
+    final router = await pumpApp(tester);
 
-      router.go('/things/1/edit');
-      await tester.pumpAndSettle();
-      expect(currentUri(router), '/things/1/edit?view=full');
+    router.go('/things/1/edit');
+    await tester.pumpAndSettle();
+    expect(currentUri(router), '/things/1/edit?view=full');
 
-      // User explicitly de-promotes via F. The dedup `_lastRedirectKey` must
-      // keep the auto-promote from re-firing on the rebuilt slide-mode URL,
-      // or the user would be fighting the layout to leave full-screen.
-      await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
-      await tester.pumpAndSettle();
-      expect(currentUri(router), '/things/1/edit');
+    // User explicitly de-promotes via F. The dedup `_lastRedirectKey` must
+    // keep the auto-promote from re-firing on the rebuilt slide-mode URL,
+    // or the user would be fighting the layout to leave full-screen.
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+    await tester.pumpAndSettle();
+    expect(currentUri(router), '/things/1/edit');
 
-      // A few extra frames in case any addPostFrameCallback is scheduled.
-      for (var i = 0; i < 4; i++) {
-        await tester.pump();
-      }
-      expect(
-        currentUri(router),
-        '/things/1/edit',
-        reason: 'auto-promote must not re-fire after a user-initiated F-toggle',
-      );
-    },
-  );
+    // A few extra frames in case any addPostFrameCallback is scheduled.
+    for (var i = 0; i < 4; i++) {
+      await tester.pump();
+    }
+    expect(
+      currentUri(router),
+      '/things/1/edit',
+      reason: 'auto-promote must not re-fire after a user-initiated F-toggle',
+    );
+  });
 }

@@ -56,9 +56,7 @@ EntityType? entityTypeForSearchGroup(String group) {
 /// `keyboard_shortcuts_dialog.dart` version is `@visibleForTesting`.
 String _mod() {
   final p = defaultTargetPlatform;
-  return (p == TargetPlatform.macOS || p == TargetPlatform.iOS)
-      ? '⌘'
-      : 'Ctrl';
+  return (p == TargetPlatform.macOS || p == TargetPlatform.iOS) ? '⌘' : 'Ctrl';
 }
 
 /// Cmd/Ctrl+K global command palette. Server-backed search
@@ -90,8 +88,7 @@ Future<void> showCommandPalette(BuildContext context) {
               filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: tokens.surface
-                      .withValues(alpha: isDark ? 0.86 : 0.92),
+                  color: tokens.surface.withValues(alpha: isDark ? 0.86 : 0.92),
                   border: Border.all(
                     color: tokens.border.withValues(alpha: 0.6),
                   ),
@@ -245,8 +242,8 @@ class _CommandPaletteState extends State<_CommandPalette> {
       bindings: {
         const SingleActivator(LogicalKeyboardKey.arrowDown): () => _move(1),
         const SingleActivator(LogicalKeyboardKey.arrowUp): () => _move(-1),
-        const SingleActivator(LogicalKeyboardKey.escape):
-            () => Navigator.of(context).pop(),
+        const SingleActivator(LogicalKeyboardKey.escape): () =>
+            Navigator.of(context).pop(),
       },
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -289,8 +286,10 @@ class _CommandPaletteState extends State<_CommandPalette> {
                   ],
                 ),
               ),
-              suffixIconConstraints:
-                  const BoxConstraints(minWidth: 0, minHeight: 0),
+              suffixIconConstraints: const BoxConstraints(
+                minWidth: 0,
+                minHeight: 0,
+              ),
               filled: false,
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
@@ -299,15 +298,14 @@ class _CommandPaletteState extends State<_CommandPalette> {
               errorBorder: InputBorder.none,
               focusedErrorBorder: InputBorder.none,
               isDense: false,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 20,
+              ),
             ),
           ),
           if (!resting) ...[
-            Container(
-              height: 1,
-              color: tokens.border.withValues(alpha: 0.6),
-            ),
+            Container(height: 1, color: tokens.border.withValues(alpha: 0.6)),
             SizedBox(
               height: 2,
               child: _loading
@@ -325,8 +323,7 @@ class _CommandPaletteState extends State<_CommandPalette> {
                         final item = items[idx];
                         if (item is String) {
                           return Padding(
-                            padding:
-                                const EdgeInsets.fromLTRB(20, 14, 20, 6),
+                            padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
                             child: Text(
                               context.tr(item),
                               style: TextStyle(
@@ -342,7 +339,8 @@ class _CommandPaletteState extends State<_CommandPalette> {
                         final r = _results[i];
                         final sel = i == _selected;
                         final type = entityTypeForSearchGroup(r.group);
-                        final icon = (type != null
+                        final icon =
+                            (type != null
                                 ? registry[type]?.effectiveOutlinedIcon
                                 : null) ??
                             Icons.settings_outlined;
@@ -373,8 +371,9 @@ class _CommandPaletteState extends State<_CommandPalette> {
                                     color: sel
                                         ? tokens.accentSoft
                                         : Colors.transparent,
-                                    borderRadius:
-                                        BorderRadius.circular(InRadii.r2),
+                                    borderRadius: BorderRadius.circular(
+                                      InRadii.r2,
+                                    ),
                                   ),
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
@@ -390,14 +389,12 @@ class _CommandPaletteState extends State<_CommandPalette> {
                                               ? tokens.accentInk
                                               : tokens.ink2,
                                         ),
-                                        SizedBox(
-                                            width: InSpacing.md(context)),
+                                        SizedBox(width: InSpacing.md(context)),
                                         Expanded(
                                           child: Text(
                                             r.name,
                                             maxLines: 1,
-                                            overflow:
-                                                TextOverflow.ellipsis,
+                                            overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
                                               fontSize: 15,
                                               fontWeight: FontWeight.w600,
@@ -428,13 +425,9 @@ class _CommandPaletteState extends State<_CommandPalette> {
                       ),
                     ),
             ),
-            Container(
-              height: 1,
-              color: tokens.border.withValues(alpha: 0.6),
-            ),
+            Container(height: 1, color: tokens.border.withValues(alpha: 0.6)),
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: DefaultTextStyle(
                 style: TextStyle(fontSize: 11, color: tokens.ink3),
                 child: const Row(
@@ -450,10 +443,7 @@ class _CommandPaletteState extends State<_CommandPalette> {
             ),
           ],
           if (showRecent) ...[
-            Container(
-              height: 1,
-              color: tokens.border.withValues(alpha: 0.6),
-            ),
+            Container(height: 1, color: tokens.border.withValues(alpha: 0.6)),
             Flexible(
               child: ListView(
                 controller: _scrollController,
@@ -479,7 +469,7 @@ class _CommandPaletteState extends State<_CommandPalette> {
                         final sel = i == _selected;
                         final icon =
                             registry[r.type]?.effectiveOutlinedIcon ??
-                                Icons.history;
+                            Icons.history;
                         return MouseRegion(
                           onEnter: (_) {
                             if (_selected != i) {
@@ -507,8 +497,9 @@ class _CommandPaletteState extends State<_CommandPalette> {
                                     color: sel
                                         ? tokens.accentSoft
                                         : Colors.transparent,
-                                    borderRadius:
-                                        BorderRadius.circular(InRadii.r2),
+                                    borderRadius: BorderRadius.circular(
+                                      InRadii.r2,
+                                    ),
                                   ),
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
@@ -524,8 +515,7 @@ class _CommandPaletteState extends State<_CommandPalette> {
                                               ? tokens.accentInk
                                               : tokens.ink2,
                                         ),
-                                        SizedBox(
-                                            width: InSpacing.md(context)),
+                                        SizedBox(width: InSpacing.md(context)),
                                         Expanded(
                                           child: Text(
                                             r.label,
@@ -551,13 +541,9 @@ class _CommandPaletteState extends State<_CommandPalette> {
                 ],
               ),
             ),
-            Container(
-              height: 1,
-              color: tokens.border.withValues(alpha: 0.6),
-            ),
+            Container(height: 1, color: tokens.border.withValues(alpha: 0.6)),
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: DefaultTextStyle(
                 style: TextStyle(fontSize: 11, color: tokens.ink3),
                 child: const Row(

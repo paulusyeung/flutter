@@ -307,8 +307,7 @@ class _EmailSheetState extends State<_EmailSheet> {
                           // owns the toast (R2 fix). Firing Notify here would
                           // use a popped context AND lie about queued state
                           // before the repository call had actually run.
-                          onPressed: () =>
-                              Navigator.of(context).pop(_build()),
+                          onPressed: () => Navigator.of(context).pop(_build()),
                         ),
                       ],
                     ),

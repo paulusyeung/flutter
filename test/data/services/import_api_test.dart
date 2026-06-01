@@ -57,57 +57,59 @@ void main() {
     });
 
     test('empty when entity not in mappings', () {
-      final p = ImportPreview.fromJson(
-        {'hash': 'h', 'mappings': <String, dynamic>{}},
-        'task',
-      );
+      final p = ImportPreview.fromJson({
+        'hash': 'h',
+        'mappings': <String, dynamic>{},
+      }, 'task');
       expect(p.columns, isEmpty);
       expect(p.available, isEmpty);
     });
   });
 
   group('ImportApi', () {
-    test('preImport POSTs to /api/v1/preimport and parses the response',
-        () async {
-      String? hitPath;
-      final fake = MockClient((req) async {
-        hitPath = req.url.path;
-        return http.Response(
-          jsonEncode({
-            'hash': 'abc',
-            'mappings': {
-              'client': {
-                'headers': [
-                  ['Name'],
-                  ['Acme'],
-                ],
-                'available': ['client.name'],
-                'hints': [0],
+    test(
+      'preImport POSTs to /api/v1/preimport and parses the response',
+      () async {
+        String? hitPath;
+        final fake = MockClient((req) async {
+          hitPath = req.url.path;
+          return http.Response(
+            jsonEncode({
+              'hash': 'abc',
+              'mappings': {
+                'client': {
+                  'headers': [
+                    ['Name'],
+                    ['Acme'],
+                  ],
+                  'available': ['client.name'],
+                  'hints': [0],
+                },
               },
-            },
-          }),
-          200,
-          headers: const {'content-type': 'application/json'},
+            }),
+            200,
+            headers: const {'content-type': 'application/json'},
+          );
+        });
+        final client = ApiClient(
+          credentials: _creds(),
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fake,
         );
-      });
-      final client = ApiClient(
-        credentials: _creds(),
-        passwordCache: PasswordCache(),
-        onUnauthorized: () async {},
-        httpClient: fake,
-      );
-      final api = ImportApi(client);
+        final api = ImportApi(client);
 
-      final preview = await api.preImport(
-        entity: 'client',
-        fileName: 'c.csv',
-        bytes: Uint8List.fromList(utf8.encode('Name\nAcme')),
-      );
+        final preview = await api.preImport(
+          entity: 'client',
+          fileName: 'c.csv',
+          bytes: Uint8List.fromList(utf8.encode('Name\nAcme')),
+        );
 
-      expect(hitPath, '/api/v1/preimport');
-      expect(preview.hash, 'abc');
-      expect(preview.available, ['client.name']);
-    });
+        expect(hitPath, '/api/v1/preimport');
+        expect(preview.hash, 'abc');
+        expect(preview.available, ['client.name']);
+      },
+    );
 
     test('runImport posts the column_map JSON shape', () async {
       Map<String, dynamic>? body;
@@ -141,8 +143,7 @@ void main() {
       expect(body!['hash'], 'abc');
       expect(body!['import_type'], 'client');
       expect(body!['skip_header'], true);
-      final mapping =
-          (body!['column_map'] as Map)['client']['mapping'] as Map;
+      final mapping = (body!['column_map'] as Map)['client']['mapping'] as Map;
       // Empty selections are dropped; keys are stringified indices.
       expect(mapping, {'0': 'client.name', '2': 'client.email'});
     });

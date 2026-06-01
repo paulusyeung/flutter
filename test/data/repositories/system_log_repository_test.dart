@@ -64,11 +64,13 @@ void main() {
   group('SystemLogRepository — happy path', () {
     test('refresh writes rows; watch emits them newest first', () async {
       final api = _FakeApi([
-        SystemLogListApi(data: [
-          row('older', createdAt: 1000),
-          row('newest', createdAt: 3000),
-          row('middle', createdAt: 2000),
-        ]),
+        SystemLogListApi(
+          data: [
+            row('older', createdAt: 1000),
+            row('newest', createdAt: 3000),
+            row('middle', createdAt: 2000),
+          ],
+        ),
       ]);
       final repo = SystemLogRepository(db: db, api: api);
 
@@ -89,12 +91,17 @@ void main() {
       final repo = SystemLogRepository(db: db, api: api);
 
       await repo.refresh('c1');
-      expect((await repo.watch('c1').first).map((r) => r.id).toSet(),
-          {'a', 'b', 'c'});
+      expect((await repo.watch('c1').first).map((r) => r.id).toSet(), {
+        'a',
+        'b',
+        'c',
+      });
 
       await repo.refresh('c1');
-      expect((await repo.watch('c1').first).map((r) => r.id).toSet(),
-          {'a', 'c'});
+      expect((await repo.watch('c1').first).map((r) => r.id).toSet(), {
+        'a',
+        'c',
+      });
     });
 
     test('lastFetchedAt persists after a 0-row refresh', () async {
@@ -114,7 +121,9 @@ void main() {
 
     test('lastFetchedAt advances after refresh', () async {
       var now = DateTime.utc(2026, 5, 15, 12, 0, 0);
-      final api = _FakeApi([SystemLogListApi(data: [row('a')])]);
+      final api = _FakeApi([
+        SystemLogListApi(data: [row('a')]),
+      ]);
       final repo = SystemLogRepository(db: db, api: api, now: () => now);
 
       expect(await repo.lastFetchedAt('c1'), isNull);
@@ -132,7 +141,9 @@ void main() {
     });
 
     test('rows are scoped per company', () async {
-      final api1 = _FakeApi([SystemLogListApi(data: [row('x')])]);
+      final api1 = _FakeApi([
+        SystemLogListApi(data: [row('x')]),
+      ]);
       final repo = SystemLogRepository(db: db, api: api1);
       await repo.refresh('c1');
 

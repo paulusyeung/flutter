@@ -81,8 +81,7 @@ class ClientPortalScreen extends StatelessWidget {
     // Only dim at company scope. At group/client scope the override checkbox
     // is the user's escape hatch — hiding it behind IgnorePointer would
     // strand them with no way to flip the local override.
-    final dimDependents =
-        !portalEnabled && level == SettingsLevel.company;
+    final dimDependents = !portalEnabled && level == SettingsLevel.company;
 
     final masterSection = FormSection(
       title: context.tr('portal_features'),
@@ -135,9 +134,7 @@ class ClientPortalScreen extends StatelessWidget {
           OverridableSwitchField(
             label: context.tr('accept_purchase_order_number'),
             apiKey: 'accept_client_input_quote_approval',
-            subtitle: context.trIfDefined(
-              'accept_purchase_order_number_help',
-            ),
+            subtitle: context.trIfDefined('accept_purchase_order_number_help'),
           ),
       ],
     );
@@ -238,7 +235,8 @@ class _PortalConfigurationSectionState
         widget.isHosted && portalMode == kClientPortalModeSubdomain;
     final showDomain =
         !widget.isHosted || portalMode == kClientPortalModeDomain;
-    final showViewDocs = widget.isHosted &&
+    final showViewDocs =
+        widget.isHosted &&
         portalMode == kClientPortalModeDomain &&
         widget.isEnterprisePlan;
     final loginUrl = _loginUrl(
@@ -273,9 +271,8 @@ class _PortalConfigurationSectionState
               ),
             ],
             onChanged: widget.isEnterprisePlan
-                ? (v) => host.updateCompany(
-                    (c) => c.copyWith(portalMode: v ?? ''),
-                  )
+                ? (v) =>
+                      host.updateCompany((c) => c.copyWith(portalMode: v ?? ''))
                 : null,
           ),
           SizedBox(height: InSpacing.md(context)),

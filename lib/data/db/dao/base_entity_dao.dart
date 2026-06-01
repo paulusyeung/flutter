@@ -108,10 +108,7 @@ abstract class BaseEntityDao<TableT extends Table, RowT>
     await upsertAll(filtered);
   }
 
-  Future<Set<String>> _dirtyIdsAmong(
-    String companyId,
-    List<String> ids,
-  ) async {
+  Future<Set<String>> _dirtyIdsAmong(String companyId, List<String> ids) async {
     if (ids.isEmpty) return const {};
     final q = selectOnly(table)
       ..addColumns([idColumn])

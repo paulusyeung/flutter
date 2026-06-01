@@ -9,10 +9,7 @@ void main() {
       return tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: SizedBox(
-              width: 600,
-              child: LabeledSwitchGroup(items: items),
-            ),
+            body: SizedBox(width: 600, child: LabeledSwitchGroup(items: items)),
           ),
         ),
       );
@@ -20,7 +17,11 @@ void main() {
 
     testWidgets('renders a label and a switch per item', (tester) async {
       await pump(tester, [
-        LabeledSwitchItem(label: 'Add to Invoices', value: true, onChanged: (_) {}),
+        LabeledSwitchItem(
+          label: 'Add to Invoices',
+          value: true,
+          onChanged: (_) {},
+        ),
         LabeledSwitchItem(label: 'CC Only', value: false, onChanged: (_) {}),
       ]);
 
@@ -74,7 +75,10 @@ void main() {
         ),
       ]);
 
-      expect(tester.widget<Switch>(find.byType(Switch).at(0)).onChanged, isNull);
+      expect(
+        tester.widget<Switch>(find.byType(Switch).at(0)).onChanged,
+        isNull,
+      );
       await tester.tap(find.text('Add to Invoices'));
       await tester.pump();
       expect(fired, isFalse);
@@ -84,7 +88,11 @@ void main() {
       tester,
     ) async {
       await pump(tester, [
-        LabeledSwitchItem(label: 'A very long toggle label', value: true, onChanged: (_) {}),
+        LabeledSwitchItem(
+          label: 'A very long toggle label',
+          value: true,
+          onChanged: (_) {},
+        ),
         LabeledSwitchItem(label: 'Short', value: false, onChanged: (_) {}),
       ]);
 

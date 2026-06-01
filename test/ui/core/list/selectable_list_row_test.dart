@@ -119,25 +119,25 @@ void main() {
     // Mirrors the scaffold: ConstrainedBox(minHeight) around the row, and a
     // vertically-centered child whose intrinsic height is < the floor.
     Widget host(bool selected) => MaterialApp(
-          theme: buildInTheme(InTheme.light),
-          home: Scaffold(
-            body: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 72),
-              child: SelectableListRow(
-                selected: selected,
-                urlSelected: selected,
-                hideBottomDivider: true,
-                onTap: () {},
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: const [
-                    SizedBox(key: _childKey, height: 20, width: 100),
-                  ],
-                ),
-              ),
+      theme: buildInTheme(InTheme.light),
+      home: Scaffold(
+        body: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 72),
+          child: SelectableListRow(
+            selected: selected,
+            urlSelected: selected,
+            hideBottomDivider: true,
+            onTap: () {},
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: const [
+                SizedBox(key: _childKey, height: 20, width: 100),
+              ],
             ),
           ),
-        );
+        ),
+      ),
+    );
 
     await tester.pumpWidget(host(false));
     final unselected = tester.getTopLeft(find.byKey(_childKey));
@@ -148,8 +148,9 @@ void main() {
     expect(selectedPos, unselected); // same dx AND dy — no vertical jump
   });
 
-  testWidgets('not selected → bottom hairline + InkWell, no fill',
-      (tester) async {
+  testWidgets('not selected → bottom hairline + InkWell, no fill', (
+    tester,
+  ) async {
     await _pump(
       tester,
       selected: false,
@@ -173,8 +174,7 @@ void main() {
     );
   });
 
-  testWidgets('not selected + hideBottomDivider → no hairline',
-      (tester) async {
+  testWidgets('not selected + hideBottomDivider → no hairline', (tester) async {
     await _pump(
       tester,
       selected: false,
@@ -221,8 +221,9 @@ void main() {
     expect(longs, 1);
   });
 
-  testWidgets('RTL → accent marker is a directional start border',
-      (tester) async {
+  testWidgets('RTL → accent marker is a directional start border', (
+    tester,
+  ) async {
     await _pump(
       tester,
       selected: true,

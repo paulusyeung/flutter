@@ -73,33 +73,30 @@ void main() {
     expect(auth.refreshCalls, 2);
   });
 
-  test(
-    'a tick one full interval after the last refresh is NOT suppressed '
-    '(min-gap must stay below the cadence)',
-    () async {
-      // Regression guard: when kMinRefreshGap == kRefreshInterval the
-      // periodic timer self-suppressed every tick (gap measured from
-      // completion, timer scheduled from start). The invariant that prevents
-      // it: kMinRefreshGap < kRefreshInterval.
-      expect(
-        kMinRefreshGap,
-        lessThan(kRefreshInterval),
-        reason: 'min-gap must be shorter than the refresh cadence',
-      );
+  test('a tick one full interval after the last refresh is NOT suppressed '
+      '(min-gap must stay below the cadence)', () async {
+    // Regression guard: when kMinRefreshGap == kRefreshInterval the
+    // periodic timer self-suppressed every tick (gap measured from
+    // completion, timer scheduled from start). The invariant that prevents
+    // it: kMinRefreshGap < kRefreshInterval.
+    expect(
+      kMinRefreshGap,
+      lessThan(kRefreshInterval),
+      reason: 'min-gap must be shorter than the refresh cadence',
+    );
 
-      final auth = _FakeAuth();
-      final s = RefreshScheduler(auth: auth, now: now);
+    final auth = _FakeAuth();
+    final s = RefreshScheduler(auth: auth, now: now);
 
-      await s.triggerNow();
-      expect(auth.refreshCalls, 1);
+    await s.triggerNow();
+    expect(auth.refreshCalls, 1);
 
-      // The next periodic tick lands ~kRefreshInterval after the last
-      // refresh; it must fire, not be eaten by the min-gap.
-      clock = clock.add(kRefreshInterval);
-      await s.triggerNow();
-      expect(auth.refreshCalls, 2);
-    },
-  );
+    // The next periodic tick lands ~kRefreshInterval after the last
+    // refresh; it must fire, not be eaten by the min-gap.
+    clock = clock.add(kRefreshInterval);
+    await s.triggerNow();
+    expect(auth.refreshCalls, 2);
+  });
 
   test('single-flight: overlapping ticks collapse to one refresh', () async {
     final auth = _FakeAuth();

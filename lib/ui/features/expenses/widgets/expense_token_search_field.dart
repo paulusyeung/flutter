@@ -23,10 +23,12 @@ class ExpenseTokenSearchField extends StatelessWidget {
     return StreamBuilder<Map<String, String>>(
       stream: services.clients
           .watchActiveNames(companyId: vm.companyId)
-          .map((rows) => {
-                for (final r in rows)
-                  if (r.name.isNotEmpty) r.id: r.name,
-              }),
+          .map(
+            (rows) => {
+              for (final r in rows)
+                if (r.name.isNotEmpty) r.id: r.name,
+            },
+          ),
       builder: (context, snap) {
         final names = snap.data ?? const <String, String>{};
         return TokenSearchField(

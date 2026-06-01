@@ -193,9 +193,7 @@ class _ConnectSectionState extends State<_ConnectSection> {
         Row(
           children: [
             FilledButton.icon(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(64, 44),
-              ),
+              style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
               onPressed: (!googleEnabled || _busy) ? null : _connectGoogle,
               icon: _busy
                   ? const SizedBox(

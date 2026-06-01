@@ -14,10 +14,10 @@ class TaxRateEditViewModel extends GenericEditViewModel<TaxRate> {
     super.sync,
     super.connectivity,
   }) : super(
-          initialDraft: existing ?? _emptyRate(),
-          original: existing,
-          companyId: companyId,
-        );
+         initialDraft: existing ?? _emptyRate(),
+         original: existing,
+         companyId: companyId,
+       );
 
   final TaxRateRepository repo;
   final String companyId;

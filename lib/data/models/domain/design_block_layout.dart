@@ -23,16 +23,18 @@ List<DesignBlockApi> annotateBlocksAsApi(List<DesignBlock> blocks) {
     rowMap.putIfAbsent(b.gridPosition.y, () => <DesignBlock>[]).add(b);
   }
 
-  return blocks.map((b) {
-    final p = b.gridPosition;
-    final inRow = rowMap[p.y] ?? <DesignBlock>[b];
-    return b.toApi().copyWith(
-      rowAlign: _deriveRowAlign(b, inRow),
-      rowWidth: _widthForCols(p.w),
-      colStart: p.x + 1,
-      colSpan: p.w,
-    );
-  }).toList(growable: false);
+  return blocks
+      .map((b) {
+        final p = b.gridPosition;
+        final inRow = rowMap[p.y] ?? <DesignBlock>[b];
+        return b.toApi().copyWith(
+          rowAlign: _deriveRowAlign(b, inRow),
+          rowWidth: _widthForCols(p.w),
+          colStart: p.x + 1,
+          colSpan: p.w,
+        );
+      })
+      .toList(growable: false);
 }
 
 String _deriveRowAlign(DesignBlock block, List<DesignBlock> blocksInRow) {

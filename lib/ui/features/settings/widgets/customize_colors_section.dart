@@ -67,9 +67,7 @@ class _CustomizeColorsSectionState extends State<CustomizeColorsSection> {
         ListTile(
           leading: const Icon(Icons.palette_outlined),
           title: Text(context.tr('customize_colors')),
-          trailing: Icon(
-            _expanded ? Icons.expand_less : Icons.expand_more,
-          ),
+          trailing: Icon(_expanded ? Icons.expand_less : Icons.expand_more),
           onTap: () => setState(() => _expanded = !_expanded),
         ),
         if (_expanded)
@@ -82,67 +80,67 @@ class _CustomizeColorsSectionState extends State<CustomizeColorsSection> {
             child: ListenableBuilder(
               listenable: widget.controller,
               builder: (context, _) {
-              final theme = widget.controller;
-              final side = activeBrightness(context, theme.themeMode);
-              final dark = side == Brightness.dark;
-              final resolved = dark ? theme.darkTokens : theme.lightTokens;
-              final overrides = theme.customTheme.overridesFor(side);
-              final presetKey = dark
-                  ? darkVariantKey(theme.darkVariant)
-                  : lightVariantKey(theme.lightVariant);
+                final theme = widget.controller;
+                final side = activeBrightness(context, theme.themeMode);
+                final dark = side == Brightness.dark;
+                final resolved = dark ? theme.darkTokens : theme.lightTokens;
+                final overrides = theme.customTheme.overridesFor(side);
+                final presetKey = dark
+                    ? darkVariantKey(theme.darkVariant)
+                    : lightVariantKey(theme.lightVariant);
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (theme.themeMode == ThemeMode.system)
-                    Padding(
-                      padding: EdgeInsets.only(bottom: InSpacing.md(context)),
-                      child: Text(
-                        context.tr('customize_follows_device'),
-                        style: Theme.of(context).textTheme.bodySmall
-                            ?.copyWith(color: context.inTheme.ink3),
-                      ),
-                    ),
-                  for (final token in _tokenLabel.keys)
-                    Builder(
-                      builder: (context) {
-                        final (palette, color) = _paletteAndColor(
-                          token,
-                          side,
-                          resolved,
-                        );
-                        return _SwatchBlock(
-                          label: context.tr(_tokenLabel[token]!),
-                          child: AccentSwatchGrid(
-                            palette: palette,
-                            allowCustom: true,
-                            selected: formatHexColor(color),
-                            onSelected: (hex) {
-                              final c = parseHexColor(hex);
-                              if (c != null) {
-                                theme.setCustomOverride(side, token, c);
-                              }
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  if (overrides.isNotEmpty)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        icon: const Icon(Icons.refresh),
-                        label: Text(
-                          context
-                              .tr('reset_to_preset')
-                              .replaceFirst(
-                                '{preset}',
-                                context.tr(presetKey),
-                              ),
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (theme.themeMode == ThemeMode.system)
+                      Padding(
+                        padding: EdgeInsets.only(bottom: InSpacing.md(context)),
+                        child: Text(
+                          context.tr('customize_follows_device'),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: context.inTheme.ink3),
                         ),
-                        onPressed: () => theme.clearCustomSide(side),
                       ),
-                    ),
+                    for (final token in _tokenLabel.keys)
+                      Builder(
+                        builder: (context) {
+                          final (palette, color) = _paletteAndColor(
+                            token,
+                            side,
+                            resolved,
+                          );
+                          return _SwatchBlock(
+                            label: context.tr(_tokenLabel[token]!),
+                            child: AccentSwatchGrid(
+                              palette: palette,
+                              allowCustom: true,
+                              selected: formatHexColor(color),
+                              onSelected: (hex) {
+                                final c = parseHexColor(hex);
+                                if (c != null) {
+                                  theme.setCustomOverride(side, token, c);
+                                }
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    if (overrides.isNotEmpty)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          icon: const Icon(Icons.refresh),
+                          label: Text(
+                            context
+                                .tr('reset_to_preset')
+                                .replaceFirst(
+                                  '{preset}',
+                                  context.tr(presetKey),
+                                ),
+                          ),
+                          onPressed: () => theme.clearCustomSide(side),
+                        ),
+                      ),
                   ],
                 );
               },

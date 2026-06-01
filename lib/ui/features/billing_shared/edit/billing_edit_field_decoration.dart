@@ -24,8 +24,7 @@ InputDecoration billingFieldDecoration(
     hintText: hint,
     errorText: errorText,
     labelStyle: theme.textTheme.bodyMedium?.copyWith(color: tokens.ink3),
-    floatingLabelStyle:
-        theme.textTheme.bodySmall?.copyWith(color: tokens.ink2),
+    floatingLabelStyle: theme.textTheme.bodySmall?.copyWith(color: tokens.ink2),
     isDense: true,
     contentPadding: EdgeInsets.symmetric(
       horizontal: InSpacing.md(context),

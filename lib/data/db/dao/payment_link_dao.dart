@@ -32,8 +32,7 @@ class PaymentLinkDao extends DatabaseAccessor<AppDatabase>
     String sortField = PaymentLinkFieldIds.name,
     bool sortAscending = true,
   }) {
-    final q = select(paymentLinks)
-      ..where((s) => s.companyId.equals(companyId));
+    final q = select(paymentLinks)..where((s) => s.companyId.equals(companyId));
 
     if (states.isNotEmpty) {
       q.where(
@@ -48,7 +47,8 @@ class PaymentLinkDao extends DatabaseAccessor<AppDatabase>
     if (search != null && search.isNotEmpty) {
       final needle = '%${search.toLowerCase()}%';
       q.where(
-        (s) => s.name.lower().like(needle) | s.purchasePage.lower().like(needle),
+        (s) =>
+            s.name.lower().like(needle) | s.purchasePage.lower().like(needle),
       );
     }
 

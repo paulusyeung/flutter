@@ -39,10 +39,8 @@ class PaymentLinkActions {
     PaymentLink paymentLink,
     void Function(PaymentLinkAction) onTap,
   ) {
-    final canArchive =
-        paymentLink.archivedAt == null && !paymentLink.isDeleted;
-    final canRestore =
-        paymentLink.archivedAt != null || paymentLink.isDeleted;
+    final canArchive = paymentLink.archivedAt == null && !paymentLink.isDeleted;
+    final canRestore = paymentLink.archivedAt != null || paymentLink.isDeleted;
 
     return [
       editActionItem(

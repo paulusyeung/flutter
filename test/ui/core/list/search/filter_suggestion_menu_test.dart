@@ -175,11 +175,11 @@ void main() {
 
       final ids = availableKeyPickerKeys(keys, vm).map((k) => k.id).toList();
 
-      expect(
-        ids,
-        ['balance', 'country', 'group'],
-        reason: 'Only the applied single-value key (Name) is dropped',
-      );
+      expect(ids, [
+        'balance',
+        'country',
+        'group',
+      ], reason: 'Only the applied single-value key (Name) is dropped');
     },
   );
 

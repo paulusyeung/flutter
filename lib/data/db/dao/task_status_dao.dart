@@ -136,7 +136,9 @@ class TaskStatusDao extends DatabaseAccessor<AppDatabase>
             taskStatuses.id.isIn(candidateIds) &
             taskStatuses.isDirty.equals(true),
       );
-    final dirty = {for (final r in await dirtyQ.get()) r.read(taskStatuses.id)!};
+    final dirty = {
+      for (final r in await dirtyQ.get()) r.read(taskStatuses.id)!,
+    };
     final filtered = [
       for (final entry in byId.entries)
         if (!dirty.contains(entry.key)) entry.value,

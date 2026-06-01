@@ -23,10 +23,10 @@ void main() {
   tearDown(() async => db.close());
 
   InvoiceRepository repo() => InvoiceRepository(
-        db: db,
-        api: _FakeInvoicesApi(),
-        settings: SettingsRepository(db: db),
-      );
+    db: db,
+    api: _FakeInvoicesApi(),
+    settings: SettingsRepository(db: db),
+  );
 
   Future<void> seedCompany(Map<String, dynamic> settings) =>
       db.companiesDao.upsertAll([
@@ -48,15 +48,17 @@ void main() {
   Future<List<OutboxRow>> outbox() =>
       db.outboxDao.nextReady(companyId: 'co', now: 1 << 60);
 
-  test('save() on a locked (sent) invoice throws and enqueues nothing',
-      () async {
-    await seedCompany({'lock_invoices': 'when_sent'});
-    await expectLater(
-      repo().save(companyId: 'co', invoice: sentInvoice()),
-      throwsA(isA<InvoiceLockedException>()),
-    );
-    expect(await outbox(), isEmpty);
-  });
+  test(
+    'save() on a locked (sent) invoice throws and enqueues nothing',
+    () async {
+      await seedCompany({'lock_invoices': 'when_sent'});
+      await expectLater(
+        repo().save(companyId: 'co', invoice: sentInvoice()),
+        throwsA(isA<InvoiceLockedException>()),
+      );
+      expect(await outbox(), isEmpty);
+    },
+  );
 
   test('save() with a SAVE-PARAM status transition is NOT blocked', () async {
     await seedCompany({'lock_invoices': 'when_sent'});

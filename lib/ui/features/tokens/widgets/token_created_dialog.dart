@@ -38,10 +38,7 @@ class TokenCreatedDialog extends StatelessWidget {
             ),
             child: SelectableText(
               secret,
-              style: const TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 13,
-              ),
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
             ),
           ),
         ],
@@ -51,18 +48,14 @@ class TokenCreatedDialog extends StatelessWidget {
           onPressed: () async {
             await Clipboard.setData(ClipboardData(text: secret));
           },
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(64, 40),
-          ),
+          style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
           child: Text(context.tr('copy_token')),
         ),
         const SizedBox(width: 8),
         FilledButton(
           autofocus: true,
           onPressed: () => Navigator.of(context).pop(),
-          style: FilledButton.styleFrom(
-            minimumSize: const Size(64, 44),
-          ),
+          style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
           child: Text(context.tr('done')),
         ),
       ],

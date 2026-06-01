@@ -295,7 +295,10 @@ void main() {
       persistDebounce: const Duration(milliseconds: 1),
     );
     await settle();
-    await vm.setExtraFilter(serverKey: 'created_at', values: {'gte:2026-01-01'});
+    await vm.setExtraFilter(
+      serverKey: 'created_at',
+      values: {'gte:2026-01-01'},
+    );
     // Seed a stale window on the target so alsoClearServerKey is exercised.
     await vm.setExtraFilter(
       serverKey: 'due_date_range',
@@ -379,57 +382,54 @@ void main() {
     },
   );
 
-  test(
-    'savedViewSnapshot omits columnIds on default, includes them once '
-    'the user customizes',
-    () async {
-      final vm = FakeInvoiceListViewModel(
-        companyId: 'co',
-        navStateDao: db.navStateDao,
-        userSettings: UserSettingsRepository(db: db),
-        searchDebounce: const Duration(milliseconds: 1),
-        persistDebounce: const Duration(milliseconds: 1),
-      );
-      await settle();
-      // On the registry default (no stored preference) the view carries no
-      // column override — otherwise applying it would force the default into
-      // user_settings and queue a no-op PUT (the reported outbox bug).
-      expect(
-        vm.savedViewSnapshot().containsKey('columnIds'),
-        isFalse,
-        reason: 'no column override while on the default layout',
-      );
-      // Seed the user_settings row so setColumns isn't a silent no-op.
-      await db.userSettingsDao.upsert(
-        UserSettingsCompanion(
-          companyId: const Value('co'),
-          userId: const Value('user1'),
-          tableColumnsJson: const Value('{}'),
-          extraJson: const Value('{}'),
-          updatedAt: const Value(0),
-        ),
-      );
-      await vm.setColumns(['amount']);
-      await settle();
-      expect(
-        vm.savedViewSnapshot()['columnIds'],
-        equals(['amount']),
-        reason: "reflects the user's explicit column-picker choice",
-      );
-      // currentSnapshot() must NOT carry columnIds — nav_state stays compact.
-      expect(vm.currentSnapshot().containsKey('columnIds'), isFalse);
+  test('savedViewSnapshot omits columnIds on default, includes them once '
+      'the user customizes', () async {
+    final vm = FakeInvoiceListViewModel(
+      companyId: 'co',
+      navStateDao: db.navStateDao,
+      userSettings: UserSettingsRepository(db: db),
+      searchDebounce: const Duration(milliseconds: 1),
+      persistDebounce: const Duration(milliseconds: 1),
+    );
+    await settle();
+    // On the registry default (no stored preference) the view carries no
+    // column override — otherwise applying it would force the default into
+    // user_settings and queue a no-op PUT (the reported outbox bug).
+    expect(
+      vm.savedViewSnapshot().containsKey('columnIds'),
+      isFalse,
+      reason: 'no column override while on the default layout',
+    );
+    // Seed the user_settings row so setColumns isn't a silent no-op.
+    await db.userSettingsDao.upsert(
+      UserSettingsCompanion(
+        companyId: const Value('co'),
+        userId: const Value('user1'),
+        tableColumnsJson: const Value('{}'),
+        extraJson: const Value('{}'),
+        updatedAt: const Value(0),
+      ),
+    );
+    await vm.setColumns(['amount']);
+    await settle();
+    expect(
+      vm.savedViewSnapshot()['columnIds'],
+      equals(['amount']),
+      reason: "reflects the user's explicit column-picker choice",
+    );
+    // currentSnapshot() must NOT carry columnIds — nav_state stays compact.
+    expect(vm.currentSnapshot().containsKey('columnIds'), isFalse);
 
-      // Reset back to the default → the override drops out again.
-      await vm.resetColumns();
-      await settle();
-      expect(
-        vm.savedViewSnapshot().containsKey('columnIds'),
-        isFalse,
-        reason: 'resetColumns clears the customization flag',
-      );
-      vm.dispose();
-    },
-  );
+    // Reset back to the default → the override drops out again.
+    await vm.resetColumns();
+    await settle();
+    expect(
+      vm.savedViewSnapshot().containsKey('columnIds'),
+      isFalse,
+      reason: 'resetColumns clears the customization flag',
+    );
+    vm.dispose();
+  });
 
   test('applySnapshot resets all six fields before applying', () async {
     final vm = FakeInvoiceListViewModel(
@@ -561,62 +561,56 @@ void main() {
     },
   );
 
-  test(
-    'external slot removal resets the running list to defaults',
-    () async {
-      // Models SavedViewsRepository.clearAppliedViewFilters: the entity's
-      // slot is removed from filters_json while the VM is live. The VM must
-      // fall back to defaults and reload, not keep the stale filters.
-      final vm = FakeInvoiceListViewModel(
-        companyId: 'co',
-        navStateDao: db.navStateDao,
-        userSettings: UserSettingsRepository(db: db),
-        searchDebounce: const Duration(milliseconds: 1),
-        persistDebounce: const Duration(milliseconds: 1),
-      );
-      await settle();
-      await vm.setExtraFilter(serverKey: 'country_id', values: {'US'});
-      await Future<void>.delayed(const Duration(milliseconds: 30));
-      await settle();
-      expect(vm.extraFilters, isNotEmpty);
-      final fetches = vm.fetchPageCalls;
+  test('external slot removal resets the running list to defaults', () async {
+    // Models SavedViewsRepository.clearAppliedViewFilters: the entity's
+    // slot is removed from filters_json while the VM is live. The VM must
+    // fall back to defaults and reload, not keep the stale filters.
+    final vm = FakeInvoiceListViewModel(
+      companyId: 'co',
+      navStateDao: db.navStateDao,
+      userSettings: UserSettingsRepository(db: db),
+      searchDebounce: const Duration(milliseconds: 1),
+      persistDebounce: const Duration(milliseconds: 1),
+    );
+    await settle();
+    await vm.setExtraFilter(serverKey: 'country_id', values: {'US'});
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    await settle();
+    expect(vm.extraFilters, isNotEmpty);
+    final fetches = vm.fetchPageCalls;
 
-      // Remove the slot (no `co.invoice` key) — the listener treats absent
-      // as "reset to defaults".
-      await db.navStateDao.saveFilters(filtersJson: '{}', now: 1);
-      await Future<void>.delayed(const Duration(milliseconds: 30));
-      await settle();
+    // Remove the slot (no `co.invoice` key) — the listener treats absent
+    // as "reset to defaults".
+    await db.navStateDao.saveFilters(filtersJson: '{}', now: 1);
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    await settle();
 
-      expect(vm.extraFilters, isEmpty);
-      expect(vm.search, '');
-      expect(vm.fetchPageCalls, fetches + 1);
-      vm.dispose();
-    },
-  );
+    expect(vm.extraFilters, isEmpty);
+    expect(vm.search, '');
+    expect(vm.fetchPageCalls, fetches + 1);
+    vm.dispose();
+  });
 
-  test(
-    'external slot removal is a no-op when already at defaults',
-    () async {
-      final vm = FakeInvoiceListViewModel(
-        companyId: 'co',
-        navStateDao: db.navStateDao,
-        userSettings: UserSettingsRepository(db: db),
-        searchDebounce: const Duration(milliseconds: 1),
-        persistDebounce: const Duration(milliseconds: 1),
-      );
-      await settle();
-      final fetches = vm.fetchPageCalls;
+  test('external slot removal is a no-op when already at defaults', () async {
+    final vm = FakeInvoiceListViewModel(
+      companyId: 'co',
+      navStateDao: db.navStateDao,
+      userSettings: UserSettingsRepository(db: db),
+      searchDebounce: const Duration(milliseconds: 1),
+      persistDebounce: const Duration(milliseconds: 1),
+    );
+    await settle();
+    final fetches = vm.fetchPageCalls;
 
-      // Already default → the _defaultSnapshot() stand-in dedupes against
-      // currentSnapshot(); no spurious reload.
-      await db.navStateDao.saveFilters(filtersJson: '{}', now: 1);
-      await Future<void>.delayed(const Duration(milliseconds: 30));
-      await settle();
+    // Already default → the _defaultSnapshot() stand-in dedupes against
+    // currentSnapshot(); no spurious reload.
+    await db.navStateDao.saveFilters(filtersJson: '{}', now: 1);
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    await settle();
 
-      expect(vm.fetchPageCalls, fetches);
-      vm.dispose();
-    },
-  );
+    expect(vm.fetchPageCalls, fetches);
+    vm.dispose();
+  });
 
   test(
     'transformPage override filters items before they reach the view',

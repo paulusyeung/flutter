@@ -81,10 +81,7 @@ void main() {
       expect(url!.query, contains('rc='));
       // _headers injects X-API-SECRET on hosted only when the env secret is
       // configured; assert the header machinery ran (content-type set).
-      expect(
-        headers!['content-type'],
-        contains('application/json'),
-      );
+      expect(headers!['content-type'], contains('application/json'));
     });
 
     test('422 → ValidationException with field errors', () async {
@@ -111,11 +108,7 @@ void main() {
           password: 'pw',
         ),
         throwsA(
-          isA<Object>().having(
-            (e) => '$e',
-            'message',
-            contains('invalid'),
-          ),
+          isA<Object>().having((e) => '$e', 'message', contains('invalid')),
         ),
       );
     });

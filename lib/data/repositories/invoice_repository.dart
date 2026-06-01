@@ -34,7 +34,8 @@ final _log = Logger('InvoiceRepository');
 ///
 /// Document-bearing (same pattern as Expense / Client), with eleven
 /// custom-action mutation kinds enqueued through the standard outbox.
-class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    implements DocumentBearingRepository {
+class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>
+    implements DocumentBearingRepository {
   InvoiceRepository({
     required super.db,
     required this.api,
@@ -43,8 +44,8 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
     super.now,
     super.onEnqueued,
     this.pageSize = 50,
-  })  : _settings = settings,
-        super(entityType: EntityType.invoice);
+  }) : _settings = settings,
+       super(entityType: EntityType.invoice);
 
   final InvoicesApi api;
   final int pageSize;
@@ -100,8 +101,9 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
           customValues3: customFilters[3] ?? const {},
           customValues4: customFilters[4] ?? const {},
           statusIds: parseInvoiceStatusFilter(extraFilters),
-          overdueAsOf:
-              parseOverdueFilter(extraFilters) ? Date.today().toIso() : null,
+          overdueAsOf: parseOverdueFilter(extraFilters)
+              ? Date.today().toIso()
+              : null,
           dateStart: dateRange.start,
           dateEnd: dateRange.end,
           dueDateStart: dueDateRange.start,
@@ -206,24 +208,22 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
   /// Backs `InvoiceNameLabel`'s cache-miss path: a quote/expense that
   /// references an invoice not on the prefetched first page. Deduped /
   /// negative-cached / tmp_-skipped by the shared template.
-  Future<void> ensureLoaded({
-    required String companyId,
-    required String id,
-  }) => ensureLoadedTemplate(
-    companyId: companyId,
-    id: id,
-    // `getWithSchedule` (?show_schedule=true) so the detail screen's
-    // invoice carries the read-only `schedule[]` projection. The
-    // nullable+preserve guard in `_apiToCompanion` keeps list-page upserts
-    // (which omit `schedule`) from wiping the stored column.
-    fetch: (id) async => (await api.getWithSchedule(id)).data,
-    idOf: (a) => a.id,
-    toCompanion: (a) => _apiToCompanion(a, companyId),
-    upsert: (byId) => db.invoiceDao.upsertAllPreservingDirty(
-      companyId: companyId,
-      byId: byId,
-    ),
-  );
+  Future<void> ensureLoaded({required String companyId, required String id}) =>
+      ensureLoadedTemplate(
+        companyId: companyId,
+        id: id,
+        // `getWithSchedule` (?show_schedule=true) so the detail screen's
+        // invoice carries the read-only `schedule[]` projection. The
+        // nullable+preserve guard in `_apiToCompanion` keeps list-page upserts
+        // (which omit `schedule`) from wiping the stored column.
+        fetch: (id) async => (await api.getWithSchedule(id)).data,
+        idOf: (a) => a.id,
+        toCompanion: (a) => _apiToCompanion(a, companyId),
+        upsert: (byId) => db.invoiceDao.upsertAllPreservingDirty(
+          companyId: companyId,
+          byId: byId,
+        ),
+      );
 
   Future<void> refreshAll({
     required String companyId,
@@ -361,15 +361,13 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
   /// Transmit via the configured e-invoice channel (PEPPOL/Verifactu).
   /// The dispatcher posts to `/api/v1/einvoice/peppol/send` then
   /// re-fetches the invoice so `backup`/`status` reflect the result.
-  Future<void> sendEInvoice({
-    required String companyId,
-    required String id,
-  }) => enqueueMutation(
-    companyId: companyId,
-    entityId: id,
-    kind: MutationKind.sendEInvoice,
-    payload: {'id': id},
-  );
+  Future<void> sendEInvoice({required String companyId, required String id}) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.sendEInvoice,
+        payload: {'id': id},
+      );
 
   Future<void> markPaid({required String companyId, required String id}) =>
       enqueueMutation(
@@ -438,19 +436,18 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
     String? subject,
     String? body,
     String? ccEmail,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.emailEntity,
-        payload: {
-          'id': id,
-          'template': template,
-          if (subject != null) 'subject': subject,
-          if (body != null) 'body': body,
-          if (ccEmail != null) 'cc_email': ccEmail,
-        },
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: MutationKind.emailEntity,
+    payload: {
+      'id': id,
+      'template': template,
+      if (subject != null) 'subject': subject,
+      if (body != null) 'body': body,
+      if (ccEmail != null) 'cc_email': ccEmail,
+    },
+  );
 
   Future<void> scheduleEmail({
     required String companyId,
@@ -459,19 +456,18 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
     required String sendAt,
     String? subject,
     String? body,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.scheduleEmail,
-        payload: {
-          'id': id,
-          'template': template,
-          'send_at': sendAt,
-          if (subject != null) 'subject': subject,
-          if (body != null) 'body': body,
-        },
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: MutationKind.scheduleEmail,
+    payload: {
+      'id': id,
+      'template': template,
+      'send_at': sendAt,
+      if (subject != null) 'subject': subject,
+      if (body != null) 'body': body,
+    },
+  );
 
   /// Clone this invoice to a new entity of the chosen type. `targetType` is
   /// one of `invoice`, `quote`, `credit`, `recurring_invoice`,
@@ -481,13 +477,12 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
     required String companyId,
     required String id,
     required String targetType,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: _cloneKindFor(targetType),
-        payload: {'id': id, 'target': targetType},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: _cloneKindFor(targetType),
+    payload: {'id': id, 'target': targetType},
+  );
 
   Future<void> autoBill({required String companyId, required String id}) =>
       enqueueMutation(
@@ -509,13 +504,12 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
     required String companyId,
     required String id,
     required String templateId,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.runTemplate,
-        payload: {'id': id, 'template_id': templateId},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: MutationKind.runTemplate,
+    payload: {'id': id, 'template_id': templateId},
+  );
 
   /// Append a user comment to this invoice's activity stream. Hits
   /// `/api/v1/activities/notes` via the outbox; the dispatcher's
@@ -524,62 +518,55 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
     required String companyId,
     required String invoiceId,
     required String text,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: invoiceId,
-        kind: MutationKind.addComment,
-        payload: {'entity_id': invoiceId, 'notes': text.trim()},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: invoiceId,
+    kind: MutationKind.addComment,
+    payload: {'entity_id': invoiceId, 'notes': text.trim()},
+  );
 
   // -------------------- documents --------------------
 
   @override
-
   Future<void> uploadDocument({
     required String companyId,
     required String entityId,
     required UploadSource source,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: entityId,
-        kind: MutationKind.documentUpload,
-        payload: {'entity_id': entityId, ...source.toPayload()},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: entityId,
+    kind: MutationKind.documentUpload,
+    payload: {'entity_id': entityId, ...source.toPayload()},
+  );
 
   @override
-
   Future<void> deleteDocument({
     required String companyId,
     required String entityId,
     required String documentId,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: entityId,
-        kind: MutationKind.documentDelete,
-        payload: {'entity_id': entityId, 'document_id': documentId},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: entityId,
+    kind: MutationKind.documentDelete,
+    payload: {'entity_id': entityId, 'document_id': documentId},
+  );
 
   @override
-
   Future<void> setDocumentVisibility({
     required String companyId,
     required String entityId,
     required String documentId,
     required bool isPublic,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: entityId,
-        kind: MutationKind.documentVisibility,
-        payload: {
-          'entity_id': entityId,
-          'document_id': documentId,
-          'is_public': isPublic,
-        },
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: entityId,
+    kind: MutationKind.documentVisibility,
+    payload: {
+      'entity_id': entityId,
+      'document_id': documentId,
+      'is_public': isPublic,
+    },
+  );
 
   // -------------------- apply* response handlers --------------------
 
@@ -642,11 +629,12 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
     final next = current.where((d) => d.id != documentId).toList();
     if (next.length == current.length) return;
     await (db.update(db.invoices)
-          ..where((e) => e.companyId.equals(companyId) & e.id.equals(entityId))).write(
-      InvoicesCompanion(
-        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
-      ),
-    );
+          ..where((e) => e.companyId.equals(companyId) & e.id.equals(entityId)))
+        .write(
+          InvoicesCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   /// Replace (or insert) one document in the invoice's local `documents`
@@ -669,11 +657,12 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
       next.add(document);
     }
     await (db.update(db.invoices)
-          ..where((e) => e.companyId.equals(companyId) & e.id.equals(entityId))).write(
-      InvoicesCompanion(
-        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
-      ),
-    );
+          ..where((e) => e.companyId.equals(companyId) & e.id.equals(entityId)))
+        .write(
+          InvoicesCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   // -------------------- conversions --------------------

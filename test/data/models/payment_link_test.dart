@@ -48,10 +48,10 @@ void main() {
           'post_purchase_headers': {'X-Foo': 'bar', 'X-Num': 7},
         },
       });
-      expect(
-        api.webhookConfiguration.postPurchaseHeaders,
-        {'X-Foo': 'bar', 'X-Num': '7'},
-      );
+      expect(api.webhookConfiguration.postPurchaseHeaders, {
+        'X-Foo': 'bar',
+        'X-Num': '7',
+      });
     });
 
     test('round-trips webhook headers through fromApi', () {
@@ -67,10 +67,9 @@ void main() {
       final s = PaymentLink.fromApi(api);
       expect(s.webhookConfiguration.postPurchaseUrl, 'https://example.test/x');
       expect(s.webhookConfiguration.postPurchaseRestMethod, 'put');
-      expect(
-        s.webhookConfiguration.postPurchaseHeaders,
-        {'Authorization': 'Bearer 123'},
-      );
+      expect(s.webhookConfiguration.postPurchaseHeaders, {
+        'Authorization': 'Bearer 123',
+      });
     });
   });
 

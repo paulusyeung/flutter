@@ -22,29 +22,46 @@ Invoice _inv(
   bool deleted = false,
   String status = '2',
   int createdAt = 0,
-}) =>
-    Invoice.fromApi(InvoiceApi(
-      id: id,
-      number: id,
-      date: date,
-      amount: amount,
-      isDeleted: deleted,
-      statusId: status,
-      createdAt: createdAt,
-    ));
+}) => Invoice.fromApi(
+  InvoiceApi(
+    id: id,
+    number: id,
+    date: date,
+    amount: amount,
+    isDeleted: deleted,
+    statusId: status,
+    createdAt: createdAt,
+  ),
+);
 
 Payment _pay(String id, String date, String amount) =>
     Payment.fromApi(PaymentApi(id: id, number: id, date: date, amount: amount));
 
 Credit _cred(String id, String date, String amount, {String status = '2'}) =>
     Credit.fromApi(
-        CreditApi(id: id, number: id, date: date, amount: amount,
-            statusId: status));
+      CreditApi(
+        id: id,
+        number: id,
+        date: date,
+        amount: amount,
+        statusId: status,
+      ),
+    );
 
-PurchaseOrder _po(String id, String date, String amount,
-        {String status = '2'}) =>
-    PurchaseOrder.fromApi(PurchaseOrderApi(
-        id: id, number: id, date: date, amount: amount, statusId: status));
+PurchaseOrder _po(
+  String id,
+  String date,
+  String amount, {
+  String status = '2',
+}) => PurchaseOrder.fromApi(
+  PurchaseOrderApi(
+    id: id,
+    number: id,
+    date: date,
+    amount: amount,
+    statusId: status,
+  ),
+);
 
 void main() {
   group('buildClientLedger', () {
@@ -154,15 +171,20 @@ void main() {
       // would hide the genesis anchor. Lock that contract here.
       expect(opening.kind, LedgerKind.invoice);
       const active = {LedgerKind.payment};
-      final visibleBuggy =
-          e.where((x) => active.contains(x.kind)).toList();
+      final visibleBuggy = e.where((x) => active.contains(x.kind)).toList();
       final visibleFixed = e
           .where((x) => x.isOpening || active.contains(x.kind))
           .toList();
-      expect(visibleBuggy.any((x) => x.isOpening), isFalse,
-          reason: 'kind-only filter drops the genesis row (the bug)');
-      expect(visibleFixed.any((x) => x.isOpening), isTrue,
-          reason: 'isOpening-guarded filter keeps it (the fix)');
+      expect(
+        visibleBuggy.any((x) => x.isOpening),
+        isFalse,
+        reason: 'kind-only filter drops the genesis row (the bug)',
+      );
+      expect(
+        visibleFixed.any((x) => x.isOpening),
+        isTrue,
+        reason: 'isOpening-guarded filter keeps it (the fix)',
+      );
       // The real row's running balance is unchanged by the genesis row.
       expect(e.first.id, 'i1');
       expect(e.first.runningBalance, Decimal.parse('100'));
@@ -174,8 +196,14 @@ void main() {
     test('expenses + purchase orders both add to spend', () {
       final entries = buildVendorLedger(
         expenses: [
-          Expense.fromApi(const ExpenseApi(
-              id: 'e1', number: 'e1', date: '2026-01-02', amount: '70')),
+          Expense.fromApi(
+            const ExpenseApi(
+              id: 'e1',
+              number: 'e1',
+              date: '2026-01-02',
+              amount: '70',
+            ),
+          ),
         ],
         purchaseOrders: [_po('po1', '2026-01-01', '30')],
       );

@@ -54,14 +54,8 @@ String replaceVariables(
   r = r
       // Shipping (compound) first so bare $client.address1 doesn't eat
       // $client.shipping_address1.
-      .replaceAll(
-        RegExp(r'\$client\.shipping_address1\b'),
-        cl.shippingAddress1,
-      )
-      .replaceAll(
-        RegExp(r'\$client\.shipping_address2\b'),
-        cl.shippingAddress2,
-      )
+      .replaceAll(RegExp(r'\$client\.shipping_address1\b'), cl.shippingAddress1)
+      .replaceAll(RegExp(r'\$client\.shipping_address2\b'), cl.shippingAddress2)
       .replaceAll(
         RegExp(r'\$client\.shipping_city_state_postal\b'),
         cl.shippingCityStatePostal,
@@ -180,22 +174,10 @@ String replaceVariables(
       .replaceAll(RegExp(r'\$paid_to_date\b'), money(inv.paidToDate))
       .replaceAll(RegExp(r'\$subtotal\b'), money(inv.subtotal))
       .replaceAll(RegExp(r'\$discount\b'), money(inv.discount))
-      .replaceAll(
-        RegExp(r'\$custom_surcharge1\b'),
-        money(inv.customSurcharge1),
-      )
-      .replaceAll(
-        RegExp(r'\$custom_surcharge2\b'),
-        money(inv.customSurcharge2),
-      )
-      .replaceAll(
-        RegExp(r'\$custom_surcharge3\b'),
-        money(inv.customSurcharge3),
-      )
-      .replaceAll(
-        RegExp(r'\$custom_surcharge4\b'),
-        money(inv.customSurcharge4),
-      )
+      .replaceAll(RegExp(r'\$custom_surcharge1\b'), money(inv.customSurcharge1))
+      .replaceAll(RegExp(r'\$custom_surcharge2\b'), money(inv.customSurcharge2))
+      .replaceAll(RegExp(r'\$custom_surcharge3\b'), money(inv.customSurcharge3))
+      .replaceAll(RegExp(r'\$custom_surcharge4\b'), money(inv.customSurcharge4))
       .replaceAll(RegExp(r'\$taxes\b'), money(inv.totalTaxes))
       .replaceAll(RegExp(r'\$total\b'), money(inv.total))
       .replaceAll(RegExp(r'\$balance\b'), money(inv.balance))
@@ -259,9 +241,10 @@ String _formatMoney(Decimal amount, Formatter? formatter) {
     return formatter.money(amount);
   }
   // Fallback — matches React's hardcoded Intl.NumberFormat('en-US', USD).
-  return NumberFormat.currency(locale: 'en_US', symbol: r'$').format(
-    amount.toDouble(),
-  );
+  return NumberFormat.currency(
+    locale: 'en_US',
+    symbol: r'$',
+  ).format(amount.toDouble());
 }
 
 String _formatDate(String iso, Formatter? formatter) {

@@ -11,25 +11,25 @@ BankTransaction _tx({
   String amount = '0',
   String participant = '',
   String participantName = '',
-}) =>
-    BankTransaction.fromApi(BankTransactionApi(
-      id: 't',
-      description: description,
-      amount: amount,
-      participant: participant,
-      participantName: participantName,
-      baseType: 'DEBIT',
-    ));
+}) => BankTransaction.fromApi(
+  BankTransactionApi(
+    id: 't',
+    description: description,
+    amount: amount,
+    participant: participant,
+    participantName: participantName,
+    baseType: 'DEBIT',
+  ),
+);
 
-TransactionRule _rule(
-  List<RuleCriterion> rules, {
-  bool matchesOnAll = true,
-}) =>
-    TransactionRule.fromApi(TransactionRuleApi(
-      id: 'r',
-      matchesOnAll: matchesOnAll,
-      rules: rules.map((c) => c.toApi()).toList(),
-    ));
+TransactionRule _rule(List<RuleCriterion> rules, {bool matchesOnAll = true}) =>
+    TransactionRule.fromApi(
+      TransactionRuleApi(
+        id: 'r',
+        matchesOnAll: matchesOnAll,
+        rules: rules.map((c) => c.toApi()).toList(),
+      ),
+    );
 
 RuleCriterion _c(String key, String op, String value) =>
     RuleCriterion(searchKey: key, operator: op, value: value);
@@ -41,12 +41,16 @@ void main() {
     test('contains', () {
       expect(
         ruleCriterionMatches(
-            tx, _c(kRuleSearchKeyDescription, kRuleOperatorContains, 'hosting')),
+          tx,
+          _c(kRuleSearchKeyDescription, kRuleOperatorContains, 'hosting'),
+        ),
         isTrue,
       );
       expect(
         ruleCriterionMatches(
-            tx, _c(kRuleSearchKeyDescription, kRuleOperatorContains, 'zzz')),
+          tx,
+          _c(kRuleSearchKeyDescription, kRuleOperatorContains, 'zzz'),
+        ),
         isFalse,
       );
     });
@@ -54,19 +58,27 @@ void main() {
     test('is / starts_with / is_empty', () {
       expect(
         ruleCriterionMatches(
-            tx,
-            _c(kRuleSearchKeyDescription, kRuleOperatorIs,
-                'acme hosting invoice')),
+          tx,
+          _c(
+            kRuleSearchKeyDescription,
+            kRuleOperatorIs,
+            'acme hosting invoice',
+          ),
+        ),
         isTrue,
       );
       expect(
         ruleCriterionMatches(
-            tx, _c(kRuleSearchKeyDescription, kRuleOperatorStartsWith, 'acme')),
+          tx,
+          _c(kRuleSearchKeyDescription, kRuleOperatorStartsWith, 'acme'),
+        ),
         isTrue,
       );
       expect(
-        ruleCriterionMatches(_tx(),
-            _c(kRuleSearchKeyDescription, kRuleOperatorIsEmpty, '')),
+        ruleCriterionMatches(
+          _tx(),
+          _c(kRuleSearchKeyDescription, kRuleOperatorIsEmpty, ''),
+        ),
         isTrue,
       );
     });
@@ -75,13 +87,16 @@ void main() {
       final p = _tx(participant: 'PG&E', participantName: 'Pacific Gas');
       expect(
         ruleCriterionMatches(
-            p, _c(kRuleSearchKeyParticipant, kRuleOperatorIs, 'pg&e')),
+          p,
+          _c(kRuleSearchKeyParticipant, kRuleOperatorIs, 'pg&e'),
+        ),
         isTrue,
       );
       expect(
         ruleCriterionMatches(
-            p,
-            _c(kRuleSearchKeyParticipantName, kRuleOperatorContains, 'gas')),
+          p,
+          _c(kRuleSearchKeyParticipantName, kRuleOperatorContains, 'gas'),
+        ),
         isTrue,
       );
     });
@@ -91,28 +106,42 @@ void main() {
     final tx = _tx(amount: '125.50');
     test('comparators', () {
       expect(
-          ruleCriterionMatches(
-              tx, _c(kRuleSearchKeyAmount, kRuleOperatorGreaterThan, '100')),
-          isTrue);
+        ruleCriterionMatches(
+          tx,
+          _c(kRuleSearchKeyAmount, kRuleOperatorGreaterThan, '100'),
+        ),
+        isTrue,
+      );
       expect(
-          ruleCriterionMatches(
-              tx, _c(kRuleSearchKeyAmount, kRuleOperatorEquals, '125.50')),
-          isTrue);
+        ruleCriterionMatches(
+          tx,
+          _c(kRuleSearchKeyAmount, kRuleOperatorEquals, '125.50'),
+        ),
+        isTrue,
+      );
       expect(
-          ruleCriterionMatches(
-              tx, _c(kRuleSearchKeyAmount, kRuleOperatorLessThan, '125.50')),
-          isFalse);
+        ruleCriterionMatches(
+          tx,
+          _c(kRuleSearchKeyAmount, kRuleOperatorLessThan, '125.50'),
+        ),
+        isFalse,
+      );
       expect(
-          ruleCriterionMatches(
-              tx, _c(kRuleSearchKeyAmount, kRuleOperatorLessThanOrEqual,
-                  '125.50')),
-          isTrue);
+        ruleCriterionMatches(
+          tx,
+          _c(kRuleSearchKeyAmount, kRuleOperatorLessThanOrEqual, '125.50'),
+        ),
+        isTrue,
+      );
     });
     test('non-numeric value → no match (no throw)', () {
       expect(
-          ruleCriterionMatches(
-              tx, _c(kRuleSearchKeyAmount, kRuleOperatorEquals, 'abc')),
-          isFalse);
+        ruleCriterionMatches(
+          tx,
+          _c(kRuleSearchKeyAmount, kRuleOperatorEquals, 'abc'),
+        ),
+        isFalse,
+      );
     });
   });
 
@@ -120,7 +149,9 @@ void main() {
     final tx = _tx(description: 'x');
     expect(
       ruleCriterionMatches(
-          tx, _c(r'$invoice.number', kRuleOperatorContains, 'x')),
+        tx,
+        _c(r'$invoice.number', kRuleOperatorContains, 'x'),
+      ),
       isFalse,
     );
   });
@@ -155,13 +186,10 @@ void main() {
       expect(
         transactionRuleMatches(
           tx,
-          _rule(
-            [
-              _c(kRuleSearchKeyDescription, kRuleOperatorContains, 'nope'),
-              _c(kRuleSearchKeyAmount, kRuleOperatorEquals, '50'),
-            ],
-            matchesOnAll: false,
-          ),
+          _rule([
+            _c(kRuleSearchKeyDescription, kRuleOperatorContains, 'nope'),
+            _c(kRuleSearchKeyAmount, kRuleOperatorEquals, '50'),
+          ], matchesOnAll: false),
         ),
         isTrue,
       );

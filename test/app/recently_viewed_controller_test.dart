@@ -14,12 +14,12 @@ import 'package:admin/domain/entity_type.dart';
 /// nav_state blob. Debounce is zero so one event-loop turn flushes.
 
 AuthSession _session(String companyId) => AuthSession(
-      baseUrl: 'https://example.com',
-      isHosted: true,
-      accountId: 'acc',
-      companies: const [],
-      currentCompanyId: companyId,
-    );
+  baseUrl: 'https://example.com',
+  isHosted: true,
+  accountId: 'acc',
+  companies: const [],
+  currentCompanyId: companyId,
+);
 
 void main() {
   late AppDatabase db;
@@ -115,8 +115,7 @@ void main() {
     expect(c.items.map((r) => r.id), ['c1']);
   });
 
-  test('logout then login to a DIFFERENT company shows only its recents',
-      () {
+  test('logout then login to a DIFFERENT company shows only its recents', () {
     final c = build(); // co_1
     addTearDown(c.dispose);
     c.record(type: EntityType.client, id: 'a1', label: 'A Co');
@@ -129,8 +128,7 @@ void main() {
     expect(c.items.map((r) => r.id), ['a1']); // co_1 still intact
   });
 
-  test('boot: restore loads the keyed map; session resolve shows it',
-      () async {
+  test('boot: restore loads the keyed map; session resolve shows it', () async {
     // Controller is constructed before auth.restore(); session starts null.
     final seed = build(); // records under co_1
     seed.record(type: EntityType.invoice, id: 'i1', label: '#1001');
@@ -153,8 +151,7 @@ void main() {
     expect(c.items.map((r) => r.id), ['i1']);
   });
 
-  test('persists + restores per company across a fresh controller',
-      () async {
+  test('persists + restores per company across a fresh controller', () async {
     final c1 = build(); // co_1
     c1.record(type: EntityType.invoice, id: 'i1', label: '#1001');
     c1.record(type: EntityType.client, id: 'c1', label: 'Acme');
@@ -196,8 +193,7 @@ void main() {
     expect(c.items, isEmpty); // can't attribute to a company at boot
   });
 
-  test('unknown entity-type names are dropped, valid entries kept',
-      () async {
+  test('unknown entity-type names are dropped, valid entries kept', () async {
     await db.navStateDao.saveRecentEntities(
       recentEntitiesJson:
           '{"co_1":[{"t":"client","i":"c1","l":"Acme","v":0},'

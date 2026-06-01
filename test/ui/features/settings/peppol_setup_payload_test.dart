@@ -5,26 +5,25 @@ import 'package:admin/ui/features/settings/views/advanced/e_invoice/peppol_onboa
 Map<String, dynamic> _build({
   required bool isSingapore,
   required bool isBusiness,
-}) =>
-    buildPeppolSetupPayload(
-      isSingapore: isSingapore,
-      isBusiness: isBusiness,
-      partyName: 'Acme',
-      line1: 'L1',
-      line2: 'L2',
-      city: 'Town',
-      county: 'State',
-      zip: '00000',
-      countryId: isSingapore ? '702' : '276',
-      vatNumber: 'VAT1',
-      idNumber: 'ID1',
-      actsAsSender: true,
-      actsAsReceiver: false,
-      tenantId: 'co1',
-      signerName: 'Jane Tan',
-      signerEmail: 'jane@acme.sg',
-      eInvoicingToken: 'eitok',
-    );
+}) => buildPeppolSetupPayload(
+  isSingapore: isSingapore,
+  isBusiness: isBusiness,
+  partyName: 'Acme',
+  line1: 'L1',
+  line2: 'L2',
+  city: 'Town',
+  county: 'State',
+  zip: '00000',
+  countryId: isSingapore ? '702' : '276',
+  vatNumber: 'VAT1',
+  idNumber: 'ID1',
+  actsAsSender: true,
+  actsAsReceiver: false,
+  tenantId: 'co1',
+  signerName: 'Jane Tan',
+  signerEmail: 'jane@acme.sg',
+  eInvoicingToken: 'eitok',
+);
 
 void main() {
   group('buildPeppolSetupPayload — EU (regression guard)', () {

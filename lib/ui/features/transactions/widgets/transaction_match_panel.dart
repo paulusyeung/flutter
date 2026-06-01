@@ -109,24 +109,24 @@ class _CreditCreateTabState extends State<_CreditCreateTab> {
     _invoiceSub = services.invoices
         .watchForClient(companyId: companyId, clientId: client.id)
         .listen((list) {
-      if (!mounted) return;
-      // Filter to unpaid, non-deleted, non-archived invoices with a
-      // positive balance — the only ones a payment could plausibly match.
-      final unpaid = list
-          .where(
-            (i) =>
-                !i.isDeleted &&
-                i.archivedAt == null &&
-                i.balance > Decimal.zero,
-          )
-          .toList(growable: false);
-      setState(() {
-        _selectableInvoices = unpaid;
-        _selectedInvoiceIds = _selectedInvoiceIds
-            .where((id) => unpaid.any((inv) => inv.id == id))
-            .toSet();
-      });
-    });
+          if (!mounted) return;
+          // Filter to unpaid, non-deleted, non-archived invoices with a
+          // positive balance — the only ones a payment could plausibly match.
+          final unpaid = list
+              .where(
+                (i) =>
+                    !i.isDeleted &&
+                    i.archivedAt == null &&
+                    i.balance > Decimal.zero,
+              )
+              .toList(growable: false);
+          setState(() {
+            _selectableInvoices = unpaid;
+            _selectedInvoiceIds = _selectedInvoiceIds
+                .where((id) => unpaid.any((inv) => inv.id == id))
+                .toSet();
+          });
+        });
   }
 
   Decimal get _selectedTotal {
@@ -206,9 +206,7 @@ class _CreditCreateTabState extends State<_CreditCreateTab> {
         ),
         const SizedBox(height: 12),
         OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(64, 44),
-          ),
+          style: OutlinedButton.styleFrom(minimumSize: const Size(64, 44)),
           icon: const Icon(Icons.checklist, size: 18),
           label: Text(
             _selectedInvoiceIds.isEmpty
@@ -225,7 +223,10 @@ class _CreditCreateTabState extends State<_CreditCreateTab> {
           const SizedBox(height: 12),
           Row(
             children: [
-              Text(context.tr('calculate_total'), style: TextStyle(color: tokens.ink2)),
+              Text(
+                context.tr('calculate_total'),
+                style: TextStyle(color: tokens.ink2),
+              ),
               const Spacer(),
               Text(
                 _selectedTotal.toStringAsFixed(2),
@@ -243,9 +244,7 @@ class _CreditCreateTabState extends State<_CreditCreateTab> {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             FilledButton.icon(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(64, 44),
-              ),
+              style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
               icon: const Icon(Icons.check, size: 18),
               label: Text(context.tr('create_payment')),
               onPressed: _submitting || _selectedInvoiceIds.isEmpty
@@ -332,9 +331,7 @@ class _CreditLinkTabState extends State<_CreditLinkTab> {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             FilledButton.icon(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(64, 44),
-              ),
+              style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
               icon: const Icon(Icons.link, size: 18),
               label: Text(context.tr('link_payment')),
               onPressed: _submitting || _selectedPayment == null
@@ -380,24 +377,24 @@ class _DebitCreateTabState extends State<_DebitCreateTab> {
         .watch(companyId: companyId, id: widget.transaction.transactionRuleId)
         .first
         .then((rule) async {
-      if (!mounted || rule == null) return;
-      if (rule.vendorId.isNotEmpty) {
-        final vendor = await services.vendors
-            .watch(companyId: companyId, id: rule.vendorId)
-            .first;
-        if (mounted && vendor != null && _selectedVendor == null) {
-          setState(() => _selectedVendor = vendor);
-        }
-      }
-      if (rule.categoryId.isNotEmpty) {
-        final cat = await services.expenseCategories
-            .watch(companyId: companyId, id: rule.categoryId)
-            .first;
-        if (mounted && cat != null && _selectedCategory == null) {
-          setState(() => _selectedCategory = cat);
-        }
-      }
-    });
+          if (!mounted || rule == null) return;
+          if (rule.vendorId.isNotEmpty) {
+            final vendor = await services.vendors
+                .watch(companyId: companyId, id: rule.vendorId)
+                .first;
+            if (mounted && vendor != null && _selectedVendor == null) {
+              setState(() => _selectedVendor = vendor);
+            }
+          }
+          if (rule.categoryId.isNotEmpty) {
+            final cat = await services.expenseCategories
+                .watch(companyId: companyId, id: rule.categoryId)
+                .first;
+            if (mounted && cat != null && _selectedCategory == null) {
+              setState(() => _selectedCategory = cat);
+            }
+          }
+        });
   }
 
   Future<void> _submit() async {
@@ -469,12 +466,11 @@ class _DebitCreateTabState extends State<_DebitCreateTab> {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             FilledButton.icon(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(64, 44),
-              ),
+              style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
               icon: const Icon(Icons.check, size: 18),
               label: Text(context.tr('create_expense')),
-              onPressed: _submitting ||
+              onPressed:
+                  _submitting ||
                       (_selectedVendor == null && _selectedCategory == null)
                   ? null
                   : _submit,
@@ -573,9 +569,7 @@ class _DebitLinkTabState extends State<_DebitLinkTab> {
       mainAxisSize: MainAxisSize.min,
       children: [
         OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(64, 44),
-          ),
+          style: OutlinedButton.styleFrom(minimumSize: const Size(64, 44)),
           icon: const Icon(Icons.checklist, size: 18),
           label: Text(
             _selectedExpenseIds.isEmpty
@@ -591,9 +585,7 @@ class _DebitLinkTabState extends State<_DebitLinkTab> {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             FilledButton.icon(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(64, 44),
-              ),
+              style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
               icon: const Icon(Icons.link, size: 18),
               label: Text(context.tr('link_expense')),
               onPressed: _submitting || _selectedExpenseIds.isEmpty

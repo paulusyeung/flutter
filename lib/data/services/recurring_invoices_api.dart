@@ -26,26 +26,22 @@ class RecurringInvoicesApi
   Future<RecurringInvoiceItemApi?> markSent({
     required String id,
     required String idempotencyKey,
-  }) =>
-      action(id: id, action: 'mark_sent', idempotencyKey: idempotencyKey);
+  }) => action(id: id, action: 'mark_sent', idempotencyKey: idempotencyKey);
 
   Future<RecurringInvoiceItemApi?> start({
     required String id,
     required String idempotencyKey,
-  }) =>
-      action(id: id, action: 'start', idempotencyKey: idempotencyKey);
+  }) => action(id: id, action: 'start', idempotencyKey: idempotencyKey);
 
   Future<RecurringInvoiceItemApi?> stop({
     required String id,
     required String idempotencyKey,
-  }) =>
-      action(id: id, action: 'stop', idempotencyKey: idempotencyKey);
+  }) => action(id: id, action: 'stop', idempotencyKey: idempotencyKey);
 
   Future<RecurringInvoiceItemApi?> sendNow({
     required String id,
     required String idempotencyKey,
-  }) =>
-      action(id: id, action: 'send_now', idempotencyKey: idempotencyKey);
+  }) => action(id: id, action: 'send_now', idempotencyKey: idempotencyKey);
 
   Future<RecurringInvoiceItemApi?> email({
     required String id,
@@ -54,18 +50,17 @@ class RecurringInvoicesApi
     String? body,
     String? ccEmail,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'email',
-        idempotencyKey: idempotencyKey,
-        payload: {
-          'template': template,
-          if (subject != null) 'subject': subject,
-          if (body != null) 'body': body,
-          if (ccEmail != null) 'cc_email': ccEmail,
-        },
-      );
+  }) => action(
+    id: id,
+    action: 'email',
+    idempotencyKey: idempotencyKey,
+    payload: {
+      'template': template,
+      if (subject != null) 'subject': subject,
+      if (body != null) 'body': body,
+      if (ccEmail != null) 'cc_email': ccEmail,
+    },
+  );
 
   Future<RecurringInvoiceItemApi?> scheduleEmail({
     required String id,
@@ -74,41 +69,38 @@ class RecurringInvoicesApi
     String? subject,
     String? body,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'email',
-        idempotencyKey: idempotencyKey,
-        payload: {
-          'template': template,
-          'send_at': sendAt,
-          if (subject != null) 'subject': subject,
-          if (body != null) 'body': body,
-        },
-      );
+  }) => action(
+    id: id,
+    action: 'email',
+    idempotencyKey: idempotencyKey,
+    payload: {
+      'template': template,
+      'send_at': sendAt,
+      if (subject != null) 'subject': subject,
+      if (body != null) 'body': body,
+    },
+  );
 
   Future<RecurringInvoiceItemApi?> cloneTo({
     required String id,
     required String targetType,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'clone_to_$targetType',
-        idempotencyKey: idempotencyKey,
-      );
+  }) => action(
+    id: id,
+    action: 'clone_to_$targetType',
+    idempotencyKey: idempotencyKey,
+  );
 
   Future<RecurringInvoiceItemApi?> runTemplate({
     required String id,
     required String templateId,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'template',
-        idempotencyKey: idempotencyKey,
-        payload: {'template_id': templateId},
-      );
+  }) => action(
+    id: id,
+    action: 'template',
+    idempotencyKey: idempotencyKey,
+    payload: {'template_id': templateId},
+  );
 
   /// Server-rendered PDF via `POST /api/v1/live_preview?entity=recurring_invoice
   /// [&entity_id=<id>]` with the full entity (`RecurringInvoice.toApiJson()`)
@@ -120,9 +112,8 @@ class RecurringInvoicesApi
   }) {
     final id = (entityJson['id'] as String?) ?? '';
     final saved = id.isNotEmpty && !id.startsWith('tmp_');
-    final path =
-        StringBuffer('/api/v1/live_preview?entity=recurring_invoice')
-          ..write(saved ? '&entity_id=$id' : '');
+    final path = StringBuffer('/api/v1/live_preview?entity=recurring_invoice')
+      ..write(saved ? '&entity_id=$id' : '');
     return client.postRaw(
       path.toString(),
       readOnly: true,

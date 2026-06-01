@@ -70,9 +70,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
               if (tx.isMatched || tx.isConverted) ...[
                 SizedBox(height: InSpacing.lg(context)),
                 _Section(
-                  title: context.tr(
-                    tx.isConverted ? 'converted' : 'matched',
-                  ),
+                  title: context.tr(tx.isConverted ? 'converted' : 'matched'),
                   child: TransactionMatchedEntities(transaction: tx),
                 ),
               ],
@@ -135,23 +133,14 @@ class _Header extends StatelessWidget {
           if (tx.participantName.isNotEmpty) ...[
             Text(
               tx.participantName,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 4),
           ],
           if (tx.description.isNotEmpty)
-            Text(
-              tx.description,
-              style: TextStyle(color: tokens.ink2),
-            ),
+            Text(tx.description, style: TextStyle(color: tokens.ink2)),
           const SizedBox(height: 12),
-          _MetaRow(
-            label: context.tr('date'),
-            value: tx.date?.toIso() ?? '—',
-          ),
+          _MetaRow(label: context.tr('date'), value: tx.date?.toIso() ?? '—'),
           if (tx.bankAccountId.isNotEmpty)
             _MetaRow(
               label: context.tr('bank_account'),
@@ -162,10 +151,7 @@ class _Header extends StatelessWidget {
               ),
             ),
           if (tx.participant.isNotEmpty)
-            _MetaRow(
-              label: context.tr('participant'),
-              value: tx.participant,
-            ),
+            _MetaRow(label: context.tr('participant'), value: tx.participant),
         ],
       ),
     );
@@ -173,11 +159,7 @@ class _Header extends StatelessWidget {
 }
 
 class _MetaRow extends StatelessWidget {
-  const _MetaRow({
-    required this.label,
-    this.value = '',
-    this.valueChild,
-  });
+  const _MetaRow({required this.label, this.value = '', this.valueChild});
   final String label;
   final String value;
 
@@ -227,10 +209,7 @@ class _Section extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
           child,
         ],

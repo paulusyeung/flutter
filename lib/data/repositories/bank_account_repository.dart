@@ -155,20 +155,18 @@ class BankAccountRepository
   /// show the raw id. See [ensureLoadedTemplate]. Bank accounts are
   /// bundled, so this is usually a cache hit / no-op — it's the safety
   /// net for a stale or not-yet-bundled integration id.
-  Future<void> ensureLoaded({
-    required String companyId,
-    required String id,
-  }) => ensureLoadedTemplate(
-    companyId: companyId,
-    id: id,
-    fetch: (id) async => (await api.get(id)).data,
-    idOf: (a) => a.id,
-    toCompanion: (a) => _apiToCompanion(a, companyId),
-    upsert: (byId) => db.bankAccountDao.upsertAllPreservingDirty(
-      companyId: companyId,
-      byId: byId,
-    ),
-  );
+  Future<void> ensureLoaded({required String companyId, required String id}) =>
+      ensureLoadedTemplate(
+        companyId: companyId,
+        id: id,
+        fetch: (id) async => (await api.get(id)).data,
+        idOf: (a) => a.id,
+        toCompanion: (a) => _apiToCompanion(a, companyId),
+        upsert: (byId) => db.bankAccountDao.upsertAllPreservingDirty(
+          companyId: companyId,
+          byId: byId,
+        ),
+      );
 
   Future<void> refreshAll({
     required String companyId,
@@ -292,9 +290,7 @@ class BankAccountRepository
     required String companyId,
     required BankAccountApi serverResponse,
   }) async {
-    await db.bankAccountDao.upsert(
-      _apiToCompanion(serverResponse, companyId),
-    );
+    await db.bankAccountDao.upsert(_apiToCompanion(serverResponse, companyId));
   }
 
   @override
@@ -315,10 +311,7 @@ class BankAccountRepository
 
   // -------------------- conversions --------------------
 
-  BankAccountsCompanion _apiToCompanion(
-    BankAccountApi a,
-    String companyId,
-  ) {
+  BankAccountsCompanion _apiToCompanion(BankAccountApi a, String companyId) {
     final domain = BankAccount.fromApi(a);
     return BankAccountsCompanion.insert(
       id: a.id,
@@ -336,8 +329,7 @@ class BankAccountRepository
       nordigenInstitutionId: Value(domain.nordigenInstitutionId),
       updatedAt: a.updatedAt,
       createdAt: Value(a.createdAt),
-      archivedAt:
-          a.archivedAt > 0 ? Value(a.archivedAt) : const Value.absent(),
+      archivedAt: a.archivedAt > 0 ? Value(a.archivedAt) : const Value.absent(),
       isDirty: const Value(false),
       isDeleted: Value(a.isDeleted),
       payload: jsonEncode(a.toJson()),

@@ -172,9 +172,7 @@ class DashboardRepository {
         .map((row) {
           if (row == null) return null;
           try {
-            return DashboardCalculatedField.fromServer(
-              jsonDecode(row.payload),
-            );
+            return DashboardCalculatedField.fromServer(jsonDecode(row.payload));
           } catch (e, st) {
             _log.warning(
               'Failed to decode calculated_fields cache [${config.key}]',

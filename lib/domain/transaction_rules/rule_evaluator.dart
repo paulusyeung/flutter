@@ -38,8 +38,9 @@ bool ruleCriterionMatches(BankTransaction tx, RuleCriterion c) {
 /// only meaningful once at least one real criterion exists). `matchesOnAll`
 /// → every criterion must match (AND); otherwise any (OR).
 bool transactionRuleMatches(BankTransaction tx, TransactionRule rule) {
-  final criteria =
-      rule.rules.where((c) => c.searchKey.isNotEmpty).toList(growable: false);
+  final criteria = rule.rules
+      .where((c) => c.searchKey.isNotEmpty)
+      .toList(growable: false);
   if (criteria.isEmpty) return false;
   if (rule.matchesOnAll) {
     return criteria.every((c) => ruleCriterionMatches(tx, c));
@@ -51,8 +52,7 @@ bool transactionRuleMatches(BankTransaction tx, TransactionRule rule) {
 int transactionRuleMatchCount(
   Iterable<BankTransaction> transactions,
   TransactionRule rule,
-) =>
-    transactions.where((t) => transactionRuleMatches(t, rule)).length;
+) => transactions.where((t) => transactionRuleMatches(t, rule)).length;
 
 bool _stringMatch(String field, String op, String value) {
   final f = field.toLowerCase().trim();

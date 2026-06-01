@@ -26,7 +26,8 @@ final _log = Logger('VendorRepository');
 ///
 /// Page size is fixed at [pageSize]. Subsequent pages are fetched only on
 /// demand — list screens call [ensurePageLoaded] near the scroll edge.
-class VendorRepository extends BaseEntityRepository<Vendor, VendorApi>    implements DocumentBearingRepository {
+class VendorRepository extends BaseEntityRepository<Vendor, VendorApi>
+    implements DocumentBearingRepository {
   VendorRepository({
     required super.db,
     required this.api,
@@ -138,29 +139,25 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi>    implem
     itemsOf: (l) => l.data,
     idOf: (a) => a.id,
     toCompanion: (a) => _apiToCompanion(a, companyId),
-    upsert: (byId) => db.vendorDao.upsertAllPreservingDirty(
-      companyId: companyId,
-      byId: byId,
-    ),
+    upsert: (byId) =>
+        db.vendorDao.upsertAllPreservingDirty(companyId: companyId, byId: byId),
   );
 
   /// Lazily hydrate one vendor by id when a reference (e.g. an expense's
   /// vendor) isn't in the prefetched page so a `*NameLabel` would show
   /// the raw id. See [ensureLoadedTemplate].
-  Future<void> ensureLoaded({
-    required String companyId,
-    required String id,
-  }) => ensureLoadedTemplate(
-    companyId: companyId,
-    id: id,
-    fetch: (id) async => (await api.get(id)).data,
-    idOf: (a) => a.id,
-    toCompanion: (a) => _apiToCompanion(a, companyId),
-    upsert: (byId) => db.vendorDao.upsertAllPreservingDirty(
-      companyId: companyId,
-      byId: byId,
-    ),
-  );
+  Future<void> ensureLoaded({required String companyId, required String id}) =>
+      ensureLoadedTemplate(
+        companyId: companyId,
+        id: id,
+        fetch: (id) async => (await api.get(id)).data,
+        idOf: (a) => a.id,
+        toCompanion: (a) => _apiToCompanion(a, companyId),
+        upsert: (byId) => db.vendorDao.upsertAllPreservingDirty(
+          companyId: companyId,
+          byId: byId,
+        ),
+      );
 
   /// Pull-to-refresh / foreground-resume entry point. Mirrors
   /// `ClientRepository.refreshAll`: pull every state into the local cache
@@ -256,7 +253,6 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi>    implem
   /// `ConfirmPasswordSheet` before hitting `POST /vendors/:id/purge`.
   /// Queue a document upload for this vendor.
   @override
-
   Future<void> uploadDocument({
     required String companyId,
     required String entityId,
@@ -271,7 +267,6 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi>    implem
   }
 
   @override
-
   Future<void> deleteDocument({
     required String companyId,
     required String entityId,
@@ -286,7 +281,6 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi>    implem
   }
 
   @override
-
   Future<void> setDocumentVisibility({
     required String companyId,
     required String entityId,
@@ -456,11 +450,12 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi>    implem
     final next = current.where((d) => d.id != documentId).toList();
     if (next.length == current.length) return; // not found; no-op
     await (db.update(db.vendors)
-          ..where((v) => v.companyId.equals(companyId) & v.id.equals(entityId))).write(
-      VendorsCompanion(
-        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
-      ),
-    );
+          ..where((v) => v.companyId.equals(companyId) & v.id.equals(entityId)))
+        .write(
+          VendorsCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   /// Replace (or insert) one document in the vendor's local `documents`
@@ -483,11 +478,12 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi>    implem
       next.add(document);
     }
     await (db.update(db.vendors)
-          ..where((v) => v.companyId.equals(companyId) & v.id.equals(entityId))).write(
-      VendorsCompanion(
-        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
-      ),
-    );
+          ..where((v) => v.companyId.equals(companyId) & v.id.equals(entityId)))
+        .write(
+          VendorsCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   Vendor _fromRow(VendorRow row) {

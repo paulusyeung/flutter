@@ -21,12 +21,14 @@ class InvoiceListEmptyState extends StatelessWidget {
         subtitle: context.tr('create_your_first_invoice_placeholder'),
       );
     }
-    final onlyArchived = vm.states.length == 1 &&
+    final onlyArchived =
+        vm.states.length == 1 &&
         vm.states.contains(EntityState.archived) &&
         vm.customFilters.isEmpty &&
         vm.extraFilters.isEmpty &&
         vm.search.isEmpty;
-    final onlyDeleted = vm.states.length == 1 &&
+    final onlyDeleted =
+        vm.states.length == 1 &&
         vm.states.contains(EntityState.deleted) &&
         vm.customFilters.isEmpty &&
         vm.extraFilters.isEmpty &&

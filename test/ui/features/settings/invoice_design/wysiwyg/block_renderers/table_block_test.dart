@@ -30,21 +30,26 @@ DesignBlock _tableBlock() {
 
 void main() {
   testWidgets('renders header columns from the columns array', (tester) async {
-    await tester.pumpWidget(_wrap(
-      TableBlock(block: _tableBlock(), sample: DesignerSampleData.fallback),
-    ));
+    await tester.pumpWidget(
+      _wrap(
+        TableBlock(block: _tableBlock(), sample: DesignerSampleData.fallback),
+      ),
+    );
     await tester.pump();
     // Default product table headers: item / description / qty / unit_cost / line_total.
     expect(find.text('Item'), findsOneWidget);
     expect(find.text('Description'), findsOneWidget);
-    expect(find.text('Quantity'), findsOneWidget); // i18n 'qty' → 'Quantity'? Use what en.json has
+    expect(
+      find.text('Quantity'),
+      findsOneWidget,
+    ); // i18n 'qty' → 'Quantity'? Use what en.json has
   }, skip: true); // Header values come through the spec — i18n keys differ.
 
   testWidgets('renders one row per sample line item', (tester) async {
     final block = _tableBlock();
-    await tester.pumpWidget(_wrap(
-      TableBlock(block: block, sample: DesignerSampleData.fallback),
-    ));
+    await tester.pumpWidget(
+      _wrap(TableBlock(block: block, sample: DesignerSampleData.fallback)),
+    );
     await tester.pump();
     // Two sample line items: WEB-DESIGN + CONSULTING.
     expect(find.text('WEB-DESIGN'), findsOneWidget);
@@ -60,26 +65,30 @@ void main() {
     expect(find.text('5'), findsOneWidget);
   });
 
-  testWidgets('alternates row background color when alternateRows is true', (tester) async {
+  testWidgets('alternates row background color when alternateRows is true', (
+    tester,
+  ) async {
     final block = _tableBlock();
-    await tester.pumpWidget(_wrap(
-      TableBlock(block: block, sample: DesignerSampleData.fallback),
-    ));
+    await tester.pumpWidget(
+      _wrap(TableBlock(block: block, sample: DesignerSampleData.fallback)),
+    );
     await tester.pump();
     // Verify both header-row + body-rows render without throwing.
     expect(find.byType(Table), findsOneWidget);
   });
 
-  testWidgets('empty columns produces an empty SizedBox.shrink', (tester) async {
+  testWidgets('empty columns produces an empty SizedBox.shrink', (
+    tester,
+  ) async {
     final block = DesignBlock(
       id: 'empty',
       type: 'table',
       gridPosition: const GridPosition(x: 0, y: 0, w: 12, h: 4),
       properties: const {'columns': <Map<String, dynamic>>[]},
     );
-    await tester.pumpWidget(_wrap(
-      TableBlock(block: block, sample: DesignerSampleData.fallback),
-    ));
+    await tester.pumpWidget(
+      _wrap(TableBlock(block: block, sample: DesignerSampleData.fallback)),
+    );
     await tester.pump();
     expect(find.byType(Table), findsNothing);
   });

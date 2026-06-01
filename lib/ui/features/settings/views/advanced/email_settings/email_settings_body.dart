@@ -118,9 +118,8 @@ class EmailSettingsBody extends StatelessWidget {
                 isProOrEnterprise: isProOrEnterprise,
                 isCompanyScope: isCompanyScope,
               ),
-              onChanged: (v) => host.updateSettings(
-                (s) => s.copyWith(emailSendingMethod: v),
-              ),
+              onChanged: (v) =>
+                  host.updateSettings((s) => s.copyWith(emailSendingMethod: v)),
             ),
           ],
         ),
@@ -279,19 +278,76 @@ class EmailSettingsBody extends StatelessWidget {
   }) {
     final items = <DropdownMenuItem<String>>[];
     if (isHosted) {
-      items.add(_brandItem(context, value: 'default', label: 'Postmark (invoicing.co)', brandKey: 'postmark'));
-      items.add(_brandItem(context, value: 'mailgun', label: 'Mailgun (invoicing.co)', brandKey: 'mailgun'));
-      items.add(_brandItem(context, value: 'ses', label: 'Amazon SES (invoicing.co)', brandKey: 'ses'));
-      items.add(_brandItem(context, value: 'gmail', label: 'Gmail', brandKey: 'gmail'));
+      items.add(
+        _brandItem(
+          context,
+          value: 'default',
+          label: 'Postmark (invoicing.co)',
+          brandKey: 'postmark',
+        ),
+      );
+      items.add(
+        _brandItem(
+          context,
+          value: 'mailgun',
+          label: 'Mailgun (invoicing.co)',
+          brandKey: 'mailgun',
+        ),
+      );
+      items.add(
+        _brandItem(
+          context,
+          value: 'ses',
+          label: 'Amazon SES (invoicing.co)',
+          brandKey: 'ses',
+        ),
+      );
+      items.add(
+        _brandItem(context, value: 'gmail', label: 'Gmail', brandKey: 'gmail'),
+      );
     }
-    items.add(_brandItem(context, value: 'office365', label: 'Microsoft', brandKey: 'microsoft'));
-    items.add(_brandItem(context, value: 'client_postmark', label: 'Postmark', brandKey: 'postmark'));
-    items.add(_brandItem(context, value: 'client_mailgun', label: 'Mailgun', brandKey: 'mailgun'));
-    items.add(_brandItem(context, value: 'client_ses', label: 'Amazon SES', brandKey: 'ses'));
-    items.add(_brandItem(context, value: 'client_brevo', label: 'Brevo', brandKey: 'brevo'));
+    items.add(
+      _brandItem(
+        context,
+        value: 'office365',
+        label: 'Microsoft',
+        brandKey: 'microsoft',
+      ),
+    );
+    items.add(
+      _brandItem(
+        context,
+        value: 'client_postmark',
+        label: 'Postmark',
+        brandKey: 'postmark',
+      ),
+    );
+    items.add(
+      _brandItem(
+        context,
+        value: 'client_mailgun',
+        label: 'Mailgun',
+        brandKey: 'mailgun',
+      ),
+    );
+    items.add(
+      _brandItem(
+        context,
+        value: 'client_ses',
+        label: 'Amazon SES',
+        brandKey: 'ses',
+      ),
+    );
+    items.add(
+      _brandItem(
+        context,
+        value: 'client_brevo',
+        label: 'Brevo',
+        brandKey: 'brevo',
+      ),
+    );
     // SMTP is always offered; disabled when out of plan, demo, or off-scope.
-    final smtpEnabled =
-        isCompanyScope && isProOrEnterprise && !Env.demoMode;
+    final smtpEnabled = isCompanyScope && isProOrEnterprise && !Env.demoMode;
     items.add(
       DropdownMenuItem(
         value: 'smtp',
@@ -306,10 +362,7 @@ class EmailSettingsBody extends StatelessWidget {
                 color: smtpEnabled ? null : Theme.of(context).disabledColor,
               ),
             ),
-            if (!smtpEnabled) ...[
-              const SizedBox(width: 8),
-              const _ProChip(),
-            ],
+            if (!smtpEnabled) ...[const SizedBox(width: 8), const _ProChip()],
           ],
         ),
       ),
@@ -398,9 +451,8 @@ class EmailSettingsBody extends StatelessWidget {
                   child: Text('api.eu.mailgun.net'),
                 ),
               ],
-              onChanged: (v) => host.updateSettings(
-                (s) => s.copyWith(mailgunEndpoint: v),
-              ),
+              onChanged: (v) =>
+                  host.updateSettings((s) => s.copyWith(mailgunEndpoint: v)),
             ),
           ],
         ),
@@ -468,10 +520,7 @@ class _BrandDot extends StatelessWidget {
     return Container(
       width: 10,
       height: 10,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 }
@@ -567,10 +616,10 @@ class _SendTimeRow extends StatelessWidget {
     final h12 = hour == 24
         ? 12
         : hour == 12
-            ? 12
-            : hour > 12
-                ? hour - 12
-                : hour;
+        ? 12
+        : hour > 12
+        ? hour - 12
+        : hour;
     final suffix = (hour >= 12 && hour < 24) ? 'PM' : 'AM';
     return '$h12:00 $suffix';
   }

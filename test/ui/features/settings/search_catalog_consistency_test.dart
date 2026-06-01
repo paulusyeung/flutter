@@ -434,10 +434,7 @@ final List<_TabUnderTest> _tabsUnderTest = [
       'lib/ui/features/payment_links/widgets/edit/payment_link_webhook_tab.dart',
       'lib/ui/features/payment_links/widgets/edit/payment_link_steps_tab.dart',
     ],
-    keys: [
-      ...kPaymentLinksListSearchKeys,
-      ...kPaymentLinkEditSearchKeys,
-    ],
+    keys: [...kPaymentLinksListSearchKeys, ...kPaymentLinkEditSearchKeys],
   ),
 ];
 

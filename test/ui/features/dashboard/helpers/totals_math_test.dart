@@ -15,13 +15,21 @@ DashboardTotals _totals(Map<String, dynamic> extraBuckets) {
     '1': {
       'invoices': {'invoiced_amount': '11705.00', 'code': 'USD'},
       'revenue': {'paid_to_date': '3457.00', 'code': 'USD'},
-      'outstanding': {'amount': '8248.00', 'outstanding_count': 4, 'code': 'USD'},
+      'outstanding': {
+        'amount': '8248.00',
+        'outstanding_count': 4,
+        'code': 'USD',
+      },
       'expenses': {'amount': '25.00', 'code': 'USD'},
     },
     '2': {
       'invoices': {'invoiced_amount': '186363.00', 'code': 'GBP'},
       'revenue': {'paid_to_date': '176561.00', 'code': 'GBP'},
-      'outstanding': {'amount': '9802.00', 'outstanding_count': 4, 'code': 'GBP'},
+      'outstanding': {
+        'amount': '9802.00',
+        'outstanding_count': 4,
+        'code': 'GBP',
+      },
       'expenses': <String, dynamic>{},
     },
     ...extraBuckets,

@@ -28,10 +28,7 @@ class MasterDetailNavController {
   /// the URL only changes after the reverse animation finishes.
   Future<void> Function()? closePane;
 
-  void update({
-    required String? selectedId,
-    required List<String> itemIds,
-  }) {
+  void update({required String? selectedId, required List<String> itemIds}) {
     _selectedId = selectedId;
     _itemIds = itemIds;
   }
@@ -69,8 +66,7 @@ class MasterDetailNavScope extends InheritedWidget {
   final MasterDetailNavController controller;
 
   static MasterDetailNavController? maybeOf(BuildContext context) {
-    final scope = context
-        .getInheritedWidgetOfExactType<MasterDetailNavScope>();
+    final scope = context.getInheritedWidgetOfExactType<MasterDetailNavScope>();
     return scope?.controller;
   }
 
@@ -78,10 +74,7 @@ class MasterDetailNavScope extends InheritedWidget {
   /// click-to-deselect). Runs the layout's animated close when hosted
   /// inside a master-detail pane; falls back to plain
   /// `GoRouter.go(basePath)` otherwise (narrow viewports, tests).
-  static void requestClose(
-    BuildContext context, {
-    required String basePath,
-  }) {
+  static void requestClose(BuildContext context, {required String basePath}) {
     final close = maybeOf(context)?.closePane;
     if (close != null) {
       close();
@@ -167,8 +160,7 @@ bool editOpensFullWidth(String basePath) =>
 
 class _MasterDetailLayoutState extends State<MasterDetailLayout>
     with TickerProviderStateMixin {
-  final MasterDetailNavController _navController =
-      MasterDetailNavController();
+  final MasterDetailNavController _navController = MasterDetailNavController();
 
   /// Tracks whether we've already fired the sticky-mode redirect for
   /// the *current* (basePath, selectedId) tuple. Reset whenever either
@@ -205,8 +197,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
   /// (not [_slide]) owns the slide-over ⇄ full-screen geometry, so
   /// entering full-screen must NOT slide the (single, unified) pane
   /// away.
-  bool _shouldPaneBeDocked() =>
-      Breakpoints.isSlideOver(context) && _hasPane;
+  bool _shouldPaneBeDocked() => Breakpoints.isSlideOver(context) && _hasPane;
 
   /// Resolve the desired pane mode (`'full'` or `'slide'`) for the
   /// current URL. The redirect logic in [_buildTree] uses this to
@@ -224,8 +215,8 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
   /// An explicit `?view=full` (in-cell link, or the user's F-toggle /
   /// expand button for this exact screen) still wins for that URL only.
   String _resolveDesiredMode(String matchedLocation) {
-    final isEditOrNew = matchedLocation.endsWith('/edit') ||
-        matchedLocation.endsWith('/new');
+    final isEditOrNew =
+        matchedLocation.endsWith('/edit') || matchedLocation.endsWith('/new');
     if (isEditOrNew) {
       return editOpensFullWidth(widget.basePath) ? 'full' : 'slide';
     }
@@ -239,16 +230,14 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
       vsync: this,
       duration: const Duration(milliseconds: 220),
     );
-    _slideOffset = Tween<Offset>(
-      begin: const Offset(1, 0),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _slide,
-        curve: Curves.easeOutCubic,
-        reverseCurve: Curves.easeInCubic,
-      ),
-    );
+    _slideOffset = Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _slide,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          ),
+        );
     _expand = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 220),
@@ -345,12 +334,12 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
   void _syncExpand(MasterDetailLayout? oldWidget) {
     if (!_didFirstSync) return; // first-sync snap owns the initial value
     final target = _isFullScreen ? 1.0 : 0.0;
-    final modeFlip = oldWidget != null &&
+    final modeFlip =
+        oldWidget != null &&
         oldWidget.rightPane != null &&
         widget.rightPane != null &&
         oldWidget.viewMode != widget.viewMode;
-    final reduceMotion =
-        MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    final reduceMotion = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
     if (modeFlip && !reduceMotion) {
       if (target == 1.0) {
         _expand.forward();
@@ -371,8 +360,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
   /// new destination.
   Future<void> _closePaneAnimated() async {
     final fromLoc = GoRouterState.of(context).matchedLocation;
-    final reduceMotion =
-        MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    final reduceMotion = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
     if (!reduceMotion && _slide.status != AnimationStatus.dismissed) {
       await _slide.reverse();
     }
@@ -424,10 +412,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
         if (_resolveDesiredMode(loc) == 'full') {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
-            _toggleFullScreenInUrl(
-              context,
-              isFullScreen: false,
-            );
+            _toggleFullScreenInUrl(context, isFullScreen: false);
           });
         }
       }
@@ -470,17 +455,15 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
             // covers it. The moment a close starts (`_slide` reverses
             // below 1) the table must paint underneath so it's
             // revealed as the pane slides away — not pop in after.
-            final listHidden = _hasPane &&
+            final listHidden =
+                _hasPane &&
                 _isFullScreen &&
                 _expand.status == AnimationStatus.completed &&
                 _slide.value >= 1;
             return Stack(
               children: [
                 Positioned.fill(
-                  child: Offstage(
-                    offstage: listHidden,
-                    child: widget.list,
-                  ),
+                  child: Offstage(offstage: listHidden, child: widget.list),
                 ),
                 if (_hasPane)
                   Positioned(
@@ -493,11 +476,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
                     // 0 on desktop) so the expand reads as a clean
                     // horizontal widen to fill the whole screen.
                     top: MediaQuery.paddingOf(context).top,
-                    width: _lerp(
-                      _paneWidth(context),
-                      constraints.maxWidth,
-                      t,
-                    ),
+                    width: _lerp(_paneWidth(context), constraints.maxWidth, t),
                     bottom: 0,
                     child: SlideTransition(
                       position: _slideOffset,
@@ -579,9 +558,7 @@ class _PaneRoot extends StatelessWidget {
     // form too (not silently flip to the read-only detail screen).
     // `uri.replace(path:)` already carries the `?view` query param.
     final isEdit = uri.path.endsWith('/edit');
-    final newPath = isEdit
-        ? '$basePath/$targetId/edit'
-        : '$basePath/$targetId';
+    final newPath = isEdit ? '$basePath/$targetId/edit' : '$basePath/$targetId';
     final next = uri.replace(path: newPath);
     GoRouter.of(context).go(next.toString());
   }
@@ -633,11 +610,11 @@ class _PaneRoot extends StatelessWidget {
             ),
             _PaneToggleFullScreenIntent:
                 GuardedShortcutAction<_PaneToggleFullScreenIntent>(
-              onInvoke: (_) {
-                _toggleFullScreenInUrl(context, isFullScreen: isFullScreen);
-                return null;
-              },
-            ),
+                  onInvoke: (_) {
+                    _toggleFullScreenInUrl(context, isFullScreen: isFullScreen);
+                    return null;
+                  },
+                ),
             _PaneNextIntent: GuardedShortcutAction<_PaneNextIntent>(
               onInvoke: (_) {
                 _navigateRelative(context, navController.nextId());
@@ -698,15 +675,11 @@ class _PaneActionsRow extends StatelessWidget {
                   ? context.tr('exit_full_screen')
                   : context.tr('open_in_full_screen'),
               icon: Icon(
-                isFullScreen
-                    ? Icons.close_fullscreen
-                    : Icons.open_in_full,
+                isFullScreen ? Icons.close_fullscreen : Icons.open_in_full,
                 size: 18,
               ),
-              onPressed: () => _toggleFullScreenInUrl(
-                context,
-                isFullScreen: isFullScreen,
-              ),
+              onPressed: () =>
+                  _toggleFullScreenInUrl(context, isFullScreen: isFullScreen),
               splashRadius: 18,
             ),
             IconButton(
@@ -837,8 +810,7 @@ class MasterDetailPaneScope extends InheritedWidget {
   final Widget? paneActions;
 
   static bool isInPane(BuildContext context) =>
-      context
-          .dependOnInheritedWidgetOfExactType<MasterDetailPaneScope>() !=
+      context.dependOnInheritedWidgetOfExactType<MasterDetailPaneScope>() !=
       null;
 
   static Widget? paneActionsOf(BuildContext context) => context

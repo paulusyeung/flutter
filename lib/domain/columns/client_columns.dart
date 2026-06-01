@@ -89,7 +89,12 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
     labelKey: 'balance',
     width: 120,
     align: ColumnAlign.end,
-    cellBuilder: (c, context) => cellMoney(c.balance, context, cents: true, clientCurrencyId: c.currencyId),
+    cellBuilder: (c, context) => cellMoney(
+      c.balance,
+      context,
+      cents: true,
+      clientCurrencyId: c.currencyId,
+    ),
     valueBuilder: (c) => cellMoneyValue(c.balance),
   ),
   ClientColumn(
@@ -97,7 +102,12 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
     labelKey: 'paid_to_date',
     width: 120,
     align: ColumnAlign.end,
-    cellBuilder: (c, context) => cellMoney(c.paidToDate, context, cents: false, clientCurrencyId: c.currencyId),
+    cellBuilder: (c, context) => cellMoney(
+      c.paidToDate,
+      context,
+      cents: false,
+      clientCurrencyId: c.currencyId,
+    ),
     valueBuilder: (c) => cellMoneyValue(c.paidToDate),
   ),
   ClientColumn(
@@ -105,7 +115,12 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
     labelKey: 'credit_balance',
     width: 120,
     align: ColumnAlign.end,
-    cellBuilder: (c, context) => cellMoney(c.creditBalance, context, cents: false, clientCurrencyId: c.currencyId),
+    cellBuilder: (c, context) => cellMoney(
+      c.creditBalance,
+      context,
+      cents: false,
+      clientCurrencyId: c.currencyId,
+    ),
     valueBuilder: (c) => cellMoneyValue(c.creditBalance),
   ),
   ClientColumn(

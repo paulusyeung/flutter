@@ -113,27 +113,24 @@ void main() {
       expect(vm.performSaveCount, 1);
     });
 
-    test(
-      'validate() errors block the save before performSave runs',
-      () async {
-        final vm = _FakeEditVM(
-          initialDraft: 'draft',
-          validateErrors: const {
-            'client_id': ['Please select a client'],
-          },
-        );
+    test('validate() errors block the save before performSave runs', () async {
+      final vm = _FakeEditVM(
+        initialDraft: 'draft',
+        validateErrors: const {
+          'client_id': ['Please select a client'],
+        },
+      );
 
-        final result = await vm.save();
+      final result = await vm.save();
 
-        expect(result, isNull);
-        expect(vm.performSaveCount, 0); // repo never called → no outbox row
-        expect(vm.fieldErrorFor('client_id'), 'Please select a client');
-        expect(vm.localValidationOnly, isTrue);
-        expect(vm.submitError, isNull);
-        expect(vm.isSaving, isFalse);
-        expect(vm.isDirty, isTrue); // stays open, not marked clean
-      },
-    );
+      expect(result, isNull);
+      expect(vm.performSaveCount, 0); // repo never called → no outbox row
+      expect(vm.fieldErrorFor('client_id'), 'Please select a client');
+      expect(vm.localValidationOnly, isTrue);
+      expect(vm.submitError, isNull);
+      expect(vm.isSaving, isFalse);
+      expect(vm.isDirty, isTrue); // stays open, not marked clean
+    });
 
     test(
       'fixing the field clears localValidationOnly and lets save proceed',
@@ -213,28 +210,28 @@ void main() {
       await db.close();
     });
 
-    test(
-      'online + success → returns entity, lastSaveWasOptimistic=false, '
-      'recoveryTempId cleared',
-      () async {
-        final vm = _FakeEditVM(
-          initialDraft: 'tmp_AAA',
-          sync: sync,
-          connectivity: ConnectivityWatcher.fixed(online: true),
-          companyId: 'co',
-        );
-        sync.handler = (_) =>
-            const SyncRowResult(outcome: SyncRowOutcome.success);
+    test('online + success → returns entity, lastSaveWasOptimistic=false, '
+        'recoveryTempId cleared', () async {
+      final vm = _FakeEditVM(
+        initialDraft: 'tmp_AAA',
+        sync: sync,
+        connectivity: ConnectivityWatcher.fixed(online: true),
+        companyId: 'co',
+      );
+      sync.handler = (_) =>
+          const SyncRowResult(outcome: SyncRowOutcome.success);
 
-        final result = await vm.save();
+      final result = await vm.save();
 
-        expect(result, 'tmp_AAA');
-        expect(vm.lastSaveWasOptimistic, isFalse);
-        expect(vm.recoveryTempId, isNull,
-            reason: 'success clears the recovery tmp id');
-        expect(sync.lastRowId, 1, reason: 'awaitRow was called with the row id');
-      },
-    );
+      expect(result, 'tmp_AAA');
+      expect(vm.lastSaveWasOptimistic, isFalse);
+      expect(
+        vm.recoveryTempId,
+        isNull,
+        reason: 'success clears the recovery tmp id',
+      );
+      expect(sync.lastRowId, 1, reason: 'awaitRow was called with the row id');
+    });
 
     test(
       'online + validationFailed (422) → returns null, fieldErrors populated, '
@@ -260,8 +257,11 @@ void main() {
         expect(result, isNull);
         expect(vm.fieldErrorFor('email'), 'Email must be unique');
         expect(vm.lastSaveWasOptimistic, isFalse);
-        expect(vm.recoveryTempId, 'tmp_AAA',
-            reason: 'tmp id is preserved across the failure for the retry');
+        expect(
+          vm.recoveryTempId,
+          'tmp_AAA',
+          reason: 'tmp id is preserved across the failure for the retry',
+        );
       },
     );
 
@@ -280,8 +280,11 @@ void main() {
         final result = await vm.save();
 
         expect(result, 'tmp_AAA');
-        expect(vm.lastSaveWasOptimistic, isTrue,
-            reason: 'scaffold reads this to toast "Saving in background…"');
+        expect(
+          vm.lastSaveWasOptimistic,
+          isTrue,
+          reason: 'scaffold reads this to toast "Saving in background…"',
+        );
       },
     );
 
@@ -304,11 +307,17 @@ void main() {
         final result = await vm.save();
 
         expect(result, isNull);
-        expect(vm.submitError, 'Connection lost',
-            reason: 'ApiException.toString prefix must be stripped');
+        expect(
+          vm.submitError,
+          'Connection lost',
+          reason: 'ApiException.toString prefix must be stripped',
+        );
         expect(vm.submitError, isNot(contains('ServerException')));
-        expect(vm.recoveryTempId, 'tmp_AAA',
-            reason: 'transient failures preserve the tmp id for retry');
+        expect(
+          vm.recoveryTempId,
+          'tmp_AAA',
+          reason: 'transient failures preserve the tmp id for retry',
+        );
       },
     );
 
@@ -332,9 +341,39 @@ void main() {
       },
     );
 
+    test('recovery tmpId end-to-end: first save 422 stashes the tmp id, '
+        'second save reuses it instead of minting a fresh one', () async {
+      final vm = _FakeEditVM(
+        initialDraft: 'tmp_AAA',
+        sync: sync,
+        connectivity: ConnectivityWatcher.fixed(online: true),
+        companyId: 'co',
+      );
+      sync.handler = (_) => const SyncRowResult(
+        outcome: SyncRowOutcome.validationFailed,
+        fieldErrors: {
+          'email': ['bad'],
+        },
+        statusCode: 422,
+      );
+      await vm.save();
+      expect(vm.recoveryTempId, 'tmp_AAA');
+
+      // Subclass would normally read recoveryTempId inside its performSave
+      // override and pass it to repo.create(existingTempId: ...). The fake
+      // captures it so we can assert the wiring lands.
+      sync.handler = (_) =>
+          const SyncRowResult(outcome: SyncRowOutcome.success);
+      await vm.save();
+      expect(
+        vm.lastObservedRecoveryTempIdInPerformSave,
+        'tmp_AAA',
+        reason: 'subclass performSave saw the prior tmp id for reuse',
+      );
+    });
+
     test(
-      'recovery tmpId end-to-end: first save 422 stashes the tmp id, '
-      'second save reuses it instead of minting a fresh one',
+      'clearFailedSync() clears recoveryTempId (Bug 1 regression)',
       () async {
         final vm = _FakeEditVM(
           initialDraft: 'tmp_AAA',
@@ -352,89 +391,61 @@ void main() {
         await vm.save();
         expect(vm.recoveryTempId, 'tmp_AAA');
 
-        // Subclass would normally read recoveryTempId inside its performSave
-        // override and pass it to repo.create(existingTempId: ...). The fake
-        // captures it so we can assert the wiring lands.
-        sync.handler = (_) =>
-            const SyncRowResult(outcome: SyncRowOutcome.success);
-        await vm.save();
-        expect(vm.lastObservedRecoveryTempIdInPerformSave, 'tmp_AAA',
-            reason: 'subclass performSave saw the prior tmp id for reuse');
+        vm.clearFailedSync();
+
+        expect(
+          vm.recoveryTempId,
+          isNull,
+          reason: 'discard must throw away the stale tmp id',
+        );
       },
     );
 
-    test('clearFailedSync() clears recoveryTempId (Bug 1 regression)',
-        () async {
+    test('applyFailedSync(entityId: tmp_…) restores recoveryTempId (Bug 2 '
+        'regression — post-reopen retry path)', () async {
       final vm = _FakeEditVM(
         initialDraft: 'tmp_AAA',
         sync: sync,
         connectivity: ConnectivityWatcher.fixed(online: true),
         companyId: 'co',
       );
-      sync.handler = (_) => const SyncRowResult(
-        outcome: SyncRowOutcome.validationFailed,
-        fieldErrors: {
+
+      vm.applyFailedSync(
+        rowId: 42,
+        errors: const {
           'email': ['bad'],
         },
-        statusCode: 422,
+        entityId: 'tmp_AAA',
       );
-      await vm.save();
+
       expect(vm.recoveryTempId, 'tmp_AAA');
-
-      vm.clearFailedSync();
-
-      expect(vm.recoveryTempId, isNull,
-          reason: 'discard must throw away the stale tmp id');
+      expect(vm.deadOutboxRowId, 42);
+      expect(vm.fieldErrorFor('email'), 'bad');
     });
 
-    test(
-      'applyFailedSync(entityId: tmp_…) restores recoveryTempId (Bug 2 '
-      'regression — post-reopen retry path)',
-      () async {
-        final vm = _FakeEditVM(
-          initialDraft: 'tmp_AAA',
-          sync: sync,
-          connectivity: ConnectivityWatcher.fixed(online: true),
-          companyId: 'co',
-        );
+    test('applyFailedSync(entityId: real-id) leaves recoveryTempId null '
+        '(only tmp_ ids are recoverable)', () async {
+      final vm = _FakeEditVM(
+        initialDraft: 'tmp_AAA',
+        sync: sync,
+        connectivity: ConnectivityWatcher.fixed(online: true),
+        companyId: 'co',
+      );
 
-        vm.applyFailedSync(
-          rowId: 42,
-          errors: const {
-            'email': ['bad'],
-          },
-          entityId: 'tmp_AAA',
-        );
+      vm.applyFailedSync(
+        rowId: 42,
+        errors: const {
+          'email': ['bad'],
+        },
+        entityId: 'real_xyz',
+      );
 
-        expect(vm.recoveryTempId, 'tmp_AAA');
-        expect(vm.deadOutboxRowId, 42);
-        expect(vm.fieldErrorFor('email'), 'bad');
-      },
-    );
-
-    test(
-      'applyFailedSync(entityId: real-id) leaves recoveryTempId null '
-      '(only tmp_ ids are recoverable)',
-      () async {
-        final vm = _FakeEditVM(
-          initialDraft: 'tmp_AAA',
-          sync: sync,
-          connectivity: ConnectivityWatcher.fixed(online: true),
-          companyId: 'co',
-        );
-
-        vm.applyFailedSync(
-          rowId: 42,
-          errors: const {
-            'email': ['bad'],
-          },
-          entityId: 'real_xyz',
-        );
-
-        expect(vm.recoveryTempId, isNull,
-            reason: 'updates target a known real id — no recovery needed');
-      },
-    );
+      expect(
+        vm.recoveryTempId,
+        isNull,
+        reason: 'updates target a known real id — no recovery needed',
+      );
+    });
 
     test('reset() clears recoveryTempId', () async {
       final vm = _FakeEditVM(
@@ -458,34 +469,31 @@ void main() {
       expect(vm.recoveryTempId, isNull);
     });
 
-    test(
-      'finally block does not throw on notifyListeners after dispose '
-      '(disposal-mid-save guard)',
-      () async {
-        final vm = _FakeEditVM(
-          initialDraft: 'tmp_AAA',
-          sync: sync,
-          connectivity: ConnectivityWatcher.fixed(online: true),
-          companyId: 'co',
-        );
-        // Block awaitRow on a completer we control so we can dispose mid-save.
-        final gate = Completer<SyncRowResult>();
-        sync.handler = (_) => throw _UseAsyncHandler();
-        sync.asyncHandler = (_) => gate.future;
+    test('finally block does not throw on notifyListeners after dispose '
+        '(disposal-mid-save guard)', () async {
+      final vm = _FakeEditVM(
+        initialDraft: 'tmp_AAA',
+        sync: sync,
+        connectivity: ConnectivityWatcher.fixed(online: true),
+        companyId: 'co',
+      );
+      // Block awaitRow on a completer we control so we can dispose mid-save.
+      final gate = Completer<SyncRowResult>();
+      sync.handler = (_) => throw _UseAsyncHandler();
+      sync.asyncHandler = (_) => gate.future;
 
-        final saveFuture = vm.save();
-        // Disposal happens while awaitRow is pending.
-        vm.dispose();
-        expect(vm.isDisposed, isTrue);
+      final saveFuture = vm.save();
+      // Disposal happens while awaitRow is pending.
+      vm.dispose();
+      expect(vm.isDisposed, isTrue);
 
-        // Now let the awaitRow resolve. If the finally block tried to call
-        // notifyListeners() on a disposed ChangeNotifier, this would throw
-        // in debug mode and the test would fail.
-        gate.complete(const SyncRowResult(outcome: SyncRowOutcome.success));
-        final result = await saveFuture;
-        expect(result, 'tmp_AAA');
-      },
-    );
+      // Now let the awaitRow resolve. If the finally block tried to call
+      // notifyListeners() on a disposed ChangeNotifier, this would throw
+      // in debug mode and the test would fail.
+      gate.complete(const SyncRowResult(outcome: SyncRowOutcome.success));
+      final result = await saveFuture;
+      expect(result, 'tmp_AAA');
+    });
   });
 }
 
@@ -495,7 +503,7 @@ void main() {
 /// entire (large) implements surface.
 class _FakeSyncRepository extends SyncRepository {
   _FakeSyncRepository(AppDatabase db)
-      : super(db: db, registry: EntityRegistry(const {}));
+    : super(db: db, registry: EntityRegistry(const {}));
 
   SyncRowResult Function(int rowId)? handler;
   Future<SyncRowResult> Function(int rowId)? asyncHandler;

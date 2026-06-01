@@ -3,7 +3,8 @@ import 'dart:collection';
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 
-import 'package:admin/app/diagnostics_log.dart' show isKnownBenignFrameworkNoise;
+import 'package:admin/app/diagnostics_log.dart'
+    show isKnownBenignFrameworkNoise;
 import 'package:admin/app/logging.dart' show redact, redactHeaders;
 
 /// In-memory capture of recent HTTP traffic and runtime errors, surfaced by
@@ -111,10 +112,12 @@ class DebugCaptureStore extends ChangeNotifier {
         requestBody: pending.requestBody,
         statusCode: statusCode,
         duration: duration,
-        responseBody:
-            responseBody == null ? null : _capBody(redact(responseBody)),
-        responseHeaders:
-            responseHeaders == null ? null : redactHeaders(responseHeaders),
+        responseBody: responseBody == null
+            ? null
+            : _capBody(redact(responseBody)),
+        responseHeaders: responseHeaders == null
+            ? null
+            : redactHeaders(responseHeaders),
         error: null,
       ),
     );

@@ -97,8 +97,7 @@ void main() {
       final fakeHttp = MockClient((req) async {
         captured = req;
         capturedBody = req.body;
-        if (req.method == 'POST' &&
-            req.url.path == '/api/v1/one_time_token') {
+        if (req.method == 'POST' && req.url.path == '/api/v1/one_time_token') {
           return http.Response(
             jsonEncode({
               'data': {'hash': 'short_lived_token_abc'},
@@ -116,10 +115,7 @@ void main() {
       );
       auth.apiClient = apiClient;
 
-      final quickbooks = QuickbooksRepository(
-        apiClient: apiClient,
-        auth: auth,
-      );
+      final quickbooks = QuickbooksRepository(apiClient: apiClient, auth: auth);
       final url = await quickbooks.buildAuthorizeUrl();
 
       expect(captured, isNotNull);
@@ -138,21 +134,13 @@ void main() {
         passwordCache: PasswordCache(),
         onUnauthorized: () async {},
         httpClient: MockClient(
-          (req) async => http.Response(
-            jsonEncode({'data': <String, dynamic>{}}),
-            200,
-          ),
+          (req) async =>
+              http.Response(jsonEncode({'data': <String, dynamic>{}}), 200),
         ),
       );
       auth.apiClient = apiClient;
-      final quickbooks = QuickbooksRepository(
-        apiClient: apiClient,
-        auth: auth,
-      );
-      await expectLater(
-        quickbooks.buildAuthorizeUrl(),
-        throwsStateError,
-      );
+      final quickbooks = QuickbooksRepository(apiClient: apiClient, auth: auth);
+      await expectLater(quickbooks.buildAuthorizeUrl(), throwsStateError);
     });
   });
 
@@ -179,10 +167,7 @@ void main() {
         httpClient: fakeHttp,
       );
       auth.apiClient = apiClient;
-      final quickbooks = QuickbooksRepository(
-        apiClient: apiClient,
-        auth: auth,
-      );
+      final quickbooks = QuickbooksRepository(apiClient: apiClient, auth: auth);
 
       await quickbooks.disconnect();
 
@@ -195,41 +180,43 @@ void main() {
   });
 
   group('QuickbooksRepository.reconnectUrl', () {
-    test('POSTs /quickbooks/reconnect_url and returns the parsed url',
-        () async {
-      http.Request? captured;
-      final fakeHttp = MockClient((req) async {
-        captured = req;
-        if (req.method == 'POST' &&
-            req.url.path == '/api/v1/quickbooks/reconnect_url') {
-          return http.Response(
-            jsonEncode({
-              'data': {'reconnect_url': 'https://qb.example/reauth/xyz'},
-            }),
-            200,
-          );
-        }
-        return http.Response('not found', 404);
-      });
-      final apiClient = ApiClient(
-        credentials: auth.credentials,
-        passwordCache: PasswordCache(),
-        onUnauthorized: () async {},
-        httpClient: fakeHttp,
-      );
-      auth.apiClient = apiClient;
-      final quickbooks = QuickbooksRepository(
-        apiClient: apiClient,
-        auth: auth,
-      );
+    test(
+      'POSTs /quickbooks/reconnect_url and returns the parsed url',
+      () async {
+        http.Request? captured;
+        final fakeHttp = MockClient((req) async {
+          captured = req;
+          if (req.method == 'POST' &&
+              req.url.path == '/api/v1/quickbooks/reconnect_url') {
+            return http.Response(
+              jsonEncode({
+                'data': {'reconnect_url': 'https://qb.example/reauth/xyz'},
+              }),
+              200,
+            );
+          }
+          return http.Response('not found', 404);
+        });
+        final apiClient = ApiClient(
+          credentials: auth.credentials,
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fakeHttp,
+        );
+        auth.apiClient = apiClient;
+        final quickbooks = QuickbooksRepository(
+          apiClient: apiClient,
+          auth: auth,
+        );
 
-      final url = await quickbooks.reconnectUrl();
+        final url = await quickbooks.reconnectUrl();
 
-      expect(captured!.method, 'POST');
-      expect(captured!.url.path, '/api/v1/quickbooks/reconnect_url');
-      expect(jsonDecode(captured!.body), <String, dynamic>{});
-      expect(url.toString(), 'https://qb.example/reauth/xyz');
-    });
+        expect(captured!.method, 'POST');
+        expect(captured!.url.path, '/api/v1/quickbooks/reconnect_url');
+        expect(jsonDecode(captured!.body), <String, dynamic>{});
+        expect(url.toString(), 'https://qb.example/reauth/xyz');
+      },
+    );
 
     test('tolerates a flat {reconnect_url}; throws when absent', () async {
       ApiClient mk(Object body) {
@@ -249,8 +236,7 @@ void main() {
         (await QuickbooksRepository(
           apiClient: mk({'reconnect_url': 'https://flat/u'}),
           auth: auth,
-        ).reconnectUrl())
-            .toString(),
+        ).reconnectUrl()).toString(),
         'https://flat/u',
       );
       await expectLater(
@@ -268,8 +254,7 @@ void main() {
       http.Request? captured;
       final fakeHttp = MockClient((req) async {
         captured = req;
-        if (req.method == 'POST' &&
-            req.url.path == '/api/v1/quickbooks/sync') {
+        if (req.method == 'POST' && req.url.path == '/api/v1/quickbooks/sync') {
           return http.Response('{}', 200);
         }
         return http.Response('not found', 404);
@@ -282,8 +267,10 @@ void main() {
       );
       auth.apiClient = apiClient;
 
-      await QuickbooksRepository(apiClient: apiClient, auth: auth)
-          .triggerImport(client: true, product: false, invoice: true);
+      await QuickbooksRepository(
+        apiClient: apiClient,
+        auth: auth,
+      ).triggerImport(client: true, product: false, invoice: true);
 
       expect(captured!.method, 'POST');
       expect(captured!.url.path, '/api/v1/quickbooks/sync');

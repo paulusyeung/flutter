@@ -117,7 +117,8 @@ class TaskActions {
           label: context.tr('add_to_invoice'),
           // Mirrors admin-portal: only an un-invoiced, non-running task
           // tied to a client can be appended to an existing invoice.
-          enabled: !task.id.startsWith('tmp_') &&
+          enabled:
+              !task.id.startsWith('tmp_') &&
               task.clientId.isNotEmpty &&
               !task.isInvoiced &&
               !task.isRunning,
@@ -283,9 +284,7 @@ class TaskActions {
         );
         context.go(
           '/invoices/${target.id}/edit',
-          extra: target.copyWith(
-            lineItems: [...target.lineItems, lineItem],
-          ),
+          extra: target.copyWith(lineItems: [...target.lineItems, lineItem]),
         );
     }
   }

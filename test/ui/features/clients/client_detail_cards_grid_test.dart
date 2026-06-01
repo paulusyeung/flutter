@@ -15,8 +15,11 @@ Client _client({String phone = ''}) => Client.fromApi(
   ClientApi(id: 'c1', name: 'Acme', phone: phone, updatedAt: 1),
 );
 
-Future<void> _pump(WidgetTester tester, Client client, double width) =>
-    pumpAt(tester, width, ClientDetailCardsGrid(client: client, formatter: null));
+Future<void> _pump(WidgetTester tester, Client client, double width) => pumpAt(
+  tester,
+  width,
+  ClientDetailCardsGrid(client: client, formatter: null),
+);
 
 void main() {
   group('ClientDetailCardsGrid', () {
@@ -56,17 +59,16 @@ void main() {
       },
     );
 
-    testWidgets(
-      'wide grid keeps blank standard rows with a dimmed dash',
-      (tester) async {
-        await _pump(tester, _client(phone: '555-1234'), 1200);
-        expect(find.text('Website'), findsOneWidget);
-        expect(find.text('Phone'), findsOneWidget);
-        expect(find.text('VAT Number'), findsOneWidget);
-        expect(find.text('ID Number'), findsOneWidget);
-        // The three blank standard fields each render a `—` placeholder.
-        expect(find.text('—'), findsNWidgets(3));
-      },
-    );
+    testWidgets('wide grid keeps blank standard rows with a dimmed dash', (
+      tester,
+    ) async {
+      await _pump(tester, _client(phone: '555-1234'), 1200);
+      expect(find.text('Website'), findsOneWidget);
+      expect(find.text('Phone'), findsOneWidget);
+      expect(find.text('VAT Number'), findsOneWidget);
+      expect(find.text('ID Number'), findsOneWidget);
+      // The three blank standard fields each render a `—` placeholder.
+      expect(find.text('—'), findsNWidgets(3));
+    });
   });
 }

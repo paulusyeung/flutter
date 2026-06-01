@@ -51,8 +51,7 @@ class _FakeVm implements GenericListViewModel<dynamic> {
 
   // SegmentMenu / the key write path never call anything else on the VM.
   @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      super.noSuchMethod(invocation);
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 void main() {

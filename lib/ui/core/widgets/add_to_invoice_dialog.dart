@@ -39,9 +39,7 @@ Future<Invoice?> showAddToInvoiceDialog(
               builder: (context, snapshot) {
                 final invoices =
                     (snapshot.data ?? const <Invoice>[])
-                        .where(
-                          (i) => !i.isDeleted && i.archivedAt == null,
-                        )
+                        .where((i) => !i.isDeleted && i.archivedAt == null)
                         .toList()
                       ..sort((a, b) => b.number.compareTo(a.number));
                 return SearchableDropdownField<Invoice>(
@@ -63,16 +61,12 @@ Future<Invoice?> showAddToInvoiceDialog(
           ),
           actions: [
             OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(64, 40),
-              ),
+              style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
               onPressed: () => Navigator.of(ctx).pop(),
               child: Text(ctx.tr('cancel')),
             ),
             FilledButton(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(64, 44),
-              ),
+              style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
               onPressed: selected == null
                   ? null
                   : () => Navigator.of(ctx).pop(selected),

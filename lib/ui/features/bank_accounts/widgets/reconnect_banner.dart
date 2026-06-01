@@ -31,9 +31,7 @@ ReconnectArgs bankReconnectArgs(BankAccount a) {
     case kBankIntegrationNordigen:
       return (ctx: 'nordigen', institutionId: a.nordigenInstitutionId);
     default:
-      throw ArgumentError(
-        'Unsupported bank integration: ${a.integrationType}',
-      );
+      throw ArgumentError('Unsupported bank integration: ${a.integrationType}');
   }
 }
 
@@ -153,9 +151,7 @@ class _ReconnectBannerState extends State<ReconnectBanner> {
                   )
                 : const Icon(Icons.refresh, size: 16),
             label: Text(context.tr('reconnect')),
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size(64, 40),
-            ),
+            style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
           ),
         ],
       ),

@@ -122,9 +122,6 @@ class _ProductChip extends StatelessWidget {
     final label = product?.productKey.isNotEmpty == true
         ? product!.productKey
         : fallbackId;
-    return InputChip(
-      label: Text(label),
-      onDeleted: onDeleted,
-    );
+    return InputChip(label: Text(label), onDeleted: onDeleted);
   }
 }

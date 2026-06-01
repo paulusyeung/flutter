@@ -80,10 +80,7 @@ class _ClientNameLabelState extends State<ClientNameLabel> {
       return _text(context, widget.clientId);
     }
     return StreamBuilder<Client?>(
-      stream: services.clients.watch(
-        companyId: companyId,
-        id: widget.clientId,
-      ),
+      stream: services.clients.watch(companyId: companyId, id: widget.clientId),
       builder: (context, snapshot) {
         final client = snapshot.data;
         final name = client == null || client.displayName.isEmpty

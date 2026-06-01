@@ -149,11 +149,7 @@ void main() {
       final started = DateTime.now()
           .subtract(const Duration(days: 2))
           .toIso8601String();
-      final s = _session(
-        plan: 'pro',
-        trialStarted: started,
-        numTrialDays: 14,
-      );
+      final s = _session(plan: 'pro', trialStarted: started, numTrialDays: 14);
       expect(s.isTrial, isTrue);
       expect(s.isPaidAccount, isFalse);
     });
@@ -183,10 +179,7 @@ void main() {
       final yesterday = DateTime.now()
           .subtract(const Duration(days: 1))
           .toIso8601String();
-      expect(
-        _session(plan: 'pro', planExpires: yesterday).isFreePlan,
-        isTrue,
-      );
+      expect(_session(plan: 'pro', planExpires: yesterday).isFreePlan, isTrue);
     });
   });
 

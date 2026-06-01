@@ -62,23 +62,20 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen>
       emptyTitle: context.tr('purchase_order_not_found'),
       actionsForItem: (context, po) =>
           EntityDetailActionsRow<PurchaseOrderAction>(
-        items: PurchaseOrderActions.itemsFor(
-          context,
-          po,
-          (a) => PurchaseOrderActions.dispatch(
-            context,
-            _services,
-            _companyId,
-            po,
-            a,
+            items: PurchaseOrderActions.itemsFor(
+              context,
+              po,
+              (a) => PurchaseOrderActions.dispatch(
+                context,
+                _services,
+                _companyId,
+                po,
+                a,
+              ),
+            ),
           ),
-        ),
-      ),
-      bodyBuilder: (context, po) => _Body(
-        purchaseOrder: po,
-        services: _services,
-        companyId: _companyId,
-      ),
+      bodyBuilder: (context, po) =>
+          _Body(purchaseOrder: po, services: _services, companyId: _companyId),
     );
   }
 }
@@ -98,8 +95,8 @@ class _Body extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = Breakpoints.isWide(constraints) &&
-            constraints.maxWidth >= 900;
+        final wide =
+            Breakpoints.isWide(constraints) && constraints.maxWidth >= 900;
         final main = SingleChildScrollView(
           padding: EdgeInsets.all(InSpacing.lg(context)),
           child: Column(
@@ -181,8 +178,7 @@ class _Body extends StatelessWidget {
                       entityId: purchaseOrder.id,
                       invitations: purchaseOrder.invitations,
                       vendorId: purchaseOrder.vendorId,
-                      isHosted:
-                          services.auth.session.value?.isHosted ?? false,
+                      isHosted: services.auth.session.value?.isHosted ?? false,
                       onReactivate: (messageId) =>
                           services.purchaseOrders.reactivateInvitationEmail(
                             companyId: companyId,
@@ -335,10 +331,13 @@ class _PdfPane extends StatelessWidget {
       entityNumber: purchaseOrder.number,
       fetcher: ({String? designId, required bool deliveryNote}) =>
           services.purchaseOrders.api.downloadPdf(
-        entityJson: purchaseOrder.toApiJson(),
-        designId: designId ??
-            (purchaseOrder.designId.isEmpty ? null : purchaseOrder.designId),
-      ),
+            entityJson: purchaseOrder.toApiJson(),
+            designId:
+                designId ??
+                (purchaseOrder.designId.isEmpty
+                    ? null
+                    : purchaseOrder.designId),
+          ),
     );
   }
 }

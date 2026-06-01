@@ -142,8 +142,9 @@ class _ExpenseSettingsBody extends StatelessWidget {
                 label: context.tr('notify_vendor_when_paid'),
                 help: context.tr('notify_vendor_when_paid_help'),
                 value: draft.notifyVendorWhenPaid,
-                onChanged: (v) =>
-                    vm.updateCompany((c) => c.copyWith(notifyVendorWhenPaid: v)),
+                onChanged: (v) => vm.updateCompany(
+                  (c) => c.copyWith(notifyVendorWhenPaid: v),
+                ),
               ),
             ],
           ],
@@ -291,10 +292,7 @@ class _ExpenseSettingsBody extends StatelessWidget {
 /// site at `online_payments_defaults_body.dart:61-71` — same setting key,
 /// same `PaymentType` source from `services.statics`.
 class _DefaultPaymentTypePicker extends StatelessWidget {
-  const _DefaultPaymentTypePicker({
-    required this.host,
-    required this.services,
-  });
+  const _DefaultPaymentTypePicker({required this.host, required this.services});
 
   final SettingsDraftHost host;
   final Services services;
@@ -320,4 +318,3 @@ class _DefaultPaymentTypePicker extends StatelessWidget {
     );
   }
 }
-

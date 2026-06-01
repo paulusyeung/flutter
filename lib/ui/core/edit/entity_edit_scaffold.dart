@@ -156,7 +156,9 @@ class EntityEditScaffold<T> extends StatelessWidget {
     // "Saved" toast misleads the user into thinking the save landed; show
     // a "Saving in background…" message instead. Offline saves are unchanged
     // — `lastSaveWasOptimistic` stays false on the offline path.
-    final toastKey = vm.lastSaveWasOptimistic ? 'saving_in_background' : 'saved';
+    final toastKey = vm.lastSaveWasOptimistic
+        ? 'saving_in_background'
+        : 'saved';
     Notify.success(context, context.tr(toastKey));
     await onSaved(context, result);
   }

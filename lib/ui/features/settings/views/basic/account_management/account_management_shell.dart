@@ -124,9 +124,7 @@ class _AccountManagementShellState extends State<AccountManagementShell>
         unselectedLabelColor: tokens.ink3,
         indicatorColor: tokens.accent,
         indicatorWeight: 2,
-        tabs: [
-          for (final tab in _tabs) Tab(text: context.tr(tab.labelKey)),
-        ],
+        tabs: [for (final tab in _tabs) Tab(text: context.tr(tab.labelKey))],
       ),
       body: TabBarView(
         controller: _controller,

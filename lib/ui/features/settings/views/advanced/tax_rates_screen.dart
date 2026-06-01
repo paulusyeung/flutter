@@ -9,11 +9,7 @@ import 'package:admin/ui/features/settings/widgets/settings_entity_list_scaffold
 
 /// Search keys exported for the settings sidebar search. Colocated with the
 /// screen so adding / renaming a field updates both ends in one place.
-const kTaxRatesSearchKeys = <String>[
-  'tax_rates',
-  'name',
-  'rate',
-];
+const kTaxRatesSearchKeys = <String>['tax_rates', 'name', 'rate'];
 
 /// `/settings/tax_rates` — manage the company's tax-rate registry. Tap a
 /// row to edit; tap "+ New tax rate" to create. The per-company *default*
@@ -56,8 +52,9 @@ class _TaxRateRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayName =
-        rate.name.trim().isEmpty ? context.tr('untitled') : rate.name;
+    final displayName = rate.name.trim().isEmpty
+        ? context.tr('untitled')
+        : rate.name;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [

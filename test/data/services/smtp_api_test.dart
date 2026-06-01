@@ -32,15 +32,17 @@ void main() {
       );
 
       final api = SmtpApi(client);
-      final message = await api.check(payload: const {
-        'smtp_host': 'smtp.example.com',
-        'smtp_port': 587,
-        'smtp_encryption': 'TLS',
-        'smtp_username': 'user',
-        'smtp_password': 'pw',
-        'smtp_local_domain': '',
-        'smtp_verify_peer': true,
-      });
+      final message = await api.check(
+        payload: const {
+          'smtp_host': 'smtp.example.com',
+          'smtp_port': 587,
+          'smtp_encryption': 'TLS',
+          'smtp_username': 'user',
+          'smtp_password': 'pw',
+          'smtp_local_domain': '',
+          'smtp_verify_peer': true,
+        },
+      );
 
       expect(message, 'Successfully sent email');
       expect(captured, isNotNull);
@@ -53,24 +55,29 @@ void main() {
       expect(body['smtp_verify_peer'], true);
     });
 
-    test('returns empty string when the response has no message field',
-        () async {
-      final fake = MockClient((_) async => http.Response(
+    test(
+      'returns empty string when the response has no message field',
+      () async {
+        final fake = MockClient(
+          (_) async => http.Response(
             jsonEncode({}),
             200,
             headers: {'content-type': 'application/json'},
-          ));
-      final client = ApiClient(
-        credentials: ValueNotifier<ApiCredentials?>(
-          const ApiCredentials(baseUrl: 'https://test', token: 't'),
-        ),
-        passwordCache: PasswordCache(),
-        onUnauthorized: () async {},
-        httpClient: fake,
-      );
-      final message =
-          await SmtpApi(client).check(payload: const <String, dynamic>{});
-      expect(message, isEmpty);
-    });
+          ),
+        );
+        final client = ApiClient(
+          credentials: ValueNotifier<ApiCredentials?>(
+            const ApiCredentials(baseUrl: 'https://test', token: 't'),
+          ),
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fake,
+        );
+        final message = await SmtpApi(
+          client,
+        ).check(payload: const <String, dynamic>{});
+        expect(message, isEmpty);
+      },
+    );
   });
 }

@@ -48,14 +48,17 @@ void main() {
       expect(vm.selectedBlock?.type, 'logo');
     });
 
-    test('selectBlock(null) clears selection AND switches back to document mode', () {
-      final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
-      vm.addBlock(_specByType('text'));
-      expect(vm.panelMode, PropertyPanelMode.block);
-      vm.selectBlock(null);
-      expect(vm.selectedBlockId, isNull);
-      expect(vm.panelMode, PropertyPanelMode.document);
-    });
+    test(
+      'selectBlock(null) clears selection AND switches back to document mode',
+      () {
+        final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
+        vm.addBlock(_specByType('text'));
+        expect(vm.panelMode, PropertyPanelMode.block);
+        vm.selectBlock(null);
+        expect(vm.selectedBlockId, isNull);
+        expect(vm.panelMode, PropertyPanelMode.document);
+      },
+    );
 
     test('deleting the selected block clears the selection', () {
       final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
@@ -115,27 +118,27 @@ void main() {
   });
 
   group('duplicate / lock', () {
-    test('duplicateBlock creates a clone with a new id and same properties', () {
-      final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
-      vm.addBlock(_specByType('text'));
-      final src = vm.blocks.single;
-      vm.duplicateBlock(src.id);
-      expect(vm.blocks, hasLength(2));
-      final clone = vm.blocks.last;
-      expect(clone.id, isNot(src.id));
-      expect(clone.id, startsWith('text-'));
-      expect(clone.type, 'text');
-      expect(clone.properties, src.properties);
-      expect(vm.selectedBlockId, clone.id);
-    });
+    test(
+      'duplicateBlock creates a clone with a new id and same properties',
+      () {
+        final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
+        vm.addBlock(_specByType('text'));
+        final src = vm.blocks.single;
+        vm.duplicateBlock(src.id);
+        expect(vm.blocks, hasLength(2));
+        final clone = vm.blocks.last;
+        expect(clone.id, isNot(src.id));
+        expect(clone.id, startsWith('text-'));
+        expect(clone.type, 'text');
+        expect(clone.properties, src.properties);
+        expect(vm.selectedBlockId, clone.id);
+      },
+    );
 
     test('duplicateBlock throws StateError for an unknown id (not silent)', () {
       final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
       vm.addBlock(_specByType('text'));
-      expect(
-        () => vm.duplicateBlock('nope'),
-        throwsA(isA<StateError>()),
-      );
+      expect(() => vm.duplicateBlock('nope'), throwsA(isA<StateError>()));
     });
 
     test('toggleLock flips locked', () {
@@ -182,14 +185,17 @@ void main() {
       expect(ds.pageNumbering, isTrue);
     });
 
-    test('falls back to React-parity defaults when CompanySettings is null', () {
-      final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
-      final ds = vm.documentSettings;
-      expect(ds.pageLayout, 'portrait');
-      expect(ds.pageSize, 'A4');
-      expect(ds.globalFontSize, 16);
-      expect(ds.primaryFont, 'Roboto');
-    });
+    test(
+      'falls back to React-parity defaults when CompanySettings is null',
+      () {
+        final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
+        final ds = vm.documentSettings;
+        expect(ds.pageLayout, 'portrait');
+        expect(ds.pageSize, 'A4');
+        expect(ds.globalFontSize, 16);
+        expect(ds.primaryFont, 'Roboto');
+      },
+    );
 
     test('handles partially-set CompanySettings (nulls fall through)', () {
       const cs = CompanySettingsApi(pageLayout: 'landscape');
@@ -249,8 +255,11 @@ void main() {
         );
         current = vm.blocks.single;
       }
-      expect(vm.blocks.single.gridPosition.w, 2,
-          reason: 'text min width is 2 per block_sizing');
+      expect(
+        vm.blocks.single.gridPosition.w,
+        2,
+        reason: 'text min width is 2 per block_sizing',
+      );
     });
   });
 
@@ -296,24 +305,29 @@ void main() {
       expect(vm.selectedBlockId, id);
     });
 
-    test('repeated updateBlock (simulated resize drag) keeps selection alive', () {
-      // The original bug: each updateBlock frame nulled the selection,
-      // un-rendering the resize handles and killing the gesture after
-      // one cell. Simulate a 10-frame drag and assert selection survives
-      // every frame.
-      final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
-      vm.addBlock(_specByType('text'));
-      final id = vm.selectedBlockId!;
-      final current = vm.blocks.single;
-      vm.recordHistorySnapshot();
-      for (var w = 6; w <= 12; w++) {
-        vm.updateBlock(
-          current.copyWith(gridPosition: GridPosition(x: 0, y: 0, w: w, h: 2)),
-        );
-        expect(vm.selectedBlockId, id, reason: 'lost selection at w=$w');
-      }
-      expect(vm.blocks.single.gridPosition.w, 12);
-    });
+    test(
+      'repeated updateBlock (simulated resize drag) keeps selection alive',
+      () {
+        // The original bug: each updateBlock frame nulled the selection,
+        // un-rendering the resize handles and killing the gesture after
+        // one cell. Simulate a 10-frame drag and assert selection survives
+        // every frame.
+        final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
+        vm.addBlock(_specByType('text'));
+        final id = vm.selectedBlockId!;
+        final current = vm.blocks.single;
+        vm.recordHistorySnapshot();
+        for (var w = 6; w <= 12; w++) {
+          vm.updateBlock(
+            current.copyWith(
+              gridPosition: GridPosition(x: 0, y: 0, w: w, h: 2),
+            ),
+          );
+          expect(vm.selectedBlockId, id, reason: 'lost selection at w=$w');
+        }
+        expect(vm.blocks.single.gridPosition.w, 12);
+      },
+    );
 
     test('deleteBlock on the selected block clears the selection', () {
       final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
@@ -397,40 +411,43 @@ void main() {
       expect(vm.blocks, isEmpty);
     });
 
-    test('delete / duplicate / move / toggleLock / fixOverlaps all snapshot', () {
-      final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
-      vm.addBlock(_specByType('logo'));
-      vm.undo();
-      expect(vm.canUndo, isFalse);
+    test(
+      'delete / duplicate / move / toggleLock / fixOverlaps all snapshot',
+      () {
+        final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
+        vm.addBlock(_specByType('logo'));
+        vm.undo();
+        expect(vm.canUndo, isFalse);
 
-      // Add two blocks for the rest of the test.
-      vm.addBlock(_specByType('logo'));
-      vm.addBlock(_specByType('text'));
-      final logoId = vm.blocks.first.id;
-      final textId = vm.blocks.last.id;
+        // Add two blocks for the rest of the test.
+        vm.addBlock(_specByType('logo'));
+        vm.addBlock(_specByType('text'));
+        final logoId = vm.blocks.first.id;
+        final textId = vm.blocks.last.id;
 
-      vm.deleteBlock(textId);
-      vm.undo();
-      expect(vm.blocks.map((b) => b.id), contains(textId));
+        vm.deleteBlock(textId);
+        vm.undo();
+        expect(vm.blocks.map((b) => b.id), contains(textId));
 
-      vm.duplicateBlock(logoId);
-      vm.undo();
-      expect(vm.blocks, hasLength(2));
+        vm.duplicateBlock(logoId);
+        vm.undo();
+        expect(vm.blocks, hasLength(2));
 
-      vm.moveBlock(logoId, const GridPosition(x: 0, y: 10, w: 4, h: 4));
-      vm.undo();
-      expect(
-        vm.blocks.firstWhere((b) => b.id == logoId).gridPosition.y,
-        isNot(10),
-      );
+        vm.moveBlock(logoId, const GridPosition(x: 0, y: 10, w: 4, h: 4));
+        vm.undo();
+        expect(
+          vm.blocks.firstWhere((b) => b.id == logoId).gridPosition.y,
+          isNot(10),
+        );
 
-      vm.toggleLock(logoId);
-      vm.undo();
-      expect(vm.blocks.firstWhere((b) => b.id == logoId).locked, isFalse);
+        vm.toggleLock(logoId);
+        vm.undo();
+        expect(vm.blocks.firstWhere((b) => b.id == logoId).locked, isFalse);
 
-      vm.fixOverlaps();
-      expect(vm.canUndo, isTrue);
-    });
+        vm.fixOverlaps();
+        expect(vm.canUndo, isTrue);
+      },
+    );
 
     test('resetToEmpty clears the history', () {
       final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
@@ -481,10 +498,7 @@ void main() {
       final err = target.importFromJson(raw);
       expect(err, isNull);
       expect(target.blocks, hasLength(2));
-      expect(
-        target.blocks.map((b) => b.type).toList(),
-        ['logo', 'total'],
-      );
+      expect(target.blocks.map((b) => b.type).toList(), ['logo', 'total']);
       expect(target.documentSettings.pageSize, 'Letter');
     });
 
@@ -526,18 +540,22 @@ void main() {
         vm.addBlock(_specByType('total'));
         // Flip the keepTogether flag on the total block we just added.
         final totalBlock = vm.blocks.last;
-        vm.updateBlock(totalBlock.copyWith(
-          properties: {
-            ...totalBlock.properties,
-            'keepTogether': true,
-            'align': 'right',
-          },
-        ));
-        vm.setDocumentSettings(vm.documentSettings.copyWith(
-          pageSize: 'Letter',
-          embedDocuments: true,
-          hideEmptyColumns: true,
-        ));
+        vm.updateBlock(
+          totalBlock.copyWith(
+            properties: {
+              ...totalBlock.properties,
+              'keepTogether': true,
+              'align': 'right',
+            },
+          ),
+        );
+        vm.setDocumentSettings(
+          vm.documentSettings.copyWith(
+            pageSize: 'Letter',
+            embedDocuments: true,
+            hideEmptyColumns: true,
+          ),
+        );
         vm.setName('Round-trip test');
 
         // Save (create branch — vm.isCreate is true; this lands a `tmp_…`
@@ -552,10 +570,10 @@ void main() {
 
         // Blocks survived.
         expect(fresh.template.blocks, hasLength(2));
-        expect(
-          fresh.template.blocks.map((b) => b.type).toList(),
-          ['logo', 'total'],
-        );
+        expect(fresh.template.blocks.map((b) => b.type).toList(), [
+          'logo',
+          'total',
+        ]);
 
         // The Phase 8j keepTogether boolean made it through the mapper
         // → Drift → row-rebuild cycle.

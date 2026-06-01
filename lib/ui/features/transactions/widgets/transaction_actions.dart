@@ -18,14 +18,7 @@ import 'package:admin/ui/core/widgets/notify.dart';
 /// archive/restore/delete trio plus two transaction-specific actions:
 /// `convert` (matched → converted server-side) and `unlink` (matched or
 /// converted → unmatched, detaches from linked entities).
-enum TransactionAction {
-  edit,
-  convert,
-  unlink,
-  archive,
-  restore,
-  delete,
-}
+enum TransactionAction { edit, convert, unlink, archive, restore, delete }
 
 class TransactionActions {
   TransactionActions._();
@@ -49,8 +42,7 @@ class TransactionActions {
     BankTransaction transaction,
     void Function(TransactionAction) onTap,
   ) {
-    final canArchive =
-        transaction.archivedAt == null && !transaction.isDeleted;
+    final canArchive = transaction.archivedAt == null && !transaction.isDeleted;
     final canRestore = transaction.archivedAt != null || transaction.isDeleted;
     final canConvert = transaction.isMatched;
     final canUnlink = transaction.isMatched || transaction.isConverted;
@@ -126,9 +118,7 @@ class TransactionActions {
           companyId: companyId,
           transactionIds: [transaction.id],
         );
-        unawaited(
-          services.bankTransactions.refreshAll(companyId: companyId),
-        );
+        unawaited(services.bankTransactions.refreshAll(companyId: companyId));
         if (context.mounted) {
           Notify.success(context, context.tr('converted_transaction'));
           // Linear-style auto-advance: if we're inside a slide-over
@@ -145,9 +135,7 @@ class TransactionActions {
           companyId: companyId,
           transactionIds: [transaction.id],
         );
-        unawaited(
-          services.bankTransactions.refreshAll(companyId: companyId),
-        );
+        unawaited(services.bankTransactions.refreshAll(companyId: companyId));
         if (context.mounted) {
           Notify.success(context, context.tr('unlinked_transaction'));
         }

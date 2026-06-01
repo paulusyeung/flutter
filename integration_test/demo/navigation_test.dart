@@ -211,11 +211,7 @@ void main() {
       // Bounded wait for a row (15s) — long enough for a live page-one
       // fetch, short enough not to burn 40s × N when the list is empty.
       final tile = find.byType(c.tile);
-      await pumpUntilFound(
-        tester,
-        tile,
-        timeout: const Duration(seconds: 15),
-      );
+      await pumpUntilFound(tester, tile, timeout: const Duration(seconds: 15));
       if (tile.evaluate().isEmpty) continue; // empty list — list-only cover
       await tester.tap(tile.first);
       await pumpUntilFound(tester, find.byType(c.detail));
@@ -326,15 +322,8 @@ void main() {
     // (entity_list_app_bar.dart → EntityDetailActionsRow). Archive carries
     // Icons.archive_outlined; its presence proves selection mode + the bulk
     // cluster mounted.
-    final archive = find.widgetWithIcon(
-      OutlinedButton,
-      Icons.archive_outlined,
-    );
-    await pumpUntilFound(
-      tester,
-      archive,
-      timeout: const Duration(seconds: 10),
-    );
+    final archive = find.widgetWithIcon(OutlinedButton, Icons.archive_outlined);
+    await pumpUntilFound(tester, archive, timeout: const Duration(seconds: 10));
     expect(
       archive,
       findsAtLeastNWidgets(1),

@@ -107,8 +107,9 @@ class _SyncEventListenerState extends State<SyncEventListener> {
         // errors goes to the edit screen (the scaffold hydrates them inline);
         // anything else — or an unregistered entity type — falls back to the
         // Outbox screen so "View" is never a dead end.
-        final handlers =
-            hasFieldErrors ? services.entityRegistry[event.entityType] : null;
+        final handlers = hasFieldErrors
+            ? services.entityRegistry[event.entityType]
+            : null;
         if (handlers != null) {
           context.go('${handlers.routePath}/${event.entityId}/edit');
         } else {

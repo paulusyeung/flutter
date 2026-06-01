@@ -299,7 +299,8 @@ void main() {
         expect(
           maxPending,
           greaterThanOrEqualTo(1),
-          reason: 'the create must enqueue an outbox row (write goes '
+          reason:
+              'the create must enqueue an outbox row (write goes '
               'through the outbox, never a direct API call)',
         );
 

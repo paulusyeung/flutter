@@ -41,11 +41,12 @@ class _RecurringExpenseEditAmountTaxSectionState
     return StreamBuilder<Company?>(
       stream: services.company.watchCompany(vm.companyId),
       builder: (context, snapshot) {
-        final companyEnabled =
-            (snapshot.data?.enabledExpenseTaxRates ?? 0).clamp(0, 3);
+        final companyEnabled = (snapshot.data?.enabledExpenseTaxRates ?? 0)
+            .clamp(0, 3);
         final draftPopulated = _draftPopulated(vm.draft);
-        _visibleTaxRows ??=
-            companyEnabled > draftPopulated ? companyEnabled : draftPopulated;
+        _visibleTaxRows ??= companyEnabled > draftPopulated
+            ? companyEnabled
+            : draftPopulated;
         final visible = _visibleTaxRows!;
         final canAdd = visible < 3;
         return _build(context, vm, visible, canAdd);

@@ -44,9 +44,9 @@ class RecurringExpenseListScreen extends StatelessWidget {
       embeddedNewOverride: vid == null
           ? null
           : (ctx) => ctx.go(
-                '/recurring_expenses/new',
-                extra: emptyRecurringExpense().copyWith(vendorId: vid),
-              ),
+              '/recurring_expenses/new',
+              extra: emptyRecurringExpense().copyWith(vendorId: vid),
+            ),
       emptyIcon: Icons.event_repeat_outlined,
       emptyTitleKey: 'no_recurring_expenses_yet',
       wantsFormatter: true,
@@ -119,18 +119,19 @@ class RecurringExpenseListScreen extends StatelessWidget {
                   context,
                   basePath: '/recurring_expenses',
                 )
-              : () => goEntityRecord(context, vm.entityType, recurringExpense.id),
+              : () =>
+                    goEntityRecord(context, vm.entityType, recurringExpense.id),
           onLongPress: () => vm.toggleSelected(recurringExpense.id),
           onSelectTap: () => vm.toggleSelected(recurringExpense.id),
           onAction: options.selecting
               ? null
               : (action) => RecurringExpenseActions.dispatch(
-                    context,
-                    context.read<Services>(),
-                    vm.companyId,
-                    recurringExpense,
-                    action,
-                  ),
+                  context,
+                  context.read<Services>(),
+                  vm.companyId,
+                  recurringExpense,
+                  action,
+                ),
         );
       },
       bulkActions: const [

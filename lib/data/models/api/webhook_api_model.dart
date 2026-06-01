@@ -8,9 +8,7 @@ part 'webhook_api_model.g.dart';
 /// a non-Map value to an empty map and stringify values defensively.
 Map<String, String> _headersFromJson(Object? value) {
   if (value is Map) {
-    return value.map(
-      (k, v) => MapEntry(k.toString(), v?.toString() ?? ''),
-    );
+    return value.map((k, v) => MapEntry(k.toString(), v?.toString() ?? ''));
   }
   return const <String, String>{};
 }

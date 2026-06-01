@@ -186,8 +186,10 @@ class _CreditEditLayoutState extends State<CreditEditLayout>
         2 => _NumberCardDesktop(vm: widget.vm),
         _ => const SizedBox.shrink(),
       },
-      itemsSection:
-          _ItemsSectionDesktop(vm: widget.vm, onPickItems: () => _openPicker(context)),
+      itemsSection: _ItemsSectionDesktop(
+        vm: widget.vm,
+        onPickItems: () => _openPicker(context),
+      ),
       notesTabsCard: _NotesTabsCardDesktop(vm: widget.vm),
       totalsCard: _totalsCard(context),
       pdfPane: _PdfPaneDesktop(vm: widget.vm),

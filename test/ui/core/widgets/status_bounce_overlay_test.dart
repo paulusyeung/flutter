@@ -26,10 +26,7 @@ void main() {
     ) async {
       await _pump(
         tester,
-        const StatusBounceOverlay(
-          hasBounce: true,
-          child: Text('Sent'),
-        ),
+        const StatusBounceOverlay(hasBounce: true, child: Text('Sent')),
       );
       expect(find.text('Sent'), findsOneWidget);
       expect(find.byIcon(Icons.priority_high), findsOneWidget);
@@ -40,10 +37,7 @@ void main() {
     ) async {
       await _pump(
         tester,
-        const StatusBounceOverlay(
-          hasBounce: false,
-          child: Text('Sent'),
-        ),
+        const StatusBounceOverlay(hasBounce: false, child: Text('Sent')),
       );
       expect(find.text('Sent'), findsOneWidget);
       expect(find.byIcon(Icons.priority_high), findsNothing);

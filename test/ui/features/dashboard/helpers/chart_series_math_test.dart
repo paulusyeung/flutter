@@ -149,10 +149,7 @@ void main() {
       expect(axis.buckets.last, const Date(2026, 12, 31));
       _expectSortedUnique(axis.buckets);
       // Total is preserved regardless of which June bucket it lands in.
-      expect(
-        axis.values[ChartSeriesId.invoices]!.reduce((a, b) => a + b),
-        90,
-      );
+      expect(axis.values[ChartSeriesId.invoices]!.reduce((a, b) => a + b), 90);
     });
   });
 
@@ -194,10 +191,7 @@ void main() {
       expect(axis.buckets.length, lessThanOrEqualTo(750));
       expect(axis.buckets.length, lessThan(2557));
       _expectSortedUnique(axis.buckets);
-      expect(
-        axis.values[ChartSeriesId.expenses]!.reduce((a, b) => a + b),
-        50,
-      );
+      expect(axis.values[ChartSeriesId.expenses]!.reduce((a, b) => a + b), 50);
     });
   });
 }

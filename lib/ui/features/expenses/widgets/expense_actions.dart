@@ -95,7 +95,8 @@ class ExpenseActions {
           label: context.tr('add_to_invoice'),
           // Mirrors admin-portal: an un-invoiced expense tied to a client
           // can be appended to one of that client's existing invoices.
-          enabled: !expense.id.startsWith('tmp_') &&
+          enabled:
+              !expense.id.startsWith('tmp_') &&
               expense.invoiceId.isEmpty &&
               expense.clientId.isNotEmpty,
           onTap: () => onTap(ExpenseAction.addToInvoice),
@@ -274,9 +275,7 @@ class ExpenseActions {
         );
         context.go(
           '/invoices/${target.id}/edit',
-          extra: target.copyWith(
-            lineItems: [...target.lineItems, addItem],
-          ),
+          extra: target.copyWith(lineItems: [...target.lineItems, addItem]),
         );
     }
   }

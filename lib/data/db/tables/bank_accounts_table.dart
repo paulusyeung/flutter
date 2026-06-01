@@ -16,12 +16,10 @@ class BankAccounts extends Table
         EntityTimestampColumns,
         EntityFlagColumns,
         EntityPayloadColumn {
-  TextColumn get name =>
-      text().named('name').withDefault(const Constant(''))();
+  TextColumn get name => text().named('name').withDefault(const Constant(''))();
   TextColumn get status =>
       text().named('status').withDefault(const Constant(''))();
-  TextColumn get type =>
-      text().named('type').withDefault(const Constant(''))();
+  TextColumn get type => text().named('type').withDefault(const Constant(''))();
   TextColumn get provider =>
       text().named('provider').withDefault(const Constant(''))();
 
@@ -39,16 +37,14 @@ class BankAccounts extends Table
 
   BoolColumn get autoSync =>
       boolean().named('auto_sync').withDefault(const Constant(false))();
-  BoolColumn get disabledUpstream => boolean()
-      .named('disabled_upstream')
-      .withDefault(const Constant(false))();
+  BoolColumn get disabledUpstream =>
+      boolean().named('disabled_upstream').withDefault(const Constant(false))();
 
   /// `YODLEE` | `NORDIGEN` | empty (manual).
   TextColumn get integrationType =>
       text().named('integration_type').withDefault(const Constant(''))();
-  TextColumn get nordigenInstitutionId => text()
-      .named('nordigen_institution_id')
-      .withDefault(const Constant(''))();
+  TextColumn get nordigenInstitutionId =>
+      text().named('nordigen_institution_id').withDefault(const Constant(''))();
 
   @override
   Set<Column> get primaryKey => {id};

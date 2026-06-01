@@ -176,7 +176,8 @@ class _HealthCheckBody extends StatelessWidget {
         _HealthListTile(
           title: context.tr('queue'),
           isValid: response.queueData.failed == 0,
-          level: response.queueData.failed == 0 && response.queueData.pending > 0
+          level:
+              response.queueData.failed == 0 && response.queueData.pending > 0
               ? _HealthCheckLevel.warning
               : null,
           subtitle:
@@ -194,9 +195,7 @@ class _HealthCheckBody extends StatelessWidget {
                 )
               : null,
         ),
-      if (response.filePermissions != 'Ok' &&
-          !disableAutoUpdate &&
-          !isDocker)
+      if (response.filePermissions != 'Ok' && !disableAutoUpdate && !isDocker)
         _HealthListTile(
           title: context.tr('invalid_file_permissions'),
           isValid: false,
@@ -309,18 +308,23 @@ class _HealthListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (icon, color) = switch (level) {
-      _HealthCheckLevel.warning => (Icons.warning_amber_outlined, Colors.orange),
+      _HealthCheckLevel.warning => (
+        Icons.warning_amber_outlined,
+        Colors.orange,
+      ),
       _HealthCheckLevel.info => (Icons.info_outline, Colors.blue),
-      null => isValid
-          ? (Icons.check_circle_outline, Colors.green)
-          : (Icons.warning_amber_outlined, Colors.red),
+      null =>
+        isValid
+            ? (Icons.check_circle_outline, Colors.green)
+            : (Icons.warning_amber_outlined, Colors.red),
     };
 
-    final body = subtitle ??
+    final body =
+        subtitle ??
         (level != null
             ? (level == _HealthCheckLevel.warning
-                ? context.tr('warning')
-                : context.tr('info'))
+                  ? context.tr('warning')
+                  : context.tr('info'))
             : (isValid ? context.tr('passed') : context.tr('failed')));
 
     return ListTile(

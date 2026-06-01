@@ -13,8 +13,7 @@ class _ThrowingStaticsService implements StaticsService {
       throw StateError('StaticsService.fetch should not be called');
 
   @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      throw UnimplementedError();
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
 
 void main() {
@@ -57,17 +56,19 @@ void main() {
       expect(statics.currency('1')?.name, 'US Dollar');
     });
 
-    test('does not blank a populated cache when later given an empty map',
-        () async {
-      await statics.applyStatic(const {
-        'currencies': [
-          {'id': '1', 'name': 'US Dollar', 'code': 'USD'},
-        ],
-      });
-      await statics.applyStatic(const <String, dynamic>{});
+    test(
+      'does not blank a populated cache when later given an empty map',
+      () async {
+        await statics.applyStatic(const {
+          'currencies': [
+            {'id': '1', 'name': 'US Dollar', 'code': 'USD'},
+          ],
+        });
+        await statics.applyStatic(const <String, dynamic>{});
 
-      expect(statics.currency('1')?.name, 'US Dollar');
-      expect((await db.staticsDao.read())!.payload, contains('US Dollar'));
-    });
+        expect(statics.currency('1')?.name, 'US Dollar');
+        expect((await db.staticsDao.read())!.payload, contains('US Dollar'));
+      },
+    );
   });
 }

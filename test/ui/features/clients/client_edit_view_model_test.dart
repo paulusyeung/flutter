@@ -396,21 +396,24 @@ void main() {
       vm.dispose();
     });
 
-    test('individual fallback: client name = person full name when no company', () {
-      final vm = ClientEditViewModel(repo: repo, companyId: 'co');
-      final r = vm.applyImportedContact(
-        const DeviceContactImport(
-          firstName: 'Jane',
-          lastName: 'Doe',
-          email: 'jane@x.test',
-        ),
-        countryId: '',
-      );
-      expect(vm.draft.name, 'Jane Doe');
-      expect(vm.draft.displayName, 'Jane Doe');
-      expect(r.filledClientFields, contains('name'));
-      vm.dispose();
-    });
+    test(
+      'individual fallback: client name = person full name when no company',
+      () {
+        final vm = ClientEditViewModel(repo: repo, companyId: 'co');
+        final r = vm.applyImportedContact(
+          const DeviceContactImport(
+            firstName: 'Jane',
+            lastName: 'Doe',
+            email: 'jane@x.test',
+          ),
+          countryId: '',
+        );
+        expect(vm.draft.name, 'Jane Doe');
+        expect(vm.draft.displayName, 'Jane Doe');
+        expect(r.filledClientFields, contains('name'));
+        vm.dispose();
+      },
+    );
 
     test('company-only card fills the client name and adds no contact', () {
       final vm = ClientEditViewModel(repo: repo, companyId: 'co');

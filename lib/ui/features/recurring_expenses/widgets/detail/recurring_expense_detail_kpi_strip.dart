@@ -37,8 +37,8 @@ class RecurringExpenseDetailKpiStrip extends StatelessWidget {
     final nextSendText = e.nextSendDate == null
         ? '—'
         : (f == null
-            ? e.nextSendDate!.toIso()
-            : f.date(e.nextSendDate!.toIso()));
+              ? e.nextSendDate!.toIso()
+              : f.date(e.nextSendDate!.toIso()));
     final freqKey = kRecurringFrequencyLabelKey[e.frequencyId];
     final freqLabel = freqKey == null
         ? (e.frequencyId.isEmpty ? '—' : e.frequencyId)

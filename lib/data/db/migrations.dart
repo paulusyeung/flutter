@@ -231,7 +231,10 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // applyUpdateResponse / login.
     await m.addColumn(db.companies, db.companies.trackInventory);
     await m.addColumn(db.companies, db.companies.stockNotification);
-    await m.addColumn(db.companies, db.companies.inventoryNotificationThreshold);
+    await m.addColumn(
+      db.companies,
+      db.companies.inventoryNotificationThreshold,
+    );
     await m.addColumn(db.companies, db.companies.enableProductDiscount);
     await m.addColumn(db.companies, db.companies.enableProductCost);
     await m.addColumn(db.companies, db.companies.enableProductQuantity);
@@ -403,10 +406,7 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // false / '', so `addColumn` backfills cleanly; real values land on the
     // next `applyUpdateResponse` (login / refresh / company save).
     await m.addColumn(db.companies, db.companies.hasEInvoiceCertificate);
-    await m.addColumn(
-      db.companies,
-      db.companies.eInvoiceCertificatePassphrase,
-    );
+    await m.addColumn(db.companies, db.companies.eInvoiceCertificatePassphrase);
     await m.addColumn(
       db.companies,
       db.companies.hasEInvoiceCertificatePassphrase,

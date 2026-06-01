@@ -68,7 +68,7 @@ Future<void> saveBillingDocDefault(
   required String value,
   required String successKey,
   required CompanySettings Function(CompanySettings settings, String? value)
-      apply,
+  apply,
 }) async {
   final guardKey = '$companyId|$fieldKey';
   if (_inFlight.contains(guardKey)) return;

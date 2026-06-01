@@ -1080,8 +1080,7 @@ final Map<String, SettingsBinding> _bindings = <String, SettingsBinding>{
   ),
   'quote_num_days_reminder1': (
     read: (s) => s.quoteNumDaysReminder1?.toString(),
-    write: (s, v) =>
-        s.copyWith(quoteNumDaysReminder1: int.tryParse(v ?? '')),
+    write: (s, v) => s.copyWith(quoteNumDaysReminder1: int.tryParse(v ?? '')),
   ),
   'schedule_reminder1': (
     read: (s) => s.scheduleReminder1,

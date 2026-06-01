@@ -303,19 +303,18 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
     String? subject,
     String? body,
     String? ccEmail,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.emailEntity,
-        payload: {
-          'id': id,
-          'template': template,
-          if (subject != null) 'subject': subject,
-          if (body != null) 'body': body,
-          if (ccEmail != null) 'cc_email': ccEmail,
-        },
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: MutationKind.emailEntity,
+    payload: {
+      'id': id,
+      'template': template,
+      if (subject != null) 'subject': subject,
+      if (body != null) 'body': body,
+      if (ccEmail != null) 'cc_email': ccEmail,
+    },
+  );
 
   Future<void> scheduleEmail({
     required String companyId,
@@ -324,55 +323,51 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
     required String sendAt,
     String? subject,
     String? body,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.scheduleEmail,
-        payload: {
-          'id': id,
-          'template': template,
-          'send_at': sendAt,
-          if (subject != null) 'subject': subject,
-          if (body != null) 'body': body,
-        },
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: MutationKind.scheduleEmail,
+    payload: {
+      'id': id,
+      'template': template,
+      'send_at': sendAt,
+      if (subject != null) 'subject': subject,
+      if (body != null) 'body': body,
+    },
+  );
 
   Future<void> cloneTo({
     required String companyId,
     required String id,
     required String targetType,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: _cloneKindFor(targetType),
-        payload: {'id': id, 'target': targetType},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: _cloneKindFor(targetType),
+    payload: {'id': id, 'target': targetType},
+  );
 
   Future<void> runTemplate({
     required String companyId,
     required String id,
     required String templateId,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.runTemplate,
-        payload: {'id': id, 'template_id': templateId},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: MutationKind.runTemplate,
+    payload: {'id': id, 'template_id': templateId},
+  );
 
   Future<void> addComment({
     required String companyId,
     required String creditId,
     required String text,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: creditId,
-        kind: MutationKind.addComment,
-        payload: {'entity_id': creditId, 'notes': text.trim()},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: creditId,
+    kind: MutationKind.addComment,
+    payload: {'entity_id': creditId, 'notes': text.trim()},
+  );
 
   // ── Documents ──────────────────────────────────────────────────────
 
@@ -380,42 +375,39 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
     required String companyId,
     required String entityId,
     required UploadSource source,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: entityId,
-        kind: MutationKind.documentUpload,
-        payload: {'entity_id': entityId, ...source.toPayload()},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: entityId,
+    kind: MutationKind.documentUpload,
+    payload: {'entity_id': entityId, ...source.toPayload()},
+  );
 
   Future<void> deleteDocument({
     required String companyId,
     required String entityId,
     required String documentId,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: entityId,
-        kind: MutationKind.documentDelete,
-        payload: {'entity_id': entityId, 'document_id': documentId},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: entityId,
+    kind: MutationKind.documentDelete,
+    payload: {'entity_id': entityId, 'document_id': documentId},
+  );
 
   Future<void> setDocumentVisibility({
     required String companyId,
     required String entityId,
     required String documentId,
     required bool isPublic,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: entityId,
-        kind: MutationKind.documentVisibility,
-        payload: {
-          'entity_id': entityId,
-          'document_id': documentId,
-          'is_public': isPublic,
-        },
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: entityId,
+    kind: MutationKind.documentVisibility,
+    payload: {
+      'entity_id': entityId,
+      'document_id': documentId,
+      'is_public': isPublic,
+    },
+  );
 
   // ── Apply* response handlers ───────────────────────────────────────
 
@@ -452,8 +444,9 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
     required String companyId,
     required String id,
   }) async {
-    final existing =
-        await db.creditDao.watchById(companyId: companyId, id: id).first;
+    final existing = await db.creditDao
+        .watchById(companyId: companyId, id: id)
+        .first;
     if (existing == null) return;
     await db.creditDao.upsert(
       existing
@@ -467,18 +460,20 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
     required String entityId,
     required String documentId,
   }) async {
-    final row =
-        await db.creditDao.watchById(companyId: companyId, id: entityId).first;
+    final row = await db.creditDao
+        .watchById(companyId: companyId, id: entityId)
+        .first;
     if (row == null) return;
     final current = decodeRawDocumentsColumn(row.documents);
     final next = current.where((d) => d.id != documentId).toList();
     if (next.length == current.length) return;
     await (db.update(db.credits)
-          ..where((e) => e.companyId.equals(companyId) & e.id.equals(entityId))).write(
-      CreditsCompanion(
-        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
-      ),
-    );
+          ..where((e) => e.companyId.equals(companyId) & e.id.equals(entityId)))
+        .write(
+          CreditsCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   Future<void> applyDocumentChanged({
@@ -486,8 +481,9 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
     required String entityId,
     required DocumentApi document,
   }) async {
-    final row =
-        await db.creditDao.watchById(companyId: companyId, id: entityId).first;
+    final row = await db.creditDao
+        .watchById(companyId: companyId, id: entityId)
+        .first;
     if (row == null) return;
     final current = decodeRawDocumentsColumn(row.documents);
     final next = [
@@ -498,11 +494,12 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
       next.add(document);
     }
     await (db.update(db.credits)
-          ..where((e) => e.companyId.equals(companyId) & e.id.equals(entityId))).write(
-      CreditsCompanion(
-        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
-      ),
-    );
+          ..where((e) => e.companyId.equals(companyId) & e.id.equals(entityId)))
+        .write(
+          CreditsCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   // ── Conversions ────────────────────────────────────────────────────

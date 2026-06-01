@@ -120,8 +120,7 @@ class FilterSuggestionMenu extends StatelessWidget {
 
   /// Checkbox half of the [FilterKey.checkboxMultiSelect] split action:
   /// toggle the value and keep the menu open.
-  final void Function(FilterKey key, FilterValueSuggestion value)
-  onToggleValue;
+  final void Function(FilterKey key, FilterValueSuggestion value) onToggleValue;
 
   /// Row-label half of the split action: select only this value and close.
   final void Function(FilterKey key, FilterValueSuggestion value)
@@ -570,8 +569,7 @@ class _ValueList extends StatelessWidget {
   final String query;
   final FilterSuggestionController controller;
   final void Function(FilterKey key, FilterValueSuggestion value) onSelectValue;
-  final void Function(FilterKey key, FilterValueSuggestion value)
-  onToggleValue;
+  final void Function(FilterKey key, FilterValueSuggestion value) onToggleValue;
   final void Function(FilterKey key, FilterValueSuggestion value)
   onPickExclusive;
   final void Function(FilterKey key, FilterOp op) onPickOp;
@@ -824,8 +822,7 @@ class _OperatorRows extends StatelessWidget {
           onSelectValue(
             filterKey,
             FilterValueSuggestion(
-              rawValue:
-                  comparable?.buildWire(value, op) ?? '$value:${op.name}',
+              rawValue: comparable?.buildWire(value, op) ?? '$value:${op.name}',
               displayLabel:
                   '${filterOpPhrase(context, op, filterKey.valueType)} '
                   '$value',
@@ -1062,13 +1059,12 @@ class _DateValueRowsState extends State<_DateValueRows> {
 
     // `between` → dual-calendar window picker (no relative presets /
     // single absolute date — the value is a closed [start, end] range).
-    if (op == FilterOp.between &&
-        widget.filterKey is DateColumnFilterKey) {
+    if (op == FilterOp.between && widget.filterKey is DateColumnFilterKey) {
       final dateKey = widget.filterKey as DateColumnFilterKey;
       addRow('${context.tr('date_range')}  →', 'range', () async {
-        final formatter = context
-            .read<Services>()
-            .formatterIfReady(widget.vm.companyId);
+        final formatter = context.read<Services>().formatterIfReady(
+          widget.vm.companyId,
+        );
         final wire = await pickDateRangeWindow(
           context,
           column: dateKey.serverKey,
@@ -1081,10 +1077,7 @@ class _DateValueRowsState extends State<_DateValueRows> {
         // and clear it).
         widget.onPickExclusive(
           widget.filterKey,
-          FilterValueSuggestion(
-            rawValue: wire,
-            displayLabel: '$start – $end',
-          ),
+          FilterValueSuggestion(rawValue: wire, displayLabel: '$start – $end'),
         );
       });
       _scheduleRowPublish(widget.controller, actions, rowKeys);
@@ -1210,9 +1203,7 @@ class _MenuTextRow extends StatelessWidget {
           children: [
             SizedBox(
               width: 20,
-              child: selected
-                  ? Icon(Icons.check, size: 16, color: ink)
-                  : null,
+              child: selected ? Icon(Icons.check, size: 16, color: ink) : null,
             ),
             Expanded(
               child: Text(

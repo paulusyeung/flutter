@@ -47,7 +47,8 @@ class WebhookDao extends DatabaseAccessor<AppDatabase>
     if (search != null && search.isNotEmpty) {
       final needle = '%${search.toLowerCase()}%';
       q.where(
-        (w) => w.targetUrl.lower().like(needle) | w.eventId.lower().like(needle),
+        (w) =>
+            w.targetUrl.lower().like(needle) | w.eventId.lower().like(needle),
       );
     }
 
@@ -108,9 +109,7 @@ class WebhookDao extends DatabaseAccessor<AppDatabase>
             webhooks.id.isIn(candidateIds) &
             webhooks.isDirty.equals(true),
       );
-    final dirty = {
-      for (final r in await dirtyQ.get()) r.read(webhooks.id)!,
-    };
+    final dirty = {for (final r in await dirtyQ.get()) r.read(webhooks.id)!};
     final filtered = [
       for (final entry in byId.entries)
         if (!dirty.contains(entry.key)) entry.value,

@@ -20,14 +20,16 @@ class TotalBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final props = block.properties;
-    final items = propMapList(props, 'items')
-        .where((it) => it['show'] != false)
-        .toList();
+    final items = propMapList(
+      props,
+      'items',
+    ).where((it) => it['show'] != false).toList();
     if (items.isEmpty) return const SizedBox.shrink();
 
     final labelAlign = parseTextAlign(props['labelAlign'] as String?);
-    final valueAlign =
-        parseTextAlign(props['valueAlign'] as String? ?? 'right');
+    final valueAlign = parseTextAlign(
+      props['valueAlign'] as String? ?? 'right',
+    );
     final labelColor = parseCssColor(
       props['labelColor'] as String?,
       fallback: const Color(0xFF6B7280),
@@ -53,9 +55,7 @@ class TotalBlock extends StatelessWidget {
     // Phase 9a: block-level alignment positions the totals table
     // left/center/right within the surrounding grid cell. Mirrors
     // React TotalBlock.tsx margin-auto positioning.
-    final blockAlign = parseAlignment(
-      props['align'] as String? ?? 'right',
-    );
+    final blockAlign = parseAlignment(props['align'] as String? ?? 'right');
 
     return Align(
       alignment: blockAlign,
@@ -144,10 +144,11 @@ class _TotalRow extends StatelessWidget {
     final defaultValueColor = isBalance
         ? balanceColor
         : isTotal
-            ? totalColor
-            : amountColor;
-    final defaultWeight =
-        (isTotal || isBalance) ? totalFontWeight : FontWeight.normal;
+        ? totalColor
+        : amountColor;
+    final defaultWeight = (isTotal || isBalance)
+        ? totalFontWeight
+        : FontWeight.normal;
 
     // Per-item cascade: subMap → flat item key → block-level fallback.
     // Mirrors React `BlockRenderer.tsx` total branch (lines 763–788).

@@ -28,8 +28,10 @@ class _RecurringInvoicePdfRouteScreenState
     super.initState();
     _services = context.read<Services>();
     _companyId = _services.auth.session.value!.currentCompanyId;
-    _stream = _services.recurringInvoices
-        .watch(companyId: _companyId, id: widget.id);
+    _stream = _services.recurringInvoices.watch(
+      companyId: _companyId,
+      id: widget.id,
+    );
   }
 
   @override
@@ -48,9 +50,10 @@ class _RecurringInvoicePdfRouteScreenState
           entityNumber: ri.number,
           fetcher: ({String? designId, required bool deliveryNote}) =>
               _services.recurringInvoices.api.downloadPdf(
-            entityJson: ri.toApiJson(),
-            designId: designId ?? (ri.designId.isEmpty ? null : ri.designId),
-          ),
+                entityJson: ri.toApiJson(),
+                designId:
+                    designId ?? (ri.designId.isEmpty ? null : ri.designId),
+              ),
         );
       },
     );

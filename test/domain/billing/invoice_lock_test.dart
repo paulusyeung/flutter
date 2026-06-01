@@ -10,23 +10,21 @@ Invoice _inv(
   String statusId, {
   bool locked = false,
   String date = '2026-05-10',
-}) =>
-    Invoice.fromApi(
-      InvoiceApi(id: 'i1', statusId: statusId, date: date, isLocked: locked),
-    );
+}) => Invoice.fromApi(
+  InvoiceApi(id: 'i1', statusId: statusId, date: date, isLocked: locked),
+);
 
 InvoiceLockReason _reason(
   Invoice i, {
   String? setting,
   bool veriFactu = false,
   Date? today,
-}) =>
-    invoiceLockReason(
-      invoice: i,
-      lockInvoicesSetting: setting,
-      veriFactuActive: veriFactu,
-      today: today,
-    );
+}) => invoiceLockReason(
+  invoice: i,
+  lockInvoicesSetting: setting,
+  veriFactuActive: veriFactu,
+  today: today,
+);
 
 void main() {
   final today = Date(2026, 5, 18);
@@ -62,29 +60,41 @@ void main() {
   group('end_of_month', () {
     test('same month → none', () {
       expect(
-        _reason(_inv('2', date: '2026-05-01'),
-            setting: 'end_of_month', today: today),
+        _reason(
+          _inv('2', date: '2026-05-01'),
+          setting: 'end_of_month',
+          today: today,
+        ),
         InvoiceLockReason.none,
       );
     });
 
     test('prior month / prior year → endOfMonth', () {
       expect(
-        _reason(_inv('2', date: '2026-04-30'),
-            setting: 'end_of_month', today: today),
+        _reason(
+          _inv('2', date: '2026-04-30'),
+          setting: 'end_of_month',
+          today: today,
+        ),
         InvoiceLockReason.endOfMonth,
       );
       expect(
-        _reason(_inv('2', date: '2025-05-30'),
-            setting: 'end_of_month', today: today),
+        _reason(
+          _inv('2', date: '2025-05-30'),
+          setting: 'end_of_month',
+          today: today,
+        ),
         InvoiceLockReason.endOfMonth,
       );
     });
 
     test('null/empty date → none', () {
       expect(
-        _reason(_inv('2', date: ''),
-            setting: 'end_of_month', today: today),
+        _reason(
+          _inv('2', date: ''),
+          setting: 'end_of_month',
+          today: today,
+        ),
         InvoiceLockReason.none,
       );
     });
@@ -123,29 +133,36 @@ void main() {
     test('boolean mirrors reason', () {
       expect(
         isInvoiceLockedBy(
-            invoice: _inv('2'),
-            lockInvoicesSetting: 'when_sent',
-            veriFactuActive: false),
+          invoice: _inv('2'),
+          lockInvoicesSetting: 'when_sent',
+          veriFactuActive: false,
+        ),
         isTrue,
       );
       expect(
         isInvoiceLockedBy(
-            invoice: _inv('1'),
-            lockInvoicesSetting: 'when_sent',
-            veriFactuActive: false),
+          invoice: _inv('1'),
+          lockInvoicesSetting: 'when_sent',
+          veriFactuActive: false,
+        ),
         isFalse,
       );
     });
 
     test('reason → localization key', () {
-      expect(invoiceLockMessageKey(InvoiceLockReason.sent),
-          'sent_invoices_are_locked');
-      expect(invoiceLockMessageKey(InvoiceLockReason.paid),
-          'paid_invoices_are_locked');
-      expect(invoiceLockMessageKey(InvoiceLockReason.endOfMonth),
-          'invoices_locked_end_of_month');
-      expect(invoiceLockMessageKey(InvoiceLockReason.server),
-          'invoice_locked');
+      expect(
+        invoiceLockMessageKey(InvoiceLockReason.sent),
+        'sent_invoices_are_locked',
+      );
+      expect(
+        invoiceLockMessageKey(InvoiceLockReason.paid),
+        'paid_invoices_are_locked',
+      );
+      expect(
+        invoiceLockMessageKey(InvoiceLockReason.endOfMonth),
+        'invoices_locked_end_of_month',
+      );
+      expect(invoiceLockMessageKey(InvoiceLockReason.server), 'invoice_locked');
       expect(invoiceLockMessageKey(InvoiceLockReason.none), 'invoice_locked');
     });
   });

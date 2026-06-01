@@ -298,8 +298,8 @@ class _RoundingSectionState extends State<_RoundingSection> {
     final isPresetValue = asInt != null && _kPresetSeconds.contains(asInt);
     final isCustomValue = enabled && (asInt == 0 || !isPresetValue);
 
-    final isOverridden = isCompanyScope ||
-        host.isOverridden('task_round_to_nearest');
+    final isOverridden =
+        isCompanyScope || host.isOverridden('task_round_to_nearest');
 
     return FormSection(
       title: context.tr('rounding'),
@@ -432,7 +432,9 @@ class _CustomSecondsFieldState extends State<_CustomSecondsField> {
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: _displayFor(widget.currentSeconds));
+    _controller = TextEditingController(
+      text: _displayFor(widget.currentSeconds),
+    );
   }
 
   @override
@@ -499,22 +501,13 @@ class _ProjectLocationDropdown extends StatelessWidget {
         enabled: enabled,
       ),
       items: [
-        DropdownMenuItem(
-          value: false,
-          child: Text(context.tr('service')),
-        ),
-        DropdownMenuItem(
-          value: true,
-          child: Text(context.tr('description')),
-        ),
+        DropdownMenuItem(value: false, child: Text(context.tr('service'))),
+        DropdownMenuItem(value: true, child: Text(context.tr('description'))),
       ],
       onChanged: enabled ? (v) => v == null ? null : onChanged(v) : null,
     );
     if (enabled) return field;
-    return Tooltip(
-      message: context.tr('invoice_task_project'),
-      child: field,
-    );
+    return Tooltip(message: context.tr('invoice_task_project'), child: field);
   }
 }
 

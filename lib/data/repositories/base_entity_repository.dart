@@ -157,11 +157,11 @@ abstract class BaseEntityRepository<TDomain, TApi> {
     required String entityId,
     required MutationKind kind,
   }) => _outbox.deletePendingForEntity(
-        companyId: companyId,
-        entityType: entityTypeName,
-        entityId: entityId,
-        mutationKind: kind.wireName,
-      );
+    companyId: companyId,
+    entityType: entityTypeName,
+    entityId: entityId,
+    mutationKind: kind.wireName,
+  );
 
   /// Enqueue an `archive` mutation. The optimistic local state is set
   /// when the user invokes the action — typically via a

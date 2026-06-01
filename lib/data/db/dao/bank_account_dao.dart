@@ -35,8 +35,7 @@ class BankAccountDao extends DatabaseAccessor<AppDatabase>
     String sortField = BankAccountFieldIds.updatedAt,
     bool sortAscending = false,
   }) {
-    final q = select(bankAccounts)
-      ..where((b) => b.companyId.equals(companyId));
+    final q = select(bankAccounts)..where((b) => b.companyId.equals(companyId));
 
     if (states.isNotEmpty) {
       q.where(
@@ -51,8 +50,7 @@ class BankAccountDao extends DatabaseAccessor<AppDatabase>
     if (search != null && search.isNotEmpty) {
       final needle = '%${search.toLowerCase()}%';
       q.where(
-        (b) =>
-            b.name.lower().like(needle) | b.provider.lower().like(needle),
+        (b) => b.name.lower().like(needle) | b.provider.lower().like(needle),
       );
     }
 
@@ -142,8 +140,6 @@ class BankAccountDao extends DatabaseAccessor<AppDatabase>
             bankAccounts.isDeleted.equals(false) &
             bankAccounts.archivedAt.isNull(),
       );
-    return q
-        .map((row) => row.read(bankAccounts.id.count()) ?? 0)
-        .watchSingle();
+    return q.map((row) => row.read(bankAccounts.id.count()) ?? 0).watchSingle();
   }
 }

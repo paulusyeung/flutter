@@ -95,7 +95,8 @@ class _PaymentMeansCardState extends State<PaymentMeansCard> {
           idOf: (e) => e.key,
           onChanged: (e) => setState(() => _code = e?.key ?? _kDefaultCode),
         ),
-        for (final field in fields) _SubField(field: field, controller: _controllerFor(field)),
+        for (final field in fields)
+          _SubField(field: field, controller: _controllerFor(field)),
       ],
     );
   }

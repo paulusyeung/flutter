@@ -8,10 +8,7 @@ import 'package:admin/ui/features/recurring_expenses/view_models/recurring_expen
 /// translation keys until the company-level custom-fields JSON is wired
 /// through.
 class RecurringExpenseEditCustomFieldsSection extends StatelessWidget {
-  const RecurringExpenseEditCustomFieldsSection({
-    super.key,
-    required this.vm,
-  });
+  const RecurringExpenseEditCustomFieldsSection({super.key, required this.vm});
   final RecurringExpenseEditViewModel vm;
 
   @override

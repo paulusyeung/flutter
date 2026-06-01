@@ -93,7 +93,11 @@ class _OverviewCard extends StatelessWidget {
           labelKey: 'name',
           value: category.name.isEmpty ? '—' : category.name,
         ),
-        _ColorRow(label: context.tr('color'), swatch: swatch, hex: category.color),
+        _ColorRow(
+          label: context.tr('color'),
+          swatch: swatch,
+          hex: category.color,
+        ),
       ],
     );
   }
@@ -121,9 +125,7 @@ class _KeyValue extends StatelessWidget {
               style: theme.textTheme.bodySmall?.copyWith(color: tokens.ink3),
             ),
           ),
-          Expanded(
-            child: Text(value, style: theme.textTheme.bodyMedium),
-          ),
+          Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),
         ],
       ),
     );

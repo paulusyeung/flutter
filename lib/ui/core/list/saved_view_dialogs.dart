@@ -160,9 +160,7 @@ Future<SavedViewIconChoice?> showSavedViewIconPicker(
             ),
           ),
         );
-        return tooltip == null
-            ? cell
-            : Tooltip(message: tooltip, child: cell);
+        return tooltip == null ? cell : Tooltip(message: tooltip, child: cell);
       }
 
       return AlertDialog(

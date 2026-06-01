@@ -29,11 +29,7 @@ import 'package:admin/ui/features/settings/widgets/overridable_field.dart';
 /// has no independent override toggle, since the two settings keys move
 /// together.
 class TaxRatePicker extends StatelessWidget {
-  const TaxRatePicker({
-    super.key,
-    required this.slot,
-    required this.label,
-  });
+  const TaxRatePicker({super.key, required this.slot, required this.label});
 
   /// Tax slot (1-3) — selects which `tax_name<N>`/`tax_rate<N>` settings
   /// pair this picker drives.

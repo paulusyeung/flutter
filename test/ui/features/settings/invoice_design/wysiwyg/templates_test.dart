@@ -8,10 +8,11 @@ void main() {
     test('returns three starters with unique ids', () {
       final starters = buildStarterTemplates();
       expect(starters, hasLength(3));
-      expect(
-        starters.map((s) => s.id).toSet(),
-        {'standard', 'minimal', 'quote_friendly'},
-      );
+      expect(starters.map((s) => s.id).toSet(), {
+        'standard',
+        'minimal',
+        'quote_friendly',
+      });
     });
 
     test('every starter ships a non-empty blocks list', () {
@@ -55,8 +56,11 @@ void main() {
         for (final b in s.blocks) {
           final p = b.gridPosition;
           expect(p.x, greaterThanOrEqualTo(0));
-          expect(p.x + p.w, lessThanOrEqualTo(12),
-              reason: 'starter ${s.id} ${b.type} bleeds past col 12');
+          expect(
+            p.x + p.w,
+            lessThanOrEqualTo(12),
+            reason: 'starter ${s.id} ${b.type} bleeds past col 12',
+          );
           expect(p.y, greaterThanOrEqualTo(0));
         }
       }
@@ -72,8 +76,11 @@ void main() {
       // Some overlap is allowed in pathological randomness, but the vast
       // majority must differ — assert intersection size is small.
       final overlap = firstIds.intersection(secondIds);
-      expect(overlap.length, lessThan(2),
-          reason: 'block ids should be freshly generated per call');
+      expect(
+        overlap.length,
+        lessThan(2),
+        reason: 'block ids should be freshly generated per call',
+      );
     });
 
     test('every block in a starter has the spec\'s default properties', () {
@@ -83,17 +90,25 @@ void main() {
       for (final s in buildStarterTemplates()) {
         for (final b in s.blocks) {
           if (b.type == 'table' || b.type == 'tasks-table') {
-            expect(b.properties['columns'], isA<List<dynamic>>(),
-                reason: 'starter ${s.id} table missing default columns');
+            expect(
+              b.properties['columns'],
+              isA<List<dynamic>>(),
+              reason: 'starter ${s.id} table missing default columns',
+            );
           }
           if (b.type == 'total') {
-            expect(b.properties['items'], isA<List<dynamic>>(),
-                reason: 'starter ${s.id} total missing default items');
+            expect(
+              b.properties['items'],
+              isA<List<dynamic>>(),
+              reason: 'starter ${s.id} total missing default items',
+            );
           }
-          if (b.type.endsWith('-info') ||
-              b.type == 'invoice-details') {
-            expect(b.properties['fieldConfigs'], isA<List<dynamic>>(),
-                reason: 'starter ${s.id} ${b.type} missing fieldConfigs');
+          if (b.type.endsWith('-info') || b.type == 'invoice-details') {
+            expect(
+              b.properties['fieldConfigs'],
+              isA<List<dynamic>>(),
+              reason: 'starter ${s.id} ${b.type} missing fieldConfigs',
+            );
           }
         }
       }
@@ -106,8 +121,11 @@ void main() {
     // mis-typed default properties.
     test('every starter annotates without throwing', () {
       for (final s in buildStarterTemplates()) {
-        expect(() => annotateBlocksAsApi(s.blocks), returnsNormally,
-            reason: 'starter ${s.id} fails annotation');
+        expect(
+          () => annotateBlocksAsApi(s.blocks),
+          returnsNormally,
+          reason: 'starter ${s.id} fails annotation',
+        );
       }
     });
 

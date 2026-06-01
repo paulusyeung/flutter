@@ -9,17 +9,15 @@ void main() {
     num balance = 100,
     num partial = 0,
     String number = 'INV-1',
-  }) =>
-      AllocationTarget(
-        id: id,
-        number: number,
-        balance: Decimal.parse(balance.toString()),
-        partial: Decimal.parse(partial.toString()),
-      );
+  }) => AllocationTarget(
+    id: id,
+    number: number,
+    balance: Decimal.parse(balance.toString()),
+    partial: Decimal.parse(partial.toString()),
+  );
 
   group('computeAutoFillAmount — invoice', () {
-    test('prefers partial when nonzero (mirrors admin-portal fromInvoice)',
-        () {
+    test('prefers partial when nonzero (mirrors admin-portal fromInvoice)', () {
       final amount = computeAutoFillAmount(
         kind: AllocationKind.invoice,
         target: target('i1', balance: 500, partial: 50),
@@ -72,15 +70,17 @@ void main() {
   });
 
   group('computeAutoFillAmount — credit', () {
-    test('credit is unbounded — returns preferred amount regardless of cap',
-        () {
-      final amount = computeAutoFillAmount(
-        kind: AllocationKind.credit,
-        target: target('c1', balance: 75),
-        paymentAmount: Decimal.parse('100'),
-        allocatedExcludingThisRow: Decimal.parse('100'),
-      );
-      expect(amount, Decimal.parse('75'));
-    });
+    test(
+      'credit is unbounded — returns preferred amount regardless of cap',
+      () {
+        final amount = computeAutoFillAmount(
+          kind: AllocationKind.credit,
+          target: target('c1', balance: 75),
+          paymentAmount: Decimal.parse('100'),
+          allocatedExcludingThisRow: Decimal.parse('100'),
+        );
+        expect(amount, Decimal.parse('75'));
+      },
+    );
   });
 }

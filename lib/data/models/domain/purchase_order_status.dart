@@ -15,20 +15,20 @@ enum PurchaseOrderStatus {
   final String wireId;
 
   static PurchaseOrderStatus fromWire(String? raw) => switch (raw) {
-        '2' => PurchaseOrderStatus.sent,
-        '3' => PurchaseOrderStatus.accepted,
-        '4' => PurchaseOrderStatus.received,
-        '5' => PurchaseOrderStatus.cancelled,
-        _ => PurchaseOrderStatus.draft,
-      };
+    '2' => PurchaseOrderStatus.sent,
+    '3' => PurchaseOrderStatus.accepted,
+    '4' => PurchaseOrderStatus.received,
+    '5' => PurchaseOrderStatus.cancelled,
+    _ => PurchaseOrderStatus.draft,
+  };
 
   String get labelKey => switch (this) {
-        PurchaseOrderStatus.draft => 'draft',
-        PurchaseOrderStatus.sent => 'sent',
-        PurchaseOrderStatus.accepted => 'accepted',
-        PurchaseOrderStatus.received => 'received',
-        PurchaseOrderStatus.cancelled => 'cancelled',
-      };
+    PurchaseOrderStatus.draft => 'draft',
+    PurchaseOrderStatus.sent => 'sent',
+    PurchaseOrderStatus.accepted => 'accepted',
+    PurchaseOrderStatus.received => 'received',
+    PurchaseOrderStatus.cancelled => 'cancelled',
+  };
 }
 
 /// Computed pseudo-statuses (never stored on the wire).
@@ -39,6 +39,6 @@ class PurchaseOrderStatusComputed {
 }
 
 String purchaseOrderStatusLabelKey(String id) => switch (id) {
-      PurchaseOrderStatusComputed.viewed => 'viewed',
-      _ => PurchaseOrderStatus.fromWire(id).labelKey,
-    };
+  PurchaseOrderStatusComputed.viewed => 'viewed',
+  _ => PurchaseOrderStatus.fromWire(id).labelKey,
+};

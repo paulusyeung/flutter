@@ -46,8 +46,7 @@ final List<QuoteColumn> kAllQuoteColumns = <QuoteColumn>[
     id: QuoteFieldIds.clientId,
     labelKey: 'client',
     width: 200,
-    cellBuilder: (q, _) =>
-        q.clientId.isEmpty
+    cellBuilder: (q, _) => q.clientId.isEmpty
         ? cellEmpty()
         : ClientNameLabel(clientId: q.clientId, link: true),
     valueBuilder: (q) => cellNonZeroString(q.clientId),
@@ -56,9 +55,8 @@ final List<QuoteColumn> kAllQuoteColumns = <QuoteColumn>[
     id: QuoteFieldIds.date,
     labelKey: 'quote_date',
     width: 120,
-    cellBuilder: (q, ctx) => q.date == null
-        ? cellEmpty()
-        : cellDate(q.date!.toDateTime(), ctx),
+    cellBuilder: (q, ctx) =>
+        q.date == null ? cellEmpty() : cellDate(q.date!.toDateTime(), ctx),
     valueBuilder: (q) => q.date?.toIso(),
   ),
   QuoteColumn(
@@ -82,14 +80,16 @@ final List<QuoteColumn> kAllQuoteColumns = <QuoteColumn>[
     id: QuoteFieldIds.poNumber,
     labelKey: 'po_number',
     width: 130,
-    cellBuilder: (q, _) => q.poNumber.isEmpty ? cellEmpty() : cellText(q.poNumber),
+    cellBuilder: (q, _) =>
+        q.poNumber.isEmpty ? cellEmpty() : cellText(q.poNumber),
     valueBuilder: (q) => cellNonZeroString(q.poNumber),
   ),
   QuoteColumn(
     id: QuoteFieldIds.designId,
     labelKey: 'design',
     width: 130,
-    cellBuilder: (q, _) => q.designId.isEmpty ? cellEmpty() : cellText(q.designId),
+    cellBuilder: (q, _) =>
+        q.designId.isEmpty ? cellEmpty() : cellText(q.designId),
     valueBuilder: (q) => cellNonZeroString(q.designId),
   ),
   QuoteColumn(
@@ -113,8 +113,7 @@ final List<QuoteColumn> kAllQuoteColumns = <QuoteColumn>[
     id: QuoteFieldIds.invoiceId,
     labelKey: 'invoice',
     width: 130,
-    cellBuilder: (q, _) =>
-        q.invoiceId.isEmpty
+    cellBuilder: (q, _) => q.invoiceId.isEmpty
         ? cellEmpty()
         : InvoiceNameLabel(invoiceId: q.invoiceId, link: true),
     valueBuilder: (q) => cellNonZeroString(q.invoiceId),

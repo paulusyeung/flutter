@@ -208,29 +208,25 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
     itemsOf: (l) => l.data,
     idOf: (a) => a.id,
     toCompanion: (a) => _apiToCompanion(a, companyId),
-    upsert: (byId) => db.clientDao.upsertAllPreservingDirty(
-      companyId: companyId,
-      byId: byId,
-    ),
+    upsert: (byId) =>
+        db.clientDao.upsertAllPreservingDirty(companyId: companyId, byId: byId),
   );
 
   /// Lazily hydrate one client by id when a reference (e.g. an invoice's
   /// client) isn't in the prefetched page so a `*NameLabel` would show
   /// the raw id. See [ensureLoadedTemplate].
-  Future<void> ensureLoaded({
-    required String companyId,
-    required String id,
-  }) => ensureLoadedTemplate(
-    companyId: companyId,
-    id: id,
-    fetch: (id) async => (await api.get(id)).data,
-    idOf: (a) => a.id,
-    toCompanion: (a) => _apiToCompanion(a, companyId),
-    upsert: (byId) => db.clientDao.upsertAllPreservingDirty(
-      companyId: companyId,
-      byId: byId,
-    ),
-  );
+  Future<void> ensureLoaded({required String companyId, required String id}) =>
+      ensureLoadedTemplate(
+        companyId: companyId,
+        id: id,
+        fetch: (id) async => (await api.get(id)).data,
+        idOf: (a) => a.id,
+        toCompanion: (a) => _apiToCompanion(a, companyId),
+        upsert: (byId) => db.clientDao.upsertAllPreservingDirty(
+          companyId: companyId,
+          byId: byId,
+        ),
+      );
 
   /// Pull-to-refresh / foreground-resume entry point. With [full] true, we
   /// ignore the cursor and re-pull page 1 from scratch; otherwise we send
@@ -440,10 +436,7 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
       companyId: companyId,
       entityId: mergeFromId,
       kind: MutationKind.merge,
-      payload: {
-        'merge_into_id': mergeIntoId,
-        'merge_from_id': mergeFromId,
-      },
+      payload: {'merge_into_id': mergeIntoId, 'merge_from_id': mergeFromId},
     );
   }
 
@@ -594,9 +587,7 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
       // Locations are always embedded on client responses (probe-verified:
       // not `?include=`-gated like documents), so always write the
       // authoritative array — no missing-key guard needed.
-      locations: Value(
-        jsonEncode(a.locations.map((l) => l.toJson()).toList()),
-      ),
+      locations: Value(jsonEncode(a.locations.map((l) => l.toJson()).toList())),
       payload: jsonEncode(a.toJson()),
     );
   }
@@ -665,11 +656,12 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
     final next = current.where((d) => d.id != documentId).toList();
     if (next.length == current.length) return; // not found; no-op
     await (db.update(db.clients)
-          ..where((c) => c.companyId.equals(companyId) & c.id.equals(entityId))).write(
-      ClientsCompanion(
-        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
-      ),
-    );
+          ..where((c) => c.companyId.equals(companyId) & c.id.equals(entityId)))
+        .write(
+          ClientsCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   /// Replace (or insert) one document in the client's local `documents`
@@ -693,11 +685,12 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
       next.add(document);
     }
     await (db.update(db.clients)
-          ..where((c) => c.companyId.equals(companyId) & c.id.equals(entityId))).write(
-      ClientsCompanion(
-        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
-      ),
-    );
+          ..where((c) => c.companyId.equals(companyId) & c.id.equals(entityId)))
+        .write(
+          ClientsCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   Client _fromRow(ClientRow row) {
@@ -732,8 +725,14 @@ int? _isoDayEndEpoch(String? iso) {
   if (iso == null || iso.isEmpty) return null;
   final d = DateTime.tryParse(iso);
   if (d == null) return null;
-  return DateTime.utc(d.year, d.month, d.day, 23, 59, 59)
-          .millisecondsSinceEpoch ~/
+  return DateTime.utc(
+        d.year,
+        d.month,
+        d.day,
+        23,
+        59,
+        59,
+      ).millisecondsSinceEpoch ~/
       1000;
 }
 

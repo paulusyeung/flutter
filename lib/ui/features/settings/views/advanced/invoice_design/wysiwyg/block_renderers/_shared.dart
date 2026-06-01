@@ -122,8 +122,8 @@ FontWeight parseFontWeight(String? value) {
 /// [FontStyle.normal].
 FontStyle parseFontStyle(String? value) =>
     (value == 'italic' || value == 'oblique')
-        ? FontStyle.italic
-        : FontStyle.normal;
+    ? FontStyle.italic
+    : FontStyle.normal;
 
 /// `'contain'` / `'cover'` / `'fill'` / `'none'` / `'scale-down'` →
 /// `BoxFit`. Defaults to [BoxFit.contain].
@@ -151,13 +151,14 @@ Border? parseTableRegionBorders(Map<String, dynamic>? raw) {
   if (raw == null) return null;
   final sides = raw['sides'];
   if (sides is! Map<String, dynamic>) return null;
-  final color = parseCssColor(raw['color'] as String?,
-      fallback: const Color(0xFFE5E7EB));
+  final color = parseCssColor(
+    raw['color'] as String?,
+    fallback: const Color(0xFFE5E7EB),
+  );
   final width = parsePx(raw['width']) ?? 1.0;
-  BorderSide sideFor(String key) =>
-      (sides[key] as bool? ?? false)
-          ? BorderSide(color: color, width: width)
-          : BorderSide.none;
+  BorderSide sideFor(String key) => (sides[key] as bool? ?? false)
+      ? BorderSide(color: color, width: width)
+      : BorderSide.none;
   final top = sideFor('top');
   final right = sideFor('right');
   final bottom = sideFor('bottom');
@@ -212,12 +213,12 @@ class CellTypography {
   final Color color;
 
   TextStyle toTextStyle({double? height}) => TextStyle(
-        fontSize: fontSize,
-        fontWeight: fontWeight,
-        fontStyle: fontStyle,
-        color: color,
-        height: height,
-      );
+    fontSize: fontSize,
+    fontWeight: fontWeight,
+    fontStyle: fontStyle,
+    color: color,
+    height: height,
+  );
 }
 
 CellTypography resolveCellTypography({
@@ -228,17 +229,17 @@ CellTypography resolveCellTypography({
   required FontStyle blockFontStyle,
   required Color blockColor,
 }) {
-  final fs = parsePx(subMap?['fontSize']) ??
+  final fs =
+      parsePx(subMap?['fontSize']) ??
       parsePx(field['fontSize']) ??
       blockFontSize;
-  final weightStr = (subMap?['fontWeight'] as String?) ??
-      (field['fontWeight'] as String?);
+  final weightStr =
+      (subMap?['fontWeight'] as String?) ?? (field['fontWeight'] as String?);
   final fw = weightStr == null ? blockFontWeight : parseFontWeight(weightStr);
-  final styleStr = (subMap?['fontStyle'] as String?) ??
-      (field['fontStyle'] as String?);
+  final styleStr =
+      (subMap?['fontStyle'] as String?) ?? (field['fontStyle'] as String?);
   final fst = styleStr == null ? blockFontStyle : parseFontStyle(styleStr);
-  final colorStr =
-      (subMap?['color'] as String?) ?? (field['color'] as String?);
+  final colorStr = (subMap?['color'] as String?) ?? (field['color'] as String?);
   final col = colorStr == null
       ? blockColor
       : parseCssColor(colorStr, fallback: blockColor);
@@ -251,10 +252,7 @@ CellTypography resolveCellTypography({
 }
 
 /// Read a `List<Map<String, dynamic>>?` property safely.
-List<Map<String, dynamic>> propMapList(
-  Map<String, dynamic> props,
-  String key,
-) {
+List<Map<String, dynamic>> propMapList(Map<String, dynamic> props, String key) {
   final v = props[key];
   if (v is! List) return const <Map<String, dynamic>>[];
   return [

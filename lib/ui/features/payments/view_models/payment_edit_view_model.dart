@@ -86,9 +86,9 @@ class PaymentEditViewModel extends GenericEditViewModel<Payment> {
   /// the running total + a "$Y remaining" hint so the user catches a
   /// mismatch before the server rejects it.
   Decimal get allocatedTotal => draft.paymentables.fold<Decimal>(
-        Decimal.zero,
-        (sum, p) => sum + p.amount,
-      );
+    Decimal.zero,
+    (sum, p) => sum + p.amount,
+  );
 
   /// Sum of allocation amounts for invoice-linked rows only.
   Decimal get invoiceAllocatedTotal => draft.paymentables
@@ -129,9 +129,7 @@ class PaymentEditViewModel extends GenericEditViewModel<Payment> {
     }
     // When the workspace doesn't allow "payment without allocations", a
     // create payment must touch at least one invoice or credit.
-    if (isCreate &&
-        !enableApplyingPayments &&
-        draft.paymentables.isEmpty) {
+    if (isCreate && !enableApplyingPayments && draft.paymentables.isEmpty) {
       return kPaymentValidationMissingAllocations;
     }
     return null;
@@ -219,10 +217,8 @@ class PaymentEditViewModel extends GenericEditViewModel<Payment> {
   }
 
   void setExchangeRate(String input) => updateDraft(
-        draft.copyWith(
-          exchangeRate: Decimal.tryParse(input.trim()) ?? Decimal.one,
-        ),
-      );
+    draft.copyWith(exchangeRate: Decimal.tryParse(input.trim()) ?? Decimal.one),
+  );
   void setCustomValue1(String v) =>
       updateDraft(draft.copyWith(customValue1: v));
   void setCustomValue2(String v) =>
@@ -261,37 +257,37 @@ String _identity(String key) => key;
 /// `is_manual = true` (gateway-paid payments come back from server-side
 /// callbacks, not user creates).
 Payment emptyPayment() => Payment(
-      id: '',
-      number: '',
-      statusId: '',
-      typeId: '',
-      clientId: '',
-      clientContactId: '',
-      companyGatewayId: '',
-      gatewayTypeId: '',
-      projectId: '',
-      vendorId: '',
-      invitationId: '',
-      currencyId: '',
-      exchangeCurrencyId: '',
-      transactionReference: '',
-      transactionId: '',
-      privateNotes: '',
-      customValue1: '',
-      customValue2: '',
-      customValue3: '',
-      customValue4: '',
-      userId: '',
-      createdUserId: '',
-      assignedUserId: '',
-      date: Date.today(),
-      amount: Decimal.zero,
-      applied: Decimal.zero,
-      refunded: Decimal.zero,
-      exchangeRate: Decimal.one,
-      isManual: true,
-      isDeleted: false,
-      updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
-      createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
-      archivedAt: null,
-    );
+  id: '',
+  number: '',
+  statusId: '',
+  typeId: '',
+  clientId: '',
+  clientContactId: '',
+  companyGatewayId: '',
+  gatewayTypeId: '',
+  projectId: '',
+  vendorId: '',
+  invitationId: '',
+  currencyId: '',
+  exchangeCurrencyId: '',
+  transactionReference: '',
+  transactionId: '',
+  privateNotes: '',
+  customValue1: '',
+  customValue2: '',
+  customValue3: '',
+  customValue4: '',
+  userId: '',
+  createdUserId: '',
+  assignedUserId: '',
+  date: Date.today(),
+  amount: Decimal.zero,
+  applied: Decimal.zero,
+  refunded: Decimal.zero,
+  exchangeRate: Decimal.one,
+  isManual: true,
+  isDeleted: false,
+  updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+  createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+  archivedAt: null,
+);

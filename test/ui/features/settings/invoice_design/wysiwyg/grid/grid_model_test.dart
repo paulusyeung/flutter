@@ -31,7 +31,11 @@ void main() {
 
   group('pushCollisionsDown', () {
     test('non-overlapping layout is returned unchanged', () {
-      final blocks = [_b('a', 0, 0, 4, 2), _b('b', 4, 0, 4, 2), _b('c', 0, 3, 12, 1)];
+      final blocks = [
+        _b('a', 0, 0, 4, 2),
+        _b('b', 4, 0, 4, 2),
+        _b('c', 0, 3, 12, 1),
+      ];
       final out = pushCollisionsDown(blocks);
       for (var i = 0; i < blocks.length; i++) {
         expect(out[i].gridPosition.y, blocks[i].gridPosition.y);
@@ -40,13 +44,13 @@ void main() {
 
     test('overlapping block is pushed below the colliding block', () {
       // 'a' at (0,0,12,4); 'b' resized to overlap → should be pushed to y=4
-      final blocks = [
-        _b('a', 0, 0, 12, 4),
-        _b('b', 0, 2, 12, 4),
-      ];
+      final blocks = [_b('a', 0, 0, 12, 4), _b('b', 0, 2, 12, 4)];
       final out = pushCollisionsDown(blocks);
       expect(out[0].gridPosition.y, 0);
-      expect(out[1].gridPosition.y, 4); // pushed below 'a' (y=0, h=4 → next y=4)
+      expect(
+        out[1].gridPosition.y,
+        4,
+      ); // pushed below 'a' (y=0, h=4 → next y=4)
     });
 
     test('cascading pushes settle correctly', () {
@@ -64,7 +68,11 @@ void main() {
     });
 
     test('input ordering is preserved in the output indices', () {
-      final blocks = [_b('z', 0, 5, 4, 2), _b('a', 0, 0, 4, 2), _b('m', 4, 0, 4, 2)];
+      final blocks = [
+        _b('z', 0, 5, 4, 2),
+        _b('a', 0, 0, 4, 2),
+        _b('m', 4, 0, 4, 2),
+      ];
       final out = pushCollisionsDown(blocks);
       expect(out.map((b) => b.id).toList(), ['z', 'a', 'm']);
     });
@@ -136,11 +144,15 @@ void main() {
     test('annotated wire JSON carries the four save-time fields', () {
       // jsonEncode flattens nested typed freezed objects to maps, mirroring
       // what the network layer sends.
-      final wire = jsonDecode(jsonEncode(
-        annotateBlocksAsApi([_b('logo-1', 0, 0, 4, 4)])
-            .map((b) => b.toJson())
-            .toList(),
-      )) as List<dynamic>;
+      final wire =
+          jsonDecode(
+                jsonEncode(
+                  annotateBlocksAsApi([
+                    _b('logo-1', 0, 0, 4, 4),
+                  ]).map((b) => b.toJson()).toList(),
+                ),
+              )
+              as List<dynamic>;
       final first = wire.first as Map<String, dynamic>;
       expect(first['id'], 'logo-1');
       expect(first['type'], 't');

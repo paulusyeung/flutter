@@ -492,7 +492,6 @@ class Services implements SidebarBadgeContext {
 
   final LocaleController locale;
 
-
   final SidebarController sidebar;
 
   /// Recently-viewed entities backing the command palette's "Recent" group.

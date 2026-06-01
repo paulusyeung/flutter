@@ -225,8 +225,9 @@ class _ReportSettingsPanel extends StatelessWidget {
                     padding: EdgeInsets.only(top: InSpacing.sm),
                     child: Text(
                       context.tr('run_report_to_configure'),
-                      style: Theme.of(context).textTheme.labelMedium
-                          ?.copyWith(color: context.inTheme.ink3),
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: context.inTheme.ink3,
+                      ),
                     ),
                   ),
                 SizedBox(height: InSpacing.lg(context)),
@@ -514,17 +515,17 @@ class _GroupByField extends StatelessWidget {
       onChanged: !enabled
           ? null
           : (id) {
-        if (id == null || id.isEmpty) {
-          vm.setGroup(null);
-          return;
-        }
-        final col = columns.where((c) => c.identifier == id).firstOrNull;
-        final isDate =
-            col != null &&
-            (col.type == ReportColumnType.date ||
-                col.type == ReportColumnType.dateTime);
-        vm.setGroup(id, subgroup: isDate ? ReportSubgroup.month : null);
-      },
+              if (id == null || id.isEmpty) {
+                vm.setGroup(null);
+                return;
+              }
+              final col = columns.where((c) => c.identifier == id).firstOrNull;
+              final isDate =
+                  col != null &&
+                  (col.type == ReportColumnType.date ||
+                      col.type == ReportColumnType.dateTime);
+              vm.setGroup(id, subgroup: isDate ? ReportSubgroup.month : null);
+            },
       items: [
         DropdownMenuItem(value: '', child: Text(context.tr('no_grouping'))),
         for (final col in columns)
@@ -651,9 +652,7 @@ Future<void> _openColumnPicker(
                   ),
                   Expanded(
                     child: searching
-                        ? ListView(
-                            children: [for (final id in shown) tile(id)],
-                          )
+                        ? ListView(children: [for (final id in shown) tile(id)])
                         : ReorderableListView(
                             buildDefaultDragHandles: false,
                             onReorder: (oldIndex, newIndex) => setState(() {
@@ -1241,9 +1240,7 @@ class _PanelFooterActions extends StatelessWidget {
           enabled: false,
           label: context.tr('upgrade_to_paid_plan'),
           child: ExcludeSemantics(
-            child: IgnorePointer(
-              child: Opacity(opacity: 0.5, child: actions),
-            ),
+            child: IgnorePointer(child: Opacity(opacity: 0.5, child: actions)),
           ),
         ),
       ],
@@ -1263,9 +1260,7 @@ class _ScheduleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return OutlinedButton.icon(
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(44),
-      ),
+      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44)),
       icon: const Icon(Icons.schedule_outlined, size: 18),
       label: Text(context.tr('schedule')),
       onPressed: () {
@@ -1277,10 +1272,11 @@ class _ScheduleButton extends StatelessWidget {
         final seed = ReportScheduleSeed(
           reportIdentifier: vm.reportIdentifier,
           payload: vm.payload,
-          reportKeys: (vm.columnOrder.isNotEmpty
-                  ? vm.columnOrder.where(vm.visibleColumnIds.contains)
-                  : vm.visibleColumnIds)
-              .toList(),
+          reportKeys:
+              (vm.columnOrder.isNotEmpty
+                      ? vm.columnOrder.where(vm.visibleColumnIds.contains)
+                      : vm.visibleColumnIds)
+                  .toList(),
           groupBy: vm.group,
         );
         context.go('/settings/schedules/new', extra: seed);
@@ -1693,8 +1689,10 @@ class _TotalsCard extends StatelessWidget {
     // summed into `grandTotalsByCurrency` ({columnId: {currencyId: sum}}).
     final totalColumns = view.visibleColumns
         .where((c) => isAggregatable(c.type))
-        .where((c) => (view.grandTotalsByCurrency[c.identifier] ?? const {})
-            .isNotEmpty)
+        .where(
+          (c) =>
+              (view.grandTotalsByCurrency[c.identifier] ?? const {}).isNotEmpty,
+        )
         .toList();
     return Container(
       width: double.infinity,
@@ -1729,10 +1727,9 @@ class _TotalsCard extends StatelessWidget {
                   padding: EdgeInsets.symmetric(vertical: InSpacing.sm / 2),
                   child: Text(
                     _totalLine(context, col, e.key, e.value),
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
           ],

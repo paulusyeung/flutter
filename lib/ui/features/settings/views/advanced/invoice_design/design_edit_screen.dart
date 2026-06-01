@@ -29,7 +29,16 @@ const String _kTemplateDocsUrl =
     'https://invoiceninja.github.io/docs/advanced-topics/templates';
 
 /// One editable template section. Ordered to match the editor tabs.
-enum _Section { settings, body, header, footer, product, task, includes, variables }
+enum _Section {
+  settings,
+  body,
+  header,
+  footer,
+  product,
+  task,
+  includes,
+  variables,
+}
 
 const _htmlSections = <_Section>[
   _Section.body,
@@ -152,8 +161,9 @@ class _DesignWorkspace extends StatefulWidget {
 }
 
 class _DesignWorkspaceState extends State<_DesignWorkspace> {
-  late _Section _section =
-      widget.startInHtml ? _Section.body : _Section.settings;
+  late _Section _section = widget.startInHtml
+      ? _Section.body
+      : _Section.settings;
 
   /// The HTML section the user last had open — variable inserts target it
   /// even while the Variables tab is showing.
@@ -165,8 +175,9 @@ class _DesignWorkspaceState extends State<_DesignWorkspace> {
   /// section → first validation message from the latest 422 render.
   Map<String, String> _sectionErrors = const {};
 
-  late final LiveDesignService _service =
-      LiveDesignService(context.read<Services>().apiClient);
+  late final LiveDesignService _service = LiveDesignService(
+    context.read<Services>().apiClient,
+  );
 
   @override
   void initState() {
@@ -343,9 +354,7 @@ class _EditorColumn extends StatelessWidget {
             child: IndexedStack(
               index: _Section.values.indexOf(section),
               sizing: StackFit.expand,
-              children: [
-                for (final s in _Section.values) _paneFor(context, s),
-              ],
+              children: [for (final s in _Section.values) _paneFor(context, s)],
             ),
           ),
         ),
@@ -489,8 +498,7 @@ class _TemplateToggle extends StatelessWidget {
         secondary: IconButton(
           tooltip: context.tr('view_docs'),
           icon: const Icon(Icons.help_outline, size: 18),
-          onPressed: () =>
-              unawaited(launchUrl(Uri.parse(_kTemplateDocsUrl))),
+          onPressed: () => unawaited(launchUrl(Uri.parse(_kTemplateDocsUrl))),
         ),
       ),
     );
@@ -513,10 +521,11 @@ class _StartFromField extends StatelessWidget {
       builder: (context, snapshot) {
         final all = snapshot.data ?? const <Design>[];
         // Only designs that actually carry template HTML can seed.
-        final seedable = all
-            .where((d) => d.id != vm.draft.id && d.template.body.isNotEmpty)
-            .toList()
-          ..sort((a, b) => a.name.compareTo(b.name));
+        final seedable =
+            all
+                .where((d) => d.id != vm.draft.id && d.template.body.isNotEmpty)
+                .toList()
+              ..sort((a, b) => a.name.compareTo(b.name));
         final builtIn = seedable.where((d) => !d.isCustom).toList();
         final custom = seedable.where((d) => d.isCustom).toList();
         return Padding(
@@ -590,9 +599,10 @@ class _EntitiesField extends StatelessWidget {
           style: Theme.of(context).textTheme.labelMedium,
         ),
         const SizedBox(height: 4),
-        for (final e in vm.draft.isTemplate
-            ? DesignEditViewModel.supportedTemplateEntities
-            : DesignEditViewModel.supportedEntities)
+        for (final e
+            in vm.draft.isTemplate
+                ? DesignEditViewModel.supportedTemplateEntities
+                : DesignEditViewModel.supportedEntities)
           CheckboxListTile(
             contentPadding: EdgeInsets.zero,
             dense: true,
@@ -796,20 +806,14 @@ class _VariablesPaneState extends State<_VariablesPane> {
         SizedBox(height: InSpacing.sm),
         Expanded(
           child: ListView(
-            children: [
-              for (final g in groups) ..._group(context, g, q),
-            ],
+            children: [for (final g in groups) ..._group(context, g, q)],
           ),
         ),
       ],
     );
   }
 
-  List<Widget> _group(
-    BuildContext context,
-    DesignVariableGroup g,
-    String q,
-  ) {
+  List<Widget> _group(BuildContext context, DesignVariableGroup g, String q) {
     final vars = q.isEmpty
         ? g.variables
         : g.variables.where((v) => v.toLowerCase().contains(q)).toList();
@@ -818,7 +822,8 @@ class _VariablesPaneState extends State<_VariablesPane> {
     // entity isn't in the draft's `entities`. Chip taps still work — the
     // gray-out is just a heads-up that the variable may not render in
     // this template's context.
-    final enabled = !widget.isTemplate ||
+    final enabled =
+        !widget.isTemplate ||
         isGroupEnabledForEntities(g.titleKey, widget.entities);
     final opacity = enabled ? 1.0 : 0.45;
     return [
@@ -854,7 +859,8 @@ class _VariablesPaneState extends State<_VariablesPane> {
   Widget _buildChip(String v) {
     if (v.startsWith('<!--')) {
       return Tooltip(
-        message: 'Inserts: $v\n'
+        message:
+            'Inserts: $v\n'
             'Place near the top of <head> in a statement template.',
         child: ActionChip(
           label: const Text(

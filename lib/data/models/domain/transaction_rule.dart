@@ -144,11 +144,8 @@ abstract class RuleCriterion with _$RuleCriterion {
 
   const RuleCriterion._();
 
-  RuleCriterionApi toApi() => RuleCriterionApi(
-    searchKey: searchKey,
-    operator: operator,
-    value: value,
-  );
+  RuleCriterionApi toApi() =>
+      RuleCriterionApi(searchKey: searchKey, operator: operator, value: value);
 }
 
 /// Domain `TransactionRule` (wire entity: `bank_transaction_rule`).
@@ -178,8 +175,7 @@ abstract class TransactionRule with _$TransactionRule {
   factory TransactionRule.fromApi(TransactionRuleApi a) => TransactionRule(
     id: a.id,
     name: a.name,
-    appliesTo:
-        a.appliesTo.isEmpty ? kTransactionRuleAppliesDebit : a.appliesTo,
+    appliesTo: a.appliesTo.isEmpty ? kTransactionRuleAppliesDebit : a.appliesTo,
     matchesOnAll: a.matchesOnAll,
     autoConvert: a.autoConvert,
     vendorId: a.vendorId,

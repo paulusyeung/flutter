@@ -107,9 +107,7 @@ class _SignupBody extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                AuthEyebrowLabel(
-                  context.tr('create_account').toUpperCase(),
-                ),
+                AuthEyebrowLabel(context.tr('create_account').toUpperCase()),
                 AuthField(
                   label: context.tr('email'),
                   initialValue: vm.email,
@@ -193,10 +191,7 @@ class _TermsCheckbox extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Checkbox(
-              value: value,
-              onChanged: (v) => onChanged(v ?? false),
-            ),
+            Checkbox(value: value, onChanged: (v) => onChanged(v ?? false)),
             const SizedBox(width: InSpacing.xs),
             Expanded(
               child: Padding(
@@ -215,4 +210,3 @@ class _TermsCheckbox extends StatelessWidget {
     );
   }
 }
-

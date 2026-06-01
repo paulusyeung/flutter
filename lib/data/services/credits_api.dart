@@ -26,8 +26,7 @@ class CreditsApi extends BaseEntityApi<CreditListApi, CreditItemApi> {
   Future<CreditItemApi?> markSent({
     required String id,
     required String idempotencyKey,
-  }) =>
-      action(id: id, action: 'mark_sent', idempotencyKey: idempotencyKey);
+  }) => action(id: id, action: 'mark_sent', idempotencyKey: idempotencyKey);
 
   Future<CreditItemApi?> email({
     required String id,
@@ -36,18 +35,17 @@ class CreditsApi extends BaseEntityApi<CreditListApi, CreditItemApi> {
     String? body,
     String? ccEmail,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'email',
-        idempotencyKey: idempotencyKey,
-        payload: {
-          'template': template,
-          if (subject != null) 'subject': subject,
-          if (body != null) 'body': body,
-          if (ccEmail != null) 'cc_email': ccEmail,
-        },
-      );
+  }) => action(
+    id: id,
+    action: 'email',
+    idempotencyKey: idempotencyKey,
+    payload: {
+      'template': template,
+      if (subject != null) 'subject': subject,
+      if (body != null) 'body': body,
+      if (ccEmail != null) 'cc_email': ccEmail,
+    },
+  );
 
   Future<CreditItemApi?> scheduleEmail({
     required String id,
@@ -56,41 +54,38 @@ class CreditsApi extends BaseEntityApi<CreditListApi, CreditItemApi> {
     String? subject,
     String? body,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'email',
-        idempotencyKey: idempotencyKey,
-        payload: {
-          'template': template,
-          'send_at': sendAt,
-          if (subject != null) 'subject': subject,
-          if (body != null) 'body': body,
-        },
-      );
+  }) => action(
+    id: id,
+    action: 'email',
+    idempotencyKey: idempotencyKey,
+    payload: {
+      'template': template,
+      'send_at': sendAt,
+      if (subject != null) 'subject': subject,
+      if (body != null) 'body': body,
+    },
+  );
 
   Future<CreditItemApi?> cloneTo({
     required String id,
     required String targetType,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'clone_to_$targetType',
-        idempotencyKey: idempotencyKey,
-      );
+  }) => action(
+    id: id,
+    action: 'clone_to_$targetType',
+    idempotencyKey: idempotencyKey,
+  );
 
   Future<CreditItemApi?> runTemplate({
     required String id,
     required String templateId,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'template',
-        idempotencyKey: idempotencyKey,
-        payload: {'template_id': templateId},
-      );
+  }) => action(
+    id: id,
+    action: 'template',
+    idempotencyKey: idempotencyKey,
+    payload: {'template_id': templateId},
+  );
 
   /// Server-rendered PDF via `POST /api/v1/live_preview?entity=credit
   /// [&entity_id=<id>]` with the full credit entity (`Credit.toApiJson()`) as

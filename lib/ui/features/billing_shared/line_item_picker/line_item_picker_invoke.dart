@@ -43,7 +43,8 @@ Future<void> openLineItemPicker(
   required void Function(
     Map<String, String> tasks,
     Map<String, String> expenses,
-  ) registerSourceClientIds,
+  )
+  registerSourceClientIds,
 }) async {
   final services = context.read<Services>();
   final excludedTaskIds = currentLineItems

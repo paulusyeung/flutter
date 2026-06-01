@@ -266,7 +266,8 @@ class CompanyGatewayRepository
     realId: serverResponse.id,
     companion: _apiToCompanion(serverResponse, companyId),
     upsert: db.companyGatewayDao.upsert,
-    deleteById: (id) => db.companyGatewayDao.deleteById(companyId: companyId, id: id),
+    deleteById: (id) =>
+        db.companyGatewayDao.deleteById(companyId: companyId, id: id),
   );
 
   @override

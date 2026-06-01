@@ -22,10 +22,7 @@ class SmtpApi {
   /// `message` field (e.g. `"Successfully sent email"`). Throws on
   /// connection / auth failure — the caller surfaces it via `Notify.error`.
   Future<String> check({required Map<String, dynamic> payload}) async {
-    final raw = await client.postJson(
-      '/api/v1/smtp/check',
-      body: payload,
-    );
+    final raw = await client.postJson('/api/v1/smtp/check', body: payload);
     if (raw is Map<String, dynamic>) {
       final message = raw['message'];
       if (message is String && message.isNotEmpty) return message;

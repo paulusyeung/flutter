@@ -6,8 +6,7 @@ import 'package:admin/ui/features/settings/views/advanced/templates_reminders/te
 void main() {
   group('TemplateOption.subjectKey / templateKey', () {
     test('non-quote templates use the symmetric form', () {
-      final invoice =
-          kTemplateOptions.firstWhere((o) => o.key == 'invoice');
+      final invoice = kTemplateOptions.firstWhere((o) => o.key == 'invoice');
       expect(invoice.subjectKey, 'email_subject_invoice');
       expect(invoice.templateKey, 'email_template_invoice');
 
@@ -25,8 +24,9 @@ void main() {
       // server expects `email_quote_subject_reminder1`, not the symmetric
       // `email_subject_quote_reminder1`. A regression here silently drops
       // saves on the quote reminder template.
-      final qr1 =
-          kTemplateOptions.firstWhere((o) => o.key == 'quote_reminder1');
+      final qr1 = kTemplateOptions.firstWhere(
+        (o) => o.key == 'quote_reminder1',
+      );
       expect(qr1.subjectKey, 'email_quote_subject_reminder1');
       expect(qr1.templateKey, 'email_quote_template_reminder1');
     });
@@ -34,8 +34,10 @@ void main() {
 
   group('TemplateOption.isReminder', () {
     test('flags only the five reminder kinds', () {
-      final reminders =
-          kTemplateOptions.where((o) => o.isReminder).map((o) => o.key).toSet();
+      final reminders = kTemplateOptions
+          .where((o) => o.isReminder)
+          .map((o) => o.key)
+          .toSet();
       expect(reminders, {
         'reminder1',
         'reminder2',
@@ -60,14 +62,19 @@ void main() {
         'custom3',
       ]) {
         final opt = kTemplateOptions.firstWhere((o) => o.key == key);
-        expect(opt.isReminder, isFalse, reason: '$key should not be a reminder');
+        expect(
+          opt.isReminder,
+          isFalse,
+          reason: '$key should not be a reminder',
+        );
       }
     });
   });
 
   group('visibleTemplateOptions module gating', () {
     test('all modules enabled → all 16 templates visible', () {
-      final mask = EnabledModule.invoices.bitmask |
+      final mask =
+          EnabledModule.invoices.bitmask |
           EnabledModule.quotes.bitmask |
           EnabledModule.credits.bitmask |
           EnabledModule.purchaseOrders.bitmask;
@@ -75,7 +82,8 @@ void main() {
     });
 
     test('quotes module off → quote + quote_reminder1 hidden', () {
-      final mask = EnabledModule.invoices.bitmask |
+      final mask =
+          EnabledModule.invoices.bitmask |
           EnabledModule.credits.bitmask |
           EnabledModule.purchaseOrders.bitmask;
       final keys = visibleTemplateOptions(mask).map((o) => o.key).toSet();
@@ -86,7 +94,8 @@ void main() {
     });
 
     test('credits module off → only credit hidden', () {
-      final mask = EnabledModule.invoices.bitmask |
+      final mask =
+          EnabledModule.invoices.bitmask |
           EnabledModule.quotes.bitmask |
           EnabledModule.purchaseOrders.bitmask;
       final keys = visibleTemplateOptions(mask).map((o) => o.key).toSet();

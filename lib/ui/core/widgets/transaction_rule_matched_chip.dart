@@ -18,7 +18,10 @@ import 'package:admin/l10n/localization.dart';
 /// gray meta-row: "why was this categorized?" is a salience-sensitive
 /// provenance fact, not an identity field.
 class TransactionRuleMatchedChip extends StatelessWidget {
-  const TransactionRuleMatchedChip({required this.transactionRuleId, super.key});
+  const TransactionRuleMatchedChip({
+    required this.transactionRuleId,
+    super.key,
+  });
 
   final String transactionRuleId;
 

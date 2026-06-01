@@ -63,7 +63,8 @@ class PaymentLinkEditScreen extends StatelessWidget {
         companyId: companyId,
         existing: existing,
         cloneFrom: cloneFrom,
-        useCommaAsDecimalPlace: services
+        useCommaAsDecimalPlace:
+            services
                 .formatterIfReady(companyId)
                 ?.settings
                 .useCommaAsDecimalPlace ??

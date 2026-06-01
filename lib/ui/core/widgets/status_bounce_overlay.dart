@@ -42,7 +42,11 @@ class StatusBounceOverlay extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(color: tokens.surface, width: 1.5),
               ),
-              child: const Icon(Icons.priority_high, size: 8, color: Colors.white),
+              child: const Icon(
+                Icons.priority_high,
+                size: 8,
+                color: Colors.white,
+              ),
             ),
           ),
         ),

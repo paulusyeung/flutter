@@ -49,7 +49,8 @@ void main() {
         expect(
           () => settingsBindingOf(key),
           returnsNormally,
-          reason: 'missing binding for $key — '
+          reason:
+              'missing binding for $key — '
               'add it to settings_field_bindings.dart',
         );
       }

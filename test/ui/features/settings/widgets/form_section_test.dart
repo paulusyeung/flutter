@@ -20,10 +20,7 @@ void main() {
   ) async {
     await pump(
       tester,
-      const FormSection(
-        title: 'Client',
-        children: [Text('field')],
-      ),
+      const FormSection(title: 'Client', children: [Text('field')]),
     );
 
     expect(find.text('Client'), findsOneWidget);
@@ -36,10 +33,7 @@ void main() {
   ) async {
     await pump(
       tester,
-      const FormSection(
-        title: null,
-        children: [Text('field')],
-      ),
+      const FormSection(title: null, children: [Text('field')]),
     );
 
     expect(find.byType(Divider), findsNothing);

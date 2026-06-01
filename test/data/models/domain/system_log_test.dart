@@ -21,27 +21,32 @@ SystemLog _log({
 
 void main() {
   group('SystemLog.categoryKey', () {
-    test('every documented React category id maps to the same translation key',
-        () {
-      // Mirrors `SystemLog.tsx:76-82`.
-      const expectations = <int, String>{
-        1: 'gateway_id',
-        2: 'email',
-        3: 'webhook',
-        4: 'pdf',
-        5: 'security',
-      };
-      for (final entry in expectations.entries) {
-        expect(
-          _log(categoryId: entry.key, eventId: 0, typeId: 0).categoryKey,
-          entry.value,
-          reason: 'category ${entry.key}',
-        );
-      }
-    });
+    test(
+      'every documented React category id maps to the same translation key',
+      () {
+        // Mirrors `SystemLog.tsx:76-82`.
+        const expectations = <int, String>{
+          1: 'gateway_id',
+          2: 'email',
+          3: 'webhook',
+          4: 'pdf',
+          5: 'security',
+        };
+        for (final entry in expectations.entries) {
+          expect(
+            _log(categoryId: entry.key, eventId: 0, typeId: 0).categoryKey,
+            entry.value,
+            reason: 'category ${entry.key}',
+          );
+        }
+      },
+    );
 
     test('unknown ids fall back to "unknown"', () {
-      expect(_log(categoryId: 99, eventId: 0, typeId: 0).categoryKey, 'unknown');
+      expect(
+        _log(categoryId: 99, eventId: 0, typeId: 0).categoryKey,
+        'unknown',
+      );
     });
   });
 
@@ -115,8 +120,11 @@ void main() {
         323: 'paypal',
       };
       for (final entry in mapping.entries) {
-        final result =
-            _log(categoryId: 0, eventId: 0, typeId: entry.key).typeDisplay();
+        final result = _log(
+          categoryId: 0,
+          eventId: 0,
+          typeId: entry.key,
+        ).typeDisplay();
         expect(result.isKey, isTrue, reason: 'type ${entry.key} should be key');
         expect(result.value, entry.value, reason: 'type ${entry.key}');
       }
@@ -146,16 +154,26 @@ void main() {
         801: 'Login Failure',
       };
       for (final entry in mapping.entries) {
-        final result =
-            _log(categoryId: 0, eventId: 0, typeId: entry.key).typeDisplay();
-        expect(result.isKey, isFalse,
-            reason: 'type ${entry.key} should be literal');
+        final result = _log(
+          categoryId: 0,
+          eventId: 0,
+          typeId: entry.key,
+        ).typeDisplay();
+        expect(
+          result.isKey,
+          isFalse,
+          reason: 'type ${entry.key} should be literal',
+        );
         expect(result.value, entry.value, reason: 'type ${entry.key}');
       }
     });
 
     test('unknown type falls back to "Undefined Type"', () {
-      final result = _log(categoryId: 0, eventId: 0, typeId: 9999).typeDisplay();
+      final result = _log(
+        categoryId: 0,
+        eventId: 0,
+        typeId: 9999,
+      ).typeDisplay();
       expect(result.isKey, isFalse);
       expect(result.value, 'Undefined Type');
     });

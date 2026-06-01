@@ -44,9 +44,9 @@ class SystemLogRepository {
     if (companyId.isEmpty) {
       return Stream<List<SystemLog>>.value(const []);
     }
-    return _db.systemLogDao.watchForCompany(companyId: companyId).map(
-      (rows) => rows.map(_fromRow).toList(growable: false),
-    );
+    return _db.systemLogDao
+        .watchForCompany(companyId: companyId)
+        .map((rows) => rows.map(_fromRow).toList(growable: false));
   }
 
   /// Latest `fetched_at` for [companyId], or null if we have never
@@ -105,7 +105,9 @@ class SystemLogRepository {
         _log.info('System logs endpoint not found (404) for $companyId');
         return SystemLogRefreshResult.notFound;
       }
-      _log.warning('System logs refresh failed (${e.statusCode}): ${e.message}');
+      _log.warning(
+        'System logs refresh failed (${e.statusCode}): ${e.message}',
+      );
       return SystemLogRefreshResult.networkError;
     } on NetworkException catch (e) {
       _log.warning('System logs refresh: network error', e);

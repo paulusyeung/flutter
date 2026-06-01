@@ -274,9 +274,10 @@ void main() {
       // repos (task_statuses, company_gateways, …). AuthRepository owns the
       // fan-out call but doesn't know about the repos themselves.
       final calls = <({String companyId, CompanyEnvelopeApi company})>[];
-      repo.onPersistBundles = ({required companyId, required company, required fullSync}) async {
-        calls.add((companyId: companyId, company: company));
-      };
+      repo.onPersistBundles =
+          ({required companyId, required company, required fullSync}) async {
+            calls.add((companyId: companyId, company: company));
+          };
       authService.queueLogin(
         _envelope(
           companies: [
@@ -309,66 +310,64 @@ void main() {
       expect(calls.first.company.id, 'co_a');
     });
 
-    test(
-      'bundle fan-out runs in one transaction — N applyBundle writes '
-      'collapse to a single commit/watch-fire per company',
-      () async {
-        // Simulate two separate `applyBundle` calls (each opens its own
-        // `db.transaction`, like the real ~13). The auth path wraps the
-        // per-company hook in an outer transaction, so the two inner
-        // transactions become savepoints and only ONE commit fires —
-        // the savedViews watch sees `[]` then `[v1,v2]`, never the
-        // intermediate `[v1]`. Without the wrap there'd be 3 emissions.
-        repo.onPersistBundles = ({required companyId, required company, required fullSync}) async {
-          await db.transaction(
-            () => db.savedViewsDao.insertView(
-              SavedViewsCompanion.insert(
-                id: 'v1',
-                companyId: companyId,
-                entityType: 'client',
-                name: 'one',
-                payloadJson: '{}',
-                createdAt: 1,
-                updatedAt: 1,
+    test('bundle fan-out runs in one transaction — N applyBundle writes '
+        'collapse to a single commit/watch-fire per company', () async {
+      // Simulate two separate `applyBundle` calls (each opens its own
+      // `db.transaction`, like the real ~13). The auth path wraps the
+      // per-company hook in an outer transaction, so the two inner
+      // transactions become savepoints and only ONE commit fires —
+      // the savedViews watch sees `[]` then `[v1,v2]`, never the
+      // intermediate `[v1]`. Without the wrap there'd be 3 emissions.
+      repo.onPersistBundles =
+          ({required companyId, required company, required fullSync}) async {
+            await db.transaction(
+              () => db.savedViewsDao.insertView(
+                SavedViewsCompanion.insert(
+                  id: 'v1',
+                  companyId: companyId,
+                  entityType: 'client',
+                  name: 'one',
+                  payloadJson: '{}',
+                  createdAt: 1,
+                  updatedAt: 1,
+                ),
               ),
-            ),
-          );
-          await db.transaction(
-            () => db.savedViewsDao.insertView(
-              SavedViewsCompanion.insert(
-                id: 'v2',
-                companyId: companyId,
-                entityType: 'client',
-                name: 'two',
-                payloadJson: '{}',
-                createdAt: 1,
-                updatedAt: 1,
+            );
+            await db.transaction(
+              () => db.savedViewsDao.insertView(
+                SavedViewsCompanion.insert(
+                  id: 'v2',
+                  companyId: companyId,
+                  entityType: 'client',
+                  name: 'two',
+                  payloadJson: '{}',
+                  createdAt: 1,
+                  updatedAt: 1,
+                ),
               ),
-            ),
-          );
-        };
+            );
+          };
 
-        final emissions = <int>[];
-        final sub = db.savedViewsDao
-            .watchAll('co_a')
-            .listen((rows) => emissions.add(rows.length));
-        await Future<void>.delayed(const Duration(milliseconds: 10));
+      final emissions = <int>[];
+      final sub = db.savedViewsDao
+          .watchAll('co_a')
+          .listen((rows) => emissions.add(rows.length));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
 
-        authService.queueLogin(_envelope());
-        await repo.login(
-          baseUrl: 'https://test',
-          isHosted: false,
-          email: 'a@b',
-          password: 'pw',
-        );
-        await Future<void>.delayed(const Duration(milliseconds: 20));
-        await sub.cancel();
+      authService.queueLogin(_envelope());
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a@b',
+        password: 'pw',
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      await sub.cancel();
 
-        // Initial empty emission + exactly one post-commit emission.
-        // (3 would mean each inner transaction committed separately.)
-        expect(emissions, [0, 2]);
-      },
-    );
+      // Initial empty emission + exactly one post-commit emission.
+      // (3 would mean each inner transaction committed separately.)
+      expect(emissions, [0, 2]);
+    });
 
     test('forwards the /refresh `static` blob to onApplyStatic', () async {
       // Statics is seeded from the refresh envelope (include_static=true)
@@ -447,9 +446,10 @@ void main() {
       // A partial-bundle response shouldn't keep the user out of the app —
       // the auth log path swallows + logs hook failures so the session
       // still flips to authenticated.
-      repo.onPersistBundles = ({required companyId, required company, required fullSync}) async {
-        throw StateError('boom');
-      };
+      repo.onPersistBundles =
+          ({required companyId, required company, required fullSync}) async {
+            throw StateError('boom');
+          };
       authService.queueLogin(_envelope());
 
       await repo.login(
@@ -470,9 +470,7 @@ void main() {
       // request body. The token comes down on `data[N].account` and rides
       // the existing `features_json` blob on the `Accounts` Drift row, so
       // cold restore must reconstitute it identically.
-      authService.queueLogin(
-        _envelope(eInvoicingToken: 'peppol_tok_abc'),
-      );
+      authService.queueLogin(_envelope(eInvoicingToken: 'peppol_tok_abc'));
       await repo.login(
         baseUrl: 'https://test',
         isHosted: false,
@@ -516,17 +514,19 @@ void main() {
       expect(restoreRepo.session.value!.reportErrors, isTrue);
     });
 
-    test('account.report_errors defaults to false when the server omits it',
-        () async {
-      authService.queueLogin(_envelope()); // no reportErrors → default
-      await repo.login(
-        baseUrl: 'https://test',
-        isHosted: false,
-        email: 'a@b',
-        password: 'pw',
-      );
-      expect(repo.session.value!.reportErrors, isFalse);
-    });
+    test(
+      'account.report_errors defaults to false when the server omits it',
+      () async {
+        authService.queueLogin(_envelope()); // no reportErrors → default
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a@b',
+          password: 'pw',
+        );
+        expect(repo.session.value!.reportErrors, isFalse);
+      },
+    );
   });
 
   group('switchCompany', () {
@@ -776,7 +776,8 @@ void main() {
         expect(
           c.logoUrl,
           startsWith('https://logo.example/acme.png'),
-          reason: 'logo_url column should survive the round-trip '
+          reason:
+              'logo_url column should survive the round-trip '
               '(now cache-busted with ?v=<updatedAt>)',
         );
       },
@@ -1009,18 +1010,44 @@ void main() {
         );
       });
 
-      test(
-        'a FULL refresh drops cached tokens for companies the server '
-        'stops returning',
-        () async {
-          // User had access to A + B at login. Server later revokes B. A
-          // *full* /refresh (current_company=false) returns only A — that's
-          // the authoritative company set, so the stale B token must not
-          // linger: a subsequent switchCompany('co_b') is a no-op, not a
-          // quiet attempt against a revoked token. (A delta refresh is
-          // scoped and intentionally does NOT prune — see the next test.)
-          authService.queueLogin(
-            _envelope(
+      test('a FULL refresh drops cached tokens for companies the server '
+          'stops returning', () async {
+        // User had access to A + B at login. Server later revokes B. A
+        // *full* /refresh (current_company=false) returns only A — that's
+        // the authoritative company set, so the stale B token must not
+        // linger: a subsequent switchCompany('co_b') is a no-op, not a
+        // quiet attempt against a revoked token. (A delta refresh is
+        // scoped and intentionally does NOT prune — see the next test.)
+        authService.queueLogin(
+          _envelope(
+            companies: [
+              (
+                id: 'co_a',
+                name: 'Acme',
+                token: 'tok_a',
+                isAdmin: false,
+                isOwner: false,
+              ),
+              (
+                id: 'co_b',
+                name: 'Beta',
+                token: 'tok_b',
+                isAdmin: false,
+                isOwner: false,
+              ),
+            ],
+          ),
+        );
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a',
+          password: 'b',
+        );
+
+        final fakeHttp = MockClient((req) async {
+          if (req.url.path == '/api/v1/refresh') {
+            final body = _envelope(
               companies: [
                 (
                   id: 'co_a',
@@ -1029,222 +1056,184 @@ void main() {
                   isAdmin: false,
                   isOwner: false,
                 ),
-                (
-                  id: 'co_b',
-                  name: 'Beta',
-                  token: 'tok_b',
-                  isAdmin: false,
-                  isOwner: false,
-                ),
               ],
-            ),
-          );
-          await repo.login(
-            baseUrl: 'https://test',
-            isHosted: false,
-            email: 'a',
-            password: 'b',
-          );
+            ).toJson();
+            return http.Response(jsonEncode(body), 200);
+          }
+          return http.Response('not found', 404);
+        });
+        final fresh = AuthRepository(
+          db: db,
+          authService: authService,
+          tokenStorage: storage,
+          passwordCache: passwordCache,
+        );
+        fresh.apiClient = ApiClient(
+          credentials: fresh.credentials,
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fakeHttp,
+        );
 
-          final fakeHttp = MockClient((req) async {
-            if (req.url.path == '/api/v1/refresh') {
-              final body = _envelope(
-                companies: [
-                  (
-                    id: 'co_a',
-                    name: 'Acme',
-                    token: 'tok_a',
-                    isAdmin: false,
-                    isOwner: false,
-                  ),
-                ],
-              ).toJson();
-              return http.Response(jsonEncode(body), 200);
-            }
-            return http.Response('not found', 404);
-          });
-          final fresh = AuthRepository(
-            db: db,
-            authService: authService,
-            tokenStorage: storage,
-            passwordCache: passwordCache,
-          );
-          fresh.apiClient = ApiClient(
-            credentials: fresh.credentials,
-            passwordCache: PasswordCache(),
-            onUnauthorized: () async {},
-            httpClient: fakeHttp,
-          );
+        // Force the post-restore heal to be a FULL sync: zero the stored
+        // high-water marks so `_refreshSession` sends
+        // `updated_at=0&current_company=false` (the only mode that treats
+        // the response as the authoritative company set).
+        await db.customStatement('UPDATE companies SET last_sync_at = 0');
 
-          // Force the post-restore heal to be a FULL sync: zero the stored
-          // high-water marks so `_refreshSession` sends
-          // `updated_at=0&current_company=false` (the only mode that treats
-          // the response as the authoritative company set).
-          await db.customStatement('UPDATE companies SET last_sync_at = 0');
+        await fresh.restore();
+        // Wait until the background refresh shrinks the company list to 1.
+        final shrunk = Completer<void>();
+        fresh.session.addListener(() {
+          if (!shrunk.isCompleted &&
+              fresh.session.value?.companies.length == 1) {
+            shrunk.complete();
+          }
+        });
+        await shrunk.future.timeout(const Duration(seconds: 2));
 
-          await fresh.restore();
-          // Wait until the background refresh shrinks the company list to 1.
-          final shrunk = Completer<void>();
-          fresh.session.addListener(() {
-            if (!shrunk.isCompleted &&
-                fresh.session.value?.companies.length == 1) {
-              shrunk.complete();
-            }
-          });
-          await shrunk.future.timeout(const Duration(seconds: 2));
+        await fresh.switchCompany('co_b');
+        expect(
+          fresh.credentials.value!.token,
+          'tok_a',
+          reason: 'cached token for a revoked company must be dropped',
+        );
+      });
 
-          await fresh.switchCompany('co_b');
-          expect(
-            fresh.credentials.value!.token,
-            'tok_a',
-            reason: 'cached token for a revoked company must be dropped',
-          );
-        },
-      );
+      test('a DELTA refresh sends updated_at/current_company=true and keeps '
+          'other companies\' rows + tokens', () async {
+        // After login, each company has a non-zero last_sync_at, so the
+        // restore heal is a delta: scoped to the active company. It must
+        // NOT prune co_b (the delta simply doesn't carry it) and the
+        // query must carry the computed `updated_at` + `current_company`.
+        const tMs = 1700000000000; // fixed clock
+        final fixedRepo = AuthRepository(
+          db: db,
+          authService: authService,
+          tokenStorage: storage,
+          passwordCache: passwordCache,
+          now: () => DateTime.fromMillisecondsSinceEpoch(tMs),
+        );
+        authService.queueLogin(
+          _envelope(
+            companies: [
+              (
+                id: 'co_a',
+                name: 'Acme',
+                token: 'tok_a',
+                isAdmin: false,
+                isOwner: false,
+              ),
+              (
+                id: 'co_b',
+                name: 'Beta',
+                token: 'tok_b',
+                isAdmin: false,
+                isOwner: false,
+              ),
+            ],
+          ),
+        );
+        await fixedRepo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a',
+          password: 'b',
+        );
 
-      test(
-        'a DELTA refresh sends updated_at/current_company=true and keeps '
-        'other companies\' rows + tokens',
-        () async {
-          // After login, each company has a non-zero last_sync_at, so the
-          // restore heal is a delta: scoped to the active company. It must
-          // NOT prune co_b (the delta simply doesn't carry it) and the
-          // query must carry the computed `updated_at` + `current_company`.
-          const tMs = 1700000000000; // fixed clock
-          final fixedRepo = AuthRepository(
-            db: db,
-            authService: authService,
-            tokenStorage: storage,
-            passwordCache: passwordCache,
-            now: () => DateTime.fromMillisecondsSinceEpoch(tMs),
-          );
-          authService.queueLogin(
-            _envelope(
-              companies: [
-                (
-                  id: 'co_a',
-                  name: 'Acme',
-                  token: 'tok_a',
-                  isAdmin: false,
-                  isOwner: false,
-                ),
-                (
-                  id: 'co_b',
-                  name: 'Beta',
-                  token: 'tok_b',
-                  isAdmin: false,
-                  isOwner: false,
-                ),
-              ],
-            ),
-          );
-          await fixedRepo.login(
-            baseUrl: 'https://test',
-            isHosted: false,
-            email: 'a',
-            password: 'b',
-          );
+        Uri? refreshUri;
+        final fakeHttp = MockClient((req) async {
+          if (req.url.path == '/api/v1/refresh') {
+            refreshUri = req.url;
+            // Delta response: only the active company.
+            return http.Response(
+              jsonEncode(
+                _envelope(
+                  companies: [
+                    (
+                      id: 'co_a',
+                      name: 'Acme',
+                      token: 'tok_a',
+                      isAdmin: false,
+                      isOwner: false,
+                    ),
+                  ],
+                ).toJson(),
+              ),
+              200,
+            );
+          }
+          return http.Response('not found', 404);
+        });
+        fixedRepo.apiClient = ApiClient(
+          credentials: fixedRepo.credentials,
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fakeHttp,
+        );
 
-          Uri? refreshUri;
-          final fakeHttp = MockClient((req) async {
-            if (req.url.path == '/api/v1/refresh') {
-              refreshUri = req.url;
-              // Delta response: only the active company.
-              return http.Response(
-                jsonEncode(
-                  _envelope(
-                    companies: [
-                      (
-                        id: 'co_a',
-                        name: 'Acme',
-                        token: 'tok_a',
-                        isAdmin: false,
-                        isOwner: false,
-                      ),
-                    ],
-                  ).toJson(),
-                ),
-                200,
-              );
-            }
-            return http.Response('not found', 404);
-          });
-          fixedRepo.apiClient = ApiClient(
-            credentials: fixedRepo.credentials,
-            passwordCache: PasswordCache(),
-            onUnauthorized: () async {},
-            httpClient: fakeHttp,
-          );
+        await fixedRepo.refresh();
 
-          await fixedRepo.refresh();
+        expect(refreshUri, isNotNull);
+        final q = refreshUri!.queryParameters;
+        expect(q['current_company'], 'true');
+        expect(q['first_load'], isNull);
+        expect(
+          q['updated_at'],
+          '${(tMs ~/ 1000) - 600}',
+          reason: 'delta = (last_sync_at/1000) - 600s buffer',
+        );
 
-          expect(refreshUri, isNotNull);
-          final q = refreshUri!.queryParameters;
-          expect(q['current_company'], 'true');
-          expect(q['first_load'], isNull);
-          expect(
-            q['updated_at'],
-            '${(tMs ~/ 1000) - 600}',
-            reason: 'delta = (last_sync_at/1000) - 600s buffer',
-          );
+        // co_b survived the delta: still switchable with its token.
+        expect(
+          fixedRepo.session.value!.companies.map((c) => c.id),
+          containsAll(['co_a', 'co_b']),
+        );
+        await fixedRepo.switchCompany('co_b');
+        expect(fixedRepo.credentials.value!.token, 'tok_b');
+      });
 
-          // co_b survived the delta: still switchable with its token.
-          expect(
-            fixedRepo.session.value!.companies.map((c) => c.id),
-            containsAll(['co_a', 'co_b']),
-          );
-          await fixedRepo.switchCompany('co_b');
-          expect(fixedRepo.credentials.value!.token, 'tok_b');
-        },
-      );
+      test('fullSync:true forces a full snapshot even with a non-zero '
+          'last_sync_at', () async {
+        const tMs = 1700000000000;
+        final fixedRepo = AuthRepository(
+          db: db,
+          authService: authService,
+          tokenStorage: storage,
+          passwordCache: passwordCache,
+          now: () => DateTime.fromMillisecondsSinceEpoch(tMs),
+        );
+        authService.queueLogin(_envelope());
+        await fixedRepo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a',
+          password: 'b',
+        );
 
-      test(
-        'fullSync:true forces a full snapshot even with a non-zero '
-        'last_sync_at',
-        () async {
-          const tMs = 1700000000000;
-          final fixedRepo = AuthRepository(
-            db: db,
-            authService: authService,
-            tokenStorage: storage,
-            passwordCache: passwordCache,
-            now: () => DateTime.fromMillisecondsSinceEpoch(tMs),
-          );
-          authService.queueLogin(_envelope());
-          await fixedRepo.login(
-            baseUrl: 'https://test',
-            isHosted: false,
-            email: 'a',
-            password: 'b',
-          );
+        Uri? refreshUri;
+        final fakeHttp = MockClient((req) async {
+          if (req.url.path == '/api/v1/refresh') {
+            refreshUri = req.url;
+            return http.Response(jsonEncode(_envelope().toJson()), 200);
+          }
+          return http.Response('not found', 404);
+        });
+        fixedRepo.apiClient = ApiClient(
+          credentials: fixedRepo.credentials,
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fakeHttp,
+        );
 
-          Uri? refreshUri;
-          final fakeHttp = MockClient((req) async {
-            if (req.url.path == '/api/v1/refresh') {
-              refreshUri = req.url;
-              return http.Response(
-                jsonEncode(_envelope().toJson()),
-                200,
-              );
-            }
-            return http.Response('not found', 404);
-          });
-          fixedRepo.apiClient = ApiClient(
-            credentials: fixedRepo.credentials,
-            passwordCache: PasswordCache(),
-            onUnauthorized: () async {},
-            httpClient: fakeHttp,
-          );
+        await fixedRepo.refresh(fullSync: true);
 
-          await fixedRepo.refresh(fullSync: true);
-
-          final q = refreshUri!.queryParameters;
-          expect(q['updated_at'], '0');
-          expect(q['first_load'], 'true');
-          expect(q['current_company'], 'false');
-          expect(q['include_static'], 'true');
-        },
-      );
+        final q = refreshUri!.queryParameters;
+        expect(q['updated_at'], '0');
+        expect(q['first_load'], 'true');
+        expect(q['current_company'], 'false');
+        expect(q['include_static'], 'true');
+      });
 
       test('leaves the restored session intact when /refresh fails', () async {
         // Same setup as the happy-path test, but the fake throws — simulating
@@ -1684,148 +1673,142 @@ void main() {
     // tests pin the exact HTTP shape so a refactor that drops the password
     // header or rewrites the path is caught at build time.
 
-    test(
-      'setDefaultCompany POSTs to /companies/{id}/default and refreshes the '
-      'session, snapping `defaultCompanyId` to the new value',
-      () async {
-        authService.queueLogin(
-          _envelope(
-            companies: [
-              (
-                id: 'co_a',
-                name: 'Acme',
-                token: 'tok_a',
-                isAdmin: false,
-                isOwner: true,
-              ),
-              (
-                id: 'co_b',
-                name: 'Beta',
-                token: 'tok_b',
-                isAdmin: false,
-                isOwner: true,
-              ),
-            ],
-            defaultCompanyId: 'co_a',
-          ),
-        );
-        await repo.login(
-          baseUrl: 'https://test',
-          isHosted: false,
-          email: 'a',
-          password: 'b',
-        );
-        expect(repo.session.value!.defaultCompanyId, 'co_a');
+    test('setDefaultCompany POSTs to /companies/{id}/default and refreshes the '
+        'session, snapping `defaultCompanyId` to the new value', () async {
+      authService.queueLogin(
+        _envelope(
+          companies: [
+            (
+              id: 'co_a',
+              name: 'Acme',
+              token: 'tok_a',
+              isAdmin: false,
+              isOwner: true,
+            ),
+            (
+              id: 'co_b',
+              name: 'Beta',
+              token: 'tok_b',
+              isAdmin: false,
+              isOwner: true,
+            ),
+          ],
+          defaultCompanyId: 'co_a',
+        ),
+      );
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a',
+        password: 'b',
+      );
+      expect(repo.session.value!.defaultCompanyId, 'co_a');
 
-        Uri? defaultUrl;
-        Uri? refreshUrl;
-        final fakeHttp = MockClient((req) async {
-          if (req.method == 'POST' &&
-              req.url.path == '/api/v1/companies/co_b/default') {
-            defaultUrl = req.url;
-            return http.Response('{}', 200);
-          }
-          if (req.method == 'POST' && req.url.path == '/api/v1/refresh') {
-            refreshUrl = req.url;
-            // Server now reports co_b as default — the new value the UI
-            // needs to react to.
-            return http.Response(
-              jsonEncode(
-                _envelope(
-                  companies: [
-                    (
-                      id: 'co_a',
-                      name: 'Acme',
-                      token: 'tok_a',
-                      isAdmin: false,
-                      isOwner: true,
-                    ),
-                    (
-                      id: 'co_b',
-                      name: 'Beta',
-                      token: 'tok_b',
-                      isAdmin: false,
-                      isOwner: true,
-                    ),
-                  ],
-                  defaultCompanyId: 'co_b',
-                ).toJson(),
-              ),
-              200,
-            );
-          }
-          return http.Response('not found', 404);
-        });
-        repo.apiClient = ApiClient(
-          credentials: repo.credentials,
-          passwordCache: PasswordCache(),
-          onUnauthorized: () async {},
-          httpClient: fakeHttp,
-        );
+      Uri? defaultUrl;
+      Uri? refreshUrl;
+      final fakeHttp = MockClient((req) async {
+        if (req.method == 'POST' &&
+            req.url.path == '/api/v1/companies/co_b/default') {
+          defaultUrl = req.url;
+          return http.Response('{}', 200);
+        }
+        if (req.method == 'POST' && req.url.path == '/api/v1/refresh') {
+          refreshUrl = req.url;
+          // Server now reports co_b as default — the new value the UI
+          // needs to react to.
+          return http.Response(
+            jsonEncode(
+              _envelope(
+                companies: [
+                  (
+                    id: 'co_a',
+                    name: 'Acme',
+                    token: 'tok_a',
+                    isAdmin: false,
+                    isOwner: true,
+                  ),
+                  (
+                    id: 'co_b',
+                    name: 'Beta',
+                    token: 'tok_b',
+                    isAdmin: false,
+                    isOwner: true,
+                  ),
+                ],
+                defaultCompanyId: 'co_b',
+              ).toJson(),
+            ),
+            200,
+          );
+        }
+        return http.Response('not found', 404);
+      });
+      repo.apiClient = ApiClient(
+        credentials: repo.credentials,
+        passwordCache: PasswordCache(),
+        onUnauthorized: () async {},
+        httpClient: fakeHttp,
+      );
 
-        await repo.setDefaultCompany('co_b');
+      await repo.setDefaultCompany('co_b');
 
-        expect(defaultUrl, isNotNull);
-        expect(refreshUrl, isNotNull);
-        expect(repo.session.value!.defaultCompanyId, 'co_b');
-        // The active company is preserved across the refresh — the user
-        // wasn't asking to switch, only to flag co_b as the account default.
-        expect(repo.session.value!.currentCompanyId, 'co_a');
-      },
-    );
+      expect(defaultUrl, isNotNull);
+      expect(refreshUrl, isNotNull);
+      expect(repo.session.value!.defaultCompanyId, 'co_b');
+      // The active company is preserved across the refresh — the user
+      // wasn't asking to switch, only to flag co_b as the account default.
+      expect(repo.session.value!.currentCompanyId, 'co_a');
+    });
 
-    test(
-      'endAllSessions POSTs to /api/v1/logout with the cached password and '
-      'runs the local logout()',
-      () async {
-        authService.queueLogin(_envelope());
-        await repo.login(
-          baseUrl: 'https://test',
-          isHosted: false,
-          email: 'a',
-          password: 'b',
-        );
-        expect(repo.session.value, isNotNull);
-        expect(repo.credentials.value, isNotNull);
+    test('endAllSessions POSTs to /api/v1/logout with the cached password and '
+        'runs the local logout()', () async {
+      authService.queueLogin(_envelope());
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a',
+        password: 'b',
+      );
+      expect(repo.session.value, isNotNull);
+      expect(repo.credentials.value, isNotNull);
 
-        // Prime the password cache — the API expects X-API-PASSWORD-BASE64
-        // when `requiresPassword: true`, and the cache is where ApiClient
-        // reads it.
-        final cache = PasswordCache()..set('hunter2');
+      // Prime the password cache — the API expects X-API-PASSWORD-BASE64
+      // when `requiresPassword: true`, and the cache is where ApiClient
+      // reads it.
+      final cache = PasswordCache()..set('hunter2');
 
-        http.BaseRequest? captured;
-        final fakeHttp = MockClient((req) async {
-          captured = req;
-          if (req.method == 'POST' && req.url.path == '/api/v1/logout') {
-            return http.Response('{}', 200);
-          }
-          return http.Response('not found', 404);
-        });
-        repo.apiClient = ApiClient(
-          credentials: repo.credentials,
-          passwordCache: cache,
-          onUnauthorized: () async {},
-          httpClient: fakeHttp,
-        );
+      http.BaseRequest? captured;
+      final fakeHttp = MockClient((req) async {
+        captured = req;
+        if (req.method == 'POST' && req.url.path == '/api/v1/logout') {
+          return http.Response('{}', 200);
+        }
+        return http.Response('not found', 404);
+      });
+      repo.apiClient = ApiClient(
+        credentials: repo.credentials,
+        passwordCache: cache,
+        onUnauthorized: () async {},
+        httpClient: fakeHttp,
+      );
 
-        await repo.endAllSessions();
+      await repo.endAllSessions();
 
-        expect(captured, isNotNull);
-        expect(captured!.method, 'POST');
-        expect(captured!.url.path, '/api/v1/logout');
-        // Password header is base64-encoded by the client. Verify the header
-        // exists and decodes to the cached password.
-        final headerB64 = captured!.headers['X-API-PASSWORD-BASE64'];
-        expect(headerB64, isNotNull);
-        expect(utf8.decode(base64Decode(headerB64!)), 'hunter2');
+      expect(captured, isNotNull);
+      expect(captured!.method, 'POST');
+      expect(captured!.url.path, '/api/v1/logout');
+      // Password header is base64-encoded by the client. Verify the header
+      // exists and decodes to the cached password.
+      final headerB64 = captured!.headers['X-API-PASSWORD-BASE64'];
+      expect(headerB64, isNotNull);
+      expect(utf8.decode(base64Decode(headerB64!)), 'hunter2');
 
-        // Local state is now logged-out: session + credentials gone, tokens
-        // wiped, just like a forced logout.
-        expect(repo.session.value, isNull);
-        expect(repo.credentials.value, isNull);
-        expect(await storage.read('invoiceninja.tokens.v1'), isNull);
-      },
-    );
+      // Local state is now logged-out: session + credentials gone, tokens
+      // wiped, just like a forced logout.
+      expect(repo.session.value, isNull);
+      expect(repo.credentials.value, isNull);
+      expect(await storage.read('invoiceninja.tokens.v1'), isNull);
+    });
 
     test(
       'applyLicense POSTs to /claim_license?license_key=… and refreshes the '
@@ -1848,10 +1831,7 @@ void main() {
           }
           if (req.method == 'POST' && req.url.path == '/api/v1/refresh') {
             refreshUrl = req.url;
-            return http.Response(
-              jsonEncode(_envelope().toJson()),
-              200,
-            );
+            return http.Response(jsonEncode(_envelope().toJson()), 200);
           }
           return http.Response('not found', 404);
         });

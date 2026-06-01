@@ -40,7 +40,10 @@ abstract class Design with _$Design {
     isFree: a.isFree,
     entities: a.entities.isEmpty
         ? const <String>[]
-        : a.entities.split(',').where((e) => e.isNotEmpty).toList(growable: false),
+        : a.entities
+              .split(',')
+              .where((e) => e.isNotEmpty)
+              .toList(growable: false),
     template: DesignTemplate.fromApi(a.design),
     updatedAt: epochSecondsToUtc(a.updatedAt),
     createdAt: epochSecondsToUtc(a.createdAt),
@@ -69,9 +72,7 @@ abstract class DesignTemplate with _$DesignTemplate {
     includes: a.includes,
     product: a.product,
     task: a.task,
-    blocks: a.blocks
-        .map(DesignBlock.fromApi)
-        .toList(growable: false),
+    blocks: a.blocks.map(DesignBlock.fromApi).toList(growable: false),
     documentSettings: a.documentSettings == null
         ? null
         : DocumentSettings.fromApi(a.documentSettings!),
@@ -126,7 +127,9 @@ extension DesignBlockApiMapper on DesignBlock {
     id: id,
     type: type,
     gridPosition: gridPosition.toApi(),
-    properties: properties.isEmpty ? null : Map<String, dynamic>.from(properties),
+    properties: properties.isEmpty
+        ? null
+        : Map<String, dynamic>.from(properties),
     locked: locked ? true : null,
   );
 }
@@ -142,12 +145,8 @@ abstract class GridPosition with _$GridPosition {
     required int h,
   }) = _GridPosition;
 
-  factory GridPosition.fromApi(GridPositionApi a) => GridPosition(
-    x: a.x,
-    y: a.y,
-    w: a.w,
-    h: a.h,
-  );
+  factory GridPosition.fromApi(GridPositionApi a) =>
+      GridPosition(x: a.x, y: a.y, w: a.w, h: a.h);
 }
 
 extension GridPositionApiMapper on GridPosition {

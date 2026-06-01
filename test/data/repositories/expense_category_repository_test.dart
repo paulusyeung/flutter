@@ -16,7 +16,8 @@ import '_base_entity_repository_contract.dart';
 /// (mapper round-trip, bundled-seed upsert + cursor advance, dirty-
 /// preserving re-bundle).
 class _ExpenseCategoryFixture
-    extends EntityRepositoryContractFixture<ExpenseCategory, ExpenseCategoryApi> {
+    extends
+        EntityRepositoryContractFixture<ExpenseCategory, ExpenseCategoryApi> {
   @override
   String get entityType => 'expense_category';
 
@@ -67,16 +68,18 @@ class _ExpenseCategoryFixture
     BaseEntityRepository<ExpenseCategory, ExpenseCategoryApi> repo, {
     required String companyId,
     required ExpenseCategory entity,
-  }) => (repo as ExpenseCategoryRepository)
-      .save(companyId: companyId, category: entity);
+  }) => (repo as ExpenseCategoryRepository).save(
+    companyId: companyId,
+    category: entity,
+  );
 
   @override
   Future<void> delete(
     BaseEntityRepository<ExpenseCategory, ExpenseCategoryApi> repo, {
     required String companyId,
     required String id,
-  }) => (repo as ExpenseCategoryRepository)
-      .delete(companyId: companyId, id: id);
+  }) =>
+      (repo as ExpenseCategoryRepository).delete(companyId: companyId, id: id);
 }
 
 void main() {
@@ -152,8 +155,8 @@ void main() {
         const ExpenseCategoryApi(name: 'My Custom', color: '#123456'),
       );
       await repo.create(companyId: 'co', draft: draft);
-      final dirtyBefore = (await repo.watchActive(companyId: 'co').first)
-          .single;
+      final dirtyBefore =
+          (await repo.watchActive(companyId: 'co').first).single;
       expect(dirtyBefore.isDirty, isTrue);
 
       // Bundle in a server row with a different id; dirty row must survive.

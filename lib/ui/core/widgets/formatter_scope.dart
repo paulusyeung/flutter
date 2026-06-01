@@ -21,9 +21,8 @@ class FormatterScope extends InheritedWidget {
 
   final Formatter formatter;
 
-  static Formatter? maybeOf(BuildContext context) => context
-      .dependOnInheritedWidgetOfExactType<FormatterScope>()
-      ?.formatter;
+  static Formatter? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<FormatterScope>()?.formatter;
 
   @override
   bool updateShouldNotify(FormatterScope oldWidget) =>

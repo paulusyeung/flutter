@@ -41,15 +41,11 @@ abstract class HealthCheckResponse with _$HealthCheckResponse {
 @freezed
 abstract class HealthCheckPhpResponse with _$HealthCheckPhpResponse {
   const factory HealthCheckPhpResponse({
-    @JsonKey(name: 'current_php_version')
-    @Default('')
-    String currentPhpVersion,
+    @JsonKey(name: 'current_php_version') @Default('') String currentPhpVersion,
     @JsonKey(name: 'current_php_cli_version')
     @Default('')
     String currentPhpCliVersion,
-    @JsonKey(name: 'minimum_php_version')
-    @Default('')
-    String minimumPhpVersion,
+    @JsonKey(name: 'minimum_php_version') @Default('') String minimumPhpVersion,
     @JsonKey(name: 'is_okay') @Default(false) bool isOkay,
     @JsonKey(name: 'memory_limit') @Default('') String memoryLimit,
   }) = _HealthCheckPhpResponse;

@@ -13,8 +13,5 @@ import 'package:admin/ui/features/settings/view_models/settings_draft_view_model
 /// Both are intentional — picker state shouldn't persist across
 /// context switches.
 class TemplatesRemindersViewModel extends SettingsDraftViewModel {
-  TemplatesRemindersViewModel({
-    required super.repo,
-    required super.companyId,
-  });
+  TemplatesRemindersViewModel({required super.repo, required super.companyId});
 }

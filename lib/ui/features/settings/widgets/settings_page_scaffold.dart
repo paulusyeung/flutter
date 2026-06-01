@@ -175,7 +175,8 @@ class _SettingsPageBody extends StatelessWidget {
                     return const Center(child: CircularProgressIndicator());
                   }
                   final err = viewModel.loadError;
-                  final canSave = viewModel.isDirty &&
+                  final canSave =
+                      viewModel.isDirty &&
                       !viewModel.isSaving &&
                       (canSaveOverride?.call(viewModel) ?? true);
                   final wrapped = FormSaveScope(
@@ -242,7 +243,8 @@ class _SaveButton extends StatelessWidget {
     final button = ListenableBuilder(
       listenable: viewModel,
       builder: (context, _) {
-        final canSave = viewModel.isDirty &&
+        final canSave =
+            viewModel.isDirty &&
             !viewModel.isSaving &&
             (canSaveOverride?.call(viewModel) ?? true);
         return TextButton(

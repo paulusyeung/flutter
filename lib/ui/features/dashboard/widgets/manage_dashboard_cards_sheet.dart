@@ -312,9 +312,7 @@ class _ManageBodyState extends State<_ManageBody> {
             ),
             SizedBox(height: InSpacing.lg(context)),
             FilledButton(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(64, 44),
-              ),
+              style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
               onPressed: (_field == null || _isDuplicate) ? null : _onAdd,
               child: Text(context.tr('add')),
             ),
@@ -442,10 +440,7 @@ class _ManageBodyState extends State<_ManageBody> {
           for (final v in values)
             ButtonSegment<T>(
               value: v,
-              label: Text(
-                labelOf(v),
-                style: const TextStyle(fontSize: 12),
-              ),
+              label: Text(labelOf(v), style: const TextStyle(fontSize: 12)),
             ),
         ],
         selected: {selected},

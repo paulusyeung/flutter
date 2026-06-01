@@ -161,12 +161,15 @@ class ProjectDao extends BaseEntityDao<$ProjectsTable, ProjectRow>
             projects.archivedAt.isNull(),
       )
       ..orderBy([OrderingTerm(expression: projects.name.lower())]);
-    return q.map((row) {
-      return (
-        id: row.read<String>(projects.id) ?? '',
-        name: row.read<String>(projects.name) ?? '',
-      );
-    }).watch().distinctRows();
+    return q
+        .map((row) {
+          return (
+            id: row.read<String>(projects.id) ?? '',
+            name: row.read<String>(projects.name) ?? '',
+          );
+        })
+        .watch()
+        .distinctRows();
   }
 
   /// Watch every project for one client. Used by the Task edit Project

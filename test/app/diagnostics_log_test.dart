@@ -76,22 +76,25 @@ void main() {
     expect(body, isNot(contains('hunter2')));
   });
 
-  test('collapses a storm of identical errors into one entry + tally', () async {
-    final diag = await openLog();
-    addTearDown(diag.close);
-    for (var i = 0; i < 5; i++) {
-      diag.recordError(
-        StateError('same'),
-        StackTrace.fromString('#0 frameA'),
-        context: 'storm',
-      );
-    }
-    await diag.flush(); // flushing emits the trailing repeat tally
-    final body = await File(diag.path).readAsString();
-    // The head is written exactly once; the other four are collapsed.
-    expect('Bad state: same'.allMatches(body).length, 1);
-    expect(body, contains('repeated 4 more time(s)'));
-  });
+  test(
+    'collapses a storm of identical errors into one entry + tally',
+    () async {
+      final diag = await openLog();
+      addTearDown(diag.close);
+      for (var i = 0; i < 5; i++) {
+        diag.recordError(
+          StateError('same'),
+          StackTrace.fromString('#0 frameA'),
+          context: 'storm',
+        );
+      }
+      await diag.flush(); // flushing emits the trailing repeat tally
+      final body = await File(diag.path).readAsString();
+      // The head is written exactly once; the other four are collapsed.
+      expect('Bad state: same'.allMatches(body).length, 1);
+      expect(body, contains('repeated 4 more time(s)'));
+    },
+  );
 
   test('a different error flushes the pending repeat tally', () async {
     final diag = await openLog();
@@ -105,39 +108,42 @@ void main() {
     expect(body, contains('Bad state: b'));
   });
 
-  test('recordFlutterError logs the relevant error-causing widget hint', () async {
-    final diag = await openLog();
-    addTearDown(diag.close);
-    diag.recordFlutterError(
-      FlutterErrorDetails(
-        exception: StateError('layout boom'),
-        stack: StackTrace.fromString('#0 frameX'),
-        library: 'rendering library',
-        context: ErrorDescription('during performLayout()'),
-        informationCollector: () => [
-          ErrorDescription(
-            'The relevant error-causing widget was: FilledButton',
-          ),
-          DiagnosticsProperty<String>(
-            'created by',
-            'package:admin/ui/core/list/entity_sort_filter_sheet.dart:97',
-          ),
-        ],
-      ),
-    );
-    await diag.flush();
-    final body = await File(diag.path).readAsString();
-    expect(body, contains('Bad state: layout boom'));
-    expect(body, contains('[during performLayout()]'));
-    expect(
-      body,
-      contains('The relevant error-causing widget was: FilledButton'),
-    );
-    expect(
-      body,
-      contains('package:admin/ui/core/list/entity_sort_filter_sheet.dart:97'),
-    );
-  });
+  test(
+    'recordFlutterError logs the relevant error-causing widget hint',
+    () async {
+      final diag = await openLog();
+      addTearDown(diag.close);
+      diag.recordFlutterError(
+        FlutterErrorDetails(
+          exception: StateError('layout boom'),
+          stack: StackTrace.fromString('#0 frameX'),
+          library: 'rendering library',
+          context: ErrorDescription('during performLayout()'),
+          informationCollector: () => [
+            ErrorDescription(
+              'The relevant error-causing widget was: FilledButton',
+            ),
+            DiagnosticsProperty<String>(
+              'created by',
+              'package:admin/ui/core/list/entity_sort_filter_sheet.dart:97',
+            ),
+          ],
+        ),
+      );
+      await diag.flush();
+      final body = await File(diag.path).readAsString();
+      expect(body, contains('Bad state: layout boom'));
+      expect(body, contains('[during performLayout()]'));
+      expect(
+        body,
+        contains('The relevant error-causing widget was: FilledButton'),
+      );
+      expect(
+        body,
+        contains('package:admin/ui/core/list/entity_sort_filter_sheet.dart:97'),
+      );
+    },
+  );
 
   test('rotates to .1 backup when threshold exceeded', () async {
     // Tiny threshold so a handful of records trigger rotation.
@@ -252,7 +258,7 @@ void main() {
       expect(
         isKnownBenignFrameworkNoise(
           "'package:flutter/src/widgets/overlay.dart': Failed assertion: "
-              "line 1681 pos 14: '_zOrderIndex != null': is not true.",
+          "line 1681 pos 14: '_zOrderIndex != null': is not true.",
           raStack,
         ),
         isTrue,
@@ -264,7 +270,7 @@ void main() {
       expect(
         isKnownBenignFrameworkNoise(
           "Failed assertion: line 1681 pos 14: '_zOrderIndex != null': "
-              'is not true.',
+          'is not true.',
           StackTrace.fromString(
             '#2 OverlayPortalController.hide (overlay.dart:1681)\n'
             '#3 MyCustomOverlayThing.dismiss (package:admin/ui/foo.dart:12)',
@@ -283,7 +289,10 @@ void main() {
 
     test('false when stack is null', () {
       expect(
-        isKnownBenignFrameworkNoise("'_zOrderIndex != null': is not true.", null),
+        isKnownBenignFrameworkNoise(
+          "'_zOrderIndex != null': is not true.",
+          null,
+        ),
         isFalse,
       );
     });

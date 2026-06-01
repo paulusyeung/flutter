@@ -16,11 +16,8 @@ abstract class ScheduleItem with _$ScheduleItem {
     required bool autoBill,
   }) = _ScheduleItem;
 
-  factory ScheduleItem.fromApi(ScheduleItemApi a) => ScheduleItem(
-    date: a.date,
-    amount: a.amount,
-    autoBill: a.autoBill,
-  );
+  factory ScheduleItem.fromApi(ScheduleItemApi a) =>
+      ScheduleItem(date: a.date, amount: a.amount, autoBill: a.autoBill);
 }
 
 extension ScheduleItemCopy on ScheduleItem {

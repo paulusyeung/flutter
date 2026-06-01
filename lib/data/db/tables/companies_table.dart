@@ -275,8 +275,7 @@ class Companies extends Table {
   // object the server stores on `company.quickbooks`. Persisted as JSON so
   // the QuickbooksScreen can read the connection state offline + after cold
   // restart.
-  TextColumn get quickbooksJson =>
-      text().named('quickbooks_json').nullable()();
+  TextColumn get quickbooksJson => text().named('quickbooks_json').nullable()();
   // Top-level portal configuration. Edited by Settings → Client Portal.
   // `companyKey` doubles as the public id baked into self-hosted login URLs
   // and is otherwise read-only — but it has to round-trip through the

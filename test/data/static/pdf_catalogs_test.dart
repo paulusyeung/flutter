@@ -11,7 +11,8 @@ void main() {
       expect(
         keys,
         order,
-        reason: 'kPdfVariableSections and kPdfVariableSectionOrder must '
+        reason:
+            'kPdfVariableSections and kPdfVariableSectionOrder must '
             'enumerate the same section keys',
       );
     });
@@ -25,7 +26,8 @@ void main() {
         expect(
           missing,
           isEmpty,
-          reason: 'section "${entry.key}" defaultSelected includes variables '
+          reason:
+              'section "${entry.key}" defaultSelected includes variables '
               'that are not in `available`: $missing',
         );
       }
@@ -54,17 +56,17 @@ void main() {
 
     test('purchase_order_details includes po_number and balance_due '
         '(audit follow-up)', () {
-      final available = kPdfVariableSections[
-              PdfVariableSection.purchaseOrderDetails]!
-          .available;
+      final available =
+          kPdfVariableSections[PdfVariableSection.purchaseOrderDetails]!
+              .available;
       expect(available, contains('\$purchase_order.po_number'));
       expect(available, contains('\$purchase_order.balance_due'));
     });
 
     test('total_columns default-selected leads with net_subtotal '
         '(matches backend getEntityVariableDefaults)', () {
-      final defaults =
-          kPdfVariableSections[PdfVariableSection.totalColumns]!.defaultSelected;
+      final defaults = kPdfVariableSections[PdfVariableSection.totalColumns]!
+          .defaultSelected;
       expect(defaults.first, '\$net_subtotal');
       expect(defaults, contains('\$subtotal'));
     });
@@ -75,19 +77,29 @@ void main() {
           kPdfVariableSections[key]!.defaultSelected;
 
       // client_details leads with the location name.
-      expect(defaultsFor(PdfVariableSection.clientDetails).first,
-          '\$client.location_name');
+      expect(
+        defaultsFor(PdfVariableSection.clientDetails).first,
+        '\$client.location_name',
+      );
       // invoice / quote details carry the project column last.
-      expect(defaultsFor(PdfVariableSection.invoiceDetails).last,
-          '\$invoice.project');
-      expect(defaultsFor(PdfVariableSection.quoteDetails).last,
-          '\$quote.project');
+      expect(
+        defaultsFor(PdfVariableSection.invoiceDetails).last,
+        '\$invoice.project',
+      );
+      expect(
+        defaultsFor(PdfVariableSection.quoteDetails).last,
+        '\$quote.project',
+      );
       // credit details include the valid-until date.
-      expect(defaultsFor(PdfVariableSection.creditDetails),
-          contains('\$credit.valid_until'));
+      expect(
+        defaultsFor(PdfVariableSection.creditDetails),
+        contains('\$credit.valid_until'),
+      );
       // vendor details include country + phone.
-      expect(defaultsFor(PdfVariableSection.vendorDetails),
-          containsAll(<String>['\$vendor.country', '\$vendor.phone']));
+      expect(
+        defaultsFor(PdfVariableSection.vendorDetails),
+        containsAll(<String>['\$vendor.country', '\$vendor.phone']),
+      );
     });
   });
 }

@@ -28,10 +28,10 @@ class UserEditViewModel extends GenericEditViewModel<User> {
     super.sync,
     super.connectivity,
   }) : super(
-          initialDraft: existing ?? const User(),
-          original: existing,
-          companyId: companyId,
-        ) {
+         initialDraft: existing ?? const User(),
+         original: existing,
+         companyId: companyId,
+       ) {
     final draftPerms = existing?.permissions ?? const <String>[];
     _permissionDraft = List<String>.of(draftPerms);
     final tokens = existing?.notificationsEmail ?? const <String>[];
@@ -61,8 +61,9 @@ class UserEditViewModel extends GenericEditViewModel<User> {
   /// Currently-active permission list. When `is_admin = true`, this returns
   /// an empty list (server contract: admins have no permission string); the
   /// buffer survives the toggle so flipping off restores the previous grid.
-  List<String> get permissions =>
-      draft.companyUser.isAdmin ? const <String>[] : List.unmodifiable(_permissionDraft);
+  List<String> get permissions => draft.companyUser.isAdmin
+      ? const <String>[]
+      : List.unmodifiable(_permissionDraft);
 
   bool get isAdmin => draft.companyUser.isAdmin;
   bool get isOwner => draft.companyUser.isOwner;
@@ -139,7 +140,8 @@ class UserEditViewModel extends GenericEditViewModel<User> {
   NotificationChoice notificationChoiceFor(String eventId) =>
       _perEventBuffer[eventId] ?? NotificationChoice.none;
 
-  bool get notificationsGlobal => _globalNotification != NotificationGlobal.custom;
+  bool get notificationsGlobal =>
+      _globalNotification != NotificationGlobal.custom;
 
   void setNotificationGlobal(NotificationGlobal value) {
     _globalNotification = value;

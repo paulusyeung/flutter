@@ -51,14 +51,13 @@ class LineItemColumnConfig {
     int? taxColumnCount,
     bool? showDiscount,
     bool? useTaxCategories,
-  }) =>
-      LineItemColumnConfig(
-        showCustom1: showCustom1 ?? this.showCustom1,
-        showCustom2: showCustom2 ?? this.showCustom2,
-        showCustom3: showCustom3 ?? this.showCustom3,
-        showCustom4: showCustom4 ?? this.showCustom4,
-        taxColumnCount: taxColumnCount ?? this.taxColumnCount,
-        showDiscount: showDiscount ?? this.showDiscount,
-        useTaxCategories: useTaxCategories ?? this.useTaxCategories,
-      );
+  }) => LineItemColumnConfig(
+    showCustom1: showCustom1 ?? this.showCustom1,
+    showCustom2: showCustom2 ?? this.showCustom2,
+    showCustom3: showCustom3 ?? this.showCustom3,
+    showCustom4: showCustom4 ?? this.showCustom4,
+    taxColumnCount: taxColumnCount ?? this.taxColumnCount,
+    showDiscount: showDiscount ?? this.showDiscount,
+    useTaxCategories: useTaxCategories ?? this.useTaxCategories,
+  );
 }

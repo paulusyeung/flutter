@@ -41,10 +41,7 @@ class _RecurringExpenseDetailScreenState
     _services = context.read<Services>();
     _companyId = _services.auth.session.value!.currentCompanyId;
     _vm = RecurringExpenseDetailViewModel.bound(
-      _services.recurringExpenses.watch(
-        companyId: _companyId,
-        id: widget.id,
-      ),
+      _services.recurringExpenses.watch(companyId: _companyId, id: widget.id),
     );
     loadFormatter(_services, _companyId);
   }

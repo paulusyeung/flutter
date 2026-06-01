@@ -44,21 +44,21 @@ class BillingContact {
 
 extension ContactToBillingContact on Contact {
   BillingContact toBilling() => BillingContact(
-        id: id,
-        firstName: firstName,
-        lastName: lastName,
-        email: email,
-        isPrimary: isPrimary,
-        isLocked: isLocked,
-      );
+    id: id,
+    firstName: firstName,
+    lastName: lastName,
+    email: email,
+    isPrimary: isPrimary,
+    isLocked: isLocked,
+  );
 }
 
 extension VendorContactToBillingContact on VendorContact {
   BillingContact toBilling() => BillingContact(
-        id: id,
-        firstName: firstName,
-        lastName: lastName,
-        email: email,
-        isPrimary: isPrimary,
-      );
+    id: id,
+    firstName: firstName,
+    lastName: lastName,
+    email: email,
+    isPrimary: isPrimary,
+  );
 }

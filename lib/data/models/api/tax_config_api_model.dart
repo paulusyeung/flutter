@@ -30,9 +30,7 @@ abstract class TaxConfigApi with _$TaxConfigApi {
 abstract class TaxRegionApi with _$TaxRegionApi {
   @JsonSerializable(includeIfNull: false)
   const factory TaxRegionApi({
-    @JsonKey(name: 'tax_all_subregions')
-    @Default(false)
-    bool taxAllSubregions,
+    @JsonKey(name: 'tax_all_subregions') @Default(false) bool taxAllSubregions,
     @JsonKey(name: 'tax_threshold') @Default(0.0) double taxThreshold,
     @JsonKey(name: 'has_sales_above_threshold')
     @Default(false)

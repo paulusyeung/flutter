@@ -184,7 +184,9 @@ class ReportsRepository {
     List<String> reportKeys = const [],
     String? groupBy,
   }) async {
-    final wire = payload.copyWith(sendEmail: true).toJson(
+    final wire = payload
+        .copyWith(sendEmail: true)
+        .toJson(
           reportIdentifier: reportIdentifier,
           reportKeys: reportKeys,
           groupBy: groupBy,
@@ -214,10 +216,7 @@ class ReportsRepository {
       return const ReportError(kind: ReportErrorKind.cancelled);
     }
     if (e is ReportPollingTimeout) {
-      return ReportError(
-        kind: ReportErrorKind.timeout,
-        pollingHash: e.hash,
-      );
+      return ReportError(kind: ReportErrorKind.timeout, pollingHash: e.hash);
     }
     if (e is ValidationException) {
       return ReportError(
@@ -269,16 +268,10 @@ class ReportsRepository {
           message: e.message,
         );
       }
-      return ReportError(
-        kind: ReportErrorKind.serverError,
-        message: e.message,
-      );
+      return ReportError(kind: ReportErrorKind.serverError, message: e.message);
     }
     if (e is NetworkException) {
-      return ReportError(
-        kind: ReportErrorKind.network,
-        message: e.message,
-      );
+      return ReportError(kind: ReportErrorKind.network, message: e.message);
     }
     _log.warning('Unmapped report error', e, st);
     return ReportError(kind: ReportErrorKind.unknown, message: '$e');

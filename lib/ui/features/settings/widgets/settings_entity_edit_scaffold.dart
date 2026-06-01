@@ -229,9 +229,7 @@ class _SettingsEntityEditScaffoldState<T, VM extends GenericEditViewModel<T>>
             enabled: canSave,
             child: widget.customBodyBuilder != null
                 ? widget.customBodyBuilder!(context, vm)
-                : SettingsFormShell(
-                    sections: widget.bodyBuilder!(context, vm),
-                  ),
+                : SettingsFormShell(sections: widget.bodyBuilder!(context, vm)),
           );
           final scaffold = SettingsScreenScaffold(
             titleKey: titleKey,

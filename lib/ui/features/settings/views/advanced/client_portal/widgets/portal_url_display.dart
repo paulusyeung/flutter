@@ -29,9 +29,10 @@ class PortalUrlDisplay extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: theme.textTheme.labelLarge?.copyWith(
-          color: tokens.ink2,
-        )),
+        Text(
+          label,
+          style: theme.textTheme.labelLarge?.copyWith(color: tokens.ink2),
+        ),
         SizedBox(height: InSpacing.xs),
         Row(
           children: [

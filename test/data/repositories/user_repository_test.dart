@@ -34,14 +34,13 @@ class _UserFixture extends EntityRepositoryContractFixture<User, UserApi> {
     required String id,
     String? displayValue,
     int updatedAt = 1700000000,
-  }) =>
-      UserApi(
-        id: id,
-        firstName: displayValue ?? id,
-        lastName: 'User',
-        email: '${displayValue ?? id}@example.com',
-        updatedAt: updatedAt,
-      );
+  }) => UserApi(
+    id: id,
+    firstName: displayValue ?? id,
+    lastName: 'User',
+    email: '${displayValue ?? id}@example.com',
+    updatedAt: updatedAt,
+  );
 
   @override
   User fromApi(UserApi api) => User.fromApi(api);
@@ -61,24 +60,21 @@ class _UserFixture extends EntityRepositoryContractFixture<User, UserApi> {
     BaseEntityRepository<User, UserApi> repo, {
     required String companyId,
     required User draft,
-  }) =>
-      (repo as UserRepository).create(companyId: companyId, draft: draft);
+  }) => (repo as UserRepository).create(companyId: companyId, draft: draft);
 
   @override
   Future<SaveResult<User>> save(
     BaseEntityRepository<User, UserApi> repo, {
     required String companyId,
     required User entity,
-  }) =>
-      (repo as UserRepository).save(companyId: companyId, user: entity);
+  }) => (repo as UserRepository).save(companyId: companyId, user: entity);
 
   @override
   Future<void> delete(
     BaseEntityRepository<User, UserApi> repo, {
     required String companyId,
     required String id,
-  }) =>
-      (repo as UserRepository).delete(companyId: companyId, id: id);
+  }) => (repo as UserRepository).delete(companyId: companyId, id: id);
 }
 
 void main() {
@@ -94,8 +90,7 @@ void main() {
       await db.close();
     });
 
-    UserRepository makeRepo() =>
-        UserRepository(db: db, api: _FakeUsersApi());
+    UserRepository makeRepo() => UserRepository(db: db, api: _FakeUsersApi());
 
     test('admin permissions round-trip via Drift overlay', () async {
       final repo = makeRepo();
@@ -116,8 +111,10 @@ void main() {
       final user = await repo.get(companyId: 'co_1', userId: 'u_1');
       expect(user, isNotNull);
       expect(user!.companyUser.isAdmin, isTrue);
-      expect(user.companyUser.permissions,
-          'view_client,edit_invoice,create_all');
+      expect(
+        user.companyUser.permissions,
+        'view_client,edit_invoice,create_all',
+      );
       expect(user.permissions.length, 3);
       expect(user.notificationsEmail, ['invoice_viewed_all']);
     });
@@ -142,29 +139,29 @@ void main() {
         await repo.detachFromCompany(companyId: 'co_1', userId: 'u_2');
         final rows = await db.outboxDao.watchAll('co_1').first;
         expect(rows.length, 1);
-        expect(rows.first.mutationKind, MutationKind.detachFromCompany.wireName);
+        expect(
+          rows.first.mutationKind,
+          MutationKind.detachFromCompany.wireName,
+        );
         expect(rows.first.requiresPassword, isTrue);
       },
     );
 
-    test(
-      'applyPurgeResponse hard-deletes the local row',
-      () async {
-        final repo = makeRepo();
-        await repo.applyApiResponse(
-          companyId: 'co_1',
-          api: const UserApi(
-            id: 'u_3',
-            firstName: 'Doomed',
-            email: 'doomed@example.com',
-            updatedAt: 1700000000,
-          ),
-        );
-        expect(await repo.get(companyId: 'co_1', userId: 'u_3'), isNotNull);
-        await repo.applyPurgeResponse(companyId: 'co_1', id: 'u_3');
-        expect(await repo.get(companyId: 'co_1', userId: 'u_3'), isNull);
-      },
-    );
+    test('applyPurgeResponse hard-deletes the local row', () async {
+      final repo = makeRepo();
+      await repo.applyApiResponse(
+        companyId: 'co_1',
+        api: const UserApi(
+          id: 'u_3',
+          firstName: 'Doomed',
+          email: 'doomed@example.com',
+          updatedAt: 1700000000,
+        ),
+      );
+      expect(await repo.get(companyId: 'co_1', userId: 'u_3'), isNotNull);
+      await repo.applyPurgeResponse(companyId: 'co_1', id: 'u_3');
+      expect(await repo.get(companyId: 'co_1', userId: 'u_3'), isNull);
+    });
 
     test(
       'applyDetachResponse drops the local row so list stops surfacing it',
@@ -184,32 +181,29 @@ void main() {
       },
     );
 
-    test(
-      'is_admin / is_owner / permissions are overlaid from indexed columns '
-      'on _fromRow',
-      () async {
-        final repo = makeRepo();
-        await repo.applyApiResponse(
-          companyId: 'co_1',
-          api: const UserApi(
-            id: 'u_5',
-            firstName: 'Indexed',
-            email: 'indexed@example.com',
-            updatedAt: 1700000000,
-            companyUser: CompanyUserApi(
-              permissions: 'view_invoice',
-              isAdmin: false,
-              isOwner: false,
-            ),
+    test('is_admin / is_owner / permissions are overlaid from indexed columns '
+        'on _fromRow', () async {
+      final repo = makeRepo();
+      await repo.applyApiResponse(
+        companyId: 'co_1',
+        api: const UserApi(
+          id: 'u_5',
+          firstName: 'Indexed',
+          email: 'indexed@example.com',
+          updatedAt: 1700000000,
+          companyUser: CompanyUserApi(
+            permissions: 'view_invoice',
+            isAdmin: false,
+            isOwner: false,
           ),
-        );
-        final user = await repo.get(companyId: 'co_1', userId: 'u_5');
-        expect(user, isNotNull);
-        expect(user!.companyUser.permissions, 'view_invoice');
-        expect(user.companyUser.isAdmin, isFalse);
-        expect(user.companyUser.isOwner, isFalse);
-      },
-    );
+        ),
+      );
+      final user = await repo.get(companyId: 'co_1', userId: 'u_5');
+      expect(user, isNotNull);
+      expect(user!.companyUser.permissions, 'view_invoice');
+      expect(user.companyUser.isAdmin, isFalse);
+      expect(user.companyUser.isOwner, isFalse);
+    });
 
     test('User.toApi → fromApi round-trip preserves company_user', () {
       const api = UserApi(
@@ -227,11 +221,11 @@ void main() {
       final domain = User.fromApi(api);
       final json = jsonEncode(domain.toApi().toJson());
       final decoded = UserApi.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
       expect(decoded.id, 'u_6');
       expect(decoded.companyUser?.permissions, 'view_client');
-      expect(decoded.companyUser?.notifications.email,
-          ['payment_success_all']);
+      expect(decoded.companyUser?.notifications.email, ['payment_success_all']);
     });
   });
 }

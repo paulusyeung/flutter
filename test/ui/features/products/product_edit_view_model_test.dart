@@ -62,35 +62,38 @@ void main() {
   });
 
   group('save (edit)', () {
-    test('queues an update outbox row and reflects the new key in Drift', () async {
-      await repo.applyUpdateResponse(
-        companyId: 'co',
-        serverResponse: ProductApi.fromJson({
-          'id': 'p1',
-          'product_key': 'Original',
-        }),
-      );
+    test(
+      'queues an update outbox row and reflects the new key in Drift',
+      () async {
+        await repo.applyUpdateResponse(
+          companyId: 'co',
+          serverResponse: ProductApi.fromJson({
+            'id': 'p1',
+            'product_key': 'Original',
+          }),
+        );
 
-      final vm = ProductEditViewModel(
-        repo: repo,
-        companyId: 'co',
-        existing: existing(),
-      );
-      vm.setProductKey('Renamed');
+        final vm = ProductEditViewModel(
+          repo: repo,
+          companyId: 'co',
+          existing: existing(),
+        );
+        vm.setProductKey('Renamed');
 
-      final result = await vm.save();
-      expect(result, isNotNull);
-      expect(result!.productKey, 'Renamed');
+        final result = await vm.save();
+        expect(result, isNotNull);
+        expect(result!.productKey, 'Renamed');
 
-      final pending = await db.outboxDao.nextReady(
-        companyId: 'co',
-        now: 1 << 60,
-      );
-      expect(pending, hasLength(1));
-      expect(pending.single.mutationKind, MutationKind.update.wireName);
-      expect(pending.single.entityId, 'p1');
-      vm.dispose();
-    });
+        final pending = await db.outboxDao.nextReady(
+          companyId: 'co',
+          now: 1 << 60,
+        );
+        expect(pending, hasLength(1));
+        expect(pending.single.mutationKind, MutationKind.update.wireName);
+        expect(pending.single.entityId, 'p1');
+        vm.dispose();
+      },
+    );
   });
 
   group('save (create)', () {

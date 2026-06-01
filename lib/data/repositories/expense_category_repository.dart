@@ -105,9 +105,8 @@ class ExpenseCategoryRepository
     idOf: (a) => a.id,
     updatedAtOf: (a) => a.updatedAt,
     toCompanion: (a) => _apiToCompanion(a, companyId),
-    upsert: (byId) => db.expenseCategoryDao.upsertAll(
-      byId.values.toList(growable: false),
-    ),
+    upsert: (byId) =>
+        db.expenseCategoryDao.upsertAll(byId.values.toList(growable: false)),
   );
 
   Future<bool> ensurePageLoaded({
@@ -129,27 +128,24 @@ class ExpenseCategoryRepository
     itemsOf: (l) => l.data,
     idOf: (a) => a.id,
     toCompanion: (a) => _apiToCompanion(a, companyId),
-    upsert: (byId) => db.expenseCategoryDao.upsertAll(
-      byId.values.toList(growable: false),
-    ),
+    upsert: (byId) =>
+        db.expenseCategoryDao.upsertAll(byId.values.toList(growable: false)),
   );
 
   /// Lazily hydrate one expense category by id when a reference (e.g. an
   /// expense's category) isn't cached so a `CategoryNameLabel` would show
   /// the raw id. See [ensureLoadedTemplate].
-  Future<void> ensureLoaded({
-    required String companyId,
-    required String id,
-  }) => ensureLoadedTemplate(
-    companyId: companyId,
-    id: id,
-    fetch: (id) async => (await api.get(id)).data,
-    idOf: (a) => a.id,
-    toCompanion: (a) => _apiToCompanion(a, companyId),
-    upsert: (byId) => db.expenseCategoryDao.upsertAll(
-      byId.values.toList(growable: false),
-    ),
-  );
+  Future<void> ensureLoaded({required String companyId, required String id}) =>
+      ensureLoadedTemplate(
+        companyId: companyId,
+        id: id,
+        fetch: (id) async => (await api.get(id)).data,
+        idOf: (a) => a.id,
+        toCompanion: (a) => _apiToCompanion(a, companyId),
+        upsert: (byId) => db.expenseCategoryDao.upsertAll(
+          byId.values.toList(growable: false),
+        ),
+      );
 
   Future<void> refreshAll({
     required String companyId,
@@ -250,7 +246,8 @@ class ExpenseCategoryRepository
     realId: serverResponse.id,
     companion: _apiToCompanion(serverResponse, companyId),
     upsert: db.expenseCategoryDao.upsert,
-    deleteById: (id) => db.expenseCategoryDao.deleteById(companyId: companyId, id: id),
+    deleteById: (id) =>
+        db.expenseCategoryDao.deleteById(companyId: companyId, id: id),
   );
 
   @override

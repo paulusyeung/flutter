@@ -187,8 +187,7 @@ Future<void> _promptAddComment(
               const SizedBox(width: 8),
               FilledButton(
                 style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
-                onPressed: () =>
-                    Navigator.of(ctx).pop(controller.text.trim()),
+                onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
                 child: Text(ctx.tr('save')),
               ),
             ],

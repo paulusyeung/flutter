@@ -141,10 +141,7 @@ void main() {
         // The user fixes the name; the server's authoritative validator
         // re-runs on the next page-level Save. Save in the dialog just
         // returns the edits — it doesn't block on existing errors.
-        await tester.enterText(
-          find.byType(TextField).first,
-          'VAT (corrected)',
-        );
+        await tester.enterText(find.byType(TextField).first, 'VAT (corrected)');
         await tester.tap(find.widgetWithText(FilledButton, 'Save'));
         await tester.pumpAndSettle();
         expect(captured, isNotNull);

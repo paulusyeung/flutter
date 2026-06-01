@@ -157,8 +157,9 @@ class ReportPayload {
       categories: categories == null ? this.categories : categories(),
       projects: projects == null ? this.projects : projects(),
       status: status == null ? this.status : status(),
-      activityTypeId:
-          activityTypeId == null ? this.activityTypeId : activityTypeId(),
+      activityTypeId: activityTypeId == null
+          ? this.activityTypeId
+          : activityTypeId(),
       productKey: productKey == null ? this.productKey : productKey(),
       templateId: templateId == null ? this.templateId : templateId(),
       documentEmailAttachment:
@@ -193,12 +194,14 @@ class ReportPayload {
       if (dateKey != null && dateKey!.isNotEmpty) 'date_key': dateKey,
       if (clients != null && clients!.isNotEmpty) 'clients': clients,
       if (vendors != null && vendors!.isNotEmpty) 'vendors': vendors,
-      if (categories != null && categories!.isNotEmpty) 'categories': categories,
+      if (categories != null && categories!.isNotEmpty)
+        'categories': categories,
       if (projects != null && projects!.isNotEmpty) 'projects': projects,
       if (status != null && status!.isNotEmpty) 'status': status,
       if (activityTypeId != null && activityTypeId!.isNotEmpty)
         'activity_type_id': activityTypeId,
-      if (productKey != null && productKey!.isNotEmpty) 'product_key': productKey,
+      if (productKey != null && productKey!.isNotEmpty)
+        'product_key': productKey,
       if (templateId != null && templateId!.isNotEmpty) 'template': templateId,
       if (documentEmailAttachment) 'document_email_attachment': true,
       if (pdfEmailAttachment) 'pdf_email_attachment': true,
@@ -215,7 +218,9 @@ class ReportPayload {
     // (not omitted) so the server treats it as "all clients" rather than
     // "filter by empty string". Other reports drop empty client_id entirely.
     if (reportIdentifier == 'product_sales') {
-      out['client_id'] = (clientId == null || clientId!.isEmpty) ? null : clientId;
+      out['client_id'] = (clientId == null || clientId!.isEmpty)
+          ? null
+          : clientId;
     } else if (clientId != null && clientId!.isNotEmpty) {
       out['client_id'] = clientId;
     }

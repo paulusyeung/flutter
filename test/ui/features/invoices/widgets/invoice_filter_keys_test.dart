@@ -127,36 +127,35 @@ void main() {
     expect(const InvoiceStatusFilterKey().checkboxMultiSelect, isTrue);
   });
 
-  testWidgets(
-    'selectExclusive replaces the whole set in one write',
-    (tester) async {
-      late BuildContext ctx;
-      await tester.pumpWidget(
-        Builder(
-          builder: (c) {
-            ctx = c;
-            return const SizedBox();
-          },
-        ),
-      );
+  testWidgets('selectExclusive replaces the whole set in one write', (
+    tester,
+  ) async {
+    late BuildContext ctx;
+    await tester.pumpWidget(
+      Builder(
+        builder: (c) {
+          ctx = c;
+          return const SizedBox();
+        },
+      ),
+    );
 
-      // Real async zone — see is_filter_key_test for the rationale.
-      // `selectExclusive`'s override ignores [ctx].
-      await tester.runAsync(() async {
-        final vm = await makeVm();
-        const key = InvoiceStatusFilterKey();
+    // Real async zone — see is_filter_key_test for the rationale.
+    // `selectExclusive`'s override ignores [ctx].
+    await tester.runAsync(() async {
+      final vm = await makeVm();
+      const key = InvoiceStatusFilterKey();
 
-        await key.addValue(vm, '2');
-        await key.addValue(vm, '4');
-        expect(vm.extraFilters['status_id'], {'2', '4'});
+      await key.addValue(vm, '2');
+      await key.addValue(vm, '4');
+      expect(vm.extraFilters['status_id'], {'2', '4'});
 
-        await key.selectExclusive(vm, ctx, '6');
-        expect(vm.extraFilters['status_id'], {'6'});
+      await key.selectExclusive(vm, ctx, '6');
+      expect(vm.extraFilters['status_id'], {'6'});
 
-        vm.dispose();
-      });
-    },
-  );
+      vm.dispose();
+    });
+  });
 
   testWidgets('clear empties the status set in one write', (tester) async {
     late BuildContext ctx;

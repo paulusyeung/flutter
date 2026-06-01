@@ -35,11 +35,11 @@ class _FakeVm extends GenericBillingDocEditViewModel<_Doc> {
   _Doc copyWithEInvoice(_Doc d, Map<String, dynamic>? e) => _Doc(e);
   @override
   BillingTotalsInput totalsInputOf(_Doc d) => BillingTotalsInput(
-        lineItems: const [],
-        discount: Decimal.zero,
-        isAmountDiscount: false,
-        usesInclusiveTaxes: false,
-      );
+    lineItems: const [],
+    discount: Decimal.zero,
+    isAmountDiscount: false,
+    usesInclusiveTaxes: false,
+  );
   @override
   Future<SaveResult<_Doc>> performSave() async =>
       SaveResult(entity: draft, outboxRowId: 1);
@@ -90,7 +90,9 @@ void main() {
     });
 
     test('removing the leaf prunes the empty chain but not siblings', () {
-      final vm = _FakeVm({'Keep': {'x': 'y'}});
+      final vm = _FakeVm({
+        'Keep': {'x': 'y'},
+      });
       vm.setEInvoicePath(_idPath, 'INV-2');
       vm.setEInvoicePath(_idPath, null);
 

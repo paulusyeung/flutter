@@ -72,10 +72,7 @@ void main() {
   testWidgets('zero renders an em-dash (with or without a scope)', (
     tester,
   ) async {
-    expect(
-      await _render(tester, (c) => cellMoney(Decimal.zero, c)),
-      '—',
-    );
+    expect(await _render(tester, (c) => cellMoney(Decimal.zero, c)), '—');
     expect(
       await _render(
         tester,

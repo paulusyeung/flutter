@@ -781,7 +781,8 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     // clear from `{}` or `{archived}` would be a silent no-op.
     final statesAtDefault =
         _states.length == 1 && _states.contains(EntityState.active);
-    final changed = _search.isNotEmpty ||
+    final changed =
+        _search.isNotEmpty ||
         !statesAtDefault ||
         _sortField != defaultSortField ||
         !_sortAscending ||

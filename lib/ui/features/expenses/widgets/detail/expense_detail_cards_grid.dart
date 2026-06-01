@@ -150,11 +150,10 @@ class ExpenseDetailCardsGrid extends StatelessWidget {
           entityId: e.categoryId,
           routePath: '/settings/expense_categories/${e.categoryId}',
           permissionKey: 'view_expense',
-          watchBuilder: () =>
-              context.read<Services>().expenseCategories.watch(
-                companyId: companyId,
-                id: e.categoryId,
-              ),
+          watchBuilder: () => context.read<Services>().expenseCategories.watch(
+            companyId: companyId,
+            id: e.categoryId,
+          ),
           displayNameOf: (c) => c.name.isEmpty ? e.categoryId : c.name,
         ),
       );
@@ -372,35 +371,24 @@ class _TaxBreakdownCard extends StatelessWidget {
         children: [
           if (e.taxName1.isNotEmpty || e.taxRate1 != Decimal.zero)
             _Row(
-              label: e.taxName1.isEmpty
-                  ? context.tr('tax_rate1')
-                  : e.taxName1,
-              value: Text(
-                '${e.taxRate1}% · ${_fmt(e.taxAmount1)}',
-              ),
+              label: e.taxName1.isEmpty ? context.tr('tax_rate1') : e.taxName1,
+              value: Text('${e.taxRate1}% · ${_fmt(e.taxAmount1)}'),
             ),
           if (e.taxName2.isNotEmpty || e.taxRate2 != Decimal.zero)
             _Row(
-              label: e.taxName2.isEmpty
-                  ? context.tr('tax_rate2')
-                  : e.taxName2,
-              value: Text(
-                '${e.taxRate2}% · ${_fmt(e.taxAmount2)}',
-              ),
+              label: e.taxName2.isEmpty ? context.tr('tax_rate2') : e.taxName2,
+              value: Text('${e.taxRate2}% · ${_fmt(e.taxAmount2)}'),
             ),
           if (e.taxName3.isNotEmpty || e.taxRate3 != Decimal.zero)
             _Row(
-              label: e.taxName3.isEmpty
-                  ? context.tr('tax_rate3')
-                  : e.taxName3,
-              value: Text(
-                '${e.taxRate3}% · ${_fmt(e.taxAmount3)}',
-              ),
+              label: e.taxName3.isEmpty ? context.tr('tax_rate3') : e.taxName3,
+              value: Text('${e.taxRate3}% · ${_fmt(e.taxAmount3)}'),
             ),
           _Row(
             label: context.tr('inclusive_taxes'),
-            value:
-                Text(e.usesInclusiveTaxes ? context.tr('yes') : context.tr('no')),
+            value: Text(
+              e.usesInclusiveTaxes ? context.tr('yes') : context.tr('no'),
+            ),
           ),
         ],
       ),

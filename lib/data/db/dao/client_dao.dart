@@ -237,13 +237,18 @@ class ClientDao extends BaseEntityDao<$ClientsTable, ClientRow>
             clients.archivedAt.isNull(),
       )
       ..orderBy([OrderingTerm(expression: clients.displayName.lower())]);
-    return q.map((row) {
-      final display = row.read<String>(clients.displayName) ?? '';
-      return (
-        id: row.read<String>(clients.id) ?? '',
-        name: display.isNotEmpty ? display : (row.read<String>(clients.name) ?? ''),
-      );
-    }).watch().distinctRows();
+    return q
+        .map((row) {
+          final display = row.read<String>(clients.displayName) ?? '';
+          return (
+            id: row.read<String>(clients.id) ?? '',
+            name: display.isNotEmpty
+                ? display
+                : (row.read<String>(clients.name) ?? ''),
+          );
+        })
+        .watch()
+        .distinctRows();
   }
 
   /// Distinct non-empty values of `custom_value{columnIndex}` for the given

@@ -70,16 +70,14 @@ class InvoicesApi extends BaseEntityApi<InvoiceListApi, InvoiceItemApi> {
   Future<InvoiceItemApi?> markSent({
     required String id,
     required String idempotencyKey,
-  }) =>
-      action(id: id, action: 'mark_sent', idempotencyKey: idempotencyKey);
+  }) => action(id: id, action: 'mark_sent', idempotencyKey: idempotencyKey);
 
   /// `POST /api/v1/invoices/{id}/mark_paid` — records a synthetic payment
   /// for the outstanding balance.
   Future<InvoiceItemApi?> markPaid({
     required String id,
     required String idempotencyKey,
-  }) =>
-      action(id: id, action: 'mark_paid', idempotencyKey: idempotencyKey);
+  }) => action(id: id, action: 'mark_paid', idempotencyKey: idempotencyKey);
 
   /// `POST /api/v1/invoices/{id}/email` — send the invoice using a named
   /// template (`invoice`, `reminder1`, `reminder2`, `reminder3`,
@@ -92,18 +90,17 @@ class InvoicesApi extends BaseEntityApi<InvoiceListApi, InvoiceItemApi> {
     String? body,
     String? ccEmail,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'email',
-        idempotencyKey: idempotencyKey,
-        payload: {
-          'template': template,
-          if (subject != null) 'subject': subject,
-          if (body != null) 'body': body,
-          if (ccEmail != null) 'cc_email': ccEmail,
-        },
-      );
+  }) => action(
+    id: id,
+    action: 'email',
+    idempotencyKey: idempotencyKey,
+    payload: {
+      'template': template,
+      if (subject != null) 'subject': subject,
+      if (body != null) 'body': body,
+      if (ccEmail != null) 'cc_email': ccEmail,
+    },
+  );
 
   /// `POST /api/v1/invoices/{id}/email` with a `send_at` future date —
   /// queues the email for delivery later. Pro plan only on the server.
@@ -114,18 +111,17 @@ class InvoicesApi extends BaseEntityApi<InvoiceListApi, InvoiceItemApi> {
     String? subject,
     String? body,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'email',
-        idempotencyKey: idempotencyKey,
-        payload: {
-          'template': template,
-          'send_at': sendAt,
-          if (subject != null) 'subject': subject,
-          if (body != null) 'body': body,
-        },
-      );
+  }) => action(
+    id: id,
+    action: 'email',
+    idempotencyKey: idempotencyKey,
+    payload: {
+      'template': template,
+      'send_at': sendAt,
+      if (subject != null) 'subject': subject,
+      if (body != null) 'body': body,
+    },
+  );
 
   /// `POST /api/v1/invoices/{id}/clone_to_<target>`. Target is one of
   /// `invoice`, `quote`, `credit`, `recurring_invoice`, `purchase_order`.
@@ -135,12 +131,11 @@ class InvoicesApi extends BaseEntityApi<InvoiceListApi, InvoiceItemApi> {
     required String id,
     required String targetType,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'clone_to_$targetType',
-        idempotencyKey: idempotencyKey,
-      );
+  }) => action(
+    id: id,
+    action: 'clone_to_$targetType',
+    idempotencyKey: idempotencyKey,
+  );
 
   /// `POST /api/v1/invoices/{id}/auto_bill` — charge the stored payment
   /// token on the client. Server returns the updated invoice (status
@@ -148,16 +143,14 @@ class InvoicesApi extends BaseEntityApi<InvoiceListApi, InvoiceItemApi> {
   Future<InvoiceItemApi?> autoBill({
     required String id,
     required String idempotencyKey,
-  }) =>
-      action(id: id, action: 'auto_bill', idempotencyKey: idempotencyKey);
+  }) => action(id: id, action: 'auto_bill', idempotencyKey: idempotencyKey);
 
   /// `POST /api/v1/invoices/{id}/cancel` — mark a sent invoice as
   /// cancelled. Server returns the updated invoice.
   Future<InvoiceItemApi?> cancel({
     required String id,
     required String idempotencyKey,
-  }) =>
-      action(id: id, action: 'cancel', idempotencyKey: idempotencyKey);
+  }) => action(id: id, action: 'cancel', idempotencyKey: idempotencyKey);
 
   /// `POST /api/v1/invoices/{id}/template` — apply a design or email
   /// template. Payload carries `template_id`.
@@ -165,13 +158,12 @@ class InvoicesApi extends BaseEntityApi<InvoiceListApi, InvoiceItemApi> {
     required String id,
     required String templateId,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'template',
-        idempotencyKey: idempotencyKey,
-        payload: {'template_id': templateId},
-      );
+  }) => action(
+    id: id,
+    action: 'template',
+    idempotencyKey: idempotencyKey,
+    payload: {'template_id': templateId},
+  );
 
   /// Fetch a server-rendered PDF for this invoice.
   ///

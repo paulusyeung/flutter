@@ -142,10 +142,7 @@ void main() {
 
   setUp(() {
     db = AppDatabase(NativeDatabase.memory());
-    statics = StaticsRepository(
-      db: db,
-      service: _NullStaticsService(),
-    );
+    statics = StaticsRepository(db: db, service: _NullStaticsService());
   });
 
   tearDown(() async {
@@ -153,54 +150,62 @@ void main() {
   });
 
   ReportPreview previewOf(String marker) => ReportPreview(
-        columns: const [],
-        rows: [
-          ReportRow(cells: [ReportStringCell(value: marker, displayValue: marker)]),
-        ],
+    columns: const [],
+    rows: [
+      ReportRow(
+        cells: [ReportStringCell(value: marker, displayValue: marker)],
+      ),
+    ],
+  );
+
+  test(
+    'isParamDirty flips on payload change and clears after a successful run',
+    () async {
+      final repo = _FakeRepo();
+      final firstGate = _Trigger()..release();
+      repo.queue(firstGate, previewOf('a'));
+      final vm = ReportsViewModel(repo: repo, statics: statics);
+
+      // Edit the date preset → dirty without a run.
+      vm.setPayload(
+        vm.payload.copyWith(datePreset: ReportDatePreset.lastMonth),
       );
+      expect(vm.isParamDirty, isTrue);
 
-  test('isParamDirty flips on payload change and clears after a successful run',
-      () async {
-    final repo = _FakeRepo();
-    final firstGate = _Trigger()..release();
-    repo.queue(firstGate, previewOf('a'));
-    final vm = ReportsViewModel(repo: repo, statics: statics);
+      await vm.runReport();
+      expect(vm.run.status, ReportRunStatus.ready);
+      expect(vm.isParamDirty, isFalse);
 
-    // Edit the date preset → dirty without a run.
-    vm.setPayload(vm.payload.copyWith(datePreset: ReportDatePreset.lastMonth));
-    expect(vm.isParamDirty, isTrue);
+      vm.setPayload(vm.payload.copyWith(datePreset: ReportDatePreset.thisYear));
+      expect(vm.isParamDirty, isTrue);
+    },
+  );
 
-    await vm.runReport();
-    expect(vm.run.status, ReportRunStatus.ready);
-    expect(vm.isParamDirty, isFalse);
+  test(
+    'concurrent Runs: only the latest result lands; older futures no-op',
+    () async {
+      final repo = _FakeRepo();
+      final g1 = _Trigger();
+      final g2 = _Trigger();
+      repo.queue(g1, previewOf('first'));
+      repo.queue(g2, previewOf('second'));
+      final vm = ReportsViewModel(repo: repo, statics: statics);
 
-    vm.setPayload(vm.payload.copyWith(datePreset: ReportDatePreset.thisYear));
-    expect(vm.isParamDirty, isTrue);
-  });
-
-  test('concurrent Runs: only the latest result lands; older futures no-op',
-      () async {
-    final repo = _FakeRepo();
-    final g1 = _Trigger();
-    final g2 = _Trigger();
-    repo.queue(g1, previewOf('first'));
-    repo.queue(g2, previewOf('second'));
-    final vm = ReportsViewModel(repo: repo, statics: statics);
-
-    final f1 = vm.runReport();
-    final f2 = vm.runReport();
-    // Release the *second* call first — that's the one whose epoch matches.
-    g2.release();
-    await f2;
-    // Release the first call — its epoch is stale, must not overwrite.
-    g1.release();
-    await f1;
-    expect(vm.run.status, ReportRunStatus.ready);
-    expect(
-      (vm.run.preview!.rows.first.cells.first as ReportStringCell).value,
-      'second',
-    );
-  });
+      final f1 = vm.runReport();
+      final f2 = vm.runReport();
+      // Release the *second* call first — that's the one whose epoch matches.
+      g2.release();
+      await f2;
+      // Release the first call — its epoch is stale, must not overwrite.
+      g1.release();
+      await f1;
+      expect(vm.run.status, ReportRunStatus.ready);
+      expect(
+        (vm.run.preview!.rows.first.cells.first as ReportStringCell).value,
+        'second',
+      );
+    },
+  );
 
   test('cancelRun bumps epoch and restores previous preview', () async {
     final repo = _FakeRepo();
@@ -232,8 +237,7 @@ void main() {
   });
 
   group('chartColumn', () {
-    test('setChartColumn updates the getter and notifies listeners',
-        () async {
+    test('setChartColumn updates the getter and notifies listeners', () async {
       final repo = _FakeRepo();
       final vm = ReportsViewModel(repo: repo, statics: statics);
       var notified = 0;
@@ -254,19 +258,23 @@ void main() {
       expect(notified, 2);
     });
 
-    test('setReport clears chartColumn (new report\'s columns are unrelated)',
-        () async {
-      final repo = _FakeRepo();
-      final vm = ReportsViewModel(repo: repo, statics: statics);
-      vm.setChartColumn('invoice.amount');
-      expect(vm.chartColumn, 'invoice.amount');
+    test(
+      'setReport clears chartColumn (new report\'s columns are unrelated)',
+      () async {
+        final repo = _FakeRepo();
+        final vm = ReportsViewModel(repo: repo, statics: statics);
+        vm.setChartColumn('invoice.amount');
+        expect(vm.chartColumn, 'invoice.amount');
 
-      // Switch to any other registered report — the identifier just needs
-      // to differ; we don't run it, only assert the reset behavior.
-      final otherId = vm.reportIdentifier == 'invoice' ? 'payment' : 'invoice';
-      vm.setReport(otherId);
-      expect(vm.chartColumn, isNull);
-    });
+        // Switch to any other registered report — the identifier just needs
+        // to differ; we don't run it, only assert the reset behavior.
+        final otherId = vm.reportIdentifier == 'invoice'
+            ? 'payment'
+            : 'invoice';
+        vm.setReport(otherId);
+        expect(vm.chartColumn, isNull);
+      },
+    );
 
     test('resetEverything clears chartColumn', () async {
       final repo = _FakeRepo();
@@ -276,49 +284,48 @@ void main() {
       expect(vm.chartColumn, isNull);
     });
 
-    test('numericChartColumns returns only money + number types from preview',
-        () async {
-      final repo = _FakeRepo();
-      final firstGate = _Trigger()..release();
-      repo.queue(
-        firstGate,
-        const ReportPreview(
-          columns: [
-            ReportColumn(
-              identifier: 'invoice.client',
-              displayLabel: 'Client',
-              type: ReportColumnType.string,
-            ),
-            ReportColumn(
-              identifier: 'invoice.amount',
-              displayLabel: 'Amount',
-              type: ReportColumnType.money,
-            ),
-            ReportColumn(
-              identifier: 'invoice.count',
-              displayLabel: 'Count',
-              type: ReportColumnType.number,
-            ),
-            ReportColumn(
-              identifier: 'invoice.created_at',
-              displayLabel: 'Created',
-              type: ReportColumnType.dateTime,
-            ),
-          ],
-          rows: [],
-        ),
-      );
-      final vm = ReportsViewModel(repo: repo, statics: statics);
-      // Before a Run lands → no preview → empty list.
-      expect(vm.numericChartColumns(), isEmpty);
+    test(
+      'numericChartColumns returns only money + number types from preview',
+      () async {
+        final repo = _FakeRepo();
+        final firstGate = _Trigger()..release();
+        repo.queue(
+          firstGate,
+          const ReportPreview(
+            columns: [
+              ReportColumn(
+                identifier: 'invoice.client',
+                displayLabel: 'Client',
+                type: ReportColumnType.string,
+              ),
+              ReportColumn(
+                identifier: 'invoice.amount',
+                displayLabel: 'Amount',
+                type: ReportColumnType.money,
+              ),
+              ReportColumn(
+                identifier: 'invoice.count',
+                displayLabel: 'Count',
+                type: ReportColumnType.number,
+              ),
+              ReportColumn(
+                identifier: 'invoice.created_at',
+                displayLabel: 'Created',
+                type: ReportColumnType.dateTime,
+              ),
+            ],
+            rows: [],
+          ),
+        );
+        final vm = ReportsViewModel(repo: repo, statics: statics);
+        // Before a Run lands → no preview → empty list.
+        expect(vm.numericChartColumns(), isEmpty);
 
-      await vm.runReport();
-      final ids = vm
-          .numericChartColumns()
-          .map((c) => c.identifier)
-          .toList();
-      expect(ids, ['invoice.amount', 'invoice.count']);
-    });
+        await vm.runReport();
+        final ids = vm.numericChartColumns().map((c) => c.identifier).toList();
+        expect(ids, ['invoice.amount', 'invoice.count']);
+      },
+    );
   });
 
   test('dispose strands in-flight futures cleanly', () async {
@@ -335,22 +342,26 @@ void main() {
     await pending;
   });
 
-  test('runExport returns result, records format, toggles isExporting',
-      () async {
-    final repo = _FakeRepo()
-      ..exportResult =
-          ReportExportResult(bytes: Uint8List.fromList([7]), hash: 'h7');
-    final vm = ReportsViewModel(repo: repo, statics: statics);
-    expect(vm.isExporting, isFalse);
+  test(
+    'runExport returns result, records format, toggles isExporting',
+    () async {
+      final repo = _FakeRepo()
+        ..exportResult = ReportExportResult(
+          bytes: Uint8List.fromList([7]),
+          hash: 'h7',
+        );
+      final vm = ReportsViewModel(repo: repo, statics: statics);
+      expect(vm.isExporting, isFalse);
 
-    final res = await vm.runExport(ReportExportFormat.csv);
+      final res = await vm.runExport(ReportExportFormat.csv);
 
-    expect(res, isNotNull);
-    expect(res!.bytes, [7]);
-    expect(repo.exportCalls, [ReportExportFormat.csv]);
-    expect(vm.isExporting, isFalse);
-    expect(vm.exportError, isNull);
-  });
+      expect(res, isNotNull);
+      expect(res!.bytes, [7]);
+      expect(repo.exportCalls, [ReportExportFormat.csv]);
+      expect(vm.isExporting, isFalse);
+      expect(vm.exportError, isNull);
+    },
+  );
 
   test('runExport surfaces error into exportError, returns null', () async {
     final repo = _FakeRepo()
@@ -366,8 +377,10 @@ void main() {
 
   test('runExport guards against double-submit', () async {
     final repo = _FakeRepo()
-      ..exportResult =
-          ReportExportResult(bytes: Uint8List.fromList([1]), hash: 'h');
+      ..exportResult = ReportExportResult(
+        bytes: Uint8List.fromList([1]),
+        hash: 'h',
+      );
     final vm = ReportsViewModel(repo: repo, statics: statics);
 
     final a = vm.runExport(ReportExportFormat.pdf);
@@ -379,8 +392,7 @@ void main() {
     expect(repo.exportCalls.length, 1);
   });
 
-  test('sendEmail toggles isEmailing and calls repo; error rethrows',
-      () async {
+  test('sendEmail toggles isEmailing and calls repo; error rethrows', () async {
     final repo = _FakeRepo();
     final vm = ReportsViewModel(repo: repo, statics: statics);
 
@@ -388,8 +400,7 @@ void main() {
     expect(repo.sendEmailCalls, 1);
     expect(vm.isEmailing, isFalse);
 
-    repo.sendEmailError =
-        const ReportError(kind: ReportErrorKind.network);
+    repo.sendEmailError = const ReportError(kind: ReportErrorKind.network);
     await expectLater(vm.sendEmail(), throwsA(isA<ReportError>()));
     expect(vm.isEmailing, isFalse);
   });
@@ -407,8 +418,7 @@ void main() {
   });
 
   group('restore-on-restart persistence', () {
-    test('round-trips report + payload + view state for the company',
-        () async {
+    test('round-trips report + payload + view state for the company', () async {
       final vm1 = ReportsViewModel(
         repo: _FakeRepo(),
         statics: statics,
@@ -485,62 +495,65 @@ void main() {
       expect(b.reportIdentifier, isNot('payment'));
     });
 
-    test('reconciles stale persisted columns/group against live preview',
-        () async {
-      // Seed co1 with a snapshot referencing columns a stale report had.
-      final seed = ReportsViewModel(
-        repo: _FakeRepo(),
-        statics: statics,
-        navStateDao: db.navStateDao,
-        companyId: 'co1',
-        persistDebounce: Duration.zero,
-      );
-      await seed.hydration;
-      seed.setVisibleColumns({'old1', 'old2'});
-      seed.setGroup('old1');
-      await Future<void>.delayed(const Duration(milliseconds: 20));
+    test(
+      'reconciles stale persisted columns/group against live preview',
+      () async {
+        // Seed co1 with a snapshot referencing columns a stale report had.
+        final seed = ReportsViewModel(
+          repo: _FakeRepo(),
+          statics: statics,
+          navStateDao: db.navStateDao,
+          companyId: 'co1',
+          persistDebounce: Duration.zero,
+        );
+        await seed.hydration;
+        seed.setVisibleColumns({'old1', 'old2'});
+        seed.setGroup('old1');
+        await Future<void>.delayed(const Duration(milliseconds: 20));
 
-      final repo = _FakeRepo();
-      final gate = _Trigger()..release();
-      repo.queue(
-        gate,
-        const ReportPreview(
-          columns: [
-            ReportColumn(
-              identifier: 'old1',
-              type: ReportColumnType.string,
-              displayLabel: 'Old1',
-            ),
-            ReportColumn(
-              identifier: 'newcol',
-              type: ReportColumnType.string,
-              displayLabel: 'New',
-            ),
-          ],
-          rows: [],
-        ),
-      );
-      final vm = ReportsViewModel(
-        repo: repo,
-        statics: statics,
-        navStateDao: db.navStateDao,
-        companyId: 'co1',
-      );
-      await vm.hydration;
-      expect(vm.visibleColumnIds, {'old1', 'old2'});
-      await vm.runReport();
-      // old2 dropped (gone), newcol unioned in, group kept (old1 exists).
-      expect(vm.visibleColumnIds, {'old1', 'newcol'});
-      expect(vm.group, 'old1');
-    });
+        final repo = _FakeRepo();
+        final gate = _Trigger()..release();
+        repo.queue(
+          gate,
+          const ReportPreview(
+            columns: [
+              ReportColumn(
+                identifier: 'old1',
+                type: ReportColumnType.string,
+                displayLabel: 'Old1',
+              ),
+              ReportColumn(
+                identifier: 'newcol',
+                type: ReportColumnType.string,
+                displayLabel: 'New',
+              ),
+            ],
+            rows: [],
+          ),
+        );
+        final vm = ReportsViewModel(
+          repo: repo,
+          statics: statics,
+          navStateDao: db.navStateDao,
+          companyId: 'co1',
+        );
+        await vm.hydration;
+        expect(vm.visibleColumnIds, {'old1', 'old2'});
+        await vm.runReport();
+        // old2 dropped (gone), newcol unioned in, group kept (old1 exists).
+        expect(vm.visibleColumnIds, {'old1', 'newcol'});
+        expect(vm.group, 'old1');
+      },
+    );
   });
 }
 
 class _NullStaticsService implements StaticsService {
   @override
-  Future<Map<String, dynamic>> fetch(
-      {bool includeStatic = true, bool? includeData}) async =>
-      const <String, dynamic>{};
+  Future<Map<String, dynamic>> fetch({
+    bool includeStatic = true,
+    bool? includeData,
+  }) async => const <String, dynamic>{};
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

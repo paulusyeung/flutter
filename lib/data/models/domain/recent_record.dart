@@ -25,15 +25,14 @@ class RecentRecord {
   final DateTime viewedAt;
 
   /// Same entity iff same type + id. Used to de-dupe / move-to-front.
-  bool sameEntity(RecentRecord other) =>
-      other.type == type && other.id == id;
+  bool sameEntity(RecentRecord other) => other.type == type && other.id == id;
 
   Map<String, Object?> toJson() => {
-        't': type.name,
-        'i': id,
-        'l': label,
-        'v': viewedAt.millisecondsSinceEpoch,
-      };
+    't': type.name,
+    'i': id,
+    'l': label,
+    'v': viewedAt.millisecondsSinceEpoch,
+  };
 
   /// Returns `null` for an unparseable/legacy row (unknown enum name, missing
   /// id) so a single bad entry can't poison the whole list on restore.

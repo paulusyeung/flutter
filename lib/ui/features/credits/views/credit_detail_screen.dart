@@ -63,20 +63,12 @@ class _CreditDetailScreenState extends State<CreditDetailScreen>
         items: CreditActions.itemsFor(
           context,
           credit,
-          (a) => CreditActions.dispatch(
-            context,
-            _services,
-            _companyId,
-            credit,
-            a,
-          ),
+          (a) =>
+              CreditActions.dispatch(context, _services, _companyId, credit, a),
         ),
       ),
-      bodyBuilder: (context, credit) => _Body(
-        credit: credit,
-        services: _services,
-        companyId: _companyId,
-      ),
+      bodyBuilder: (context, credit) =>
+          _Body(credit: credit, services: _services, companyId: _companyId),
     );
   }
 }
@@ -96,8 +88,8 @@ class _Body extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = Breakpoints.isWide(constraints) &&
-            constraints.maxWidth >= 900;
+        final wide =
+            Breakpoints.isWide(constraints) && constraints.maxWidth >= 900;
         final main = SingleChildScrollView(
           padding: EdgeInsets.all(InSpacing.lg(context)),
           child: Column(
@@ -179,8 +171,7 @@ class _Body extends StatelessWidget {
                       entityId: credit.id,
                       invitations: credit.invitations,
                       clientId: credit.clientId,
-                      isHosted:
-                          services.auth.session.value?.isHosted ?? false,
+                      isHosted: services.auth.session.value?.isHosted ?? false,
                       onReactivate: (messageId) =>
                           services.credits.reactivateInvitationEmail(
                             companyId: companyId,
@@ -336,10 +327,10 @@ class _PdfPane extends StatelessWidget {
       entityNumber: credit.number,
       fetcher: ({String? designId, required bool deliveryNote}) =>
           services.credits.api.downloadPdf(
-        entityJson: credit.toApiJson(),
-        designId: designId ??
-            (credit.designId.isEmpty ? null : credit.designId),
-      ),
+            entityJson: credit.toApiJson(),
+            designId:
+                designId ?? (credit.designId.isEmpty ? null : credit.designId),
+          ),
     );
   }
 }

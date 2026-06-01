@@ -44,7 +44,8 @@ void main() {
         expect(
           () => settingsBindingOf(key),
           returnsNormally,
-          reason: 'missing binding for $key — '
+          reason:
+              'missing binding for $key — '
               'add it to settings_field_bindings.dart',
         );
       }
@@ -69,15 +70,17 @@ void main() {
       }
     });
 
-    test('int binding (font_size) round-trips through string serialization',
-        () {
-      const settings = CompanySettings();
-      final b = settingsBindingOf('font_size');
-      final next = b.write(settings, '14');
-      expect(b.read(next), '14');
-      final cleared = b.write(next, null);
-      expect(b.read(cleared), isNull);
-    });
+    test(
+      'int binding (font_size) round-trips through string serialization',
+      () {
+        const settings = CompanySettings();
+        final b = settingsBindingOf('font_size');
+        final next = b.write(settings, '14');
+        expect(b.read(next), '14');
+        final cleared = b.write(next, null);
+        expect(b.read(cleared), isNull);
+      },
+    );
 
     test('bool bindings round-trip true/false/null', () {
       const settings = CompanySettings();

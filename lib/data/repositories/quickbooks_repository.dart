@@ -64,10 +64,7 @@ class QuickbooksRepository {
   /// `null` everywhere the UI reads from (incl. the local Drift row that
   /// drives `CompanyRepository.watchCompany`).
   Future<void> disconnect() async {
-    await _api.postJson(
-      '/api/v1/quickbooks/disconnect',
-      body: const {},
-    );
+    await _api.postJson('/api/v1/quickbooks/disconnect', body: const {});
     // Low-frequency, user-initiated integration toggle — force a full
     // snapshot so `company.quickbooks` is unambiguously authoritative.
     await _auth.refresh(fullSync: true);
@@ -112,11 +109,7 @@ class QuickbooksRepository {
   }) async {
     await _api.postJson(
       '/api/v1/quickbooks/sync',
-      body: {
-        'client': client,
-        'product': product,
-        'invoice': invoice,
-      },
+      body: {'client': client, 'product': product, 'invoice': invoice},
     );
   }
 }

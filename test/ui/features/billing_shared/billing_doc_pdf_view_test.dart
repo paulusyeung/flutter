@@ -23,10 +23,7 @@ void main() {
 
   setUp(() => calls = 0);
 
-  Future<void> pump(
-    WidgetTester tester, {
-    Object? revision,
-  }) {
+  Future<void> pump(WidgetTester tester, {Object? revision}) {
     return tester.pumpWidget(
       MaterialApp(
         theme: buildInTheme(InTheme.light),

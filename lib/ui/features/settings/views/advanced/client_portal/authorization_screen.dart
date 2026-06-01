@@ -30,8 +30,10 @@ class ClientPortalAuthorizationScreen extends StatelessWidget {
     final host = context.watch<SettingsDraftHost>();
     final modules = host.draft?.enabledModules ?? 0;
     final quotesOn = isModuleEnabled(modules, EnabledModule.quotes);
-    final purchaseOrdersOn =
-        isModuleEnabled(modules, EnabledModule.purchaseOrders);
+    final purchaseOrdersOn = isModuleEnabled(
+      modules,
+      EnabledModule.purchaseOrders,
+    );
 
     return SettingsFormShell(
       sections: [

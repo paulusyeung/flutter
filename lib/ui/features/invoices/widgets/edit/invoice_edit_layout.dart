@@ -145,7 +145,10 @@ class _InvoiceEditLayoutState extends State<InvoiceEditLayout>
               children: [
                 _DetailsTab(vm: widget.vm),
                 _ContactsTab(vm: widget.vm),
-                _ItemsTab(vm: widget.vm, onPickItems: () => _openPicker(context)),
+                _ItemsTab(
+                  vm: widget.vm,
+                  onPickItems: () => _openPicker(context),
+                ),
                 _NotesTab(vm: widget.vm),
                 _PdfTab(vm: widget.vm),
                 EInvoiceFieldsTab<Invoice>(
@@ -174,8 +177,10 @@ class _InvoiceEditLayoutState extends State<InvoiceEditLayout>
         2 => _NumberCardDesktop(vm: widget.vm),
         _ => const SizedBox.shrink(),
       },
-      itemsSection:
-          _ItemsSectionDesktop(vm: widget.vm, onPickItems: () => _openPicker(context)),
+      itemsSection: _ItemsSectionDesktop(
+        vm: widget.vm,
+        onPickItems: () => _openPicker(context),
+      ),
       notesTabsCard: _NotesTabsCardDesktop(vm: widget.vm),
       totalsCard: _TotalsCardDesktop(vm: widget.vm),
       pdfPane: _PdfPaneDesktop(vm: widget.vm),
@@ -520,10 +525,7 @@ class _ItemsSectionDesktop extends StatelessWidget {
       lineItems: vm.draft.lineItems,
       onChanged: vm.replaceLineItems,
       newItemFactory: emptyLineItem,
-      config: const LineItemColumnConfig(
-        showDiscount: true,
-        taxColumnCount: 1,
-      ),
+      config: const LineItemColumnConfig(showDiscount: true, taxColumnCount: 1),
       rowErrors: vm.lineItemRowErrors,
       onPickItems: onPickItems,
     );

@@ -61,7 +61,8 @@ class CompanyDetailsLogoScreen extends StatelessWidget {
                       ),
                     )
                   : null,
-              onFiles: (sources) => _processLogo(context, services, vm, sources),
+              onFiles: (sources) =>
+                  _processLogo(context, services, vm, sources),
             ),
             if (hasLogo) ...[
               SizedBox(height: InSpacing.md(context)),

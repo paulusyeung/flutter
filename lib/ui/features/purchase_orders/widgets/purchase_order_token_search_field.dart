@@ -25,9 +25,7 @@ class PurchaseOrderTokenSearchField extends StatelessWidget {
       builder: (context, companySnap) {
         return TokenSearchField(
           vm: vm,
-          filterKeys: buildPurchaseOrderFilterKeys(
-            company: companySnap.data,
-          ),
+          filterKeys: buildPurchaseOrderFilterKeys(company: companySnap.data),
           wide: wide,
           hintKey: 'search_purchase_orders_or_filter_hint',
         );

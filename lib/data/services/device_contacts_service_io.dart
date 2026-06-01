@@ -54,8 +54,9 @@ class NativeDeviceContactsService implements DeviceContactsService {
       firstName: c.name?.first ?? '',
       lastName: c.name?.last ?? '',
       displayName: c.displayName ?? '',
-      organization:
-          c.organizations.isNotEmpty ? (c.organizations.first.name ?? '') : '',
+      organization: c.organizations.isNotEmpty
+          ? (c.organizations.first.name ?? '')
+          : '',
       email: c.emails.isNotEmpty ? c.emails.first.address : '',
       phone: _preferredPhone(c),
       address1: address?.street ?? '',

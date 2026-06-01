@@ -101,8 +101,9 @@ class ReportUiState {
       sortAscending: sortAscending ?? this.sortAscending,
       group: group == null ? this.group : group(),
       subgroup: subgroup == null ? this.subgroup : subgroup(),
-      selectedGroup:
-          selectedGroup == null ? this.selectedGroup : selectedGroup(),
+      selectedGroup: selectedGroup == null
+          ? this.selectedGroup
+          : selectedGroup(),
       convertCurrency: convertCurrency ?? this.convertCurrency,
     );
   }
@@ -131,16 +132,16 @@ class ReportUiState {
 
   @override
   int get hashCode => Object.hash(
-        _setEq.hash(visibleColumnIds),
-        _listEq.hash(columnOrder),
-        _mapEq.hash(columnFilters),
-        sortField,
-        sortAscending,
-        group,
-        subgroup,
-        selectedGroup,
-        convertCurrency,
-      );
+    _setEq.hash(visibleColumnIds),
+    _listEq.hash(columnOrder),
+    _mapEq.hash(columnFilters),
+    sortField,
+    sortAscending,
+    group,
+    subgroup,
+    selectedGroup,
+    convertCurrency,
+  );
 }
 
 /// One bucket when the engine is grouping. `key` is the group display value
@@ -264,10 +265,15 @@ class ReportEngine {
       final groupIdx = _columnIndex(preview.columns, ui.group!);
       if (groupIdx >= 0) {
         filtered = filtered
-            .where((row) =>
-                _groupKey(row.cells[groupIdx], preview.columns[groupIdx],
-                        subgroup: ui.subgroup) ==
-                    ui.selectedGroup)
+            .where(
+              (row) =>
+                  _groupKey(
+                    row.cells[groupIdx],
+                    preview.columns[groupIdx],
+                    subgroup: ui.subgroup,
+                  ) ==
+                  ui.selectedGroup,
+            )
             .toList(growable: false);
       }
     }
@@ -277,15 +283,15 @@ class ReportEngine {
         ? -1
         : _columnIndex(preview.columns, ui.sortField!);
     if (sortIdx >= 0) {
-      filtered.sort((a, b) => _compareCells(
-            a.cells[sortIdx],
-            b.cells[sortIdx],
-            ui.sortAscending,
-          ));
+      filtered.sort(
+        (a, b) =>
+            _compareCells(a.cells[sortIdx], b.cells[sortIdx], ui.sortAscending),
+      );
     }
 
     // 5. Group or pass through.
-    final isGrouping = ui.group != null &&
+    final isGrouping =
+        ui.group != null &&
         ui.group!.isNotEmpty &&
         (ui.selectedGroup == null || ui.selectedGroup!.isEmpty);
     final groups = isGrouping
@@ -297,11 +303,7 @@ class ReportEngine {
     final perCurrencyTotals = _perCurrencyTotals(filtered, preview.columns);
     final rowCountByCurrency = _rowCountByCurrency(filtered, preview.columns);
     final (converted, ratesAvailable) = ui.convertCurrency
-        ? _convertedTotals(
-            perCurrencyTotals,
-            exchangeRates,
-            companyCurrencyId,
-          )
+        ? _convertedTotals(perCurrencyTotals, exchangeRates, companyCurrencyId)
         : (null, false);
 
     return ReportView(
@@ -325,16 +327,13 @@ class ReportEngine {
 
   // ───── helpers ─────
 
-  List<ReportColumn> _visibleColumns(
-    ReportPreview preview,
-    ReportUiState ui,
-  ) {
+  List<ReportColumn> _visibleColumns(ReportPreview preview, ReportUiState ui) {
     final allCols = preview.columns;
     var visible = ui.visibleColumnIds.isEmpty
         ? allCols.toList()
         : allCols
-            .where((c) => ui.visibleColumnIds.contains(c.identifier))
-            .toList();
+              .where((c) => ui.visibleColumnIds.contains(c.identifier))
+              .toList();
     // Apply the user's chosen order: listed columns first (in order),
     // unlisted ones after in server order. Built explicitly rather than
     // via List.sort (Dart's sort isn't stable, so unlisted columns could
@@ -470,10 +469,7 @@ class ReportEngine {
         return age > 120;
     }
     // Fallback: numeric range like "30-60".
-    return _matchRange(
-      ReportNumberCell(value: Decimal.fromInt(age)),
-      filter,
-    );
+    return _matchRange(ReportNumberCell(value: Decimal.fromInt(age)), filter);
   }
 
   bool _matchDateRange(ReportCell cell, String filter) {
@@ -519,7 +515,9 @@ class ReportEngine {
       cmp = 1; // nulls last in ascending
     } else if (bk == null) {
       cmp = -1;
-    } else if (ak is Comparable && bk is Comparable && ak.runtimeType == bk.runtimeType) {
+    } else if (ak is Comparable &&
+        bk is Comparable &&
+        ak.runtimeType == bk.runtimeType) {
       cmp = ak.compareTo(bk);
     } else {
       // Mixed-type sort keys shouldn't happen in a well-formed preview —
@@ -528,9 +526,7 @@ class ReportEngine {
       // give wrong order for Decimals ("100" < "20" as strings). Log the
       // collision at FINE so a data-quality regression doesn't fail
       // silently while the UI surface remains stable.
-      _log.fine(
-        'mixed-type sort keys: ${ak.runtimeType} vs ${bk.runtimeType}',
-      );
+      _log.fine('mixed-type sort keys: ${ak.runtimeType} vs ${bk.runtimeType}');
       cmp = 0;
     }
     return ascending ? cmp : -cmp;
@@ -705,8 +701,9 @@ class ReportEngine {
         // 4–8 digit fx rates intact, and small enough that the resulting
         // `amount * ratio` doesn't accumulate noise across long sums. If
         // chart math (Phase 5) demands more, revisit.
-        final ratio = (companyRate / fromRate)
-            .toDecimal(scaleOnInfinitePrecision: 12);
+        final ratio = (companyRate / fromRate).toDecimal(
+          scaleOnInfinitePrecision: 12,
+        );
         sum += amount * ratio;
       }
       out[entry.key] = sum;

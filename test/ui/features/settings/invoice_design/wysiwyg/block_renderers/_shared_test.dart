@@ -109,7 +109,12 @@ void main() {
         parseTableRegionBorders({
           'color': '#000',
           'width': 1,
-          'sides': {'top': false, 'right': false, 'bottom': false, 'left': false},
+          'sides': {
+            'top': false,
+            'right': false,
+            'bottom': false,
+            'left': false,
+          },
         }),
         isNull,
       );
@@ -125,14 +130,28 @@ void main() {
 
   group('propMap / propMapList', () {
     test('propMap returns the nested map or null', () {
-      expect(propMap({'a': {'k': 1}}, 'a'), {'k': 1});
+      expect(
+        propMap({
+          'a': {'k': 1},
+        }, 'a'),
+        {'k': 1},
+      );
       expect(propMap({'a': 'not a map'}, 'a'), isNull);
       expect(propMap({}, 'a'), isNull);
     });
     test('propMapList filters out non-maps', () {
       expect(
-        propMapList({'a': [{'k': 1}, 'noise', {'k': 2}]}, 'a'),
-        [{'k': 1}, {'k': 2}],
+        propMapList({
+          'a': [
+            {'k': 1},
+            'noise',
+            {'k': 2},
+          ],
+        }, 'a'),
+        [
+          {'k': 1},
+          {'k': 2},
+        ],
       );
       expect(propMapList({}, 'a'), isEmpty);
     });
@@ -142,11 +161,7 @@ void main() {
     test('subMap wins over field which wins over block fallback', () {
       final cell = resolveCellTypography(
         subMap: {'fontSize': '18px', 'color': '#FF0000'},
-        field: {
-          'fontSize': '14px',
-          'fontWeight': 'bold',
-          'color': '#00FF00',
-        },
+        field: {'fontSize': '14px', 'fontWeight': 'bold', 'color': '#00FF00'},
         blockFontSize: 10,
         blockFontWeight: FontWeight.normal,
         blockFontStyle: FontStyle.normal,
@@ -190,7 +205,9 @@ void main() {
 
     test('cellStyleMap returns the nested map or null', () {
       expect(
-        cellStyleMap({'labelStyle': {'color': '#FFF'}}, 'labelStyle'),
+        cellStyleMap({
+          'labelStyle': {'color': '#FFF'},
+        }, 'labelStyle'),
         {'color': '#FFF'},
       );
       expect(cellStyleMap({'labelStyle': 'not-a-map'}, 'labelStyle'), isNull);

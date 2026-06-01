@@ -6,7 +6,11 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   final countries = [
     Country.fromMap({'id': '840', 'name': 'United States', 'iso_3166_2': 'US'}),
-    Country.fromMap({'id': '826', 'name': 'United Kingdom', 'iso_3166_2': 'GB'}),
+    Country.fromMap({
+      'id': '826',
+      'name': 'United Kingdom',
+      'iso_3166_2': 'GB',
+    }),
   ];
 
   group('resolveCountryId', () {
@@ -40,26 +44,32 @@ void main() {
       expect(resolveCountryId(const [], iso2: 'US', name: 'United States'), '');
     });
 
-    test('displayLabel prefers the full name, then displayName, org, email', () {
-      expect(
-        const DeviceContactImport(firstName: 'Ada', lastName: 'Lovelace')
-            .displayLabel,
-        'Ada Lovelace',
-      );
-      expect(
-        const DeviceContactImport(displayName: 'Ada L.').displayLabel,
-        'Ada L.',
-      );
-      expect(
-        const DeviceContactImport(organization: 'Analytical Engines')
-            .displayLabel,
-        'Analytical Engines',
-      );
-      expect(
-        const DeviceContactImport(email: 'ada@x.test').displayLabel,
-        'ada@x.test',
-      );
-    });
+    test(
+      'displayLabel prefers the full name, then displayName, org, email',
+      () {
+        expect(
+          const DeviceContactImport(
+            firstName: 'Ada',
+            lastName: 'Lovelace',
+          ).displayLabel,
+          'Ada Lovelace',
+        );
+        expect(
+          const DeviceContactImport(displayName: 'Ada L.').displayLabel,
+          'Ada L.',
+        );
+        expect(
+          const DeviceContactImport(
+            organization: 'Analytical Engines',
+          ).displayLabel,
+          'Analytical Engines',
+        );
+        expect(
+          const DeviceContactImport(email: 'ada@x.test').displayLabel,
+          'ada@x.test',
+        );
+      },
+    );
   });
 
   group('UnsupportedDeviceContactsService (web / non-iOS stub)', () {

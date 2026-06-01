@@ -55,9 +55,8 @@ Future<Client?> showMergeClientDialog(
                       label: ctx.tr('merge_into'),
                       items: clients,
                       initialValue: selected,
-                      displayString: (c) => c.displayName.isEmpty
-                          ? c.name
-                          : c.displayName,
+                      displayString: (c) =>
+                          c.displayName.isEmpty ? c.name : c.displayName,
                       idOf: (c) => c.id,
                       onChanged: (c) => setState(() => selected = c),
                     );
@@ -68,16 +67,12 @@ Future<Client?> showMergeClientDialog(
           ),
           actions: [
             OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(64, 40),
-              ),
+              style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
               onPressed: () => Navigator.of(ctx).pop(),
               child: Text(ctx.tr('cancel')),
             ),
             FilledButton(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(64, 44),
-              ),
+              style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
               onPressed: selected == null
                   ? null
                   : () => Navigator.of(ctx).pop(selected),

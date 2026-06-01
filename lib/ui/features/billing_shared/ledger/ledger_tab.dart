@@ -98,8 +98,8 @@ class _LedgerTabState extends State<LedgerTab> {
     final visible = _active.isEmpty
         ? entries
         : entries
-            .where((e) => e.isOpening || _active.contains(e.kind))
-            .toList();
+              .where((e) => e.isOpening || _active.contains(e.kind))
+              .toList();
     final summary = _LedgerSummary(
       scope: widget.scope,
       balance: widget.summaryBalance,
@@ -167,20 +167,20 @@ class _LedgerTabState extends State<LedgerTab> {
 }
 
 String _kindLabelKey(LedgerKind k) => switch (k) {
-      LedgerKind.invoice => 'invoices',
-      LedgerKind.payment => 'payments',
-      LedgerKind.credit => 'credits',
-      LedgerKind.expense => 'expenses',
-      LedgerKind.purchaseOrder => 'purchase_orders',
-    };
+  LedgerKind.invoice => 'invoices',
+  LedgerKind.payment => 'payments',
+  LedgerKind.credit => 'credits',
+  LedgerKind.expense => 'expenses',
+  LedgerKind.purchaseOrder => 'purchase_orders',
+};
 
 IconData _kindIcon(LedgerKind k) => switch (k) {
-      LedgerKind.invoice => Icons.receipt_long_outlined,
-      LedgerKind.payment => Icons.payments_outlined,
-      LedgerKind.credit => Icons.credit_card_outlined,
-      LedgerKind.expense => Icons.account_balance_wallet_outlined,
-      LedgerKind.purchaseOrder => Icons.shopping_bag_outlined,
-    };
+  LedgerKind.invoice => Icons.receipt_long_outlined,
+  LedgerKind.payment => Icons.payments_outlined,
+  LedgerKind.credit => Icons.credit_card_outlined,
+  LedgerKind.expense => Icons.account_balance_wallet_outlined,
+  LedgerKind.purchaseOrder => Icons.shopping_bag_outlined,
+};
 
 class _LedgerRow extends StatelessWidget {
   const _LedgerRow({
@@ -206,74 +206,75 @@ class _LedgerRow extends StatelessWidget {
     final opening = entry.isOpening;
     final isDebit = entry.adjustment > Decimal.zero;
     final amountColor = isDebit ? tokens.overdue : tokens.paid;
-    final dateStr =
-        entry.date == null ? '' : (f?.date(entry.date!.toIso()) ?? '');
+    final dateStr = entry.date == null
+        ? ''
+        : (f?.date(entry.date!.toIso()) ?? '');
     final label = opening
         ? openingLabel
         : (entry.number.isEmpty
-            ? context.tr(_kindLabelKey(entry.kind))
-            : '${context.tr(entry.kind.name)} #${entry.number}');
+              ? context.tr(_kindLabelKey(entry.kind))
+              : '${context.tr(entry.kind.name)} #${entry.number}');
     final body = Container(
-        decoration: BoxDecoration(
-          border: isLast
-              ? null
-              : Border(bottom: BorderSide(color: tokens.border)),
-        ),
-        padding: EdgeInsets.symmetric(
-          vertical: InSpacing.md(context),
-          horizontal: 4,
-        ),
-        child: Row(
-          children: [
-            Icon(
-              opening ? Icons.flag_outlined : _kindIcon(entry.kind),
-              size: 20,
-              color: tokens.ink3,
-            ),
-            SizedBox(width: InSpacing.md(context)),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: tokens.ink,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  if (dateStr.isNotEmpty)
-                    Text(
-                      dateStr,
-                      style: TextStyle(fontSize: 12, color: tokens.ink3),
-                    ),
-                ],
-              ),
-            ),
-            SizedBox(width: InSpacing.md(context)),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+      decoration: BoxDecoration(
+        border: isLast
+            ? null
+            : Border(bottom: BorderSide(color: tokens.border)),
+      ),
+      padding: EdgeInsets.symmetric(
+        vertical: InSpacing.md(context),
+        horizontal: 4,
+      ),
+      child: Row(
+        children: [
+          Icon(
+            opening ? Icons.flag_outlined : _kindIcon(entry.kind),
+            size: 20,
+            color: tokens.ink3,
+          ),
+          SizedBox(width: InSpacing.md(context)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  (opening || f == null) ? '' : f.money(entry.adjustment),
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: amountColor,
+                    color: tokens.ink,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                Text(
-                  f == null ? '' : f.money(entry.runningBalance),
-                  style: TextStyle(fontSize: 12, color: tokens.ink3),
-                ),
+                if (dateStr.isNotEmpty)
+                  Text(
+                    dateStr,
+                    style: TextStyle(fontSize: 12, color: tokens.ink3),
+                  ),
               ],
             ),
-          ],
-        ),
-      );
+          ),
+          SizedBox(width: InSpacing.md(context)),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                (opening || f == null) ? '' : f.money(entry.adjustment),
+                style: TextStyle(
+                  color: amountColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                f == null ? '' : f.money(entry.runningBalance),
+                style: TextStyle(fontSize: 12, color: tokens.ink3),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
     if (opening) return body;
     return InkWell(
       onTap: () => goEntityRecord(context, entry.kind.entityType, entry.id),
@@ -384,7 +385,8 @@ class _LedgerStreams extends StatefulWidget {
     BuildContext context,
     List<LedgerEntry> entries,
     bool loading,
-  ) builder;
+  )
+  builder;
 
   @override
   State<_LedgerStreams> createState() => _LedgerStreamsState();

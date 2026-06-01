@@ -194,9 +194,7 @@ void main() {
   }) {
     final repo = _StubCompanyRepo(db: db, api: companiesApi, company: company);
     return _FakeServices(
-      auth: _FakeAuth(
-        ValueNotifier(_session(plan: plan, isHosted: isHosted)),
-      ),
+      auth: _FakeAuth(ValueNotifier(_session(plan: plan, isHosted: isHosted))),
       company: repo,
       clients: clientRepo,
       db: db,
@@ -212,43 +210,42 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets(
-    'all modules enabled + paid plan → 12 tabs visible, no banner',
-    (tester) async {
-      final services = makeServices(
-        company: Company(id: 'co-A', enabledModules: _allModules()),
+  testWidgets('all modules enabled + paid plan → 12 tabs visible, no banner', (
+    tester,
+  ) async {
+    final services = makeServices(
+      company: Company(id: 'co-A', enabledModules: _allModules()),
+    );
+    await tester.pumpWidget(_host(services: services));
+    await settle(tester);
+
+    // 12 entity tabs in display order. Text is the localized label,
+    // which capitalizes the slug (`company` → "Company", etc.).
+    for (final label in const [
+      'Company',
+      'Clients',
+      'Products',
+      'Invoices',
+      'Payments',
+      'Quotes',
+      'Credits',
+      'Projects',
+      'Tasks',
+      'Vendors',
+      'Expenses',
+      'Users',
+    ]) {
+      expect(
+        find.descendant(of: find.byType(Tab), matching: find.text(label)),
+        findsOneWidget,
+        reason: 'expected tab "$label" to be visible',
       );
-      await tester.pumpWidget(_host(services: services));
-      await settle(tester);
+    }
+    // Pro plan → no upgrade banner.
+    expect(find.text('Manage Plan'), findsNothing);
 
-      // 12 entity tabs in display order. Text is the localized label,
-      // which capitalizes the slug (`company` → "Company", etc.).
-      for (final label in const [
-        'Company',
-        'Clients',
-        'Products',
-        'Invoices',
-        'Payments',
-        'Quotes',
-        'Credits',
-        'Projects',
-        'Tasks',
-        'Vendors',
-        'Expenses',
-        'Users',
-      ]) {
-        expect(
-          find.descendant(of: find.byType(Tab), matching: find.text(label)),
-          findsOneWidget,
-          reason: 'expected tab "$label" to be visible',
-        );
-      }
-      // Pro plan → no upgrade banner.
-      expect(find.text('Manage Plan'), findsNothing);
-
-      await tester.pumpWidget(const SizedBox.shrink());
-    },
-  );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
   testWidgets(
     'enabledModules = 0 → only 4 tabs (company / clients / products / users)',
@@ -315,34 +312,33 @@ void main() {
     },
   );
 
-  testWidgets(
-    'deep link to a hidden tab falls back to the first visible tab',
-    (tester) async {
-      // Tasks module disabled, but URL targets `/settings/custom_fields/tasks`.
-      final services = makeServices(
-        company: const Company(id: 'co-A', enabledModules: 0),
-      );
-      await tester.pumpWidget(
-        _host(
-          services: services,
-          initialLocation: '/settings/custom_fields/tasks',
-        ),
-      );
-      await settle(tester);
+  testWidgets('deep link to a hidden tab falls back to the first visible tab', (
+    tester,
+  ) async {
+    // Tasks module disabled, but URL targets `/settings/custom_fields/tasks`.
+    final services = makeServices(
+      company: const Company(id: 'co-A', enabledModules: 0),
+    );
+    await tester.pumpWidget(
+      _host(
+        services: services,
+        initialLocation: '/settings/custom_fields/tasks',
+      ),
+    );
+    await settle(tester);
 
-      // The shell should resolve to the first visible tab (Company / empty
-      // slug). The Tasks tab itself is gone from the TabBar.
-      expect(
-        find.descendant(of: find.byType(Tab), matching: find.text('Tasks')),
-        findsNothing,
-      );
-      // The Company tab body's section card shows the localized
-      // `company_field` title.
-      expect(find.text('Company Field'), findsOneWidget);
+    // The shell should resolve to the first visible tab (Company / empty
+    // slug). The Tasks tab itself is gone from the TabBar.
+    expect(
+      find.descendant(of: find.byType(Tab), matching: find.text('Tasks')),
+      findsNothing,
+    );
+    // The Company tab body's section card shows the localized
+    // `company_field` title.
+    expect(find.text('Company Field'), findsOneWidget);
 
-      await tester.pumpWidget(const SizedBox.shrink());
-    },
-  );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
   // Regression test for Finding 1 — the type dropdown must follow the draft
   // when `vm.reset()` reverts a user edit. Without the ValueKey idiom in
@@ -432,10 +428,7 @@ void main() {
 
       // Switch to the Invoices tab. By now the TabBar has laid out cleanly.
       await tester.tap(
-        find.descendant(
-          of: find.byType(Tab),
-          matching: find.text('Invoices'),
-        ),
+        find.descendant(of: find.byType(Tab), matching: find.text('Invoices')),
       );
       await settle(tester);
 

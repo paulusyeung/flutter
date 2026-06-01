@@ -31,10 +31,7 @@ void main() {
   testWidgets(
     'slim mode renders only the total row — no subtotal/tax breakdown',
     (tester) async {
-      await pump(
-        tester,
-        TotalsWidget(totals: totals, dense: true, slim: true),
-      );
+      await pump(tester, TotalsWidget(totals: totals, dense: true, slim: true));
       await tester.pump();
 
       expect(find.text('Total'), findsOneWidget);
@@ -43,17 +40,16 @@ void main() {
     },
   );
 
-  testWidgets(
-    'non-slim dense mode still renders the full breakdown',
-    (tester) async {
-      await pump(tester, TotalsWidget(totals: totals, dense: true));
-      await tester.pump();
+  testWidgets('non-slim dense mode still renders the full breakdown', (
+    tester,
+  ) async {
+    await pump(tester, TotalsWidget(totals: totals, dense: true));
+    await tester.pump();
 
-      expect(find.text('Subtotal'), findsOneWidget);
-      expect(find.text('VAT'), findsOneWidget);
-      expect(find.text('Total'), findsOneWidget);
-    },
-  );
+    expect(find.text('Subtotal'), findsOneWidget);
+    expect(find.text('VAT'), findsOneWidget);
+    expect(find.text('Total'), findsOneWidget);
+  });
 
   // The card chrome is the only BoxDecoration with a borderRadius
   // (InRadii.r3); per-row rules use a plain Border with no radius, so
@@ -72,10 +68,7 @@ void main() {
   testWidgets(
     'bordered:false renders the rows with no card border decoration',
     (tester) async {
-      await pump(
-        tester,
-        TotalsWidget(totals: totals, bordered: false),
-      );
+      await pump(tester, TotalsWidget(totals: totals, bordered: false));
       await tester.pump();
 
       expect(find.text('Subtotal'), findsOneWidget);
@@ -84,12 +77,11 @@ void main() {
     },
   );
 
-  testWidgets(
-    'default (bordered:true) keeps the card border decoration',
-    (tester) async {
-      await pump(tester, TotalsWidget(totals: totals));
-      await tester.pump();
-      expect(hasBorderedBox(tester), isTrue);
-    },
-  );
+  testWidgets('default (bordered:true) keeps the card border decoration', (
+    tester,
+  ) async {
+    await pump(tester, TotalsWidget(totals: totals));
+    await tester.pump();
+    expect(hasBorderedBox(tester), isTrue);
+  });
 }

@@ -16,23 +16,23 @@ import 'package:http/testing.dart';
 /// session + credentials + secure-storage tokens. Kept in its own file so
 /// it doesn't touch the large, concurrently-edited `auth_repository_test`.
 String _envelopeJson() => jsonEncode({
-      'data': [
-        {
-          'is_admin': true,
-          'is_owner': true,
-          'permissions': 'view_client',
-          'user': {'id': 'user_1'},
-          'company': {'id': 'co_1', 'name': 'Acme'},
-          'token': {'token': 'tok_1'},
-          'account': {
-            'id': 'acct_1',
-            'default_company_id': 'co_1',
-            'plan': 'pro',
-            'num_trial_days': 14,
-          },
-        },
-      ],
-    });
+  'data': [
+    {
+      'is_admin': true,
+      'is_owner': true,
+      'permissions': 'view_client',
+      'user': {'id': 'user_1'},
+      'company': {'id': 'co_1', 'name': 'Acme'},
+      'token': {'token': 'tok_1'},
+      'account': {
+        'id': 'acct_1',
+        'default_company_id': 'co_1',
+        'plan': 'pro',
+        'num_trial_days': 14,
+      },
+    },
+  ],
+});
 
 void main() {
   late AppDatabase db;

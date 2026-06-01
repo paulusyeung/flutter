@@ -422,11 +422,12 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi>
     final next = current.where((d) => d.id != documentId).toList();
     if (next.length == current.length) return;
     await (db.update(db.products)
-          ..where((p) => p.companyId.equals(companyId) & p.id.equals(entityId))).write(
-      ProductsCompanion(
-        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
-      ),
-    );
+          ..where((p) => p.companyId.equals(companyId) & p.id.equals(entityId)))
+        .write(
+          ProductsCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   /// Replace (or insert) one document in the product's local `documents`
@@ -449,11 +450,12 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi>
       next.add(document);
     }
     await (db.update(db.products)
-          ..where((p) => p.companyId.equals(companyId) & p.id.equals(entityId))).write(
-      ProductsCompanion(
-        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
-      ),
-    );
+          ..where((p) => p.companyId.equals(companyId) & p.id.equals(entityId)))
+        .write(
+          ProductsCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   Product _fromRow(ProductRow row) {

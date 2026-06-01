@@ -32,7 +32,13 @@ void main() {
       expect(r.w, 6);
     });
     test('clamps height to type max for divider', () {
-      final r = clampSize(type: 'divider', desiredW: 12, desiredH: 99, x: 0, y: 0);
+      final r = clampSize(
+        type: 'divider',
+        desiredW: 12,
+        desiredH: 99,
+        x: 0,
+        y: 0,
+      );
       expect(r.h, 2);
     });
     test('honors a custom totalCols', () {

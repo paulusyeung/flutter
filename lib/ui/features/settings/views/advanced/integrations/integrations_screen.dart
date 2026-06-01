@@ -26,20 +26,17 @@ class IntegrationsScreen extends StatelessWidget {
               _IntegrationTile(
                 icon: Icons.lock_outline,
                 labelKey: 'api_tokens',
-                onTap: () =>
-                    context.go('/settings/integrations/api_tokens'),
+                onTap: () => context.go('/settings/integrations/api_tokens'),
               ),
               _IntegrationTile(
                 icon: Icons.webhook_outlined,
                 labelKey: 'api_webhooks',
-                onTap: () =>
-                    context.go('/settings/integrations/api_webhooks'),
+                onTap: () => context.go('/settings/integrations/api_webhooks'),
               ),
               _IntegrationTile(
                 icon: Icons.analytics_outlined,
                 labelKey: 'analytics',
-                onTap: () =>
-                    context.go('/settings/integrations/analytics'),
+                onTap: () => context.go('/settings/integrations/analytics'),
               ),
             ],
           ),

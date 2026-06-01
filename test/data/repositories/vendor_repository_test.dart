@@ -30,11 +30,7 @@ class _VendorFixture
     required String id,
     String? displayValue,
     int updatedAt = 1700000000,
-  }) => VendorApi(
-    id: id,
-    name: displayValue ?? id,
-    updatedAt: updatedAt,
-  );
+  }) => VendorApi(id: id, name: displayValue ?? id, updatedAt: updatedAt);
 
   @override
   Vendor fromApi(VendorApi api) => Vendor.fromApi(api);

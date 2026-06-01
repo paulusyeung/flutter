@@ -53,9 +53,9 @@ class PreviewController extends ChangeNotifier
     required TemplatesApi api,
     Duration debounce = const Duration(milliseconds: 400),
     Duration timeout = const Duration(seconds: 15),
-  })  : _api = api,
-        _debounce = debounce,
-        _timeout = timeout;
+  }) : _api = api,
+       _debounce = debounce,
+       _timeout = timeout;
 
   final TemplatesApi _api;
   final Duration _debounce;
@@ -98,11 +98,7 @@ class PreviewController extends ChangeNotifier
     notifyListeners();
     try {
       final preview = await _api
-          .render(
-            template: req.template,
-            subject: req.subject,
-            body: req.body,
-          )
+          .render(template: req.template, subject: req.subject, body: req.body)
           .timeout(_timeout);
       if (_disposed || token != _currentToken) return; // disposed or stale
       _value = TemplatePreviewLoaded(preview);

@@ -13,10 +13,7 @@ void main() {
     });
 
     test('AU (country_id=36) routes to the disabled AU placeholder', () {
-      expect(
-        sellerSubregionForCountryId('36'),
-        SellerSubregionKind.australia,
-      );
+      expect(sellerSubregionForCountryId('36'), SellerSubregionKind.australia);
     });
 
     test('GB / UK (country_id=826) routes to the disabled GB placeholder', () {
@@ -42,23 +39,46 @@ void main() {
       expect(kTaxRegionsWithSalesThreshold, {'EU', 'UK'});
     });
 
-    test(
-      'kEuCalculateTaxesCountries covers all React EU/EEA ISO codes',
-      () {
-        // 33 codes — 32 in `eu-countries.ts` (Spain has 3 sub-territories)
-        // plus the EU/EEA non-EU members (NO/IS/LI). Match the React
-        // canonical list exactly so the picker offers the same options.
-        expect(
-          kEuCalculateTaxesCountries.keys.toSet(),
-          {
-            'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR',
-            'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'NO', 'IS',
-            'LI', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'ES-CN',
-            'ES-ML', 'ES-CE', 'SE',
-          },
-        );
-      },
-    );
+    test('kEuCalculateTaxesCountries covers all React EU/EEA ISO codes', () {
+      // 33 codes — 32 in `eu-countries.ts` (Spain has 3 sub-territories)
+      // plus the EU/EEA non-EU members (NO/IS/LI). Match the React
+      // canonical list exactly so the picker offers the same options.
+      expect(kEuCalculateTaxesCountries.keys.toSet(), {
+        'AT',
+        'BE',
+        'BG',
+        'HR',
+        'CY',
+        'CZ',
+        'DK',
+        'EE',
+        'FI',
+        'FR',
+        'DE',
+        'GR',
+        'HU',
+        'IE',
+        'IT',
+        'LV',
+        'LT',
+        'LU',
+        'NO',
+        'IS',
+        'LI',
+        'MT',
+        'NL',
+        'PL',
+        'PT',
+        'RO',
+        'SK',
+        'SI',
+        'ES',
+        'ES-CN',
+        'ES-ML',
+        'ES-CE',
+        'SE',
+      });
+    });
 
     test('kUsStates contains 50 states + DC', () {
       expect(kUsStates.length, 51);

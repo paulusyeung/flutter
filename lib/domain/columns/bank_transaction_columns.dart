@@ -18,8 +18,7 @@ class BankTransactionColumnIds {
   static const String deposit = 'deposit';
   static const String withdrawal = 'withdrawal';
   static const String date = BankTransactionFieldIds.date;
-  static const String participantName =
-      BankTransactionFieldIds.participantName;
+  static const String participantName = BankTransactionFieldIds.participantName;
   static const String description = BankTransactionFieldIds.description;
   static const String bankAccountId = 'bank_account_id';
   static const String invoices = 'invoices';
@@ -44,122 +43,118 @@ const List<String> kDefaultBankTransactionColumns = <String>[
 
 final List<BankTransactionColumn> kAllBankTransactionColumns =
     <BankTransactionColumn>[
-  // Wide-mode column renders the colored TransactionStatusPill (dot +
-  // localized label) so the visual vocabulary matches the narrow row
-  // tile and the detail-screen header. `valueBuilder` still exposes the
-  // raw `status_id` for clipboard copy + sort.
-  BankTransactionColumn(
-    id: BankTransactionColumnIds.status,
-    labelKey: 'status',
-    width: 130,
-    cellBuilder: (t, _) => TransactionStatusPill(statusId: t.statusId),
-    valueBuilder: (t) => t.statusId,
-  ),
-  // Deposits column — only populated for CREDIT rows (per the React UX).
-  // Sort by `amount`, not `deposit` (the column id is display-only).
-  BankTransactionColumn(
-    id: BankTransactionColumnIds.deposit,
-    labelKey: 'deposit',
-    width: 130,
-    align: ColumnAlign.end,
-    cellBuilder: (t, context) =>
-        t.isDeposit
+      // Wide-mode column renders the colored TransactionStatusPill (dot +
+      // localized label) so the visual vocabulary matches the narrow row
+      // tile and the detail-screen header. `valueBuilder` still exposes the
+      // raw `status_id` for clipboard copy + sort.
+      BankTransactionColumn(
+        id: BankTransactionColumnIds.status,
+        labelKey: 'status',
+        width: 130,
+        cellBuilder: (t, _) => TransactionStatusPill(statusId: t.statusId),
+        valueBuilder: (t) => t.statusId,
+      ),
+      // Deposits column — only populated for CREDIT rows (per the React UX).
+      // Sort by `amount`, not `deposit` (the column id is display-only).
+      BankTransactionColumn(
+        id: BankTransactionColumnIds.deposit,
+        labelKey: 'deposit',
+        width: 130,
+        align: ColumnAlign.end,
+        cellBuilder: (t, context) => t.isDeposit
             ? cellMoney(t.amount, context, currencyId: t.currencyId)
             : cellEmpty(),
-    valueBuilder: (t) =>
-        t.isDeposit ? cellMoneyValue(t.amount) : null,
-  ),
-  BankTransactionColumn(
-    id: BankTransactionColumnIds.withdrawal,
-    labelKey: 'withdrawal',
-    width: 130,
-    align: ColumnAlign.end,
-    cellBuilder: (t, context) =>
-        t.isWithdrawal
+        valueBuilder: (t) => t.isDeposit ? cellMoneyValue(t.amount) : null,
+      ),
+      BankTransactionColumn(
+        id: BankTransactionColumnIds.withdrawal,
+        labelKey: 'withdrawal',
+        width: 130,
+        align: ColumnAlign.end,
+        cellBuilder: (t, context) => t.isWithdrawal
             ? cellMoney(t.amount, context, currencyId: t.currencyId)
             : cellEmpty(),
-    valueBuilder: (t) =>
-        t.isWithdrawal ? cellMoneyValue(t.amount) : null,
-  ),
-  BankTransactionColumn(
-    id: BankTransactionColumnIds.amount,
-    labelKey: 'amount',
-    width: 130,
-    align: ColumnAlign.end,
-    cellBuilder: (t, context) => cellMoney(t.amount, context, currencyId: t.currencyId),
-    valueBuilder: (t) => cellMoneyValue(t.amount),
-  ),
-  BankTransactionColumn(
-    id: BankTransactionColumnIds.date,
-    labelKey: 'date',
-    width: 120,
-    cellBuilder: (t, ctx) => t.date == null
-        ? cellEmpty()
-        : cellDate(t.date!.toDateTime(), ctx),
-    valueBuilder: (t) => t.date?.toIso(),
-  ),
-  BankTransactionColumn(
-    id: BankTransactionColumnIds.participantName,
-    labelKey: 'participant_name',
-    width: 200,
-    cellBuilder: (t, _) =>
-        t.participantName.isEmpty ? cellEmpty() : cellText(t.participantName),
-    valueBuilder: (t) => cellNonZeroString(t.participantName),
-  ),
-  BankTransactionColumn(
-    id: BankTransactionColumnIds.description,
-    labelKey: 'description',
-    width: 240,
-    cellBuilder: (t, _) =>
-        t.description.isEmpty ? cellEmpty() : cellText(t.description),
-    valueBuilder: (t) => cellNonZeroString(t.description),
-  ),
-  BankTransactionColumn(
-    id: BankTransactionColumnIds.bankAccountId,
-    labelKey: 'bank_account',
-    width: 180,
-    cellBuilder: (t, _) =>
-        t.bankAccountId.isEmpty
-        ? cellEmpty()
-        : BankAccountNameLabel(bankAccountId: t.bankAccountId, link: true),
-    valueBuilder: (t) => cellNonZeroString(t.bankAccountId),
-  ),
-  BankTransactionColumn(
-    id: BankTransactionColumnIds.invoices,
-    labelKey: 'invoices',
-    width: 160,
-    cellBuilder: (t, _) {
-      final ids = t.linkedInvoiceIds;
-      return ids.isEmpty ? cellEmpty() : cellText(ids.join(', '));
-    },
-    valueBuilder: (t) => cellNonZeroString(t.invoiceIds),
-  ),
-  BankTransactionColumn(
-    id: BankTransactionColumnIds.expenses,
-    labelKey: 'expense',
-    width: 160,
-    cellBuilder: (t, _) {
-      final ids = t.linkedExpenseIds;
-      return ids.isEmpty ? cellEmpty() : cellText(ids.join(', '));
-    },
-    valueBuilder: (t) => cellNonZeroString(t.expenseId),
-  ),
-  BankTransactionColumn(
-    id: BankTransactionColumnIds.currencyId,
-    labelKey: 'currency',
-    width: 100,
-    cellBuilder: (t, _) =>
-        t.currencyId.isEmpty ? cellEmpty() : cellText(t.currencyId),
-    valueBuilder: (t) => cellNonZeroString(t.currencyId),
-  ),
-  BankTransactionColumn(
-    id: BankTransactionColumnIds.updatedAt,
-    labelKey: 'last_updated',
-    width: 120,
-    cellBuilder: (t, ctx) => cellDate(t.updatedAt, ctx),
-    valueBuilder: (t) => t.updatedAt.toIso8601String(),
-  ),
-];
+        valueBuilder: (t) => t.isWithdrawal ? cellMoneyValue(t.amount) : null,
+      ),
+      BankTransactionColumn(
+        id: BankTransactionColumnIds.amount,
+        labelKey: 'amount',
+        width: 130,
+        align: ColumnAlign.end,
+        cellBuilder: (t, context) =>
+            cellMoney(t.amount, context, currencyId: t.currencyId),
+        valueBuilder: (t) => cellMoneyValue(t.amount),
+      ),
+      BankTransactionColumn(
+        id: BankTransactionColumnIds.date,
+        labelKey: 'date',
+        width: 120,
+        cellBuilder: (t, ctx) =>
+            t.date == null ? cellEmpty() : cellDate(t.date!.toDateTime(), ctx),
+        valueBuilder: (t) => t.date?.toIso(),
+      ),
+      BankTransactionColumn(
+        id: BankTransactionColumnIds.participantName,
+        labelKey: 'participant_name',
+        width: 200,
+        cellBuilder: (t, _) => t.participantName.isEmpty
+            ? cellEmpty()
+            : cellText(t.participantName),
+        valueBuilder: (t) => cellNonZeroString(t.participantName),
+      ),
+      BankTransactionColumn(
+        id: BankTransactionColumnIds.description,
+        labelKey: 'description',
+        width: 240,
+        cellBuilder: (t, _) =>
+            t.description.isEmpty ? cellEmpty() : cellText(t.description),
+        valueBuilder: (t) => cellNonZeroString(t.description),
+      ),
+      BankTransactionColumn(
+        id: BankTransactionColumnIds.bankAccountId,
+        labelKey: 'bank_account',
+        width: 180,
+        cellBuilder: (t, _) => t.bankAccountId.isEmpty
+            ? cellEmpty()
+            : BankAccountNameLabel(bankAccountId: t.bankAccountId, link: true),
+        valueBuilder: (t) => cellNonZeroString(t.bankAccountId),
+      ),
+      BankTransactionColumn(
+        id: BankTransactionColumnIds.invoices,
+        labelKey: 'invoices',
+        width: 160,
+        cellBuilder: (t, _) {
+          final ids = t.linkedInvoiceIds;
+          return ids.isEmpty ? cellEmpty() : cellText(ids.join(', '));
+        },
+        valueBuilder: (t) => cellNonZeroString(t.invoiceIds),
+      ),
+      BankTransactionColumn(
+        id: BankTransactionColumnIds.expenses,
+        labelKey: 'expense',
+        width: 160,
+        cellBuilder: (t, _) {
+          final ids = t.linkedExpenseIds;
+          return ids.isEmpty ? cellEmpty() : cellText(ids.join(', '));
+        },
+        valueBuilder: (t) => cellNonZeroString(t.expenseId),
+      ),
+      BankTransactionColumn(
+        id: BankTransactionColumnIds.currencyId,
+        labelKey: 'currency',
+        width: 100,
+        cellBuilder: (t, _) =>
+            t.currencyId.isEmpty ? cellEmpty() : cellText(t.currencyId),
+        valueBuilder: (t) => cellNonZeroString(t.currencyId),
+      ),
+      BankTransactionColumn(
+        id: BankTransactionColumnIds.updatedAt,
+        labelKey: 'last_updated',
+        width: 120,
+        cellBuilder: (t, ctx) => cellDate(t.updatedAt, ctx),
+        valueBuilder: (t) => t.updatedAt.toIso8601String(),
+      ),
+    ];
 
 final Map<String, BankTransactionColumn> bankTransactionColumnsById = {
   for (final c in kAllBankTransactionColumns) c.id: c,

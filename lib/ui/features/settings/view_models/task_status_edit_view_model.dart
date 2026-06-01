@@ -20,10 +20,10 @@ class TaskStatusEditViewModel extends GenericEditViewModel<TaskStatus> {
     super.sync,
     super.connectivity,
   }) : super(
-          initialDraft: existing ?? _emptyStatus(),
-          original: existing,
-          companyId: companyId,
-        );
+         initialDraft: existing ?? _emptyStatus(),
+         original: existing,
+         companyId: companyId,
+       );
 
   final TaskStatusRepository repo;
   final String companyId;

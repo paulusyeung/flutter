@@ -108,119 +108,95 @@ class _AccountManagementSecuritySettingsScreenState
           company.defaultPasswordTimeout,
           opts,
         );
-        final sessionTimeoutValue = _snapToOption(
-                  company.sessionTimeout,
-                  opts,
-                );
+        final sessionTimeoutValue = _snapToOption(company.sessionTimeout, opts);
 
-                Future<void> applyAndSave(Company draft) async {
-                  try {
-                    await services.company.updateCompany(draft: draft);
-                  } catch (e) {
-                    if (!context.mounted) return;
-                    Notify.error(
-                      context,
-                      context.tr('error_refresh_page'),
-                      error: e,
-                    );
-                  }
-                }
+        Future<void> applyAndSave(Company draft) async {
+          try {
+            await services.company.updateCompany(draft: draft);
+          } catch (e) {
+            if (!context.mounted) return;
+            Notify.error(context, context.tr('error_refresh_page'), error: e);
+          }
+        }
 
-                return SettingsFormShell(
-                  sections: [
-                    FormSection(
-                      title: context.tr('security_settings'),
-                      children: [
-                        DropdownButtonFormField<int>(
-                          initialValue: passwordTimeoutValue,
-                          decoration: InputDecoration(
-                            labelText: context.tr('password_timeout'),
-                            border: const OutlineInputBorder(),
-                          ),
-                          items: [
-                            for (final o in opts)
-                              DropdownMenuItem<int>(
-                                value: o.ms,
-                                child: Text(o.label),
-                              ),
-                          ],
-                          onChanged: (v) {
-                            if (v == null) return;
-                            applyAndSave(
-                              company.copyWith(defaultPasswordTimeout: v),
-                            );
-                          },
-                        ),
-                        DropdownButtonFormField<int>(
-                          initialValue: sessionTimeoutValue,
-                          decoration: InputDecoration(
-                            labelText: context.tr('web_session_timeout'),
-                            border: const OutlineInputBorder(),
-                          ),
-                          items: [
-                            for (final o in opts)
-                              DropdownMenuItem<int>(
-                                value: o.ms,
-                                child: Text(o.label),
-                              ),
-                          ],
-                          onChanged: (v) {
-                            if (v == null) return;
-                            applyAndSave(company.copyWith(sessionTimeout: v));
-                          },
-                        ),
-                        DropdownButtonFormField<bool>(
-                          initialValue: company.oauthPasswordRequired,
-                          decoration: InputDecoration(
-                            labelText: context.tr(
-                              'require_password_with_social_login',
-                            ),
-                            border: const OutlineInputBorder(),
-                          ),
-                          items: [
-                            DropdownMenuItem<bool>(
-                              value: false,
-                              child: Text(context.tr('no')),
-                            ),
-                            DropdownMenuItem<bool>(
-                              value: true,
-                              child: Text(context.tr('yes')),
-                            ),
-                          ],
-                          onChanged: (v) {
-                            if (v == null) return;
-                            applyAndSave(
-                              company.copyWith(oauthPasswordRequired: v),
-                            );
-                          },
-                        ),
-                      ],
+        return SettingsFormShell(
+          sections: [
+            FormSection(
+              title: context.tr('security_settings'),
+              children: [
+                DropdownButtonFormField<int>(
+                  initialValue: passwordTimeoutValue,
+                  decoration: InputDecoration(
+                    labelText: context.tr('password_timeout'),
+                    border: const OutlineInputBorder(),
+                  ),
+                  items: [
+                    for (final o in opts)
+                      DropdownMenuItem<int>(value: o.ms, child: Text(o.label)),
+                  ],
+                  onChanged: (v) {
+                    if (v == null) return;
+                    applyAndSave(company.copyWith(defaultPasswordTimeout: v));
+                  },
+                ),
+                DropdownButtonFormField<int>(
+                  initialValue: sessionTimeoutValue,
+                  decoration: InputDecoration(
+                    labelText: context.tr('web_session_timeout'),
+                    border: const OutlineInputBorder(),
+                  ),
+                  items: [
+                    for (final o in opts)
+                      DropdownMenuItem<int>(value: o.ms, child: Text(o.label)),
+                  ],
+                  onChanged: (v) {
+                    if (v == null) return;
+                    applyAndSave(company.copyWith(sessionTimeout: v));
+                  },
+                ),
+                DropdownButtonFormField<bool>(
+                  initialValue: company.oauthPasswordRequired,
+                  decoration: InputDecoration(
+                    labelText: context.tr('require_password_with_social_login'),
+                    border: const OutlineInputBorder(),
+                  ),
+                  items: [
+                    DropdownMenuItem<bool>(
+                      value: false,
+                      child: Text(context.tr('no')),
                     ),
-                    FormSection(
-                      title: context.tr('end_all_sessions'),
-                      children: [
-                        Text(
-                          context.tr('end_all_sessions_help'),
-                          style: TextStyle(color: context.inTheme.ink2),
-                        ),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: OutlinedButton.icon(
-                            icon: Icon(
-                              Icons.logout,
-                              color: context.inTheme.overdue,
-                            ),
-                            label: Text(
-                              context.tr('end_all_sessions'),
-                              style: TextStyle(color: context.inTheme.overdue),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: const Size(160, 44),
-                              side: BorderSide(color: context.inTheme.overdue),
-                            ),
-                            onPressed: _endingSessions
-                        ? null
-                        : _onEndAllSessions,
+                    DropdownMenuItem<bool>(
+                      value: true,
+                      child: Text(context.tr('yes')),
+                    ),
+                  ],
+                  onChanged: (v) {
+                    if (v == null) return;
+                    applyAndSave(company.copyWith(oauthPasswordRequired: v));
+                  },
+                ),
+              ],
+            ),
+            FormSection(
+              title: context.tr('end_all_sessions'),
+              children: [
+                Text(
+                  context.tr('end_all_sessions_help'),
+                  style: TextStyle(color: context.inTheme.ink2),
+                ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    icon: Icon(Icons.logout, color: context.inTheme.overdue),
+                    label: Text(
+                      context.tr('end_all_sessions'),
+                      style: TextStyle(color: context.inTheme.overdue),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(160, 44),
+                      side: BorderSide(color: context.inTheme.overdue),
+                    ),
+                    onPressed: _endingSessions ? null : _onEndAllSessions,
                   ),
                 ),
               ],

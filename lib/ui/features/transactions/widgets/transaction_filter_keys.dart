@@ -69,20 +69,17 @@ class TransactionStatusFilterKey extends FilterKey {
     final q = query.trim().toLowerCase();
     final all = [
       for (final entry in _options(context).entries)
-        FilterValueSuggestion(
-          rawValue: entry.key,
-          displayLabel: entry.value,
-        ),
+        FilterValueSuggestion(rawValue: entry.key, displayLabel: entry.value),
     ];
     final filtered = q.isEmpty
         ? all
         : all
-            .where(
-              (s) =>
-                  s.displayLabel.toLowerCase().contains(q) ||
-                  s.rawValue.toLowerCase().contains(q),
-            )
-            .toList();
+              .where(
+                (s) =>
+                    s.displayLabel.toLowerCase().contains(q) ||
+                    s.rawValue.toLowerCase().contains(q),
+              )
+              .toList();
     return Stream.value(filtered);
   }
 
@@ -99,10 +96,7 @@ class TransactionStatusFilterKey extends FilterKey {
       if (hits.length >= _kQuickValueLimitPerKey) break;
       if (entry.value.toLowerCase().startsWith(q)) {
         hits.add(
-          FilterValueSuggestion(
-            rawValue: entry.key,
-            displayLabel: entry.value,
-          ),
+          FilterValueSuggestion(rawValue: entry.key, displayLabel: entry.value),
         );
       }
     }
@@ -117,10 +111,7 @@ class TransactionStatusFilterKey extends FilterKey {
     final wire = _normalize(rawValue);
     if (wire == null) return;
     final current = vm.extraFilters[_serverKey] ?? const <String>{};
-    await vm.setExtraFilter(
-      serverKey: _serverKey,
-      values: {...current, wire},
-    );
+    await vm.setExtraFilter(serverKey: _serverKey, values: {...current, wire});
   }
 
   @override
@@ -148,10 +139,8 @@ class TransactionStatusFilterKey extends FilterKey {
 
   /// Clear the whole status set in one VM write.
   @override
-  Future<void> clear(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-  ) => writeSingleExtraFilter(vm, _serverKey, null);
+  Future<void> clear(GenericListViewModel<dynamic> vm, BuildContext context) =>
+      writeSingleExtraFilter(vm, _serverKey, null);
 
   /// Accept either the wire id (`1`/`2`/`3`) or the localization key
   /// (`unmatched`/`matched`/`converted`) on `addValue` so users can type
@@ -243,12 +232,12 @@ class TransactionTypeFilterKey extends FilterKey {
       q.isEmpty
           ? all
           : all
-              .where(
-                (s) =>
-                    s.displayLabel.toLowerCase().contains(q) ||
-                    s.rawValue.toLowerCase().contains(q),
-              )
-              .toList(),
+                .where(
+                  (s) =>
+                      s.displayLabel.toLowerCase().contains(q) ||
+                      s.rawValue.toLowerCase().contains(q),
+                )
+                .toList(),
     );
   }
 

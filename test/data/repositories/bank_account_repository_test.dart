@@ -16,29 +16,33 @@ void main() {
       entityType: 'bank_account',
       buildRepo: (db) =>
           BankAccountRepository(db: db, api: _FakeBankAccountsApi()),
-      buildApiModel: ({
-        required String id,
-        String? displayValue,
-        int updatedAt = 1700000000,
-      }) => BankAccountApi(
-        id: id,
-        bankAccountName: displayValue ?? id,
-        updatedAt: updatedAt,
-      ),
+      buildApiModel:
+          ({
+            required String id,
+            String? displayValue,
+            int updatedAt = 1700000000,
+          }) => BankAccountApi(
+            id: id,
+            bankAccountName: displayValue ?? id,
+            updatedAt: updatedAt,
+          ),
       fromApi: BankAccount.fromApi,
       editCopy: (item, {required String displayValue}) =>
           item.copyWith(name: displayValue),
       idOf: (item) => item.id,
       isDirtyOf: (item) => item.isDirty,
       create: (repo, {required companyId, required draft}) =>
-          (repo as BankAccountRepository)
-              .create(companyId: companyId, draft: draft),
+          (repo as BankAccountRepository).create(
+            companyId: companyId,
+            draft: draft,
+          ),
       save: (repo, {required companyId, required entity}) =>
-          (repo as BankAccountRepository)
-              .save(companyId: companyId, account: entity),
+          (repo as BankAccountRepository).save(
+            companyId: companyId,
+            account: entity,
+          ),
       delete: (repo, {required companyId, required id}) =>
-          (repo as BankAccountRepository)
-              .delete(companyId: companyId, id: id),
+          (repo as BankAccountRepository).delete(companyId: companyId, id: id),
     ),
   );
 
@@ -55,22 +59,19 @@ void main() {
     BankAccountRepository makeRepo() =>
         BankAccountRepository(db: db, api: _FakeBankAccountsApi());
 
-    test(
-      'refreshAccounts enqueues a refreshAccounts mutation row '
-      'keyed under the synthetic kRefreshAccountsEntityId',
-      () async {
-        final repo = makeRepo();
-        await repo.refreshAccounts(companyId: 'co');
-        final rows = await db.outboxDao.watchAll('co').first;
-        final row = rows.firstWhere(
-          (r) => r.mutationKind == MutationKind.refreshAccounts.wireName,
-        );
-        // refresh isn't keyed to a single integration — verify the row
-        // uses the synthetic id so the outbox screen doesn't pretend
-        // otherwise.
-        expect(row.entityId, kRefreshAccountsEntityId);
-      },
-    );
+    test('refreshAccounts enqueues a refreshAccounts mutation row '
+        'keyed under the synthetic kRefreshAccountsEntityId', () async {
+      final repo = makeRepo();
+      await repo.refreshAccounts(companyId: 'co');
+      final rows = await db.outboxDao.watchAll('co').first;
+      final row = rows.firstWhere(
+        (r) => r.mutationKind == MutationKind.refreshAccounts.wireName,
+      );
+      // refresh isn't keyed to a single integration — verify the row
+      // uses the synthetic id so the outbox screen doesn't pretend
+      // otherwise.
+      expect(row.entityId, kRefreshAccountsEntityId);
+    });
 
     test('disabledUpstream + integrationType drives needsReconnect', () {
       final yodleeBroken = BankAccount.fromApi(
@@ -155,39 +156,32 @@ void main() {
       expect(cursor.isEmpty, isTrue);
     });
 
-    test(
-      'applyBundle preserves the local payload of an is_dirty row '
-      'so an offline edit is not clobbered by a re-bundle',
-      () async {
-        final repo = makeRepo();
-        final draft = BankAccount.fromApi(
-          const BankAccountApi(bankAccountName: 'Local Bank'),
-        );
-        await repo.create(companyId: 'co', draft: draft);
-        final dirtyBefore =
-            (await repo.watchPage(companyId: 'co').first).single;
-        expect(dirtyBefore.isDirty, isTrue);
+    test('applyBundle preserves the local payload of an is_dirty row '
+        'so an offline edit is not clobbered by a re-bundle', () async {
+      final repo = makeRepo();
+      final draft = BankAccount.fromApi(
+        const BankAccountApi(bankAccountName: 'Local Bank'),
+      );
+      await repo.create(companyId: 'co', draft: draft);
+      final dirtyBefore = (await repo.watchPage(companyId: 'co').first).single;
+      expect(dirtyBefore.isDirty, isTrue);
 
-        await repo.applyBundle(
-          companyId: 'co',
-          bundle: const [
-            BankAccountApi(
-              id: 'bi_server',
-              bankAccountName: 'Server Bank',
-              updatedAt: 1700000500,
-            ),
-          ],
-        );
-        final all = await repo.watchPage(companyId: 'co').first;
-        expect(all, hasLength(2));
-        expect(
-          all.map((a) => a.name).toSet(),
-          {'Local Bank', 'Server Bank'},
-        );
-        final stillDirty = all.firstWhere((a) => a.name == 'Local Bank');
-        expect(stillDirty.isDirty, isTrue);
-      },
-    );
+      await repo.applyBundle(
+        companyId: 'co',
+        bundle: const [
+          BankAccountApi(
+            id: 'bi_server',
+            bankAccountName: 'Server Bank',
+            updatedAt: 1700000500,
+          ),
+        ],
+      );
+      final all = await repo.watchPage(companyId: 'co').first;
+      expect(all, hasLength(2));
+      expect(all.map((a) => a.name).toSet(), {'Local Bank', 'Server Bank'});
+      final stillDirty = all.firstWhere((a) => a.name == 'Local Bank');
+      expect(stillDirty.isDirty, isTrue);
+    });
   });
 
   // `ensureLoaded` backs `BankAccountNameLabel`'s cache-miss path (a

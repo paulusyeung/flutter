@@ -14,14 +14,15 @@ Task _task({
   String number = '',
   String rate = '0',
   String timeLog = '',
-}) =>
-    Task.fromApi(TaskApi(
-      id: id,
-      description: description,
-      number: number,
-      rate: rate,
-      timeLog: timeLog,
-    ));
+}) => Task.fromApi(
+  TaskApi(
+    id: id,
+    description: description,
+    number: number,
+    rate: rate,
+    timeLog: timeLog,
+  ),
+);
 
 Expense _expense({
   String id = 'e1',
@@ -30,22 +31,27 @@ Expense _expense({
   String amount = '0',
   String taxName1 = '',
   Object taxRate1 = '0',
-}) =>
-    Expense.fromApi(ExpenseApi(
-      id: id,
-      publicNotes: publicNotes,
-      number: number,
-      amount: amount,
-      taxName1: taxName1,
-      taxRate1: taxRate1,
-    ));
+}) => Expense.fromApi(
+  ExpenseApi(
+    id: id,
+    publicNotes: publicNotes,
+    number: number,
+    amount: amount,
+    taxName1: taxName1,
+    taxRate1: taxRate1,
+  ),
+);
 
 void main() {
   group('taskToLineItem', () {
     test('maps rate→cost, billable hours→quantity, type=task, taskId set', () {
       // 5400s = 1.5h billable.
       final li = taskToLineItem(
-        _task(description: 'Design work', rate: '150', timeLog: '[[1700000000,1700005400,"",true]]'),
+        _task(
+          description: 'Design work',
+          rate: '150',
+          timeLog: '[[1700000000,1700005400,"",true]]',
+        ),
       );
       expect(li.cost, Decimal.parse('150'));
       expect(li.quantity, Decimal.parse('1.5'));
@@ -61,7 +67,9 @@ void main() {
     });
 
     test('non-billable entries are excluded from hours', () {
-      final li = taskToLineItem(_task(timeLog: '[[1700000000,1700003600,"",false]]'));
+      final li = taskToLineItem(
+        _task(timeLog: '[[1700000000,1700003600,"",false]]'),
+      );
       expect(li.quantity, Decimal.one); // 0 billable → fallback 1
     });
 
@@ -100,7 +108,9 @@ void main() {
   group('taskBillableHours', () {
     test('rounds to 3 decimals', () {
       // 3661s ≈ 1.0169h → 1.017
-      final h = taskBillableHours(_task(timeLog: '[[1700000000,1700003661,"",true]]'));
+      final h = taskBillableHours(
+        _task(timeLog: '[[1700000000,1700003661,"",true]]'),
+      );
       expect(h, Decimal.parse('1.017'));
     });
   });

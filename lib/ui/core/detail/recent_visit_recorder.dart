@@ -56,10 +56,10 @@ class _RecentVisitRecorderState extends State<RecentVisitRecorder> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<Services>().recentlyViewed.record(
-            type: widget.type,
-            id: widget.id,
-            label: widget.label,
-          );
+        type: widget.type,
+        id: widget.id,
+        label: widget.label,
+      );
     });
   }
 

@@ -59,9 +59,7 @@ class TaxIdentifiersCard extends StatelessWidget {
   /// Walk the nested `regions → subregions` map and pull out every entry
   /// with a non-empty VAT number. Returns the (subregionKey, vatNumber)
   /// tuples in iteration order — admin-portal does the same.
-  List<_IdentifierEntry> _collectEntries(
-    Map<String, TaxRegionApi>? regions,
-  ) {
+  List<_IdentifierEntry> _collectEntries(Map<String, TaxRegionApi>? regions) {
     if (regions == null || regions.isEmpty) return const <_IdentifierEntry>[];
     final out = <_IdentifierEntry>[];
     for (final region in regions.values) {
@@ -85,13 +83,13 @@ class TaxIdentifiersCard extends StatelessWidget {
     if (companyId == null) return;
 
     final ownCountryId = host.settings.countryId;
-    final countries = services.statics.countries.values
-        .where(
-          (c) =>
-              kPeppolCountries.contains(c.id) && c.id != ownCountryId,
-        )
-        .toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
+    final countries =
+        services.statics.countries.values
+            .where(
+              (c) => kPeppolCountries.contains(c.id) && c.id != ownCountryId,
+            )
+            .toList()
+          ..sort((a, b) => a.name.compareTo(b.name));
 
     final result = await showDialog<({String country, String vatNumber})>(
       context: context,
@@ -115,10 +113,7 @@ class TaxIdentifiersCard extends StatelessWidget {
 }
 
 class _IdentifierEntry {
-  const _IdentifierEntry({
-    required this.subregionKey,
-    required this.vatNumber,
-  });
+  const _IdentifierEntry({required this.subregionKey, required this.vatNumber});
 
   /// ISO2 of the subregion the identifier is keyed under (e.g. `'AT'`).
   final String subregionKey;

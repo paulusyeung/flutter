@@ -44,13 +44,38 @@ class PropertyPanel extends StatelessWidget {
 /// JIS variants + Letter/Legal/Ledger. The dropdown falls back to A4
 /// when the persisted value isn't in this list.
 const List<String> _kPageSizes = [
-  'A5', 'A4', 'A3', 'B5', 'B4', 'JIS-B5', 'JIS-B4',
-  'Letter', 'Legal', 'Ledger',
+  'A5',
+  'A4',
+  'A3',
+  'B5',
+  'B4',
+  'JIS-B5',
+  'JIS-B4',
+  'Letter',
+  'Legal',
+  'Ledger',
 ];
 
 /// Phase 7g: every even font size 6..40 px (React's `range(6, 41, 2)`).
 const List<int> _kFontSizes = [
-  6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40,
+  6,
+  8,
+  10,
+  12,
+  14,
+  16,
+  18,
+  20,
+  22,
+  24,
+  26,
+  28,
+  30,
+  32,
+  34,
+  36,
+  38,
+  40,
 ];
 
 /// Curated Google Fonts presets exposed in the Document Settings panel.
@@ -91,8 +116,14 @@ class _DocumentSettingsForm extends StatelessWidget {
           decoration: InputDecoration(labelText: context.tr('page_layout')),
           initialValue: ds.pageLayout,
           items: [
-            DropdownMenuItem(value: 'portrait', child: Text(context.tr('portrait'))),
-            DropdownMenuItem(value: 'landscape', child: Text(context.tr('landscape'))),
+            DropdownMenuItem(
+              value: 'portrait',
+              child: Text(context.tr('portrait')),
+            ),
+            DropdownMenuItem(
+              value: 'landscape',
+              child: Text(context.tr('landscape')),
+            ),
           ],
           onChanged: (v) {
             if (v != null) vm.setDocumentSettings(ds.copyWith(pageLayout: v));
@@ -101,9 +132,7 @@ class _DocumentSettingsForm extends StatelessWidget {
         SizedBox(height: InSpacing.md(context)),
         DropdownButtonFormField<String>(
           decoration: InputDecoration(labelText: context.tr('page_size')),
-          initialValue: _kPageSizes.contains(ds.pageSize)
-              ? ds.pageSize
-              : 'A4',
+          initialValue: _kPageSizes.contains(ds.pageSize) ? ds.pageSize : 'A4',
           items: const [
             // Mirrors React's `PAGE_SIZE_OPTIONS` in `DocumentSettingsPanel.tsx`.
             DropdownMenuItem(value: 'A5', child: Text('A5')),
@@ -115,9 +144,18 @@ class _DocumentSettingsForm extends StatelessWidget {
             DropdownMenuItem(value: 'B4', child: Text('B4')),
             DropdownMenuItem(value: 'JIS-B5', child: Text('JIS-B5')),
             DropdownMenuItem(value: 'JIS-B4', child: Text('JIS-B4')),
-            DropdownMenuItem(value: 'Letter', child: Text('Letter')), // i18n-exempt: paper size
-            DropdownMenuItem(value: 'Legal', child: Text('Legal')), // i18n-exempt: paper size
-            DropdownMenuItem(value: 'Ledger', child: Text('Ledger')), // i18n-exempt: paper size
+            DropdownMenuItem(
+              value: 'Letter',
+              child: Text('Letter'),
+            ), // i18n-exempt: paper size
+            DropdownMenuItem(
+              value: 'Legal',
+              child: Text('Legal'),
+            ), // i18n-exempt: paper size
+            DropdownMenuItem(
+              value: 'Ledger',
+              child: Text('Ledger'),
+            ), // i18n-exempt: paper size
           ],
           onChanged: (v) {
             if (v != null) vm.setDocumentSettings(ds.copyWith(pageSize: v));
@@ -172,7 +210,8 @@ class _DocumentSettingsForm extends StatelessWidget {
               DropdownMenuItem(value: f, child: Text(f)),
           ],
           onChanged: (v) {
-            if (v != null) vm.setDocumentSettings(ds.copyWith(secondaryFont: v));
+            if (v != null)
+              vm.setDocumentSettings(ds.copyWith(secondaryFont: v));
           },
         ),
         SizedBox(height: InSpacing.lg(context)),
@@ -234,21 +273,22 @@ class _DocumentSettingsForm extends StatelessWidget {
           contentPadding: EdgeInsets.zero,
           title: Text(context.tr('show_paid_stamp')),
           value: ds.showPaidStamp,
-          onChanged: (v) => vm.setDocumentSettings(ds.copyWith(showPaidStamp: v)),
+          onChanged: (v) =>
+              vm.setDocumentSettings(ds.copyWith(showPaidStamp: v)),
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: Text(context.tr('show_shipping_address')),
           value: ds.showShippingAddress,
-          onChanged: (v) => vm.setDocumentSettings(
-            ds.copyWith(showShippingAddress: v),
-          ),
+          onChanged: (v) =>
+              vm.setDocumentSettings(ds.copyWith(showShippingAddress: v)),
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: Text(context.tr('page_numbering')),
           value: ds.pageNumbering,
-          onChanged: (v) => vm.setDocumentSettings(ds.copyWith(pageNumbering: v)),
+          onChanged: (v) =>
+              vm.setDocumentSettings(ds.copyWith(pageNumbering: v)),
         ),
         // Phase 9c/9d: round-trip the embed-documents + hide-empty-columns
         // toggles that React's DocumentSettingsPanel exposes. Domain
@@ -260,17 +300,15 @@ class _DocumentSettingsForm extends StatelessWidget {
           // in en.json with the same label.
           title: Text(context.tr('invoice_embed_documents')),
           value: ds.embedDocuments,
-          onChanged: (v) => vm.setDocumentSettings(
-            ds.copyWith(embedDocuments: v),
-          ),
+          onChanged: (v) =>
+              vm.setDocumentSettings(ds.copyWith(embedDocuments: v)),
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: Text(context.tr('hide_empty_columns')),
           value: ds.hideEmptyColumns,
-          onChanged: (v) => vm.setDocumentSettings(
-            ds.copyWith(hideEmptyColumns: v),
-          ),
+          onChanged: (v) =>
+              vm.setDocumentSettings(ds.copyWith(hideEmptyColumns: v)),
         ),
       ],
     );

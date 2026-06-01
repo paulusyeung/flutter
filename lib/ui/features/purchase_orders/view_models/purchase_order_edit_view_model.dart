@@ -25,10 +25,10 @@ class PurchaseOrderEditViewModel
     super.sync,
     super.connectivity,
   }) : super(
-          initialDraft: cloneFrom ?? existing ?? emptyPurchaseOrder(),
-          original: existing,
-          companyId: companyId,
-        );
+         initialDraft: cloneFrom ?? existing ?? emptyPurchaseOrder(),
+         original: existing,
+         companyId: companyId,
+       );
 
   final PurchaseOrderRepository repo;
   final String companyId;
@@ -87,10 +87,7 @@ class PurchaseOrderEditViewModel
   List<LineItem> lineItemsOf(PurchaseOrder draft) => draft.lineItems;
 
   @override
-  PurchaseOrder copyWithLineItems(
-    PurchaseOrder draft,
-    List<LineItem> items,
-  ) =>
+  PurchaseOrder copyWithLineItems(PurchaseOrder draft, List<LineItem> items) =>
       draft.copyWith(lineItems: items);
 
   @override
@@ -100,8 +97,7 @@ class PurchaseOrderEditViewModel
   PurchaseOrder copyWithInvitations(
     PurchaseOrder draft,
     List<Invitation> invitations,
-  ) =>
-      draft.copyWith(invitations: invitations);
+  ) => draft.copyWith(invitations: invitations);
 
   // Satisfies the base contract. Purchase orders use vendor contacts and
   // their client picker keeps calling `setClientId`, so `selectClient`
@@ -120,30 +116,29 @@ class PurchaseOrderEditViewModel
   PurchaseOrder copyWithEInvoice(
     PurchaseOrder draft,
     Map<String, dynamic>? eInvoice,
-  ) =>
-      draft.copyWith(eInvoice: eInvoice);
+  ) => draft.copyWith(eInvoice: eInvoice);
 
   @override
   BillingTotalsInput totalsInputOf(PurchaseOrder d) => BillingTotalsInput(
-        lineItems: d.lineItems,
-        discount: d.discount,
-        isAmountDiscount: d.isAmountDiscount,
-        usesInclusiveTaxes: d.usesInclusiveTaxes,
-        taxName1: d.taxName1,
-        taxRate1: d.taxRate1,
-        taxName2: d.taxName2,
-        taxRate2: d.taxRate2,
-        taxName3: d.taxName3,
-        taxRate3: d.taxRate3,
-        customSurcharge1: d.customSurcharge1,
-        customSurcharge2: d.customSurcharge2,
-        customSurcharge3: d.customSurcharge3,
-        customSurcharge4: d.customSurcharge4,
-        customTaxes1: d.customTaxes1,
-        customTaxes2: d.customTaxes2,
-        customTaxes3: d.customTaxes3,
-        customTaxes4: d.customTaxes4,
-      );
+    lineItems: d.lineItems,
+    discount: d.discount,
+    isAmountDiscount: d.isAmountDiscount,
+    usesInclusiveTaxes: d.usesInclusiveTaxes,
+    taxName1: d.taxName1,
+    taxRate1: d.taxRate1,
+    taxName2: d.taxName2,
+    taxRate2: d.taxRate2,
+    taxName3: d.taxName3,
+    taxRate3: d.taxRate3,
+    customSurcharge1: d.customSurcharge1,
+    customSurcharge2: d.customSurcharge2,
+    customSurcharge3: d.customSurcharge3,
+    customSurcharge4: d.customSurcharge4,
+    customTaxes1: d.customTaxes1,
+    customTaxes2: d.customTaxes2,
+    customTaxes3: d.customTaxes3,
+    customTaxes4: d.customTaxes4,
+  );
 
   // ── Setters ────────────────────────────────────────────────────────
 
@@ -159,16 +154,14 @@ class PurchaseOrderEditViewModel
   void setDueDate(Date? d) => updateDraft(draft.copyWith(dueDate: d));
   void setDesignId(String v) => updateDraft(draft.copyWith(designId: v));
   void setExchangeRate(String input) => updateDraft(
-        draft.copyWith(
-          exchangeRate: Decimal.tryParse(input.trim()) ?? Decimal.one,
-        ),
-      );
+    draft.copyWith(exchangeRate: Decimal.tryParse(input.trim()) ?? Decimal.one),
+  );
   void setDiscount(String input, {required bool isAmount}) => updateDraft(
-        draft.copyWith(
-          discount: Decimal.tryParse(input.trim()) ?? Decimal.zero,
-          isAmountDiscount: isAmount,
-        ),
-      );
+    draft.copyWith(
+      discount: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+      isAmountDiscount: isAmount,
+    ),
+  );
 
   void setUsesInclusiveTaxes(bool v) =>
       updateDraft(draft.copyWith(usesInclusiveTaxes: v));
@@ -176,35 +169,35 @@ class PurchaseOrderEditViewModel
   void setTaxName2(String v) => updateDraft(draft.copyWith(taxName2: v));
   void setTaxName3(String v) => updateDraft(draft.copyWith(taxName3: v));
   void setTaxRate1(String input) => updateDraft(
-        draft.copyWith(taxRate1: Decimal.tryParse(input.trim()) ?? Decimal.zero),
-      );
+    draft.copyWith(taxRate1: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+  );
   void setTaxRate2(String input) => updateDraft(
-        draft.copyWith(taxRate2: Decimal.tryParse(input.trim()) ?? Decimal.zero),
-      );
+    draft.copyWith(taxRate2: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+  );
   void setTaxRate3(String input) => updateDraft(
-        draft.copyWith(taxRate3: Decimal.tryParse(input.trim()) ?? Decimal.zero),
-      );
+    draft.copyWith(taxRate3: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+  );
 
   void setCustomSurcharge1(String input) => updateDraft(
-        draft.copyWith(
-          customSurcharge1: Decimal.tryParse(input.trim()) ?? Decimal.zero,
-        ),
-      );
+    draft.copyWith(
+      customSurcharge1: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+    ),
+  );
   void setCustomSurcharge2(String input) => updateDraft(
-        draft.copyWith(
-          customSurcharge2: Decimal.tryParse(input.trim()) ?? Decimal.zero,
-        ),
-      );
+    draft.copyWith(
+      customSurcharge2: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+    ),
+  );
   void setCustomSurcharge3(String input) => updateDraft(
-        draft.copyWith(
-          customSurcharge3: Decimal.tryParse(input.trim()) ?? Decimal.zero,
-        ),
-      );
+    draft.copyWith(
+      customSurcharge3: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+    ),
+  );
   void setCustomSurcharge4(String input) => updateDraft(
-        draft.copyWith(
-          customSurcharge4: Decimal.tryParse(input.trim()) ?? Decimal.zero,
-        ),
-      );
+    draft.copyWith(
+      customSurcharge4: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+    ),
+  );
   void setCustomTaxes1(bool v) => updateDraft(draft.copyWith(customTaxes1: v));
   void setCustomTaxes2(bool v) => updateDraft(draft.copyWith(customTaxes2: v));
   void setCustomTaxes3(bool v) => updateDraft(draft.copyWith(customTaxes3: v));
@@ -227,51 +220,51 @@ class PurchaseOrderEditViewModel
 }
 
 PurchaseOrder emptyPurchaseOrder() => PurchaseOrder(
-      id: '',
-      number: '',
-      poNumber: '',
-      date: Date.today(),
-      dueDate: null,
-      statusId: PurchaseOrderStatus.draft,
-      clientId: '',
-      vendorId: '',
-      projectId: '',
-      expenseId: '',
-      designId: '',
-      assignedUserId: '',
-      userId: '',
-      locationId: '',
-      amount: Decimal.zero,
-      balance: Decimal.zero,
-      taxAmount: Decimal.zero,
-      discount: Decimal.zero,
-      isAmountDiscount: false,
-      exchangeRate: Decimal.one,
-      taxName1: '',
-      taxName2: '',
-      taxName3: '',
-      taxRate1: Decimal.zero,
-      taxRate2: Decimal.zero,
-      taxRate3: Decimal.zero,
-      usesInclusiveTaxes: false,
-      customSurcharge1: Decimal.zero,
-      customSurcharge2: Decimal.zero,
-      customSurcharge3: Decimal.zero,
-      customSurcharge4: Decimal.zero,
-      customTaxes1: false,
-      customTaxes2: false,
-      customTaxes3: false,
-      customTaxes4: false,
-      publicNotes: '',
-      privateNotes: '',
-      terms: '',
-      footer: '',
-      customValue1: '',
-      customValue2: '',
-      customValue3: '',
-      customValue4: '',
-      isDeleted: false,
-      updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
-      createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
-      archivedAt: null,
-    );
+  id: '',
+  number: '',
+  poNumber: '',
+  date: Date.today(),
+  dueDate: null,
+  statusId: PurchaseOrderStatus.draft,
+  clientId: '',
+  vendorId: '',
+  projectId: '',
+  expenseId: '',
+  designId: '',
+  assignedUserId: '',
+  userId: '',
+  locationId: '',
+  amount: Decimal.zero,
+  balance: Decimal.zero,
+  taxAmount: Decimal.zero,
+  discount: Decimal.zero,
+  isAmountDiscount: false,
+  exchangeRate: Decimal.one,
+  taxName1: '',
+  taxName2: '',
+  taxName3: '',
+  taxRate1: Decimal.zero,
+  taxRate2: Decimal.zero,
+  taxRate3: Decimal.zero,
+  usesInclusiveTaxes: false,
+  customSurcharge1: Decimal.zero,
+  customSurcharge2: Decimal.zero,
+  customSurcharge3: Decimal.zero,
+  customSurcharge4: Decimal.zero,
+  customTaxes1: false,
+  customTaxes2: false,
+  customTaxes3: false,
+  customTaxes4: false,
+  publicNotes: '',
+  privateNotes: '',
+  terms: '',
+  footer: '',
+  customValue1: '',
+  customValue2: '',
+  customValue3: '',
+  customValue4: '',
+  isDeleted: false,
+  updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+  createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+  archivedAt: null,
+);

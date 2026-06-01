@@ -44,14 +44,8 @@ void main() {
   test('tryFromJson rejects bad shapes', () {
     expect(RecentRecord.tryFromJson('nope'), isNull);
     expect(RecentRecord.tryFromJson({'t': 'client'}), isNull); // no id
-    expect(
-      RecentRecord.tryFromJson({'t': 'no_such', 'i': 'x'}),
-      isNull,
-    );
-    expect(
-      RecentRecord.tryFromJson({'t': 'client', 'i': ''}),
-      isNull,
-    );
+    expect(RecentRecord.tryFromJson({'t': 'no_such', 'i': 'x'}), isNull);
+    expect(RecentRecord.tryFromJson({'t': 'client', 'i': ''}), isNull);
   });
 }
 

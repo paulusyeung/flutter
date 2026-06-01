@@ -86,7 +86,11 @@ class LabeledSwitchGroup extends StatelessWidget {
   }
 }
 
-@Preview(name: 'Aligned group', group: 'LabeledSwitchGroup', theme: appPreviewTheme)
+@Preview(
+  name: 'Aligned group',
+  group: 'LabeledSwitchGroup',
+  theme: appPreviewTheme,
+)
 Widget previewLabeledSwitchGroup() {
   // A fixed-width box so the trailing empty space (to the right of the aligned
   // switches) is visible.
@@ -96,7 +100,11 @@ Widget previewLabeledSwitchGroup() {
       width: 360,
       child: LabeledSwitchGroup(
         items: [
-          LabeledSwitchItem(label: 'Add to Invoices', value: true, onChanged: (_) {}),
+          LabeledSwitchItem(
+            label: 'Add to Invoices',
+            value: true,
+            onChanged: (_) {},
+          ),
           LabeledSwitchItem(label: 'CC Only', value: false, onChanged: (_) {}),
         ],
       ),
@@ -104,7 +112,11 @@ Widget previewLabeledSwitchGroup() {
   );
 }
 
-@Preview(name: 'With disabled row', group: 'LabeledSwitchGroup', theme: appPreviewTheme)
+@Preview(
+  name: 'With disabled row',
+  group: 'LabeledSwitchGroup',
+  theme: appPreviewTheme,
+)
 Widget previewLabeledSwitchGroupDisabled() {
   return Padding(
     padding: const EdgeInsets.all(16),

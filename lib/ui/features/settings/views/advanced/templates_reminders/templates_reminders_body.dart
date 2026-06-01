@@ -89,14 +89,17 @@ class _TemplatesRemindersBodyState extends State<TemplatesRemindersBody> {
     _preview = PreviewController(api: services.templates);
     final companyId = services.auth.session.value?.currentCompanyId ?? '';
     if (companyId.isNotEmpty) {
-      services.formatterFor(companyId).then((f) {
-        if (mounted) setState(() => _formatter = f);
-      }).catchError((Object e, StackTrace st) {
-        // Late-fee currency field hides when no formatter — log so the
-        // diagnostics buffer captures the underlying cause (statics
-        // failure, missing company row, etc.).
-        _log.warning('Formatter unavailable', e, st);
-      });
+      services
+          .formatterFor(companyId)
+          .then((f) {
+            if (mounted) setState(() => _formatter = f);
+          })
+          .catchError((Object e, StackTrace st) {
+            // Late-fee currency field hides when no formatter — log so the
+            // diagnostics buffer captures the underlying cause (statics
+            // failure, missing company row, etc.).
+            _log.warning('Formatter unavailable', e, st);
+          });
     }
   }
 
@@ -233,10 +236,7 @@ class _TemplatesRemindersBodyState extends State<TemplatesRemindersBody> {
         // Per-template `ValueKey` forces fresh state for the editor +
         // rule controllers. Mirrors v1 pattern (admin-portal
         // templates_and_reminders.dart:442/462/481/500).
-        KeyedSubtree(
-          key: ValueKey('editor_${selected.key}'),
-          child: editor,
-        ),
+        KeyedSubtree(key: ValueKey('editor_${selected.key}'), child: editor),
         if (selected.isReminder && _formatter != null)
           KeyedSubtree(
             key: ValueKey('rule_${selected.key}'),
@@ -391,13 +391,10 @@ class _ViewDocsButton extends StatelessWidget {
     return Align(
       alignment: AlignmentDirectional.centerStart,
       child: OutlinedButton.icon(
-        onPressed: () =>
-            unawaited(launchUrl(Uri.parse(_kDocsUrl))),
+        onPressed: () => unawaited(launchUrl(Uri.parse(_kDocsUrl))),
         icon: const Icon(Icons.open_in_new, size: 16),
         label: Text(context.tr('view_docs')),
-        style: OutlinedButton.styleFrom(
-          minimumSize: const Size(64, 40),
-        ),
+        style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
       ),
     );
   }
@@ -415,9 +412,7 @@ class _ShowPreviewButton extends StatelessWidget {
       child: OutlinedButton.icon(
         icon: const Icon(Icons.visibility_outlined, size: 16),
         label: Text(context.tr('preview')),
-        style: OutlinedButton.styleFrom(
-          minimumSize: const Size(64, 40),
-        ),
+        style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
         onPressed: () => showTemplatePreviewScreen(context, controller),
       ),
     );

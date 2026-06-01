@@ -31,7 +31,8 @@ final _log = Logger('ExpenseRepository');
 /// Mirrors `ProjectRepository`: document-bearing, password-gated
 /// delete/purge/documentDelete, full apply-response triple + _fromRow
 /// overlay.
-class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi>    implements DocumentBearingRepository {
+class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi>
+    implements DocumentBearingRepository {
   ExpenseRepository({
     required super.db,
     required this.api,
@@ -285,19 +286,17 @@ class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi>    imp
     required String companyId,
     required String id,
     required String templateId,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.runTemplate,
-        payload: {'id': id, 'template_id': templateId},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: MutationKind.runTemplate,
+    payload: {'id': id, 'template_id': templateId},
+  );
 
   /// Queue a document upload. Mirrors `ProjectRepository.uploadDocument` —
   /// the dispatcher's `MutationKind.documentUpload` handler streams the
   /// local file via multipart upload.
   @override
-
   Future<void> uploadDocument({
     required String companyId,
     required String entityId,
@@ -312,7 +311,6 @@ class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi>    imp
   }
 
   @override
-
   Future<void> deleteDocument({
     required String companyId,
     required String entityId,
@@ -327,7 +325,6 @@ class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi>    imp
   }
 
   @override
-
   Future<void> setDocumentVisibility({
     required String companyId,
     required String entityId,
@@ -405,11 +402,12 @@ class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi>    imp
     final next = current.where((d) => d.id != documentId).toList();
     if (next.length == current.length) return;
     await (db.update(db.expenses)
-          ..where((e) => e.companyId.equals(companyId) & e.id.equals(entityId))).write(
-      ExpensesCompanion(
-        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
-      ),
-    );
+          ..where((e) => e.companyId.equals(companyId) & e.id.equals(entityId)))
+        .write(
+          ExpensesCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   /// Replace (or insert) one document in the expense's local `documents`
@@ -432,17 +430,19 @@ class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi>    imp
       next.add(document);
     }
     await (db.update(db.expenses)
-          ..where((e) => e.companyId.equals(companyId) & e.id.equals(entityId))).write(
-      ExpensesCompanion(
-        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
-      ),
-    );
+          ..where((e) => e.companyId.equals(companyId) & e.id.equals(entityId)))
+        .write(
+          ExpensesCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   // -------------------- conversions --------------------
 
   ExpensesCompanion _apiToCompanion(ExpenseApi a, String companyId) {
-    final isPaid = a.paymentDate.isNotEmpty ||
+    final isPaid =
+        a.paymentDate.isNotEmpty ||
         a.paymentTypeId.isNotEmpty ||
         a.transactionReference.isNotEmpty;
     return ExpensesCompanion.insert(
@@ -481,7 +481,8 @@ class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi>    imp
     String companyId, {
     required bool isDirty,
   }) {
-    final isPaid = (e.paymentDate != null) ||
+    final isPaid =
+        (e.paymentDate != null) ||
         e.paymentTypeId.isNotEmpty ||
         e.transactionReference.isNotEmpty;
     return ExpensesCompanion.insert(

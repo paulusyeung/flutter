@@ -27,26 +27,22 @@ class PurchaseOrdersApi
   Future<PurchaseOrderItemApi?> markSent({
     required String id,
     required String idempotencyKey,
-  }) =>
-      action(id: id, action: 'mark_sent', idempotencyKey: idempotencyKey);
+  }) => action(id: id, action: 'mark_sent', idempotencyKey: idempotencyKey);
 
   Future<PurchaseOrderItemApi?> accept({
     required String id,
     required String idempotencyKey,
-  }) =>
-      action(id: id, action: 'accept', idempotencyKey: idempotencyKey);
+  }) => action(id: id, action: 'accept', idempotencyKey: idempotencyKey);
 
   Future<PurchaseOrderItemApi?> cancel({
     required String id,
     required String idempotencyKey,
-  }) =>
-      action(id: id, action: 'cancel', idempotencyKey: idempotencyKey);
+  }) => action(id: id, action: 'cancel', idempotencyKey: idempotencyKey);
 
   Future<PurchaseOrderItemApi?> expense({
     required String id,
     required String idempotencyKey,
-  }) =>
-      action(id: id, action: 'expense', idempotencyKey: idempotencyKey);
+  }) => action(id: id, action: 'expense', idempotencyKey: idempotencyKey);
 
   Future<PurchaseOrderItemApi?> email({
     required String id,
@@ -55,18 +51,17 @@ class PurchaseOrdersApi
     String? body,
     String? ccEmail,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'email',
-        idempotencyKey: idempotencyKey,
-        payload: {
-          'template': template,
-          if (subject != null) 'subject': subject,
-          if (body != null) 'body': body,
-          if (ccEmail != null) 'cc_email': ccEmail,
-        },
-      );
+  }) => action(
+    id: id,
+    action: 'email',
+    idempotencyKey: idempotencyKey,
+    payload: {
+      'template': template,
+      if (subject != null) 'subject': subject,
+      if (body != null) 'body': body,
+      if (ccEmail != null) 'cc_email': ccEmail,
+    },
+  );
 
   Future<PurchaseOrderItemApi?> scheduleEmail({
     required String id,
@@ -75,41 +70,38 @@ class PurchaseOrdersApi
     String? subject,
     String? body,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'email',
-        idempotencyKey: idempotencyKey,
-        payload: {
-          'template': template,
-          'send_at': sendAt,
-          if (subject != null) 'subject': subject,
-          if (body != null) 'body': body,
-        },
-      );
+  }) => action(
+    id: id,
+    action: 'email',
+    idempotencyKey: idempotencyKey,
+    payload: {
+      'template': template,
+      'send_at': sendAt,
+      if (subject != null) 'subject': subject,
+      if (body != null) 'body': body,
+    },
+  );
 
   Future<PurchaseOrderItemApi?> cloneTo({
     required String id,
     required String targetType,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'clone_to_$targetType',
-        idempotencyKey: idempotencyKey,
-      );
+  }) => action(
+    id: id,
+    action: 'clone_to_$targetType',
+    idempotencyKey: idempotencyKey,
+  );
 
   Future<PurchaseOrderItemApi?> runTemplate({
     required String id,
     required String templateId,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'template',
-        idempotencyKey: idempotencyKey,
-        payload: {'template_id': templateId},
-      );
+  }) => action(
+    id: id,
+    action: 'template',
+    idempotencyKey: idempotencyKey,
+    payload: {'template_id': templateId},
+  );
 
   /// Server-rendered PDF via the purchase-order sub-path
   /// `POST /api/v1/live_preview/purchase_order?entity=purchase_order
@@ -122,11 +114,9 @@ class PurchaseOrdersApi
   }) {
     final id = (entityJson['id'] as String?) ?? '';
     final saved = id.isNotEmpty && !id.startsWith('tmp_');
-    final path =
-        StringBuffer(
-            '/api/v1/live_preview/purchase_order?entity=purchase_order',
-          )
-          ..write(saved ? '&entity_id=$id' : '');
+    final path = StringBuffer(
+      '/api/v1/live_preview/purchase_order?entity=purchase_order',
+    )..write(saved ? '&entity_id=$id' : '');
     return client.postRaw(
       path.toString(),
       readOnly: true,

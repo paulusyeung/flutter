@@ -65,18 +65,15 @@ class _ScheduleFixture
     BaseEntityRepository<Schedule, ScheduleApi> repo, {
     required String companyId,
     required Schedule draft,
-  }) => (repo as ScheduleRepository).create(
-    companyId: companyId,
-    draft: draft,
-  );
+  }) => (repo as ScheduleRepository).create(companyId: companyId, draft: draft);
 
   @override
   Future<SaveResult<Schedule>> save(
     BaseEntityRepository<Schedule, ScheduleApi> repo, {
     required String companyId,
     required Schedule entity,
-  }) => (repo as ScheduleRepository)
-      .save(companyId: companyId, schedule: entity);
+  }) =>
+      (repo as ScheduleRepository).save(companyId: companyId, schedule: entity);
 
   @override
   Future<void> delete(
@@ -102,55 +99,49 @@ void main() {
     ScheduleRepository makeRepo() =>
         ScheduleRepository(db: db, api: _FakeSchedulesApi());
 
-    test(
-      'email_statement round-trip preserves typed parameter accessors',
-      () {
-        const api = ScheduleApi(
-          id: 's_1',
-          name: 'Monthly statement',
-          template: kScheduleTemplateEmailStatement,
-          frequencyId: '5',
-          nextRun: '2026-06-01',
-          parameters: <String, dynamic>{
-            'date_range': 'this_quarter',
-            'status': 'unpaid',
-            'show_aging_table': true,
-            'show_payments_table': false,
-            'only_clients_with_invoices': true,
-            'clients': <String>['c_1', 'c_2'],
-          },
-          updatedAt: 1700000000,
-        );
-        final s = Schedule.fromApi(api);
-        expect(s.statementDateRange, 'this_quarter');
-        expect(s.statementStatus, 'unpaid');
-        expect(s.statementShowAgingTable, isTrue);
-        expect(s.statementShowPaymentsTable, isFalse);
-        expect(s.statementOnlyClientsWithInvoices, isTrue);
-        expect(s.statementClients, ['c_1', 'c_2']);
-      },
-    );
+    test('email_statement round-trip preserves typed parameter accessors', () {
+      const api = ScheduleApi(
+        id: 's_1',
+        name: 'Monthly statement',
+        template: kScheduleTemplateEmailStatement,
+        frequencyId: '5',
+        nextRun: '2026-06-01',
+        parameters: <String, dynamic>{
+          'date_range': 'this_quarter',
+          'status': 'unpaid',
+          'show_aging_table': true,
+          'show_payments_table': false,
+          'only_clients_with_invoices': true,
+          'clients': <String>['c_1', 'c_2'],
+        },
+        updatedAt: 1700000000,
+      );
+      final s = Schedule.fromApi(api);
+      expect(s.statementDateRange, 'this_quarter');
+      expect(s.statementStatus, 'unpaid');
+      expect(s.statementShowAgingTable, isTrue);
+      expect(s.statementShowPaymentsTable, isFalse);
+      expect(s.statementOnlyClientsWithInvoices, isTrue);
+      expect(s.statementClients, ['c_1', 'c_2']);
+    });
 
-    test(
-      'email_record round-trip preserves entity_id + email template',
-      () {
-        const api = ScheduleApi(
-          id: 's_2',
-          template: kScheduleTemplateEmailRecord,
-          nextRun: '2026-07-15',
-          parameters: <String, dynamic>{
-            'entity': 'invoice',
-            'entity_id': 'inv_42',
-            'template': 'reminder2',
-          },
-          updatedAt: 1700000100,
-        );
-        final s = Schedule.fromApi(api);
-        expect(s.recordEntityType, 'invoice');
-        expect(s.recordEntityId, 'inv_42');
-        expect(s.recordEmailTemplate, 'reminder2');
-      },
-    );
+    test('email_record round-trip preserves entity_id + email template', () {
+      const api = ScheduleApi(
+        id: 's_2',
+        template: kScheduleTemplateEmailRecord,
+        nextRun: '2026-07-15',
+        parameters: <String, dynamic>{
+          'entity': 'invoice',
+          'entity_id': 'inv_42',
+          'template': 'reminder2',
+        },
+        updatedAt: 1700000100,
+      );
+      final s = Schedule.fromApi(api);
+      expect(s.recordEntityType, 'invoice');
+      expect(s.recordEntityId, 'inv_42');
+      expect(s.recordEmailTemplate, 'reminder2');
+    });
 
     test(
       'email_report round-trip resolves CSV vendor list back to List<String>',
@@ -252,45 +243,42 @@ void main() {
       },
     );
 
-    test(
-      'applyBundle preserves the local payload of an is_dirty row '
-      'so an offline edit is not clobbered by a re-bundle',
-      () async {
-        final repo = makeRepo();
-        // Local offline create of an email_statement schedule.
-        final draft = Schedule.empty()
-            .withTemplate(kScheduleTemplateEmailStatement)
-            .copyWith(name: 'Local edit');
-        await repo.create(companyId: 'co', draft: draft);
-        final dirtyBefore =
-            (await repo.watchAll(companyId: 'co').first).single;
-        expect(dirtyBefore.isDirty, isTrue);
+    test('applyBundle preserves the local payload of an is_dirty row '
+        'so an offline edit is not clobbered by a re-bundle', () async {
+      final repo = makeRepo();
+      // Local offline create of an email_statement schedule.
+      final draft = Schedule.empty()
+          .withTemplate(kScheduleTemplateEmailStatement)
+          .copyWith(name: 'Local edit');
+      await repo.create(companyId: 'co', draft: draft);
+      final dirtyBefore = (await repo.watchAll(companyId: 'co').first).single;
+      expect(dirtyBefore.isDirty, isTrue);
 
-        await repo.applyBundle(
-          companyId: 'co',
-          bundle: const [
-            ScheduleApi(
-              id: 's_server',
-              template: kScheduleTemplateEmailReport,
-              frequencyId: '7',
-              nextRun: '2026-04-01',
-              updatedAt: 1700000500,
-            ),
-          ],
-        );
-        final all = await repo.watchAll(companyId: 'co').first;
-        expect(all, hasLength(2));
-        final stillDirty = all.firstWhere((s) => s.name == 'Local edit');
-        expect(stillDirty.isDirty, isTrue);
-      },
-    );
+      await repo.applyBundle(
+        companyId: 'co',
+        bundle: const [
+          ScheduleApi(
+            id: 's_server',
+            template: kScheduleTemplateEmailReport,
+            frequencyId: '7',
+            nextRun: '2026-04-01',
+            updatedAt: 1700000500,
+          ),
+        ],
+      );
+      final all = await repo.watchAll(companyId: 'co').first;
+      expect(all, hasLength(2));
+      final stillDirty = all.firstWhere((s) => s.name == 'Local edit');
+      expect(stillDirty.isDirty, isTrue);
+    });
 
     test(
       '_fromRow overlays is_dirty so an offline create reads as dirty',
       () async {
         final repo = makeRepo();
-        final draft = Schedule.empty()
-            .withTemplate(kScheduleTemplateEmailStatement);
+        final draft = Schedule.empty().withTemplate(
+          kScheduleTemplateEmailStatement,
+        );
         await repo.create(companyId: 'co', draft: draft);
         final rows = await repo.watchAll(companyId: 'co').first;
         expect(rows, hasLength(1));
@@ -315,11 +303,7 @@ void main() {
         );
         final loaded = (await repo.watchAll(companyId: 'co').first).single;
         expect(loaded.isPaused, isFalse);
-        await repo.setPaused(
-          companyId: 'co',
-          schedule: loaded,
-          paused: true,
-        );
+        await repo.setPaused(companyId: 'co', schedule: loaded, paused: true);
         final paused = (await repo.watchAll(companyId: 'co').first).single;
         expect(paused.isPaused, isTrue);
         // An outbox row was enqueued for the update.

@@ -53,8 +53,14 @@ class LedgerEntry {
 }
 
 class _Raw {
-  _Raw(this.kind, this.id, this.number, this.date, this.createdAt,
-      this.adjustment);
+  _Raw(
+    this.kind,
+    this.id,
+    this.number,
+    this.date,
+    this.createdAt,
+    this.adjustment,
+  );
   final LedgerKind kind;
   final String id;
   final String number;
@@ -92,14 +98,16 @@ List<LedgerEntry> _assemble(List<_Raw> raws, {DateTime? openingAt}) {
   final out = <LedgerEntry>[];
   for (final r in raws) {
     running += r.adjustment;
-    out.add(LedgerEntry(
-      kind: r.kind,
-      id: r.id,
-      number: r.number,
-      date: r.date,
-      adjustment: r.adjustment,
-      runningBalance: running,
-    ));
+    out.add(
+      LedgerEntry(
+        kind: r.kind,
+        id: r.id,
+        number: r.number,
+        date: r.date,
+        adjustment: r.adjustment,
+        runningBalance: running,
+      ),
+    );
   }
   // Newest first for display; running balance was computed chronologically
   // above so each row still carries its correct as-of balance.
@@ -108,15 +116,17 @@ List<LedgerEntry> _assemble(List<_Raw> raws, {DateTime? openingAt}) {
     // Genesis anchor pinned to the bottom (oldest) — parity with
     // admin-portal's "Client Created" row. Zero adjustment/balance so it
     // never perturbs the running-balance math above.
-    display.add(LedgerEntry(
-      kind: LedgerKind.invoice, // unused — isOpening rows render specially
-      id: '',
-      number: '',
-      date: Date(openingAt.year, openingAt.month, openingAt.day),
-      adjustment: Decimal.zero,
-      runningBalance: Decimal.zero,
-      isOpening: true,
-    ));
+    display.add(
+      LedgerEntry(
+        kind: LedgerKind.invoice, // unused — isOpening rows render specially
+        id: '',
+        number: '',
+        date: Date(openingAt.year, openingAt.month, openingAt.day),
+        adjustment: Decimal.zero,
+        runningBalance: Decimal.zero,
+        isOpening: true,
+      ),
+    );
   }
   return List.unmodifiable(display);
 }
@@ -137,16 +147,20 @@ List<LedgerEntry> buildClientLedger({
   final raws = <_Raw>[
     for (final i in invoices)
       if (!i.isDeleted && !i.isDraft)
-        _Raw(LedgerKind.invoice, i.id, i.number, i.date, i.createdAt,
-            i.amount),
+        _Raw(LedgerKind.invoice, i.id, i.number, i.date, i.createdAt, i.amount),
     for (final p in payments)
       if (!p.isDeleted)
-        _Raw(LedgerKind.payment, p.id, p.number, p.date, p.createdAt,
-            -p.amount),
+        _Raw(
+          LedgerKind.payment,
+          p.id,
+          p.number,
+          p.date,
+          p.createdAt,
+          -p.amount,
+        ),
     for (final c in credits)
       if (!c.isDeleted && !c.isDraft)
-        _Raw(LedgerKind.credit, c.id, c.number, c.date, c.createdAt,
-            -c.amount),
+        _Raw(LedgerKind.credit, c.id, c.number, c.date, c.createdAt, -c.amount),
   ];
   return _assemble(raws, openingAt: openingAt);
 }
@@ -162,12 +176,17 @@ List<LedgerEntry> buildVendorLedger({
   final raws = <_Raw>[
     for (final e in expenses)
       if (!e.isDeleted)
-        _Raw(LedgerKind.expense, e.id, e.number, e.date, e.createdAt,
-            e.amount),
+        _Raw(LedgerKind.expense, e.id, e.number, e.date, e.createdAt, e.amount),
     for (final po in purchaseOrders)
       if (!po.isDeleted && !po.isDraft)
-        _Raw(LedgerKind.purchaseOrder, po.id, po.number, po.date,
-            po.createdAt, po.amount),
+        _Raw(
+          LedgerKind.purchaseOrder,
+          po.id,
+          po.number,
+          po.date,
+          po.createdAt,
+          po.amount,
+        ),
   ];
   return _assemble(raws, openingAt: openingAt);
 }

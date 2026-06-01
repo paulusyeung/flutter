@@ -299,28 +299,30 @@ void main() {
       return jsonDecode(pending.single.payload) as Map<String, dynamic>;
     }
 
-    test('createLocation enqueues a location_create row keyed to the client',
-        () async {
-      final (:repo, :api) = makeRepo();
-      await repo.createLocation(
-        companyId: 'co',
-        clientId: 'cl1',
-        body: const {'name': 'HQ', 'client_id': 'cl1'},
-      );
-      final pending = await db.outboxDao.nextReady(
-        companyId: 'co',
-        now: 1 << 60,
-      );
-      expect(
-        pending.single.mutationKind,
-        MutationKind.locationCreate.wireName,
-      );
-      expect(pending.single.entityId, 'cl1');
-      expect(pending.single.idempotencyKey, isNotEmpty);
-      final payload = await drainPayload();
-      expect(payload['client_id'], 'cl1');
-      expect((payload['body'] as Map)['name'], 'HQ');
-    });
+    test(
+      'createLocation enqueues a location_create row keyed to the client',
+      () async {
+        final (:repo, :api) = makeRepo();
+        await repo.createLocation(
+          companyId: 'co',
+          clientId: 'cl1',
+          body: const {'name': 'HQ', 'client_id': 'cl1'},
+        );
+        final pending = await db.outboxDao.nextReady(
+          companyId: 'co',
+          now: 1 << 60,
+        );
+        expect(
+          pending.single.mutationKind,
+          MutationKind.locationCreate.wireName,
+        );
+        expect(pending.single.entityId, 'cl1');
+        expect(pending.single.idempotencyKey, isNotEmpty);
+        final payload = await drainPayload();
+        expect(payload['client_id'], 'cl1');
+        expect((payload['body'] as Map)['name'], 'HQ');
+      },
+    );
 
     test('updateLocation carries the location id + body', () async {
       final (:repo, :api) = makeRepo();
@@ -334,76 +336,76 @@ void main() {
         companyId: 'co',
         now: 1 << 60,
       );
-      expect(
-        pending.single.mutationKind,
-        MutationKind.locationUpdate.wireName,
-      );
+      expect(pending.single.mutationKind, MutationKind.locationUpdate.wireName);
       expect(pending.single.entityId, 'cl1');
       final payload = await drainPayload();
       expect(payload['location_id'], 'loc9');
       expect((payload['body'] as Map)['name'], 'Warehouse');
     });
 
-    test('read-embedded locations survive the Drift payload round-trip', () async {
-      final (:repo, :api) = makeRepo();
-      final apiWithLoc = ClientApi(
-        id: 'c1',
-        name: 'Acme',
-        updatedAt: 1700000000,
-        locations: const [
-          LocationApi(
-            id: 'L1',
-            clientId: 'c1',
-            name: 'HQ',
-            address1: '1 Main St',
-            countryId: '840',
-            isShippingLocation: true,
-          ),
-        ],
-      );
-      await repo.save(companyId: 'co', client: Client.fromApi(apiWithLoc));
-
-      // Reconstructed via the repo's Drift `_fromRow` (payload JSON),
-      // NOT just inline Client.fromApi — proves persistence.
-      final back = await repo.watch(companyId: 'co', id: 'c1').first;
-      expect(back, isNotNull);
-      expect(back!.locations, hasLength(1));
-      expect(back.locations.single.name, 'HQ');
-      expect(back.locations.single.isShippingLocation, isTrue);
-
-      // A later server response that still embeds `locations` (the real,
-      // probe-verified server behavior) keeps them after upsert — this is
-      // the path the location* dispatcher handlers feed.
-      await repo.applyUpdateResponse(
-        companyId: 'co',
-        serverResponse: apiWithLoc.copyWith(
+    test(
+      'read-embedded locations survive the Drift payload round-trip',
+      () async {
+        final (:repo, :api) = makeRepo();
+        final apiWithLoc = ClientApi(
+          id: 'c1',
+          name: 'Acme',
+          updatedAt: 1700000000,
           locations: const [
-            LocationApi(id: 'L1', clientId: 'c1', name: 'HQ'),
-            LocationApi(id: 'L2', clientId: 'c1', name: 'Warehouse'),
+            LocationApi(
+              id: 'L1',
+              clientId: 'c1',
+              name: 'HQ',
+              address1: '1 Main St',
+              countryId: '840',
+              isShippingLocation: true,
+            ),
           ],
-        ),
-      );
-      final after = await repo.watch(companyId: 'co', id: 'c1').first;
-      expect(after!.locations, hasLength(2));
-      expect(after.locations[1].name, 'Warehouse');
+        );
+        await repo.save(companyId: 'co', client: Client.fromApi(apiWithLoc));
 
-      // The exact bug scenario: a local client edit-save (e.g. rename)
-      // must NOT wipe server-sourced locations. `Client.toApiJson` omits
-      // locations from the outbound wire, so without the dedicated column
-      // they'd vanish locally until the next refresh.
-      await repo.save(
-        companyId: 'co',
-        client: after.copyWith(name: 'Acme Renamed'),
-      );
-      final edited = await repo.watch(companyId: 'co', id: 'c1').first;
-      expect(edited!.name, 'Acme Renamed');
-      expect(
-        edited.locations,
-        hasLength(2),
-        reason: 'editing the client must preserve its locations locally',
-      );
-      expect(edited.locations[1].name, 'Warehouse');
-    });
+        // Reconstructed via the repo's Drift `_fromRow` (payload JSON),
+        // NOT just inline Client.fromApi — proves persistence.
+        final back = await repo.watch(companyId: 'co', id: 'c1').first;
+        expect(back, isNotNull);
+        expect(back!.locations, hasLength(1));
+        expect(back.locations.single.name, 'HQ');
+        expect(back.locations.single.isShippingLocation, isTrue);
+
+        // A later server response that still embeds `locations` (the real,
+        // probe-verified server behavior) keeps them after upsert — this is
+        // the path the location* dispatcher handlers feed.
+        await repo.applyUpdateResponse(
+          companyId: 'co',
+          serverResponse: apiWithLoc.copyWith(
+            locations: const [
+              LocationApi(id: 'L1', clientId: 'c1', name: 'HQ'),
+              LocationApi(id: 'L2', clientId: 'c1', name: 'Warehouse'),
+            ],
+          ),
+        );
+        final after = await repo.watch(companyId: 'co', id: 'c1').first;
+        expect(after!.locations, hasLength(2));
+        expect(after.locations[1].name, 'Warehouse');
+
+        // The exact bug scenario: a local client edit-save (e.g. rename)
+        // must NOT wipe server-sourced locations. `Client.toApiJson` omits
+        // locations from the outbound wire, so without the dedicated column
+        // they'd vanish locally until the next refresh.
+        await repo.save(
+          companyId: 'co',
+          client: after.copyWith(name: 'Acme Renamed'),
+        );
+        final edited = await repo.watch(companyId: 'co', id: 'c1').first;
+        expect(edited!.name, 'Acme Renamed');
+        expect(
+          edited.locations,
+          hasLength(2),
+          reason: 'editing the client must preserve its locations locally',
+        );
+        expect(edited.locations[1].name, 'Warehouse');
+      },
+    );
 
     test('deleteLocation enqueues a location_delete row', () async {
       final (:repo, :api) = makeRepo();
@@ -416,10 +418,7 @@ void main() {
         companyId: 'co',
         now: 1 << 60,
       );
-      expect(
-        pending.single.mutationKind,
-        MutationKind.locationDelete.wireName,
-      );
+      expect(pending.single.mutationKind, MutationKind.locationDelete.wireName);
       expect(pending.single.entityId, 'cl1');
       final payload = await drainPayload();
       expect(payload['location_id'], 'loc9');
@@ -564,30 +563,27 @@ void main() {
       },
     );
 
-    test(
-      'ensurePageLoaded passes the lifecycle `status` filter for '
-      'non-default state sets',
-      () async {
-        final (:repo, :api) = makeRepo(pages: {1: const <ClientApi>[]});
+    test('ensurePageLoaded passes the lifecycle `status` filter for '
+        'non-default state sets', () async {
+      final (:repo, :api) = makeRepo(pages: {1: const <ClientApi>[]});
 
-        await repo.ensurePageLoaded(
-          companyId: 'co',
-          page: 1,
-          states: {EntityState.archived, EntityState.deleted},
-        );
+      await repo.ensurePageLoaded(
+        companyId: 'co',
+        page: 1,
+        states: {EntityState.archived, EntityState.deleted},
+      );
 
-        expect(
-          api.calls.single.filters['status'],
-          'archived,deleted',
-          reason: 'lifecycle is the `status` param, not `client_status`',
-        );
-        expect(
-          api.calls.single.filters.containsKey('client_status'),
-          isFalse,
-          reason: 'lifecycle must not leak onto the computed-status param',
-        );
-      },
-    );
+      expect(
+        api.calls.single.filters['status'],
+        'archived,deleted',
+        reason: 'lifecycle is the `status` param, not `client_status`',
+      );
+      expect(
+        api.calls.single.filters.containsKey('client_status'),
+        isFalse,
+        reason: 'lifecycle must not leak onto the computed-status param',
+      );
+    });
 
     test(
       'ensurePageLoaded omits `status` when every state is requested',
@@ -666,17 +662,13 @@ void main() {
           apiClient(id, name: 'Server Name'),
         ).copyWith(name: 'User Edit'),
       );
-      final dirty = await db.clientDao
-          .watchById(companyId: 'co', id: id)
-          .first;
+      final dirty = await db.clientDao.watchById(companyId: 'co', id: id).first;
       expect(dirty!.isDirty, isTrue);
       expect(dirty.name, 'User Edit');
 
       await repo.ensurePageLoaded(companyId: 'co', page: 1);
 
-      final after = await db.clientDao
-          .watchById(companyId: 'co', id: id)
-          .first;
+      final after = await db.clientDao.watchById(companyId: 'co', id: id).first;
       expect(
         after!.isDirty,
         isTrue,
@@ -899,43 +891,37 @@ void main() {
       return repo;
     }
 
-    test(
-      'applies legacy suffix `value:gt` locally — balance > 500 narrows '
-      'to two rows',
-      () async {
-        final (:repo, :api) = makeRepo();
-        await seedBalances(repo);
-        final result = await repo
-            .watchPage(
-              companyId: 'co',
-              loadedPages: 1,
-              extraFilters: const {
-                'balance': {'500:gt'},
-              },
-            )
-            .first;
-        expect(result.map((c) => c.name).toList()..sort(), ['Delta', 'Gamma']);
-      },
-    );
+    test('applies legacy suffix `value:gt` locally — balance > 500 narrows '
+        'to two rows', () async {
+      final (:repo, :api) = makeRepo();
+      await seedBalances(repo);
+      final result = await repo
+          .watchPage(
+            companyId: 'co',
+            loadedPages: 1,
+            extraFilters: const {
+              'balance': {'500:gt'},
+            },
+          )
+          .first;
+      expect(result.map((c) => c.name).toList()..sort(), ['Delta', 'Gamma']);
+    });
 
-    test(
-      'applies legacy suffix `value:lt` locally — balance < 500 narrows '
-      'to one row',
-      () async {
-        final (:repo, :api) = makeRepo();
-        await seedBalances(repo);
-        final result = await repo
-            .watchPage(
-              companyId: 'co',
-              loadedPages: 1,
-              extraFilters: const {
-                'balance': {'500:lt'},
-              },
-            )
-            .first;
-        expect(result.map((c) => c.name), ['Alpha']);
-      },
-    );
+    test('applies legacy suffix `value:lt` locally — balance < 500 narrows '
+        'to one row', () async {
+      final (:repo, :api) = makeRepo();
+      await seedBalances(repo);
+      final result = await repo
+          .watchPage(
+            companyId: 'co',
+            loadedPages: 1,
+            extraFilters: const {
+              'balance': {'500:lt'},
+            },
+          )
+          .first;
+      expect(result.map((c) => c.name), ['Alpha']);
+    });
 
     test('numeric cast — 100 < 1000 lexicographically would invert; cast '
         'ensures the comparison is correct', () async {

@@ -99,9 +99,7 @@ Widget _harness({
 }) {
   return MaterialApp(
     localizationsDelegates: const [SyncLocalizationDelegate()],
-    theme: ThemeData.light().copyWith(
-      extensions: const [InTheme.lightSand],
-    ),
+    theme: ThemeData.light().copyWith(extensions: const [InTheme.lightSand]),
     home: MultiProvider(
       providers: [
         ChangeNotifierProvider<SettingsDraftHost>.value(value: host),
@@ -111,10 +109,7 @@ Widget _harness({
         body: SizedBox(
           width: 500,
           height: 800,
-          child: LivePdfPreviewPane(
-            service: service,
-            embedded: true,
-          ),
+          child: LivePdfPreviewPane(service: service, embedded: true),
         ),
       ),
     ),
@@ -161,48 +156,45 @@ void main() {
       },
     );
 
-    testWidgets(
-      'host.notifyListeners() fires exactly one debounced render '
-      '(not N, where N = listener registrations)',
-      (tester) async {
-        final service = _CountingService();
-        final host = _FakeHost();
-        final level = SettingsLevelController();
+    testWidgets('host.notifyListeners() fires exactly one debounced render '
+        '(not N, where N = listener registrations)', (tester) async {
+      final service = _CountingService();
+      final host = _FakeHost();
+      final level = SettingsLevelController();
 
-        await tester.pumpWidget(
-          _harness(service: service, host: host, level: level),
-        );
-        await tester.pump(const Duration(milliseconds: 50));
-        expect(service.calls, 1);
+      await tester.pumpWidget(
+        _harness(service: service, host: host, level: level),
+      );
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(service.calls, 1);
 
-        // Trigger several InheritedWidget notifications via the level
-        // controller before the host notifies. With the bug present, each
-        // `didChangeDependencies` cycle added a duplicate listener; with
-        // the fix, only one listener stays attached.
-        level.setLevel(SettingsLevel.client, targetId: 'c1', targetName: 'C');
-        await tester.pump();
-        level.reset();
-        await tester.pump();
-        level.setLevel(SettingsLevel.client, targetId: 'c2', targetName: 'C2');
-        await tester.pump();
+      // Trigger several InheritedWidget notifications via the level
+      // controller before the host notifies. With the bug present, each
+      // `didChangeDependencies` cycle added a duplicate listener; with
+      // the fix, only one listener stays attached.
+      level.setLevel(SettingsLevel.client, targetId: 'c1', targetName: 'C');
+      await tester.pump();
+      level.reset();
+      await tester.pump();
+      level.setLevel(SettingsLevel.client, targetId: 'c2', targetName: 'C2');
+      await tester.pump();
 
-        // Now simulate the user editing — the host notifies once.
-        host.notify();
+      // Now simulate the user editing — the host notifies once.
+      host.notify();
 
-        // Wait for the 400 ms debounce window to elapse. 500 ms (not 410)
-        // leaves headroom on slow CI runners where the timer can fire late.
-        await tester.pump(const Duration(milliseconds: 500));
-        await tester.pump(const Duration(milliseconds: 50));
+      // Wait for the 400 ms debounce window to elapse. 500 ms (not 410)
+      // leaves headroom on slow CI runners where the timer can fire late.
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 50));
 
-        expect(
-          service.calls,
-          2,
-          reason:
-              'first-mount render + one debounced render = 2; any higher '
-              'count indicates duplicate host listeners.',
-        );
-      },
-    );
+      expect(
+        service.calls,
+        2,
+        reason:
+            'first-mount render + one debounced render = 2; any higher '
+            'count indicates duplicate host listeners.',
+      );
+    });
 
     testWidgets(
       'didUpdateWidget snaps _entityType when the active entity falls off '
@@ -215,8 +207,7 @@ void main() {
         // Start with invoices + quotes enabled. The pane's initial entity
         // type is `'invoice'` (first option), but the user can swap to
         // quote — same code path as the auto-correct.
-        const startBitmask =
-            1 << 12 | 1 << 2; // invoices (4096) + quotes (4)
+        const startBitmask = 1 << 12 | 1 << 2; // invoices (4096) + quotes (4)
         const endBitmask = 1 << 12; // invoices only
 
         Widget harness(int bitmask) => MaterialApp(
@@ -254,11 +245,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 50));
         // Tapping the segmented button fires `_renderNow()` directly
         // (no debounce on entity-type changes).
-        expect(
-          service.calls,
-          2,
-          reason: 'entity-type tap fires one render',
-        );
+        expect(service.calls, 2, reason: 'entity-type tap fires one render');
 
         // Now disable the quotes module. `didUpdateWidget` should snap
         // `_entityType` back to `'invoice'` and fire one render — not two

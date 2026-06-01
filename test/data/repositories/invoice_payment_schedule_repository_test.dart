@@ -25,14 +25,17 @@ void main() {
   tearDown(() async => db.close());
 
   InvoiceRepository repo() => InvoiceRepository(
-        db: db,
-        api: _FakeInvoicesApi(),
-        settings: SettingsRepository(db: db),
-      );
+    db: db,
+    api: _FakeInvoicesApi(),
+    settings: SettingsRepository(db: db),
+  );
 
-  InvoiceApi api(String id, {List<ScheduleItemApi>? schedule}) =>
-      InvoiceApi(id: id, statusId: '2', updatedAt: 1700000000,
-          schedule: schedule);
+  InvoiceApi api(String id, {List<ScheduleItemApi>? schedule}) => InvoiceApi(
+    id: id,
+    statusId: '2',
+    updatedAt: 1700000000,
+    schedule: schedule,
+  );
 
   Future<List<OutboxRow>> outbox() =>
       db.outboxDao.nextReady(companyId: 'co', now: 1 << 60);
@@ -84,48 +87,53 @@ void main() {
   });
 
   group('schedule Drift round-trip (dedicated column)', () {
-    test('show_schedule upsert persists; plain upsert + edit preserve it',
-        () async {
-      final r = repo();
+    test(
+      'show_schedule upsert persists; plain upsert + edit preserve it',
+      () async {
+        final r = repo();
 
-      // 1. A `?show_schedule=true` response (schedule present) persists via
-      //    _apiToCompanion → _fromRow overlay.
-      await r.applyUpdateResponse(
-        companyId: 'co',
-        serverResponse: api('inv1', schedule: const [
-          ScheduleItemApi(date: '2026-06-01', amount: '50', autoBill: true),
-        ]),
-      );
-      var back = await r.watch(companyId: 'co', id: 'inv1').first;
-      expect(back!.schedule, hasLength(1));
-      expect(back.schedule.single.date, '2026-06-01');
+        // 1. A `?show_schedule=true` response (schedule present) persists via
+        //    _apiToCompanion → _fromRow overlay.
+        await r.applyUpdateResponse(
+          companyId: 'co',
+          serverResponse: api(
+            'inv1',
+            schedule: const [
+              ScheduleItemApi(date: '2026-06-01', amount: '50', autoBill: true),
+            ],
+          ),
+        );
+        var back = await r.watch(companyId: 'co', id: 'inv1').first;
+        expect(back!.schedule, hasLength(1));
+        expect(back.schedule.single.date, '2026-06-01');
 
-      // 2. A later plain/list upsert OMITS schedule (null) → must NOT wipe
-      //    the stored column (the documents-style preserve guard).
-      await r.applyUpdateResponse(
-        companyId: 'co',
-        serverResponse: api('inv1'), // schedule == null
-      );
-      back = await r.watch(companyId: 'co', id: 'inv1').first;
-      expect(
-        back!.schedule,
-        hasLength(1),
-        reason: 'schedule-less response must not clobber the column',
-      );
+        // 2. A later plain/list upsert OMITS schedule (null) → must NOT wipe
+        //    the stored column (the documents-style preserve guard).
+        await r.applyUpdateResponse(
+          companyId: 'co',
+          serverResponse: api('inv1'), // schedule == null
+        );
+        back = await r.watch(companyId: 'co', id: 'inv1').first;
+        expect(
+          back!.schedule,
+          hasLength(1),
+          reason: 'schedule-less response must not clobber the column',
+        );
 
-      // 3. A local invoice edit-save must preserve it (Invoice.toApiJson
-      //    omits schedule; the dedicated column round-trips it).
-      await r.save(
-        companyId: 'co',
-        invoice: back.copyWith(number: 'INV-RENAMED'),
-      );
-      final edited = await r.watch(companyId: 'co', id: 'inv1').first;
-      expect(edited!.number, 'INV-RENAMED');
-      expect(
-        edited.schedule,
-        hasLength(1),
-        reason: 'editing the invoice must preserve its payment schedule',
-      );
-    });
+        // 3. A local invoice edit-save must preserve it (Invoice.toApiJson
+        //    omits schedule; the dedicated column round-trips it).
+        await r.save(
+          companyId: 'co',
+          invoice: back.copyWith(number: 'INV-RENAMED'),
+        );
+        final edited = await r.watch(companyId: 'co', id: 'inv1').first;
+        expect(edited!.number, 'INV-RENAMED');
+        expect(
+          edited.schedule,
+          hasLength(1),
+          reason: 'editing the invoice must preserve its payment schedule',
+        );
+      },
+    );
   });
 }

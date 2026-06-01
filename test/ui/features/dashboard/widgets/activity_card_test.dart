@@ -9,7 +9,10 @@ import 'package:admin/ui/features/dashboard/widgets/activity_card.dart';
 
 import '../../../../_localization_helper.dart';
 
-Future<void> _pump(WidgetTester tester, {required VoidCallback? onViewAll}) async {
+Future<void> _pump(
+  WidgetTester tester, {
+  required VoidCallback? onViewAll,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: buildInTheme(InTheme.light),

@@ -14,10 +14,10 @@ class GroupSettingEditViewModel extends GenericEditViewModel<GroupSetting> {
     super.sync,
     super.connectivity,
   }) : super(
-          initialDraft: existing ?? _emptyGroup(),
-          original: existing,
-          companyId: companyId,
-        );
+         initialDraft: existing ?? _emptyGroup(),
+         original: existing,
+         companyId: companyId,
+       );
 
   final GroupSettingRepository repo;
   final String companyId;

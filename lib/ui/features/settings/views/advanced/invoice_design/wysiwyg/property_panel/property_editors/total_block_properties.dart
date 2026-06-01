@@ -47,8 +47,7 @@ class _TotalBlockPropertiesState extends State<TotalBlockProperties> {
   void _writeProperty(String key, Object? value) {
     widget.vm.updateBlock(
       widget.block.copyWith(
-        properties:
-            mergePropertyOrOmit(widget.block.properties, key, value),
+        properties: mergePropertyOrOmit(widget.block.properties, key, value),
       ),
     );
   }
@@ -184,8 +183,7 @@ class _TotalBlockPropertiesState extends State<TotalBlockProperties> {
         FontStyleInput(
           fontWeight: props['totalFontWeight'] as String?,
           fontStyle: null,
-          onFontWeightChanged: (v) =>
-              _writeProperty('totalFontWeight', v),
+          onFontWeightChanged: (v) => _writeProperty('totalFontWeight', v),
           onFontStyleChanged: (_) {},
         ),
         SizedBox(height: InSpacing.md(context)),
@@ -258,10 +256,7 @@ class _TotalBlockPropertiesState extends State<TotalBlockProperties> {
           title: Text(context.tr('keep_together')),
           subtitle: Text(
             context.tr('keep_together_hint'),
-            style: TextStyle(
-              fontSize: 11,
-              color: context.inTheme.ink3,
-            ),
+            style: TextStyle(fontSize: 11, color: context.inTheme.ink3),
           ),
           value: (props['keepTogether'] as bool?) ?? false,
           onChanged: (v) => _writeProperty('keepTogether', v),

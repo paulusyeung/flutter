@@ -147,23 +147,22 @@ class _InvoiceActionsRowState extends State<_InvoiceActionsRow> {
     bool rectifyEligible,
     String? eInvoiceType,
     bool sendEInvoicePending,
-  ) =>
-      EntityDetailActionsRow<InvoiceAction>(
-        items: InvoiceActions.itemsFor(
-          context,
-          widget.invoice,
-          (a) => InvoiceActions.dispatch(
-            context,
-            widget.services,
-            widget.companyId,
-            widget.invoice,
-            a,
-          ),
-          rectifyEligible: rectifyEligible,
-          eInvoiceType: eInvoiceType,
-          sendEInvoicePending: sendEInvoicePending,
-        ),
-      );
+  ) => EntityDetailActionsRow<InvoiceAction>(
+    items: InvoiceActions.itemsFor(
+      context,
+      widget.invoice,
+      (a) => InvoiceActions.dispatch(
+        context,
+        widget.services,
+        widget.companyId,
+        widget.invoice,
+        a,
+      ),
+      rectifyEligible: rectifyEligible,
+      eInvoiceType: eInvoiceType,
+      sendEInvoicePending: sendEInvoicePending,
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -193,8 +192,10 @@ class _InvoiceActionsRowState extends State<_InvoiceActionsRow> {
               return _row(context, false, eInvoiceType, sendPending);
             }
             return StreamBuilder<Client?>(
-              stream: widget.services.clients
-                  .watch(companyId: widget.companyId, id: inv.clientId),
+              stream: widget.services.clients.watch(
+                companyId: widget.companyId,
+                id: inv.clientId,
+              ),
               builder: (context, clientSnap) {
                 final eligible = isRectifyEligible(
                   invoice: inv,
@@ -229,8 +230,8 @@ class _Body extends StatelessWidget {
         // Two-pane on wide: left = info + tabs, right = sticky PDF preview.
         // Single-column on narrow with a "View PDF" affordance routing to
         // `/invoices/:id/pdf`.
-        final wide = Breakpoints.isWide(constraints) &&
-            constraints.maxWidth >= 900;
+        final wide =
+            Breakpoints.isWide(constraints) && constraints.maxWidth >= 900;
         final main = SingleChildScrollView(
           padding: EdgeInsets.all(InSpacing.lg(context)),
           child: Column(
@@ -283,8 +284,7 @@ class _Body extends StatelessWidget {
                       entityId: invoice.id,
                       invitations: invoice.invitations,
                       clientId: invoice.clientId,
-                      isHosted:
-                          services.auth.session.value?.isHosted ?? false,
+                      isHosted: services.auth.session.value?.isHosted ?? false,
                       onReactivate: (messageId) =>
                           services.invoices.reactivateInvitationEmail(
                             companyId: companyId,
@@ -305,11 +305,13 @@ class _Body extends StatelessWidget {
                   if (invoiceSupportsPaymentSchedule(
                     invoice,
                     canViewOrEdit:
-                        (services.auth.session.value?.currentCompany
-                                ?.can('edit_invoice') ??
+                        (services.auth.session.value?.currentCompany?.can(
+                              'edit_invoice',
+                            ) ??
                             false) ||
-                        (services.auth.session.value?.currentCompany
-                                ?.can('view_invoice') ??
+                        (services.auth.session.value?.currentCompany?.can(
+                              'view_invoice',
+                            ) ??
                             false),
                   ))
                     EntityDetailTab(
@@ -329,10 +331,7 @@ class _Body extends StatelessWidget {
           children: [
             Expanded(flex: 5, child: main),
             VerticalDivider(width: 1, color: context.inTheme.border),
-            Expanded(
-              flex: 6,
-              child: _PdfPane(invoice: invoice),
-            ),
+            Expanded(flex: 6, child: _PdfPane(invoice: invoice)),
           ],
         );
       },
@@ -522,7 +521,8 @@ class _PdfPane extends StatelessWidget {
       fetcher: ({String? designId, required bool deliveryNote}) =>
           services.invoices.api.downloadPdf(
             entityJson: invoice.toApiJson(),
-            designId: designId ??
+            designId:
+                designId ??
                 (invoice.designId.isEmpty ? null : invoice.designId),
             deliveryNote: deliveryNote,
           ),
@@ -579,10 +579,7 @@ class _LabelValue extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          label,
-          style: TextStyle(fontSize: 11, color: tokens.ink3),
-        ),
+        Text(label, style: TextStyle(fontSize: 11, color: tokens.ink3)),
         const SizedBox(height: 2),
         Text(
           value,

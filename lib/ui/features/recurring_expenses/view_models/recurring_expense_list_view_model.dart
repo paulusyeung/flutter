@@ -47,9 +47,7 @@ class RecurringExpenseListViewModel
   }
 
   @override
-  Set<String> get lockedFilterKeyIds => {
-    if (vendorId != null) 'vendor',
-  };
+  Set<String> get lockedFilterKeyIds => {if (vendorId != null) 'vendor'};
 
   @override
   EntityType get entityType => EntityType.recurringExpense;

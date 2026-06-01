@@ -52,55 +52,64 @@ void main() {
   });
 
   group('BankAccountsApi.oneTimeToken', () {
-    test('POSTs {context,platform} and returns the hash (data or flat)',
-        () async {
-      Uri? captured;
-      Map<String, dynamic>? body;
-      final fake = MockClient((req) async {
-        captured = req.url;
-        body = jsonDecode(req.body) as Map<String, dynamic>;
-        return http.Response(
-          jsonEncode({'data': {'hash': 'H123'}}),
-          200,
-          headers: const {'content-type': 'application/json'},
+    test(
+      'POSTs {context,platform} and returns the hash (data or flat)',
+      () async {
+        Uri? captured;
+        Map<String, dynamic>? body;
+        final fake = MockClient((req) async {
+          captured = req.url;
+          body = jsonDecode(req.body) as Map<String, dynamic>;
+          return http.Response(
+            jsonEncode({
+              'data': {'hash': 'H123'},
+            }),
+            200,
+            headers: const {'content-type': 'application/json'},
+          );
+        });
+        final client = ApiClient(
+          credentials: _creds(),
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fake,
         );
-      });
-      final client = ApiClient(
-        credentials: _creds(),
-        passwordCache: PasswordCache(),
-        onUnauthorized: () async {},
-        httpClient: fake,
-      );
 
-      final hash =
-          await BankAccountsApi(client).oneTimeToken(context: 'yodlee');
+        final hash = await BankAccountsApi(
+          client,
+        ).oneTimeToken(context: 'yodlee');
 
-      expect(captured!.path, '/api/v1/one_time_token');
-      expect(body!['context'], 'yodlee');
-      expect(body!['platform'], 'flutter');
-      expect(hash, 'H123');
-    });
+        expect(captured!.path, '/api/v1/one_time_token');
+        expect(body!['context'], 'yodlee');
+        expect(body!['platform'], 'flutter');
+        expect(hash, 'H123');
+      },
+    );
 
     test('tolerates a flat {hash} body; throws when absent', () async {
       ApiClient mk(Object responseBody) => ApiClient(
-            credentials: _creds(),
-            passwordCache: PasswordCache(),
-            onUnauthorized: () async {},
-            httpClient: MockClient((_) async => http.Response(
-                  jsonEncode(responseBody),
-                  200,
-                  headers: const {'content-type': 'application/json'},
-                )),
-          );
+        credentials: _creds(),
+        passwordCache: PasswordCache(),
+        onUnauthorized: () async {},
+        httpClient: MockClient(
+          (_) async => http.Response(
+            jsonEncode(responseBody),
+            200,
+            headers: const {'content-type': 'application/json'},
+          ),
+        ),
+      );
 
       expect(
-        await BankAccountsApi(mk({'hash': 'flat'}))
-            .oneTimeToken(context: 'nordigen'),
+        await BankAccountsApi(
+          mk({'hash': 'flat'}),
+        ).oneTimeToken(context: 'nordigen'),
         'flat',
       );
       expect(
-        () => BankAccountsApi(mk({'nope': true}))
-            .oneTimeToken(context: 'nordigen'),
+        () => BankAccountsApi(
+          mk({'nope': true}),
+        ).oneTimeToken(context: 'nordigen'),
         throwsA(isA<FormatException>()),
       );
     });

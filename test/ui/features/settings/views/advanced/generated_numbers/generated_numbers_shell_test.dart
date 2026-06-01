@@ -151,9 +151,8 @@ Widget _host({
         routes: [
           GoRoute(
             path: ':tab',
-            builder: (_, state) => GeneratedNumbersShell(
-              initialTab: state.pathParameters['tab'],
-            ),
+            builder: (_, state) =>
+                GeneratedNumbersShell(initialTab: state.pathParameters['tab']),
           ),
         ],
       ),
@@ -211,82 +210,78 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets(
-    'all entity modules enabled → 13 tabs visible',
-    (tester) async {
-      final services = makeServices(
-        company: Company(id: 'co-A', enabledModules: _allEntityModules()),
+  testWidgets('all entity modules enabled → 13 tabs visible', (tester) async {
+    final services = makeServices(
+      company: Company(id: 'co-A', enabledModules: _allEntityModules()),
+    );
+    await tester.pumpWidget(_host(services: services));
+    await settle(tester);
+
+    // 13 tabs in display order. Text is the localized label.
+    for (final label in const [
+      'Settings',
+      'Clients',
+      'Invoices',
+      'Recurring Invoices',
+      'Payments',
+      'Quotes',
+      'Credits',
+      'Projects',
+      'Tasks',
+      'Vendors',
+      'Purchase Orders',
+      'Expenses',
+      'Recurring Expenses',
+    ]) {
+      expect(
+        find.descendant(of: find.byType(Tab), matching: find.text(label)),
+        findsOneWidget,
+        reason: 'expected tab "$label" to be visible',
       );
-      await tester.pumpWidget(_host(services: services));
-      await settle(tester);
+    }
 
-      // 13 tabs in display order. Text is the localized label.
-      for (final label in const [
-        'Settings',
-        'Clients',
-        'Invoices',
-        'Recurring Invoices',
-        'Payments',
-        'Quotes',
-        'Credits',
-        'Projects',
-        'Tasks',
-        'Vendors',
-        'Purchase Orders',
-        'Expenses',
-        'Recurring Expenses',
-      ]) {
-        expect(
-          find.descendant(of: find.byType(Tab), matching: find.text(label)),
-          findsOneWidget,
-          reason: 'expected tab "$label" to be visible',
-        );
-      }
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
-      await tester.pumpWidget(const SizedBox.shrink());
-    },
-  );
+  testWidgets('enabledModules = 0 → only Settings + Clients tabs render', (
+    tester,
+  ) async {
+    final services = makeServices(
+      company: const Company(id: 'co-A', enabledModules: 0),
+    );
+    await tester.pumpWidget(_host(services: services));
+    await settle(tester);
 
-  testWidgets(
-    'enabledModules = 0 → only Settings + Clients tabs render',
-    (tester) async {
-      final services = makeServices(
-        company: const Company(id: 'co-A', enabledModules: 0),
+    // Always-visible tabs.
+    for (final label in const ['Settings', 'Clients']) {
+      expect(
+        find.descendant(of: find.byType(Tab), matching: find.text(label)),
+        findsOneWidget,
       );
-      await tester.pumpWidget(_host(services: services));
-      await settle(tester);
+    }
+    // Module-gated tabs should be absent.
+    for (final label in const [
+      'Invoices',
+      'Recurring Invoices',
+      'Payments',
+      'Quotes',
+      'Credits',
+      'Projects',
+      'Tasks',
+      'Vendors',
+      'Purchase Orders',
+      'Expenses',
+      'Recurring Expenses',
+    ]) {
+      expect(
+        find.descendant(of: find.byType(Tab), matching: find.text(label)),
+        findsNothing,
+        reason: 'tab "$label" should be hidden when its module is disabled',
+      );
+    }
 
-      // Always-visible tabs.
-      for (final label in const ['Settings', 'Clients']) {
-        expect(
-          find.descendant(of: find.byType(Tab), matching: find.text(label)),
-          findsOneWidget,
-        );
-      }
-      // Module-gated tabs should be absent.
-      for (final label in const [
-        'Invoices',
-        'Recurring Invoices',
-        'Payments',
-        'Quotes',
-        'Credits',
-        'Projects',
-        'Tasks',
-        'Vendors',
-        'Purchase Orders',
-        'Expenses',
-        'Recurring Expenses',
-      ]) {
-        expect(
-          find.descendant(of: find.byType(Tab), matching: find.text(label)),
-          findsNothing,
-          reason: 'tab "$label" should be hidden when its module is disabled',
-        );
-      }
-
-      await tester.pumpWidget(const SizedBox.shrink());
-    },
-  );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
   testWidgets(
     'invoices module on without quotes/credits → no Payments tab gating bug',
@@ -324,27 +319,26 @@ void main() {
     },
   );
 
-  testWidgets(
-    'deep link to a hidden tab falls back to a visible tab',
-    (tester) async {
-      // Tasks module disabled but URL targets `/tasks`.
-      final services = makeServices(
-        company: const Company(id: 'co-A', enabledModules: 0),
-      );
-      await tester.pumpWidget(
-        _host(
-          services: services,
-          initialLocation: '/settings/generated_numbers/tasks',
-        ),
-      );
-      await settle(tester);
+  testWidgets('deep link to a hidden tab falls back to a visible tab', (
+    tester,
+  ) async {
+    // Tasks module disabled but URL targets `/tasks`.
+    final services = makeServices(
+      company: const Company(id: 'co-A', enabledModules: 0),
+    );
+    await tester.pumpWidget(
+      _host(
+        services: services,
+        initialLocation: '/settings/generated_numbers/tasks',
+      ),
+    );
+    await settle(tester);
 
-      expect(
-        find.descendant(of: find.byType(Tab), matching: find.text('Tasks')),
-        findsNothing,
-      );
+    expect(
+      find.descendant(of: find.byType(Tab), matching: find.text('Tasks')),
+      findsNothing,
+    );
 
-      await tester.pumpWidget(const SizedBox.shrink());
-    },
-  );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 }

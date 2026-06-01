@@ -61,19 +61,17 @@ class SegmentMenu extends StatelessWidget {
 
   /// The date key behind this chip, when it is one — gives access to the
   /// `between` window slot (`date_range` / `due_date_range`).
-  DateColumnFilterKey? get _dateKey =>
-      filterKey is DateColumnFilterKey ? filterKey as DateColumnFilterKey : null;
+  DateColumnFilterKey? get _dateKey => filterKey is DateColumnFilterKey
+      ? filterKey as DateColumnFilterKey
+      : null;
 
-  bool get _isWindow =>
-      _dateKey != null && _dateKey!.isWindowWire(currentWire);
+  bool get _isWindow => _dateKey != null && _dateKey!.isWindowWire(currentWire);
 
   /// Open the shared dual-calendar popover, seeded from the current
   /// window when this chip is already a between, and commit the result.
   Future<void> _openRangePopover(BuildContext context) async {
     final key = _dateKey!;
-    final formatter = context
-        .read<Services>()
-        .formatterIfReady(vm.companyId);
+    final formatter = context.read<Services>().formatterIfReady(vm.companyId);
     final seed = _isWindow ? key.parseWindow(currentWire) : null;
     final wire = await pickDateRangeWindow(
       context,
@@ -127,15 +125,16 @@ class SegmentMenu extends StatelessWidget {
   Widget _shell(BuildContext context, Widget body) {
     final tokens = context.inTheme;
     return CallbackShortcuts(
-      bindings: {
-        const SingleActivator(LogicalKeyboardKey.escape): onClose,
-      },
+      bindings: {const SingleActivator(LogicalKeyboardKey.escape): onClose},
       child: Material(
         elevation: 6,
         borderRadius: BorderRadius.circular(InRadii.r2),
         color: tokens.surface,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: _maxWidth, maxHeight: 360),
+          constraints: const BoxConstraints(
+            maxWidth: _maxWidth,
+            maxHeight: 360,
+          ),
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(InRadii.r2),
@@ -167,8 +166,9 @@ class SegmentMenu extends StatelessWidget {
                 return;
               }
               final (value, op) = filterKey.parseWire(currentWire);
-              final newOp =
-                  target.supportedOps.contains(op) ? op : target.defaultOp;
+              final newOp = target.supportedOps.contains(op)
+                  ? op
+                  : target.defaultOp;
               // Fire-and-forget then close synchronously — matches the
               // comparator path so `_closeSegment` nulls the (now stale)
               // chip before the swap's async notify rebuilds the overlay.
@@ -176,8 +176,9 @@ class SegmentMenu extends StatelessWidget {
                 fromServerKey: filterKey.serverKey,
                 toServerKey: target.serverKey,
                 wireValue: target.buildWire(value, newOp),
-                alsoClearServerKey:
-                    target is DateColumnFilterKey ? target.rangeServerKey : null,
+                alsoClearServerKey: target is DateColumnFilterKey
+                    ? target.rangeServerKey
+                    : null,
               );
               onClose();
             },
@@ -344,12 +345,12 @@ class _ValueField extends StatefulWidget {
 }
 
 class _ValueFieldState extends State<_ValueField> {
-  late final TextEditingController _c = TextEditingController(
-    text: widget.initial,
-  )..selection = TextSelection(
-    baseOffset: 0,
-    extentOffset: widget.initial.length,
-  );
+  late final TextEditingController _c =
+      TextEditingController(text: widget.initial)
+        ..selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: widget.initial.length,
+        );
 
   @override
   void dispose() {

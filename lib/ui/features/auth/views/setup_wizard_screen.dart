@@ -209,8 +209,12 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         draft: current.copyWith(
           settings: current.settings.copyWith(
             name: name,
-            currencyId: _currencyId.isEmpty ? current.settings.currencyId : _currencyId,
-            languageId: _languageId.isEmpty ? current.settings.languageId : _languageId,
+            currencyId: _currencyId.isEmpty
+                ? current.settings.currencyId
+                : _currencyId,
+            languageId: _languageId.isEmpty
+                ? current.settings.languageId
+                : _languageId,
           ),
         ),
       );
@@ -353,8 +357,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                                         ),
                                       ),
                                     )
-                                  : const Icon(
-                                      Icons.arrow_forward, size: 18),
+                                  : const Icon(Icons.arrow_forward, size: 18),
                               label: Text(context.tr('setup_submit')),
                               style: FilledButton.styleFrom(
                                 backgroundColor: tokens.accent,
@@ -381,14 +384,15 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                               key: const ValueKey('setup_switch_company'),
                               onPressed: _isSaving ? null : _onSwitchCompany,
                               icon: const Icon(
-                                  Icons.swap_horiz_outlined, size: 16),
+                                Icons.swap_horiz_outlined,
+                                size: 16,
+                              ),
                               label: Text(context.tr('switch_company')),
                             ),
                           TextButton.icon(
                             key: const ValueKey('setup_sign_out'),
                             onPressed: _isSaving ? null : _onSignOut,
-                            icon: const Icon(
-                                Icons.logout_outlined, size: 16),
+                            icon: const Icon(Icons.logout_outlined, size: 16),
                             label: Text(context.tr('logout')),
                           ),
                         ],
@@ -463,4 +467,3 @@ class _SurfaceCard extends StatelessWidget {
     );
   }
 }
-

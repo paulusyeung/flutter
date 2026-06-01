@@ -13,49 +13,70 @@ DashboardCardConfig _cfg(String field) => DashboardCardConfig(
 
 void main() {
   group('cardListTarget', () {
-    final expected = <String, ({EntityType e, String route, Map<String, Set<String>> f})>{
-      'active_invoices': (
-        e: EntityType.invoice,
-        route: '/invoices',
-        f: {'status_id': {'2', '3', '4'}},
-      ),
-      'outstanding_invoices': (
-        e: EntityType.invoice,
-        route: '/invoices',
-        f: {'client_status': {'unpaid'}},
-      ),
-      'completed_payments': (
-        e: EntityType.payment,
-        route: '/payments',
-        f: {'client_status': {'completed'}},
-      ),
-      'refunded_payments': (
-        e: EntityType.payment,
-        route: '/payments',
-        f: {'client_status': {'refunded', 'partially_refunded'}},
-      ),
-      'active_quotes': (
-        e: EntityType.quote,
-        route: '/quotes',
-        f: {'client_status': {'sent', 'approved'}},
-      ),
-      'unapproved_quotes': (
-        e: EntityType.quote,
-        route: '/quotes',
-        f: {'client_status': {'sent'}},
-      ),
-      'logged_tasks': (e: EntityType.task, route: '/tasks', f: {}),
-      'invoiced_tasks': (e: EntityType.task, route: '/tasks', f: {}),
-      'paid_tasks': (e: EntityType.task, route: '/tasks', f: {}),
-      'logged_expenses': (e: EntityType.expense, route: '/expenses', f: {}),
-      'pending_expenses': (e: EntityType.expense, route: '/expenses', f: {}),
-      'invoiced_expenses': (e: EntityType.expense, route: '/expenses', f: {}),
-      'invoice_paid_expenses': (
-        e: EntityType.expense,
-        route: '/expenses',
-        f: {},
-      ),
-    };
+    final expected =
+        <String, ({EntityType e, String route, Map<String, Set<String>> f})>{
+          'active_invoices': (
+            e: EntityType.invoice,
+            route: '/invoices',
+            f: {
+              'status_id': {'2', '3', '4'},
+            },
+          ),
+          'outstanding_invoices': (
+            e: EntityType.invoice,
+            route: '/invoices',
+            f: {
+              'client_status': {'unpaid'},
+            },
+          ),
+          'completed_payments': (
+            e: EntityType.payment,
+            route: '/payments',
+            f: {
+              'client_status': {'completed'},
+            },
+          ),
+          'refunded_payments': (
+            e: EntityType.payment,
+            route: '/payments',
+            f: {
+              'client_status': {'refunded', 'partially_refunded'},
+            },
+          ),
+          'active_quotes': (
+            e: EntityType.quote,
+            route: '/quotes',
+            f: {
+              'client_status': {'sent', 'approved'},
+            },
+          ),
+          'unapproved_quotes': (
+            e: EntityType.quote,
+            route: '/quotes',
+            f: {
+              'client_status': {'sent'},
+            },
+          ),
+          'logged_tasks': (e: EntityType.task, route: '/tasks', f: {}),
+          'invoiced_tasks': (e: EntityType.task, route: '/tasks', f: {}),
+          'paid_tasks': (e: EntityType.task, route: '/tasks', f: {}),
+          'logged_expenses': (e: EntityType.expense, route: '/expenses', f: {}),
+          'pending_expenses': (
+            e: EntityType.expense,
+            route: '/expenses',
+            f: {},
+          ),
+          'invoiced_expenses': (
+            e: EntityType.expense,
+            route: '/expenses',
+            f: {},
+          ),
+          'invoice_paid_expenses': (
+            e: EntityType.expense,
+            route: '/expenses',
+            f: {},
+          ),
+        };
 
     test('every kDashboardCardFields entry has an expectation', () {
       expect(expected.keys.toSet(), kDashboardCardFields.toSet());

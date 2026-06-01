@@ -18,9 +18,11 @@ void main() {
       // The reports endpoint expects `all`/`last7`/… (React reports `ranges`),
       // NOT the dashboard/scheduler `all_time`/`last7_days` form. Stricter
       // servers return an empty report for the long form. Regression guard.
-      String wireFor(ReportDatePreset p) => const ReportPayload()
-          .copyWith(datePreset: p)
-          .toJson(reportIdentifier: 'clients')['date_range'] as String;
+      String wireFor(ReportDatePreset p) =>
+          const ReportPayload()
+                  .copyWith(datePreset: p)
+                  .toJson(reportIdentifier: 'clients')['date_range']
+              as String;
 
       expect(wireFor(ReportDatePreset.allTime), 'all');
       expect(wireFor(ReportDatePreset.last7), 'last7');
@@ -59,21 +61,24 @@ void main() {
     });
 
     test('product_sales coerces empty client_id to literal null', () {
-      final json =
-          const ReportPayload(clientId: null).toJson(reportIdentifier: 'product_sales');
+      final json = const ReportPayload(
+        clientId: null,
+      ).toJson(reportIdentifier: 'product_sales');
       expect(json.containsKey('client_id'), isTrue);
       expect(json['client_id'], isNull);
     });
 
     test('product_sales preserves a non-empty client_id verbatim', () {
-      final json =
-          const ReportPayload(clientId: 'abc').toJson(reportIdentifier: 'product_sales');
+      final json = const ReportPayload(
+        clientId: 'abc',
+      ).toJson(reportIdentifier: 'product_sales');
       expect(json['client_id'], 'abc');
     });
 
     test('other reports drop an empty client_id entirely', () {
-      final json =
-          const ReportPayload(clientId: null).toJson(reportIdentifier: 'clients');
+      final json = const ReportPayload(
+        clientId: null,
+      ).toJson(reportIdentifier: 'clients');
       expect(json.containsKey('client_id'), isFalse);
     });
 
@@ -88,8 +93,9 @@ void main() {
       expect(flagged['include_tax'], true);
       expect(flagged['is_expense_billed'], true);
       expect(flagged['is_income_billed'], true);
-      final empty = const ReportPayload()
-          .toJson(reportIdentifier: 'profitloss');
+      final empty = const ReportPayload().toJson(
+        reportIdentifier: 'profitloss',
+      );
       expect(empty.containsKey('include_deleted'), isFalse);
       expect(empty.containsKey('is_expense_billed'), isFalse);
     });
@@ -105,11 +111,11 @@ void main() {
     });
 
     test('send_email only emits when sendEmail flag is on', () {
-      final json = const ReportPayload(sendEmail: true)
-          .toJson(reportIdentifier: 'clients');
+      final json = const ReportPayload(
+        sendEmail: true,
+      ).toJson(reportIdentifier: 'clients');
       expect(json['send_email'], true);
-      final off =
-          const ReportPayload().toJson(reportIdentifier: 'clients');
+      final off = const ReportPayload().toJson(reportIdentifier: 'clients');
       expect(off.containsKey('send_email'), isFalse);
     });
   });

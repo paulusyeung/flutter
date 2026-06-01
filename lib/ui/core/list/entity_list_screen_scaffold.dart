@@ -809,7 +809,8 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
                   ? null
                   : FloatingActionButton(
                       tooltip: context.tr(widget.newLabelKey),
-                      onPressed: () => goToCreateRoute(context, widget.newRoute),
+                      onPressed: () =>
+                          goToCreateRoute(context, widget.newRoute),
                       child: const Icon(Icons.add),
                     ),
               // endFloat lifts the FAB above the bottom filter bar on mobile.
@@ -936,66 +937,64 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
       // scrollbar, React-like). Standalone: own scrollable + pull-to-
       // refresh.
       shrinkWrap: widget.embedded,
-      physics: widget.embedded
-          ? const NeverScrollableScrollPhysics()
-          : null,
+      physics: widget.embedded ? const NeverScrollableScrollPhysics() : null,
       controller: widget.embedded ? null : _vScroll,
       itemCount: _vm.items.length + 1, // +1 for the footer slot
       itemBuilder: (context, index) {
-          if (index >= _vm.items.length) return _footer();
-          final item = _vm.items[index];
-          final selId = highlightSelectedIdFromRoute(context);
-          final isLast = index == _vm.items.length - 1;
-          // Hide this row's hairline when it's the last row, when it's the
-          // selected row, or when the *next* row is selected — the last case
-          // is the divider directly above the highlight chip, which a tile
-          // can't suppress on its own.
-          final bottomDividerHidden =
-              isLast ||
-              _vm.idOf(item) == selId ||
-              (index + 1 < _vm.items.length &&
-                  _vm.idOf(_vm.items[index + 1]) == selId);
-          // Key by entity identity (not list position) so a full-page
-          // re-emit from the Drift watch reuses unchanged tile elements
-          // instead of rebinding state by index. RepaintBoundary keeps a
-          // single-row change from repainting the whole viewport.
-          return KeyedSubtree(
-            key: ValueKey(_vm.idOf(item)),
-            child: RepaintBoundary(
-              // minHeight (not a fixed height) gives every row a stable
-              // taller floor so toggling the leading avatar↔checkbox never
-              // reflows the list, while tall tiles (2-line identity + money
-              // column) are never clipped.
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  minHeight: kEntityListRowHeight,
-                ),
-                child: widget.tileBuilder(
-                  context,
-                  _vm,
-                  item,
-                  index,
-                  EntityListTileOptions(
-                    wide: wide,
-                    isLast: isLast,
-                    selecting: selecting,
-                    formatter: widget.wantsFormatter ? formatter : null,
-                    // Archived entities stay editable (matches legacy
-                    // Invoice Ninja: `isEditable => !isDeleted`); only
-                    // soft-deleted rows grey out the edit pencil.
-                    editable: !_vm.isDeleted(item),
-                    // Highlight variant: null while navigating to a
-                    // full-width editor so the row doesn't flash selected
-                    // before the editor covers the list.
-                    selectedId: selId,
-                    bottomDividerHidden: bottomDividerHidden,
-                  ),
+        if (index >= _vm.items.length) return _footer();
+        final item = _vm.items[index];
+        final selId = highlightSelectedIdFromRoute(context);
+        final isLast = index == _vm.items.length - 1;
+        // Hide this row's hairline when it's the last row, when it's the
+        // selected row, or when the *next* row is selected — the last case
+        // is the divider directly above the highlight chip, which a tile
+        // can't suppress on its own.
+        final bottomDividerHidden =
+            isLast ||
+            _vm.idOf(item) == selId ||
+            (index + 1 < _vm.items.length &&
+                _vm.idOf(_vm.items[index + 1]) == selId);
+        // Key by entity identity (not list position) so a full-page
+        // re-emit from the Drift watch reuses unchanged tile elements
+        // instead of rebinding state by index. RepaintBoundary keeps a
+        // single-row change from repainting the whole viewport.
+        return KeyedSubtree(
+          key: ValueKey(_vm.idOf(item)),
+          child: RepaintBoundary(
+            // minHeight (not a fixed height) gives every row a stable
+            // taller floor so toggling the leading avatar↔checkbox never
+            // reflows the list, while tall tiles (2-line identity + money
+            // column) are never clipped.
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minHeight: kEntityListRowHeight,
+              ),
+              child: widget.tileBuilder(
+                context,
+                _vm,
+                item,
+                index,
+                EntityListTileOptions(
+                  wide: wide,
+                  isLast: isLast,
+                  selecting: selecting,
+                  formatter: widget.wantsFormatter ? formatter : null,
+                  // Archived entities stay editable (matches legacy
+                  // Invoice Ninja: `isEditable => !isDeleted`); only
+                  // soft-deleted rows grey out the edit pencil.
+                  editable: !_vm.isDeleted(item),
+                  // Highlight variant: null while navigating to a
+                  // full-width editor so the row doesn't flash selected
+                  // before the editor covers the list.
+                  selectedId: selId,
+                  bottomDividerHidden: bottomDividerHidden,
                 ),
               ),
             ),
-          );
-        },
-      );
+          ),
+        );
+      },
+    );
 
     // Embedded shrink-wraps with no pull-to-refresh; standalone keeps the
     // RefreshIndicator wrapping its own scrollable.
@@ -1032,10 +1031,7 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
         borderRadius: BorderRadius.circular(InRadii.r3),
         boxShadow: tokens.shadow1,
       ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: child,
-      ),
+      child: Material(type: MaterialType.transparency, child: child),
     );
   }
 
@@ -1090,8 +1086,9 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
               child: Column(
                 // Embedded sits in the page's unbounded-height scroll, so
                 // it must shrink-wrap; standalone fills the bounded card.
-                mainAxisSize:
-                    widget.embedded ? MainAxisSize.min : MainAxisSize.max,
+                mainAxisSize: widget.embedded
+                    ? MainAxisSize.min
+                    : MainAxisSize.max,
                 children: [
                   headers,
                   if (widget.embedded) list else Expanded(child: list),
@@ -1109,10 +1106,7 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
     // the toolbar supplies the gap above). Standalone: keep the 24 px
     // inset inside its bare Scaffold body.
     if (widget.embedded) return card;
-    return Padding(
-      padding: const EdgeInsetsDirectional.all(24),
-      child: card,
-    );
+    return Padding(padding: const EdgeInsetsDirectional.all(24), child: card);
   }
 }
 

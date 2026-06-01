@@ -53,8 +53,7 @@ class QuoteListViewModel extends GenericListViewModel<Quote> {
 
   @override
   bool isValidColumnId(String field) =>
-      quoteColumnsById.containsKey(field) ||
-      field == QuoteFieldIds.updatedAt;
+      quoteColumnsById.containsKey(field) || field == QuoteFieldIds.updatedAt;
 
   @override
   String idOf(Quote item) => item.id;

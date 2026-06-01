@@ -42,9 +42,7 @@ class UpdatedRangeFilterKey extends FilterKey {
   @override
   bool isValidValue(String rawValue) {
     final p = rawValue.split(',');
-    return p.length >= 2 &&
-        p[0].trim().isNotEmpty &&
-        p[1].trim().isNotEmpty;
+    return p.length >= 2 && p[0].trim().isNotEmpty && p[1].trim().isNotEmpty;
   }
 
   /// Normalize to exactly `start,end` (drop any extra parts / whitespace).
@@ -110,8 +108,6 @@ class UpdatedRangeFilterKey extends FilterKey {
   ) => addValue(vm, rawValue);
 
   @override
-  Future<void> clear(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-  ) => writeSingleExtraFilter(vm, _serverKey, null);
+  Future<void> clear(GenericListViewModel<dynamic> vm, BuildContext context) =>
+      writeSingleExtraFilter(vm, _serverKey, null);
 }

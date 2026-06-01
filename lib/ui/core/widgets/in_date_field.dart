@@ -205,9 +205,9 @@ class _InDateFieldState extends State<InDateField> {
   }
 
   OutlineInputBorder _border(BuildContext context) => OutlineInputBorder(
-        borderRadius: BorderRadius.circular(InRadii.r1),
-        borderSide: BorderSide(color: context.inTheme.border),
-      );
+    borderRadius: BorderRadius.circular(InRadii.r1),
+    borderSide: BorderSide(color: context.inTheme.border),
+  );
 
   @override
   Widget build(BuildContext context) {

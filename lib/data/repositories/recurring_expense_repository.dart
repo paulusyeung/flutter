@@ -97,11 +97,10 @@ class RecurringExpenseRepository
   Stream<int> watchCountForStatus({
     required String companyId,
     String? recurringStatus,
-  }) =>
-      db.recurringExpenseDao.watchCountForStatus(
-        companyId: companyId,
-        recurringStatus: recurringStatus,
-      );
+  }) => db.recurringExpenseDao.watchCountForStatus(
+    companyId: companyId,
+    recurringStatus: recurringStatus,
+  );
 
   Stream<List<RecurringExpense>> watchForVendor({
     required String companyId,
@@ -311,7 +310,6 @@ class RecurringExpenseRepository
   }
 
   @override
-
   Future<void> uploadDocument({
     required String companyId,
     required String entityId,
@@ -326,7 +324,6 @@ class RecurringExpenseRepository
   }
 
   @override
-
   Future<void> deleteDocument({
     required String companyId,
     required String entityId,
@@ -336,15 +333,11 @@ class RecurringExpenseRepository
       companyId: companyId,
       entityId: entityId,
       kind: MutationKind.documentDelete,
-      payload: {
-        'entity_id': entityId,
-        'document_id': documentId,
-      },
+      payload: {'entity_id': entityId, 'document_id': documentId},
     );
   }
 
   @override
-
   Future<void> setDocumentVisibility({
     required String companyId,
     required String entityId,
@@ -380,7 +373,8 @@ class RecurringExpenseRepository
     realId: serverResponse.id,
     companion: _apiToCompanion(serverResponse, companyId),
     upsert: db.recurringExpenseDao.upsert,
-    deleteById: (id) => db.recurringExpenseDao.deleteById(companyId: companyId, id: id),
+    deleteById: (id) =>
+        db.recurringExpenseDao.deleteById(companyId: companyId, id: id),
   );
 
   @override
@@ -424,14 +418,12 @@ class RecurringExpenseRepository
     final next = current.where((d) => d.id != documentId).toList();
     if (next.length == current.length) return;
     await (db.update(db.recurringExpenses)
-          ..where(
-            (e) => e.companyId.equals(companyId) & e.id.equals(entityId),
-          ))
+          ..where((e) => e.companyId.equals(companyId) & e.id.equals(entityId)))
         .write(
-      RecurringExpensesCompanion(
-        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
-      ),
-    );
+          RecurringExpensesCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   /// Replace (or insert) one document in the local `documents` JSON column.
@@ -453,14 +445,12 @@ class RecurringExpenseRepository
       next.add(document);
     }
     await (db.update(db.recurringExpenses)
-          ..where(
-            (e) => e.companyId.equals(companyId) & e.id.equals(entityId),
-          ))
+          ..where((e) => e.companyId.equals(companyId) & e.id.equals(entityId)))
         .write(
-      RecurringExpensesCompanion(
-        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
-      ),
-    );
+          RecurringExpensesCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   // -------------------- conversions --------------------

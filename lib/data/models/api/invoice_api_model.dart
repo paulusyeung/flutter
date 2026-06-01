@@ -135,8 +135,9 @@ abstract class InvoiceApi with _$InvoiceApi {
 /// `GET /invoices` list envelope.
 @freezed
 abstract class InvoiceListApi with _$InvoiceListApi {
-  const factory InvoiceListApi({@Default(<InvoiceApi>[]) List<InvoiceApi> data}) =
-      _InvoiceListApi;
+  const factory InvoiceListApi({
+    @Default(<InvoiceApi>[]) List<InvoiceApi> data,
+  }) = _InvoiceListApi;
 
   factory InvoiceListApi.fromJson(Map<String, dynamic> json) =>
       _$InvoiceListApiFromJson(json);

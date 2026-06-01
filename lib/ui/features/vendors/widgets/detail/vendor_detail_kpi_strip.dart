@@ -50,11 +50,7 @@ class VendorDetailKpiStrip extends StatelessWidget {
       ),
       builder: (context, snapshot) {
         final expenses = snapshot.data ?? const <Expense>[];
-        return _Strip(
-          vendor: vendor,
-          expenses: expenses,
-          formatter: formatter,
-        );
+        return _Strip(vendor: vendor, expenses: expenses, formatter: formatter);
       },
     );
   }
@@ -95,8 +91,8 @@ class _Strip extends StatelessWidget {
     final lastDateText = mostRecent == null
         ? '—'
         : (formatter == null
-            ? mostRecent.toIso()
-            : formatter!.date(mostRecent.toIso()));
+              ? mostRecent.toIso()
+              : formatter!.date(mostRecent.toIso()));
 
     final cells = <Widget>[
       _KpiCell(
@@ -239,8 +235,8 @@ class _KpiCell extends StatelessWidget {
     final valueColor = isZero
         ? tokens.ink3
         : (highlightWhenPositive != null && amount > Decimal.zero
-            ? highlightWhenPositive!
-            : tokens.ink);
+              ? highlightWhenPositive!
+              : tokens.ink);
     return _Cell(
       label: label,
       tokens: tokens,

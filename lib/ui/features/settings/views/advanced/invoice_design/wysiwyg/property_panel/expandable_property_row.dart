@@ -76,8 +76,7 @@ class ExpandablePropertyRow extends StatelessWidget {
             children: [
               ReorderableDragStartListener(
                 index: index,
-                child:
-                    Icon(Icons.drag_indicator, color: tokens.ink3, size: 20),
+                child: Icon(Icons.drag_indicator, color: tokens.ink3, size: 20),
               ),
               SizedBox(width: InSpacing.sm),
               Expanded(

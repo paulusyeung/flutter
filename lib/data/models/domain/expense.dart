@@ -166,8 +166,7 @@ extension ExpenseStatus on Expense {
 
   Decimal get taxAmountSum => taxAmount1 + taxAmount2 + taxAmount3;
 
-  Decimal get netAmount =>
-      usesInclusiveTaxes ? amount - taxAmountSum : amount;
+  Decimal get netAmount => usesInclusiveTaxes ? amount - taxAmountSum : amount;
 
   Decimal get grossAmount =>
       usesInclusiveTaxes ? amount : amount + taxAmountSum;

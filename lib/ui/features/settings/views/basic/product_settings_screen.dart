@@ -56,12 +56,11 @@ class ProductSettingsScreen extends StatelessWidget {
         unawaited(vm.load());
         return vm;
       },
-      builder: (context, vm) =>
-          SettingsPageScaffold<ProductSettingsViewModel>(
-            titleKey: 'product_settings',
-            viewModel: vm,
-            body: const _ProductSettingsBody(),
-          ),
+      builder: (context, vm) => SettingsPageScaffold<ProductSettingsViewModel>(
+        titleKey: 'product_settings',
+        viewModel: vm,
+        body: const _ProductSettingsBody(),
+      ),
     );
   }
 }

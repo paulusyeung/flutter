@@ -50,10 +50,7 @@ const _kFrequencyOptions = <(String, String)>[
 List<DropdownMenuItem<String>> _paddingOptions() {
   return [
     for (var i = 1; i <= 10; i++)
-      DropdownMenuItem<String>(
-        value: '$i',
-        child: Text('${'0' * (i - 1)}1'),
-      ),
+      DropdownMenuItem<String>(value: '$i', child: Text('${'0' * (i - 1)}1')),
   ];
 }
 
@@ -99,13 +96,10 @@ class _GeneratedNumbersSettingsBodyState
     // which keeps the date field hidden but lets the rest of the form
     // continue to work.
     final services = context.read<Services>();
-    services.formatterFor(widget.companyId).then(
-      (f) {
-        if (!mounted) return;
-        setState(() => _formatter = f);
-      },
-      onError: (_) {},
-    );
+    services.formatterFor(widget.companyId).then((f) {
+      if (!mounted) return;
+      setState(() => _formatter = f);
+    }, onError: (_) {});
   }
 
   @override
@@ -159,22 +153,20 @@ class _GeneratedNumbersSettingsBodyState
                     child: Text(context.tr(labelKey)),
                   ),
               ],
-              onChanged: (v) => host.updateSettings(
-                (s) {
-                  final parsed = v == null ? null : int.tryParse(v);
-                  // Clearing the frequency → clear the date too (matches the
-                  // React app's `Settings.tsx:201-203`). Keeping a stale date
-                  // around would leave a half-configured reset behind on the
-                  // wire and re-arm the next save.
-                  if (parsed == null || parsed == 0) {
-                    return s.copyWith(
-                      resetCounterFrequencyId: parsed,
-                      resetCounterDate: null,
-                    );
-                  }
-                  return s.copyWith(resetCounterFrequencyId: parsed);
-                },
-              ),
+              onChanged: (v) => host.updateSettings((s) {
+                final parsed = v == null ? null : int.tryParse(v);
+                // Clearing the frequency → clear the date too (matches the
+                // React app's `Settings.tsx:201-203`). Keeping a stale date
+                // around would leave a half-configured reset behind on the
+                // wire and re-arm the next save.
+                if (parsed == null || parsed == 0) {
+                  return s.copyWith(
+                    resetCounterFrequencyId: parsed,
+                    resetCounterDate: null,
+                  );
+                }
+                return s.copyWith(resetCounterFrequencyId: parsed);
+              }),
             ),
             if (showNextReset)
               OverridableDateField(

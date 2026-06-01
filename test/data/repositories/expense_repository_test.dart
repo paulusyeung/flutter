@@ -78,32 +78,29 @@ void main() {
   runEntityRepositoryContract(_ExpenseFixture());
 
   group('ExpenseRepository — entity-specific', () {
-    test(
-      'ExpenseApi → Expense round-trip preserves Decimal precision on '
-      'amount, taxAmount1..3, taxRate1..3, and exchangeRate',
-      () {
-        const api = ExpenseApi(
-          id: 'e_1',
-          amount: '123.4567',
-          exchangeRate: '0.876543',
-          taxAmount1: '11.1111',
-          taxAmount2: '22.2222',
-          taxAmount3: '33.3333',
-          taxRate1: '5.250',
-          taxRate2: '7.125',
-          taxRate3: '1.5',
-        );
-        final domain = Expense.fromApi(api);
-        expect(domain.amount, Decimal.parse('123.4567'));
-        expect(domain.exchangeRate, Decimal.parse('0.876543'));
-        expect(domain.taxAmount1, Decimal.parse('11.1111'));
-        expect(domain.taxAmount2, Decimal.parse('22.2222'));
-        expect(domain.taxAmount3, Decimal.parse('33.3333'));
-        expect(domain.taxRate1, Decimal.parse('5.250'));
-        expect(domain.taxRate2, Decimal.parse('7.125'));
-        expect(domain.taxRate3, Decimal.parse('1.5'));
-      },
-    );
+    test('ExpenseApi → Expense round-trip preserves Decimal precision on '
+        'amount, taxAmount1..3, taxRate1..3, and exchangeRate', () {
+      const api = ExpenseApi(
+        id: 'e_1',
+        amount: '123.4567',
+        exchangeRate: '0.876543',
+        taxAmount1: '11.1111',
+        taxAmount2: '22.2222',
+        taxAmount3: '33.3333',
+        taxRate1: '5.250',
+        taxRate2: '7.125',
+        taxRate3: '1.5',
+      );
+      final domain = Expense.fromApi(api);
+      expect(domain.amount, Decimal.parse('123.4567'));
+      expect(domain.exchangeRate, Decimal.parse('0.876543'));
+      expect(domain.taxAmount1, Decimal.parse('11.1111'));
+      expect(domain.taxAmount2, Decimal.parse('22.2222'));
+      expect(domain.taxAmount3, Decimal.parse('33.3333'));
+      expect(domain.taxRate1, Decimal.parse('5.250'));
+      expect(domain.taxRate2, Decimal.parse('7.125'));
+      expect(domain.taxRate3, Decimal.parse('1.5'));
+    });
 
     test(
       'effectiveExchangeRate returns Decimal.one when stored exchangeRate is '
@@ -142,11 +139,7 @@ void main() {
     test('runTemplate enqueues MutationKind.runTemplate with id + '
         'template_id', () async {
       final repo = ExpenseRepository(db: db, api: _FakeExpensesApi());
-      await repo.runTemplate(
-        companyId: 'co',
-        id: 'e_99',
-        templateId: 'tmpl_7',
-      );
+      await repo.runTemplate(companyId: 'co', id: 'e_99', templateId: 'tmpl_7');
       final rows = await db.outboxDao.nextReady(
         companyId: 'co',
         now: 9999999999999,

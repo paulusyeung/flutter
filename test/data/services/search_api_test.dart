@@ -83,8 +83,11 @@ void main() {
       Uri? captured;
       final fake = MockClient((req) async {
         captured = req.url;
-        return http.Response('[]', 200,
-            headers: const {'content-type': 'application/json'});
+        return http.Response(
+          '[]',
+          200,
+          headers: const {'content-type': 'application/json'},
+        );
       });
       final client = ApiClient(
         credentials: _creds(),

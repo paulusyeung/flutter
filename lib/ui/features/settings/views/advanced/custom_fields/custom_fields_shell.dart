@@ -415,4 +415,3 @@ class _CustomFieldsAccessScope extends InheritedWidget {
   final scope = _CustomFieldsAccessScope.of(context);
   return (companyId: scope.companyId, enabled: scope.enabled);
 }
-

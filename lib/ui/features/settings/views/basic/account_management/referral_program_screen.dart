@@ -58,9 +58,9 @@ class _ReferralBody extends StatelessWidget {
               leading: Icon(Icons.link, color: tokens.ink2),
               title: SelectableText(
                 url,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: tokens.ink,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: tokens.ink),
               ),
               trailing: Icon(Icons.content_copy, color: tokens.ink3),
               onTap: () => _copyUrl(context, url),
@@ -92,10 +92,9 @@ class _ReferralBody extends StatelessWidget {
   }
 
   Future<void> _copyUrl(BuildContext context, String url) async {
-    final copiedText = context.tr('copied_to_clipboard').replaceAll(
-      ':value',
-      url,
-    );
+    final copiedText = context
+        .tr('copied_to_clipboard')
+        .replaceAll(':value', url);
     await Clipboard.setData(ClipboardData(text: url));
     if (!context.mounted) return;
     Notify.success(context, copiedText);
@@ -135,10 +134,7 @@ class _StatRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              context.tr(planKey),
-              style: theme.textTheme.bodyLarge,
-            ),
+            child: Text(context.tr(planKey), style: theme.textTheme.bodyLarge),
           ),
           Text(
             '$count',

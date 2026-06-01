@@ -134,8 +134,7 @@ class _OverridableLogoSizeFieldState extends State<OverridableLogoSizeField> {
           ],
           selected: {unit},
           showSelectedIcon: false,
-          onSelectionChanged: (set) =>
-              _commit(overrideUnit: set.first),
+          onSelectionChanged: (set) => _commit(overrideUnit: set.first),
         ),
       ],
     );

@@ -123,9 +123,7 @@ class PaymentStatusFilterKey extends FilterKey {
     ];
     final filtered = q.isEmpty
         ? all
-        : all
-              .where((s) => s.displayLabel.toLowerCase().contains(q))
-              .toList();
+        : all.where((s) => s.displayLabel.toLowerCase().contains(q)).toList();
     return Stream.value(filtered);
   }
 
@@ -167,8 +165,6 @@ class PaymentStatusFilterKey extends FilterKey {
   ) => writeSingleExtraFilter(vm, _serverKey, rawValue.trim());
 
   @override
-  Future<void> clear(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-  ) => writeSingleExtraFilter(vm, _serverKey, null);
+  Future<void> clear(GenericListViewModel<dynamic> vm, BuildContext context) =>
+      writeSingleExtraFilter(vm, _serverKey, null);
 }

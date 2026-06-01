@@ -80,9 +80,12 @@ List<int> findHardcodedLines(List<String> lines) {
     // preview function has ended. Reset so a malformed preview can never
     // swallow the rest of the file.
     final topLevelAnnotation =
-        raw.isNotEmpty && !raw.startsWith(' ') && !raw.startsWith('\t') &&
+        raw.isNotEmpty &&
+        !raw.startsWith(' ') &&
+        !raw.startsWith('\t') &&
         raw.trimLeft().startsWith('@');
-    if (topLevelAnnotation && (previewPending || inExprPreview || inBlockPreview)) {
+    if (topLevelAnnotation &&
+        (previewPending || inExprPreview || inBlockPreview)) {
       previewPending = inExprPreview = inBlockPreview = false;
       braceDepth = 0;
       pendingFor = 0;
@@ -235,16 +238,19 @@ void main() {
       );
     });
 
-    test('R1: expression-bodied @Preview does NOT blind later real offenders', () {
-      final lines = [
-        '@Preview(name: "x")',
-        "Widget previewFoo() => Bar(child: Text('Sample Text'));",
-        '',
-        "child: Text('Real Offender'),",
-      ];
-      // The preview literal on line 2 is exempt; the real one on line 4 is not.
-      expect(findHardcodedLines(lines), [4]);
-    });
+    test(
+      'R1: expression-bodied @Preview does NOT blind later real offenders',
+      () {
+        final lines = [
+          '@Preview(name: "x")',
+          "Widget previewFoo() => Bar(child: Text('Sample Text'));",
+          '',
+          "child: Text('Real Offender'),",
+        ];
+        // The preview literal on line 2 is exempt; the real one on line 4 is not.
+        expect(findHardcodedLines(lines), [4]);
+      },
+    );
 
     test('R1: block-bodied @Preview body is exempt, code after it is not', () {
       final lines = [
@@ -285,12 +291,15 @@ void main() {
       expect(findHardcodedLines(lines), [4]);
     });
 
-    test('R2/R3: i18n-exempt on the line above still skips (raw-line path)', () {
-      final lines = [
-        '// i18n-exempt: protocol identifier',
-        "DropdownMenuItem(value: 'TLS', child: Text('TLS')),",
-      ];
-      expect(findHardcodedLines(lines), isEmpty);
-    });
+    test(
+      'R2/R3: i18n-exempt on the line above still skips (raw-line path)',
+      () {
+        final lines = [
+          '// i18n-exempt: protocol identifier',
+          "DropdownMenuItem(value: 'TLS', child: Text('TLS')),",
+        ];
+        expect(findHardcodedLines(lines), isEmpty);
+      },
+    );
   });
 }

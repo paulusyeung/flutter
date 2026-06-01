@@ -255,7 +255,8 @@ class GroupSettingRepository
     realId: serverResponse.id,
     companion: _apiToCompanion(serverResponse, companyId),
     upsert: db.groupSettingDao.upsert,
-    deleteById: (id) => db.groupSettingDao.deleteById(companyId: companyId, id: id),
+    deleteById: (id) =>
+        db.groupSettingDao.deleteById(companyId: companyId, id: id),
   );
 
   @override

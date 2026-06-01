@@ -14,9 +14,7 @@ abstract class BankTransactionApi with _$BankTransactionApi {
     @JsonKey(name: 'category_type') @Default('') String categoryType,
     @JsonKey(name: 'base_type') @Default('') String baseType,
     @Default('') String date,
-    @JsonKey(name: 'bank_integration_id')
-    @Default('')
-    String bankIntegrationId,
+    @JsonKey(name: 'bank_integration_id') @Default('') String bankIntegrationId,
     @Default('') String description,
     @JsonKey(name: 'status_id') @Default('1') String statusId,
     @JsonKey(name: 'ninja_category_id') @Default('') String ninjaCategoryId,

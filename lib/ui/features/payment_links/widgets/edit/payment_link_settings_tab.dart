@@ -55,7 +55,9 @@ class PaymentLinkSettingsTab extends StatelessWidget {
             SettingsTextField(
               initialValue: _decimalText(vm.draft.price.toString()),
               labelKey: 'price',
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               onChanged: vm.setPrice,
               externalSyncKey: vm.original?.id,
             ),
@@ -169,8 +171,7 @@ class _FrequencyDropdown extends StatelessWidget {
         ),
     ];
     return DropdownButtonFormField<String>(
-      initialValue:
-          items.any((m) => m.value == selected) ? selected : '',
+      initialValue: items.any((m) => m.value == selected) ? selected : '',
       items: items,
       decoration: InputDecoration(labelText: context.tr('frequency')),
       onChanged: (v) => vm.setFrequencyId(v ?? ''),
@@ -273,10 +274,7 @@ class _PromoDiscountRow extends StatelessWidget {
           child: DropdownButtonFormField<bool>(
             initialValue: vm.draft.isAmountDiscount,
             items: [
-              DropdownMenuItem(
-                value: true,
-                child: Text(context.tr('amount')),
-              ),
+              DropdownMenuItem(value: true, child: Text(context.tr('amount'))),
               DropdownMenuItem(
                 value: false,
                 child: Text(context.tr('percent')),

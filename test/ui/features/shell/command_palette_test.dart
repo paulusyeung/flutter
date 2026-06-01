@@ -25,10 +25,7 @@ void main() {
       expect(entityTypeForSearchGroup('products'), EntityType.product);
       expect(entityTypeForSearchGroup('expenses'), EntityType.expense);
       expect(entityTypeForSearchGroup('vendors'), EntityType.vendor);
-      expect(
-        entityTypeForSearchGroup('vendor_contacts'),
-        EntityType.vendor,
-      );
+      expect(entityTypeForSearchGroup('vendor_contacts'), EntityType.vendor);
     });
 
     test('settings + unknown groups → null (caller uses server path)', () {

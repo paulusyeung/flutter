@@ -60,15 +60,17 @@ void main() {
       expect(body.containsKey('email'), isFalse);
     });
 
-    test('empty id_token is treated as absent (Laravel has() gotcha)',
-        () async {
-      final body = await capture(
-        provider: 'google',
-        accessToken: 'tok',
-        idToken: '',
-      );
-      expect(body.containsKey('id_token'), isFalse);
-    });
+    test(
+      'empty id_token is treated as absent (Laravel has() gotcha)',
+      () async {
+        final body = await capture(
+          provider: 'google',
+          accessToken: 'tok',
+          idToken: '',
+        );
+        expect(body.containsKey('id_token'), isFalse);
+      },
+    );
 
     test('apple (JWT path) includes id_token + auth_code + email', () async {
       final body = await capture(

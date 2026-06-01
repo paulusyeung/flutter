@@ -28,13 +28,13 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
     ConnectivityWatcher? connectivity,
     String? companyId,
     Duration onlineSaveTimeout = const Duration(seconds: 30),
-  })  : _original = original,
-        _draft = initialDraft,
-        _useCommaAsDecimalPlace = useCommaAsDecimalPlace,
-        _sync = sync,
-        _connectivity = connectivity,
-        _companyId = companyId,
-        _onlineSaveTimeout = onlineSaveTimeout;
+  }) : _original = original,
+       _draft = initialDraft,
+       _useCommaAsDecimalPlace = useCommaAsDecimalPlace,
+       _sync = sync,
+       _connectivity = connectivity,
+       _companyId = companyId,
+       _onlineSaveTimeout = onlineSaveTimeout;
 
   final T? _original;
   T _draft;
@@ -283,15 +283,12 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
 
   @protected
   void setDec(T Function(T, Decimal) write, String input) => updateDraft(
-        write(
-          _draft,
-          parseDecimal(
-                input,
-                useCommaAsDecimalPlace: _useCommaAsDecimalPlace,
-              ) ??
-              Decimal.zero,
-        ),
-      );
+    write(
+      _draft,
+      parseDecimal(input, useCommaAsDecimalPlace: _useCommaAsDecimalPlace) ??
+          Decimal.zero,
+    ),
+  );
 
   @protected
   void setInt(T Function(T, int) write, String input) =>

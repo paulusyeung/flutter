@@ -60,81 +60,82 @@ void main() {
     );
 
     test('returns empty list on a 200 (the ordering is valid)', () async {
-      final fake = MockClient((_) async => http.Response(
-            jsonEncode({'message': 'ok'}),
-            200,
-            headers: {'content-type': 'application/json'},
-          ));
-      final errors =
-          await SubscriptionsApi(_client(fake)).checkSteps(['cart']);
+      final fake = MockClient(
+        (_) async => http.Response(
+          jsonEncode({'message': 'ok'}),
+          200,
+          headers: {'content-type': 'application/json'},
+        ),
+      );
+      final errors = await SubscriptionsApi(_client(fake)).checkSteps(['cart']);
+      expect(errors, isEmpty);
+    });
+
+    test('returns empty list when the 422 envelope has no `steps` field '
+        '(server flagged something other than steps)', () async {
+      final fake = MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'message': 'Validation Failed',
+            'errors': {
+              'name': ['Name is required'],
+            },
+          }),
+          422,
+          headers: {'content-type': 'application/json'},
+        ),
+      );
+      final errors = await SubscriptionsApi(_client(fake)).checkSteps(['cart']);
       expect(errors, isEmpty);
     });
 
     test(
-      'returns empty list when the 422 envelope has no `steps` field '
-      '(server flagged something other than steps)',
+      'returns empty list (and skips the round-trip) for an empty input',
       () async {
-        final fake = MockClient((_) async => http.Response(
-              jsonEncode({
-                'message': 'Validation Failed',
-                'errors': {'name': ['Name is required']},
-              }),
-              422,
-              headers: {'content-type': 'application/json'},
-            ));
-        final errors =
-            await SubscriptionsApi(_client(fake)).checkSteps(['cart']);
+        var calls = 0;
+        final fake = MockClient((_) async {
+          calls++;
+          return http.Response('{}', 200);
+        });
+        final errors = await SubscriptionsApi(
+          _client(fake),
+        ).checkSteps(const []);
         expect(errors, isEmpty);
+        expect(calls, 0, reason: 'no HTTP call for empty step list');
       },
     );
-
-    test('returns empty list (and skips the round-trip) for an empty input',
-        () async {
-      var calls = 0;
-      final fake = MockClient((_) async {
-        calls++;
-        return http.Response('{}', 200);
-      });
-      final errors =
-          await SubscriptionsApi(_client(fake)).checkSteps(const []);
-      expect(errors, isEmpty);
-      expect(calls, 0, reason: 'no HTTP call for empty step list');
-    });
   });
 
   group('SubscriptionsApi.listSteps', () {
-    test(
-      'flattens the keyed-object response shape `{id: {id,label,deps}}` '
-      'into a list (matches React Steps.tsx step catalog parsing)',
-      () async {
-        final fake = MockClient((req) async {
-          expect(req.method, 'GET');
-          expect(req.url.path, '/api/v1/subscriptions/steps');
-          return http.Response(
-            jsonEncode({
-              'auth.login': {
-                'id': 'auth.login',
-                'label': 'Login',
-                'dependencies': <String>[],
-              },
-              'cart': {
-                'id': 'cart',
-                'label': 'Cart',
-                'dependencies': ['auth.login'],
-              },
-            }),
-            200,
-            headers: {'content-type': 'application/json'},
-          );
-        });
+    test('flattens the keyed-object response shape `{id: {id,label,deps}}` '
+        'into a list (matches React Steps.tsx step catalog parsing)', () async {
+      final fake = MockClient((req) async {
+        expect(req.method, 'GET');
+        expect(req.url.path, '/api/v1/subscriptions/steps');
+        return http.Response(
+          jsonEncode({
+            'auth.login': {
+              'id': 'auth.login',
+              'label': 'Login',
+              'dependencies': <String>[],
+            },
+            'cart': {
+              'id': 'cart',
+              'label': 'Cart',
+              'dependencies': ['auth.login'],
+            },
+          }),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      });
 
-        final steps = await SubscriptionsApi(_client(fake)).listSteps();
+      final steps = await SubscriptionsApi(_client(fake)).listSteps();
 
-        expect(steps, hasLength(2));
-        expect(steps.map((s) => s.id).toSet(), {'auth.login', 'cart'});
-        final cart = steps.firstWhere((s) => s.id == 'cart');
-        expect(cart.dependencies, ['auth.login']);
-      },
-    );
+      expect(steps, hasLength(2));
+      expect(steps.map((s) => s.id).toSet(), {'auth.login', 'cart'});
+      final cart = steps.firstWhere((s) => s.id == 'cart');
+      expect(cart.dependencies, ['auth.login']);
+    });
   });
 }

@@ -33,10 +33,11 @@ void main() {
             updatedAt: 1,
           ),
         );
-        await pumpAt(tester, width, ClientDetailCardsGrid(
-          client: client,
-          formatter: null,
-        ));
+        await pumpAt(
+          tester,
+          width,
+          ClientDetailCardsGrid(client: client, formatter: null),
+        );
         expectNoOverflow(tester);
       });
 

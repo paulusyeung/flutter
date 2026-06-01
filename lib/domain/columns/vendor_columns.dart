@@ -85,7 +85,12 @@ final List<VendorColumn> kAllVendorColumns = <VendorColumn>[
     labelKey: 'balance',
     width: 120,
     align: ColumnAlign.end,
-    cellBuilder: (v, context) => cellMoney(v.balance, context, cents: true, vendorCurrencyId: v.currencyId),
+    cellBuilder: (v, context) => cellMoney(
+      v.balance,
+      context,
+      cents: true,
+      vendorCurrencyId: v.currencyId,
+    ),
     valueBuilder: (v) => cellMoneyValue(v.balance),
   ),
   VendorColumn(
@@ -93,7 +98,12 @@ final List<VendorColumn> kAllVendorColumns = <VendorColumn>[
     labelKey: 'paid_to_date',
     width: 120,
     align: ColumnAlign.end,
-    cellBuilder: (v, context) => cellMoney(v.paidToDate, context, cents: false, vendorCurrencyId: v.currencyId),
+    cellBuilder: (v, context) => cellMoney(
+      v.paidToDate,
+      context,
+      cents: false,
+      vendorCurrencyId: v.currencyId,
+    ),
     valueBuilder: (v) => cellMoneyValue(v.paidToDate),
   ),
   VendorColumn(
@@ -120,7 +130,8 @@ final List<VendorColumn> kAllVendorColumns = <VendorColumn>[
       final c = _firstContact(v.contacts);
       return cellText(c?.email ?? '');
     },
-    valueBuilder: (v) => cellNonZeroString(_firstContact(v.contacts)?.email ?? ''),
+    valueBuilder: (v) =>
+        cellNonZeroString(_firstContact(v.contacts)?.email ?? ''),
   ),
   VendorColumn(
     id: VendorFieldIds.contactPhone,
@@ -130,7 +141,8 @@ final List<VendorColumn> kAllVendorColumns = <VendorColumn>[
       final c = _firstContact(v.contacts);
       return cellText(c?.phone ?? '');
     },
-    valueBuilder: (v) => cellNonZeroString(_firstContact(v.contacts)?.phone ?? ''),
+    valueBuilder: (v) =>
+        cellNonZeroString(_firstContact(v.contacts)?.phone ?? ''),
   ),
   VendorColumn(
     id: VendorFieldIds.idNumber,

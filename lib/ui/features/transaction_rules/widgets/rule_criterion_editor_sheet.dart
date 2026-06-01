@@ -15,18 +15,13 @@ Future<RuleCriterion?> showRuleCriterionSheet({
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    builder: (sheetCtx) => _RuleCriterionSheet(
-      initial: initial,
-      isCredit: isCredit,
-    ),
+    builder: (sheetCtx) =>
+        _RuleCriterionSheet(initial: initial, isCredit: isCredit),
   );
 }
 
 class _RuleCriterionSheet extends StatefulWidget {
-  const _RuleCriterionSheet({
-    required this.initial,
-    required this.isCredit,
-  });
+  const _RuleCriterionSheet({required this.initial, required this.isCredit});
 
   final RuleCriterion initial;
   final bool isCredit;
@@ -67,12 +62,14 @@ class _RuleCriterionSheetState extends State<_RuleCriterionSheet> {
   void initState() {
     super.initState();
     final keys = widget.isCredit ? kRuleCreditSearchKeys : _debitKeys;
-    _searchKey = widget.initial.searchKey.isNotEmpty &&
+    _searchKey =
+        widget.initial.searchKey.isNotEmpty &&
             keys.contains(widget.initial.searchKey)
         ? widget.initial.searchKey
         : keys.first;
     final operators = _operatorsFor(_searchKey);
-    _operator = widget.initial.operator.isNotEmpty &&
+    _operator =
+        widget.initial.operator.isNotEmpty &&
             operators.contains(widget.initial.operator)
         ? widget.initial.operator
         : operators.first;
@@ -97,7 +94,8 @@ class _RuleCriterionSheetState extends State<_RuleCriterionSheet> {
     // selected, which deliberately omits the value field). Without this
     // gate users can land a `description contains <empty>` criterion
     // that always matches every row.
-    final canSave = _searchKey.isNotEmpty &&
+    final canSave =
+        _searchKey.isNotEmpty &&
         _operator.isNotEmpty &&
         (hideValue || _value.text.trim().isNotEmpty);
 
@@ -124,10 +122,7 @@ class _RuleCriterionSheetState extends State<_RuleCriterionSheet> {
             decoration: InputDecoration(labelText: context.tr('operator')),
             items: [
               for (final op in operators)
-                DropdownMenuItem(
-                  value: op,
-                  child: Text(labelForOperator(op)),
-                ),
+                DropdownMenuItem(value: op, child: Text(labelForOperator(op))),
             ],
             onChanged: (v) {
               if (v == null) return;
@@ -152,9 +147,7 @@ class _RuleCriterionSheetState extends State<_RuleCriterionSheet> {
             children: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                style: TextButton.styleFrom(
-                  minimumSize: const Size(64, 40),
-                ),
+                style: TextButton.styleFrom(minimumSize: const Size(64, 40)),
                 child: Text(context.tr('cancel')),
               ),
               const SizedBox(width: 12),
@@ -168,9 +161,7 @@ class _RuleCriterionSheetState extends State<_RuleCriterionSheet> {
                         ),
                       )
                     : null,
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(64, 44),
-                ),
+                style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
                 child: Text(context.tr('save')),
               ),
             ],

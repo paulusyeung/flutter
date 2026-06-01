@@ -47,7 +47,8 @@ class FormattedTextBlock extends StatelessWidget {
           fontWeight: parseFontWeight(props['fontWeight'] as String?),
           fontStyle: parseFontStyle(props['fontStyle'] as String?),
           color: parseCssColor(props['color'] as String?),
-          height: parsePx(props['lineHeight']) ??
+          height:
+              parsePx(props['lineHeight']) ??
               double.tryParse((props['lineHeight'] as String?) ?? '') ??
               1.3,
         ),

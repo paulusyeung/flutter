@@ -68,10 +68,8 @@ class IsFilterKey extends FilterKey {
   /// Clearing the aggregate chip drops the state dimension entirely in one
   /// write (empty set is allowed — see [removeValue]).
   @override
-  Future<void> clear(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-  ) => vm.setStates(const {});
+  Future<void> clear(GenericListViewModel<dynamic> vm, BuildContext context) =>
+      vm.setStates(const {});
 
   @override
   bool isAtDefault(GenericListViewModel<dynamic> vm) =>

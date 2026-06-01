@@ -36,7 +36,10 @@ class PaymentLinkWebhookTab extends StatelessWidget {
                   : '',
               items: [
                 DropdownMenuItem(value: '', child: Text(context.tr('select'))),
-                DropdownMenuItem(value: 'post', child: Text(context.tr('post'))),
+                DropdownMenuItem(
+                  value: 'post',
+                  child: Text(context.tr('post')),
+                ),
                 DropdownMenuItem(value: 'put', child: Text(context.tr('put'))),
               ],
               decoration: InputDecoration(labelText: context.tr('rest_method')),
@@ -89,8 +92,7 @@ class _HeadersEditorState extends State<_HeadersEditor> {
 
   @override
   Widget build(BuildContext context) {
-    final headers =
-        widget.vm.draft.webhookConfiguration.postPurchaseHeaders;
+    final headers = widget.vm.draft.webhookConfiguration.postPurchaseHeaders;
     final tokens = context.inTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -100,16 +102,17 @@ class _HeadersEditorState extends State<_HeadersEditor> {
             padding: EdgeInsets.symmetric(vertical: InSpacing.sm),
             child: Text(
               context.tr('no_headers'),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: tokens.ink3,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: tokens.ink3),
             ),
           ),
-        for (final entry in headers.entries) _HeaderRow(
-          headerKey: entry.key,
-          value: entry.value,
-          onDelete: () => widget.vm.removeWebhookHeader(entry.key),
-        ),
+        for (final entry in headers.entries)
+          _HeaderRow(
+            headerKey: entry.key,
+            value: entry.value,
+            onDelete: () => widget.vm.removeWebhookHeader(entry.key),
+          ),
         SizedBox(height: InSpacing.md(context)),
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,

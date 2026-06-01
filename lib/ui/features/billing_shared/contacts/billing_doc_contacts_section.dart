@@ -88,9 +88,10 @@ class _ContactRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final fullName = [contact.firstName, contact.lastName]
-        .where((s) => s.isNotEmpty)
-        .join(' ');
+    final fullName = [
+      contact.firstName,
+      contact.lastName,
+    ].where((s) => s.isNotEmpty).join(' ');
     final displayName = fullName.isEmpty
         ? (contact.email.isEmpty ? context.tr('unnamed') : contact.email)
         : fullName;
@@ -147,10 +148,7 @@ class _ContactRow extends StatelessWidget {
             if (contact.isPrimary) ...[
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 2,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: tokens.accentSoft,
                   borderRadius: BorderRadius.circular(InRadii.r1),

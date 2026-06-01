@@ -243,7 +243,8 @@ class PaymentTermRepository
     realId: serverResponse.id,
     companion: _apiToCompanion(serverResponse, companyId),
     upsert: db.paymentTermDao.upsert,
-    deleteById: (id) => db.paymentTermDao.deleteById(companyId: companyId, id: id),
+    deleteById: (id) =>
+        db.paymentTermDao.deleteById(companyId: companyId, id: id),
   );
 
   @override

@@ -69,9 +69,10 @@ class _WysiwygPreviewSheetState extends State<WysiwygPreviewSheet> {
   @override
   void initState() {
     super.initState();
-    _entityType = widget.initialEntityType
-        ?? widget.design.entities.firstOrNull
-        ?? 'invoice';
+    _entityType =
+        widget.initialEntityType ??
+        widget.design.entities.firstOrNull ??
+        'invoice';
     _scheduleRender(immediate: true);
   }
 
@@ -173,10 +174,7 @@ class _WysiwygPreviewSheetState extends State<WysiwygPreviewSheet> {
           onChanged: _onEntityChanged,
         ),
         if (_errorMessage != null)
-          _ErrorBanner(
-            message: _errorMessage!,
-            fieldErrors: _fieldErrors,
-          ),
+          _ErrorBanner(message: _errorMessage!, fieldErrors: _fieldErrors),
         Expanded(
           child: _pdf == null
               ? Center(

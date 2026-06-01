@@ -17,30 +17,37 @@ void main() {
       entityType: 'transaction_rule',
       buildRepo: (db) =>
           TransactionRuleRepository(db: db, api: _FakeTransactionRulesApi()),
-      buildApiModel: ({
-        required String id,
-        String? displayValue,
-        int updatedAt = 1700000000,
-      }) => TransactionRuleApi(
-        id: id,
-        name: displayValue ?? id,
-        appliesTo: kTransactionRuleAppliesDebit,
-        updatedAt: updatedAt,
-      ),
+      buildApiModel:
+          ({
+            required String id,
+            String? displayValue,
+            int updatedAt = 1700000000,
+          }) => TransactionRuleApi(
+            id: id,
+            name: displayValue ?? id,
+            appliesTo: kTransactionRuleAppliesDebit,
+            updatedAt: updatedAt,
+          ),
       fromApi: TransactionRule.fromApi,
       editCopy: (item, {required String displayValue}) =>
           item.copyWith(name: displayValue),
       idOf: (item) => item.id,
       isDirtyOf: (item) => item.isDirty,
       create: (repo, {required companyId, required draft}) =>
-          (repo as TransactionRuleRepository)
-              .create(companyId: companyId, draft: draft),
+          (repo as TransactionRuleRepository).create(
+            companyId: companyId,
+            draft: draft,
+          ),
       save: (repo, {required companyId, required entity}) =>
-          (repo as TransactionRuleRepository)
-              .save(companyId: companyId, rule: entity),
+          (repo as TransactionRuleRepository).save(
+            companyId: companyId,
+            rule: entity,
+          ),
       delete: (repo, {required companyId, required id}) =>
-          (repo as TransactionRuleRepository)
-              .delete(companyId: companyId, id: id),
+          (repo as TransactionRuleRepository).delete(
+            companyId: companyId,
+            id: id,
+          ),
     ),
   );
 
@@ -141,16 +148,8 @@ void main() {
         await repo.applyBundle(
           companyId: 'co',
           bundle: const [
-            TransactionRuleApi(
-              id: 'r_a',
-              name: 'A',
-              updatedAt: 1700000100,
-            ),
-            TransactionRuleApi(
-              id: 'r_b',
-              name: 'B',
-              updatedAt: 1700000200,
-            ),
+            TransactionRuleApi(id: 'r_a', name: 'A', updatedAt: 1700000100),
+            TransactionRuleApi(id: 'r_b', name: 'B', updatedAt: 1700000200),
           ],
         );
         final rows = await repo.watchAll(companyId: 'co').first;
@@ -174,35 +173,32 @@ void main() {
       expect(cursor.isEmpty, isTrue);
     });
 
-    test(
-      'applyBundle preserves the local payload of an is_dirty row '
-      'so an offline edit is not clobbered by a re-bundle',
-      () async {
-        final repo = makeRepo();
-        final draft = TransactionRule.fromApi(
-          const TransactionRuleApi(name: 'Local Rule'),
-        );
-        await repo.create(companyId: 'co', draft: draft);
-        final dirtyBefore = (await repo.watchAll(companyId: 'co').first).single;
-        expect(dirtyBefore.isDirty, isTrue);
+    test('applyBundle preserves the local payload of an is_dirty row '
+        'so an offline edit is not clobbered by a re-bundle', () async {
+      final repo = makeRepo();
+      final draft = TransactionRule.fromApi(
+        const TransactionRuleApi(name: 'Local Rule'),
+      );
+      await repo.create(companyId: 'co', draft: draft);
+      final dirtyBefore = (await repo.watchAll(companyId: 'co').first).single;
+      expect(dirtyBefore.isDirty, isTrue);
 
-        await repo.applyBundle(
-          companyId: 'co',
-          bundle: const [
-            TransactionRuleApi(
-              id: 'r_server',
-              name: 'Server Rule',
-              updatedAt: 1700000500,
-            ),
-          ],
-        );
-        final all = await repo.watchAll(companyId: 'co').first;
-        expect(all, hasLength(2));
-        expect(all.map((r) => r.name).toSet(), {'Local Rule', 'Server Rule'});
-        final stillDirty = all.firstWhere((r) => r.name == 'Local Rule');
-        expect(stillDirty.isDirty, isTrue);
-      },
-    );
+      await repo.applyBundle(
+        companyId: 'co',
+        bundle: const [
+          TransactionRuleApi(
+            id: 'r_server',
+            name: 'Server Rule',
+            updatedAt: 1700000500,
+          ),
+        ],
+      );
+      final all = await repo.watchAll(companyId: 'co').first;
+      expect(all, hasLength(2));
+      expect(all.map((r) => r.name).toSet(), {'Local Rule', 'Server Rule'});
+      final stillDirty = all.firstWhere((r) => r.name == 'Local Rule');
+      expect(stillDirty.isDirty, isTrue);
+    });
   });
 }
 

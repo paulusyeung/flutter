@@ -138,8 +138,7 @@ extension CreditCalculation on Credit {
   bool get isPartial => statusId == CreditStatus.partial;
   bool get isApplied => statusId == CreditStatus.applied;
 
-  bool get hasViewedInvitation =>
-      invitations.any((i) => i.hasBeenViewed);
+  bool get hasViewedInvitation => invitations.any((i) => i.hasBeenViewed);
 
   /// Any invitation whose email bounced or errored — drives the red
   /// alert overlay on the list status chip.

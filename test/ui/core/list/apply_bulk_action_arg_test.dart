@@ -36,7 +36,11 @@ class _Vm extends GenericListViewModel<_Row> {
     super.persistDebounce,
   });
 
-  final List<_Row> _stub = const [_Row('a'), _Row('b'), _Row('c', deleted: true)];
+  final List<_Row> _stub = const [
+    _Row('a'),
+    _Row('b'),
+    _Row('c', deleted: true),
+  ];
 
   final List<String> applyIds = [];
   final List<(String, Object?)> applyArgCalls = [];
@@ -132,7 +136,11 @@ void main() {
       arg: payload,
     );
     expect(r.ok, 2);
-    expect(vm.applyIds, isEmpty, reason: 'apply must not run when applyArg set');
+    expect(
+      vm.applyIds,
+      isEmpty,
+      reason: 'apply must not run when applyArg set',
+    );
     expect(vm.applyArgCalls.map((e) => e.$1).toSet(), {'a', 'b'});
     expect(
       vm.applyArgCalls.every((e) => e.$2 == payload),

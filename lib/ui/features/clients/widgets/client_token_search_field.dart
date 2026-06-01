@@ -35,19 +35,23 @@ class ClientTokenSearchField extends StatelessWidget {
         return StreamBuilder<Map<String, String>>(
           stream: services.groupSettings
               .watchAll(companyId: vm.companyId)
-              .map((rows) => {
-                    for (final g in rows)
-                      if (g.name.isNotEmpty) g.id: g.name,
-                  }),
+              .map(
+                (rows) => {
+                  for (final g in rows)
+                    if (g.name.isNotEmpty) g.id: g.name,
+                },
+              ),
           builder: (context, groupSnap) {
             final groupNames = groupSnap.data ?? const <String, String>{};
             return StreamBuilder<Map<String, String>>(
               stream: services.user
                   .watchAllForPicker(companyId: vm.companyId)
-                  .map((rows) => {
-                        for (final u in rows)
-                          if (u.displayName.isNotEmpty) u.id: u.displayName,
-                      }),
+                  .map(
+                    (rows) => {
+                      for (final u in rows)
+                        if (u.displayName.isNotEmpty) u.id: u.displayName,
+                    },
+                  ),
               builder: (context, userSnap) {
                 final userNames = userSnap.data ?? const <String, String>{};
                 final keys = buildClientFilterKeys(

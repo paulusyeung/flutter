@@ -19,22 +19,21 @@ Invoice _invoice({
     'adjustable_amount': 50,
   },
   bool isDeleted = false,
-}) =>
-    Invoice.fromApi(
-      InvoiceApi(
-        id: id,
-        statusId: statusId,
-        clientId: 'c1',
-        amount: amount,
-        balance: balance,
-        backup: backup,
-        isDeleted: isDeleted,
-        lineItems: const [
-          LineItemApi(cost: '40', quantity: '2'),
-          LineItemApi(cost: '20', quantity: '1'),
-        ],
-      ),
-    );
+}) => Invoice.fromApi(
+  InvoiceApi(
+    id: id,
+    statusId: statusId,
+    clientId: 'c1',
+    amount: amount,
+    balance: balance,
+    backup: backup,
+    isDeleted: isDeleted,
+    lineItems: const [
+      LineItemApi(cost: '40', quantity: '2'),
+      LineItemApi(cost: '20', quantity: '1'),
+    ],
+  ),
+);
 
 void main() {
   group('isRectifyEligible', () {
@@ -142,50 +141,55 @@ void main() {
   });
 
   group('rectifiedDraft', () {
-    test('clears identity, negates amounts/quantities, sets rectify fields', () {
-      final original = _invoice();
-      final draft = rectifiedDraft(original, 'wrong amount');
+    test(
+      'clears identity, negates amounts/quantities, sets rectify fields',
+      () {
+        final original = _invoice();
+        final draft = rectifiedDraft(original, 'wrong amount');
 
-      expect(draft.id, '');
-      expect(draft.number, '');
-      expect(draft.statusId, InvoiceStatus.draft);
-      expect(draft.date!.toIso(), Date.today().toIso());
-      expect(draft.dueDate, isNull);
-      expect(draft.isDeleted, isFalse);
-      expect(draft.archivedAt, isNull);
-      expect(draft.modifiedInvoiceId, 'inv1');
-      expect(draft.reason, 'wrong amount');
-      // Documents cleared (React parity: a fresh corrective invoice must not
-      // carry the original's attachments into the editor).
-      expect(draft.documents, isEmpty);
+        expect(draft.id, '');
+        expect(draft.number, '');
+        expect(draft.statusId, InvoiceStatus.draft);
+        expect(draft.date!.toIso(), Date.today().toIso());
+        expect(draft.dueDate, isNull);
+        expect(draft.isDeleted, isFalse);
+        expect(draft.archivedAt, isNull);
+        expect(draft.modifiedInvoiceId, 'inv1');
+        expect(draft.reason, 'wrong amount');
+        // Documents cleared (React parity: a fresh corrective invoice must not
+        // carry the original's attachments into the editor).
+        expect(draft.documents, isEmpty);
 
-      // amount/balance negated
-      expect(draft.amount, Decimal.fromInt(-100));
-      expect(draft.balance, Decimal.fromInt(-100));
+        // amount/balance negated
+        expect(draft.amount, Decimal.fromInt(-100));
+        expect(draft.balance, Decimal.fromInt(-100));
 
-      // every line-item quantity negated (−abs)
-      expect(draft.lineItems[0].quantity, Decimal.fromInt(-2));
-      expect(draft.lineItems[1].quantity, Decimal.fromInt(-1));
-      // cost is left untouched (gross = cost*qty becomes negative)
-      expect(draft.lineItems[0].cost, Decimal.fromInt(40));
-    });
+        // every line-item quantity negated (−abs)
+        expect(draft.lineItems[0].quantity, Decimal.fromInt(-2));
+        expect(draft.lineItems[1].quantity, Decimal.fromInt(-1));
+        // cost is left untouched (gross = cost*qty becomes negative)
+        expect(draft.lineItems[0].cost, Decimal.fromInt(40));
+      },
+    );
 
-    test('recomputed subtotal is negative (negate-quantity-only is correct)',
-        () {
-      final draft = rectifiedDraft(_invoice(), 'r');
-      final subtotal = computeSubtotal(
-        BillingTotalsInput(
-          lineItems: draft.lineItems,
-          discount: draft.discount,
-          isAmountDiscount: draft.isAmountDiscount,
-          usesInclusiveTaxes: draft.usesInclusiveTaxes,
-        ),
-        2,
-      );
-      // original subtotal = 40*2 + 20*1 = 100 → negated = -100
-      expect(subtotal, Decimal.fromInt(-100));
-      expect(subtotal < Decimal.zero, isTrue);
-    });
+    test(
+      'recomputed subtotal is negative (negate-quantity-only is correct)',
+      () {
+        final draft = rectifiedDraft(_invoice(), 'r');
+        final subtotal = computeSubtotal(
+          BillingTotalsInput(
+            lineItems: draft.lineItems,
+            discount: draft.discount,
+            isAmountDiscount: draft.isAmountDiscount,
+            usesInclusiveTaxes: draft.usesInclusiveTaxes,
+          ),
+          2,
+        );
+        // original subtotal = 40*2 + 20*1 = 100 → negated = -100
+        expect(subtotal, Decimal.fromInt(-100));
+        expect(subtotal < Decimal.zero, isTrue);
+      },
+    );
 
     test('payload carries modified_invoice_id + reason', () {
       final json = rectifiedDraft(_invoice(), 'duplicate billing').toApiJson();

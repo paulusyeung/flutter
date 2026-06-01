@@ -169,15 +169,16 @@ class InvoiceActions {
     // Mark sent → only from Draft.
     final canMarkSent = canEditInvoice && invoice.isDraft;
     // Mark paid → only when there's still a balance.
-    final canMarkPaid = canEditInvoice &&
+    final canMarkPaid =
+        canEditInvoice &&
         !invoice.isPaid &&
         !invoice.isCancelled &&
         !invoice.isReversed;
     // Auto-bill → invoice must be payable + not already paid.
-    final canAutoBill = canMarkPaid &&
-        invoice.statusId != InvoiceStatus.draft;
+    final canAutoBill = canMarkPaid && invoice.statusId != InvoiceStatus.draft;
     // Cancel → server-side rule: sent invoices only.
-    final canCancel = canEditInvoice &&
+    final canCancel =
+        canEditInvoice &&
         invoice.isSent &&
         !invoice.isCancelled &&
         !invoice.isReversed;
@@ -251,7 +252,8 @@ class InvoiceActions {
         // Refunds operate on this invoice's payment(s); only meaningful
         // once it's (partially) paid. Dispatch resolves the actual
         // refundable payment(s) and routes to the existing refund screen.
-        enabled: canEditInvoice &&
+        enabled:
+            canEditInvoice &&
             (invoice.isPaid || invoice.isPartial) &&
             !invoice.isReversed,
         onTap: () => onTap(InvoiceAction.refund),
@@ -447,7 +449,8 @@ class InvoiceActions {
           );
           if (!context.mounted) return;
           if (action == InvoiceAction.downloadPdf) {
-            final fileName = 'invoice_${invoice.number.isEmpty ? invoice.id : invoice.number}.pdf';
+            final fileName =
+                'invoice_${invoice.number.isEmpty ? invoice.id : invoice.number}.pdf';
             await Printing.sharePdf(bytes: bytes, filename: fileName);
           } else {
             await Printing.layoutPdf(onLayout: (_) async => bytes);
@@ -496,10 +499,7 @@ class InvoiceActions {
 
       case InvoiceAction.markSent:
         if (tmpGate()) return;
-        await services.invoices.markSent(
-          companyId: companyId,
-          id: invoice.id,
-        );
+        await services.invoices.markSent(companyId: companyId, id: invoice.id);
         if (!context.mounted) return;
         Notify.success(context, context.tr('marked_invoice_as_sent'));
 
@@ -507,10 +507,7 @@ class InvoiceActions {
         if (tmpGate()) return;
         final confirmed = await showMarkPaidConfirmDialog(context);
         if (!confirmed) return;
-        await services.invoices.markPaid(
-          companyId: companyId,
-          id: invoice.id,
-        );
+        await services.invoices.markPaid(companyId: companyId, id: invoice.id);
         if (!context.mounted) return;
         Notify.success(context, context.tr('marked_invoice_as_paid'));
 
@@ -559,19 +556,13 @@ class InvoiceActions {
 
       case InvoiceAction.autoBill:
         if (tmpGate()) return;
-        await services.invoices.autoBill(
-          companyId: companyId,
-          id: invoice.id,
-        );
+        await services.invoices.autoBill(companyId: companyId, id: invoice.id);
         if (!context.mounted) return;
         Notify.success(context, context.tr('auto_bill_queued'));
 
       case InvoiceAction.cancel:
         if (tmpGate()) return;
-        await services.invoices.cancel(
-          companyId: companyId,
-          id: invoice.id,
-        );
+        await services.invoices.cancel(companyId: companyId, id: invoice.id);
         if (!context.mounted) return;
         Notify.success(context, context.tr('cancelled_invoice'));
 
@@ -634,15 +625,14 @@ class InvoiceActions {
       case InvoiceAction.validateEInvoice:
         if (tmpGate()) return;
         try {
-          final result =
-              await services.invoices.api.validateEInvoice(invoice.id);
+          final result = await services.invoices.api.validateEInvoice(
+            invoice.id,
+          );
           if (!context.mounted) return;
           await showDialog<void>(
             context: context,
             builder: (d) {
-              final flat = result.messages
-                  .where((s) => s.isNotEmpty)
-                  .toList();
+              final flat = result.messages.where((s) => s.isNotEmpty).toList();
               final ok = result.passes && flat.isEmpty;
               return AlertDialog(
                 title: Text(d.tr('validate')),
@@ -657,8 +647,9 @@ class InvoiceActions {
                             children: [
                               for (final m in flat)
                                 Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 2,
+                                  ),
                                   child: Text('• $m'),
                                 ),
                             ],
@@ -697,20 +688,16 @@ class InvoiceActions {
         await StandardEntityActions.archive(
           context: context,
           wireName: 'invoice',
-          op: () => services.invoices.archive(
-            companyId: companyId,
-            id: invoice.id,
-          ),
+          op: () =>
+              services.invoices.archive(companyId: companyId, id: invoice.id),
         );
 
       case InvoiceAction.restore:
         await StandardEntityActions.restore(
           context: context,
           wireName: 'invoice',
-          op: () => services.invoices.restore(
-            companyId: companyId,
-            id: invoice.id,
-          ),
+          op: () =>
+              services.invoices.restore(companyId: companyId, id: invoice.id),
         );
 
       case InvoiceAction.delete:
@@ -718,10 +705,8 @@ class InvoiceActions {
         await StandardEntityActions.delete(
           context: context,
           wireName: 'invoice',
-          op: () => services.invoices.delete(
-            companyId: companyId,
-            id: invoice.id,
-          ),
+          op: () =>
+              services.invoices.delete(companyId: companyId, id: invoice.id),
         );
 
       case InvoiceAction.cloneToQuote:
@@ -778,4 +763,3 @@ class InvoiceActions {
     }
   }
 }
-

@@ -120,10 +120,7 @@ class _UserEditScreenState extends State<UserEditScreen> {
     User? existing;
     try {
       final apiUser = await services.user.api.getOne(id: userId);
-      await services.user.applyApiResponse(
-        companyId: companyId,
-        api: apiUser,
-      );
+      await services.user.applyApiResponse(companyId: companyId, api: apiUser);
       existing = await services.user.get(companyId: companyId, userId: userId);
     } catch (e) {
       // Network failure — fall back to Drift cache so the admin can at
@@ -253,9 +250,7 @@ class _DetailsTab extends StatelessWidget {
         if (isPending)
           FormSection(
             title: context.tr('invitation'),
-            children: [
-              _PendingInviteBanner(),
-            ],
+            children: [_PendingInviteBanner()],
           ),
         FormSection(
           title: context.tr('details'),
@@ -390,9 +385,7 @@ class _PermissionsTab extends StatelessWidget {
           children: [
             SwitchListTile(
               title: Text(context.tr('administrator')),
-              subtitle: Text(
-                context.trIfDefined('administrator_help') ?? '',
-              ),
+              subtitle: Text(context.trIfDefined('administrator_help') ?? ''),
               value: vm.isAdmin,
               onChanged: vm.setAdmin,
             ),
@@ -432,7 +425,10 @@ class _PendingInviteBanner extends StatelessWidget {
     final tokens = context.inTheme;
     final theme = Theme.of(context);
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: InSpacing.lg(context), vertical: 6),
+      margin: EdgeInsets.symmetric(
+        horizontal: InSpacing.lg(context),
+        vertical: 6,
+      ),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: tokens.overdueSoft,
@@ -445,7 +441,9 @@ class _PendingInviteBanner extends StatelessWidget {
           Expanded(
             child: Text(
               context.tr('email_sent_to_confirm_email'),
-              style: theme.textTheme.bodyMedium?.copyWith(color: tokens.overdue),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: tokens.overdue,
+              ),
             ),
           ),
         ],
@@ -476,8 +474,9 @@ class _LabeledField extends StatefulWidget {
 }
 
 class _LabeledFieldState extends State<_LabeledField> {
-  late final TextEditingController _controller =
-      TextEditingController(text: widget.initial);
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initial,
+  );
 
   @override
   void dispose() {
@@ -496,8 +495,8 @@ class _LabeledFieldState extends State<_LabeledField> {
       child: TextField(
         controller: _controller,
         decoration: InputDecoration(
-          labelText: context.tr(widget.labelKey) +
-              (widget.required ? ' *' : ''),
+          labelText:
+              context.tr(widget.labelKey) + (widget.required ? ' *' : ''),
           border: const OutlineInputBorder(),
         ),
         keyboardType: widget.keyboardType,

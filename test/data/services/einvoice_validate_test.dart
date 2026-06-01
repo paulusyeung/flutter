@@ -64,48 +64,54 @@ void main() {
   });
 
   group('InvoicesApi.validateEInvoice', () {
-    test('POSTs validateEntity {entity:invoices,entity_id}; parses result',
-        () async {
-      Uri? url;
-      Map<String, dynamic>? body;
-      final fake = MockClient((req) async {
-        url = req.url;
-        body = jsonDecode(req.body) as Map<String, dynamic>;
-        return http.Response(
-          jsonEncode({
-            'passes': false,
-            'invoices': [
-              {'message': 'Client VAT missing'},
-            ],
-            'recurring_invoices': <Object>[],
-            'clients': <Object>[],
-            'companies': <Object>[],
-          }),
-          200,
-          headers: const {'content-type': 'application/json'},
+    test(
+      'POSTs validateEntity {entity:invoices,entity_id}; parses result',
+      () async {
+        Uri? url;
+        Map<String, dynamic>? body;
+        final fake = MockClient((req) async {
+          url = req.url;
+          body = jsonDecode(req.body) as Map<String, dynamic>;
+          return http.Response(
+            jsonEncode({
+              'passes': false,
+              'invoices': [
+                {'message': 'Client VAT missing'},
+              ],
+              'recurring_invoices': <Object>[],
+              'clients': <Object>[],
+              'companies': <Object>[],
+            }),
+            200,
+            headers: const {'content-type': 'application/json'},
+          );
+        });
+        final api = InvoicesApi(
+          ApiClient(
+            credentials: _creds(),
+            passwordCache: PasswordCache(),
+            onUnauthorized: () async {},
+            httpClient: fake,
+          ),
         );
-      });
-      final api = InvoicesApi(ApiClient(
-        credentials: _creds(),
-        passwordCache: PasswordCache(),
-        onUnauthorized: () async {},
-        httpClient: fake,
-      ));
 
-      final r = await api.validateEInvoice('inv1');
-      expect(url!.path, '/api/v1/einvoice/validateEntity');
-      expect(body!['entity'], 'invoices');
-      expect(body!['entity_id'], 'inv1');
-      expect(r.passes, isFalse);
-      expect(r.messages, ['Client VAT missing']);
-    });
+        final r = await api.validateEInvoice('inv1');
+        expect(url!.path, '/api/v1/einvoice/validateEntity');
+        expect(body!['entity'], 'invoices');
+        expect(body!['entity_id'], 'inv1');
+        expect(r.passes, isFalse);
+        expect(r.messages, ['Client VAT missing']);
+      },
+    );
 
     test('valid invoice → passes, no messages', () async {
-      final api = InvoicesApi(ApiClient(
-        credentials: _creds(),
-        passwordCache: PasswordCache(),
-        onUnauthorized: () async {},
-        httpClient: MockClient((_) async => http.Response(
+      final api = InvoicesApi(
+        ApiClient(
+          credentials: _creds(),
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: MockClient(
+            (_) async => http.Response(
               jsonEncode({
                 'passes': true,
                 'invoices': <Object>[],
@@ -115,8 +121,10 @@ void main() {
               }),
               200,
               headers: const {'content-type': 'application/json'},
-            )),
-      ));
+            ),
+          ),
+        ),
+      );
       final r = await api.validateEInvoice('inv1');
       expect(r.passes, isTrue);
       expect(r.messages, isEmpty);

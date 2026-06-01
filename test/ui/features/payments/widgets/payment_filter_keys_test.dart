@@ -136,32 +136,34 @@ void main() {
       expect(key.isValidValue('gte:2026-05-01'), isTrue);
     });
 
-    test('addValue routes a window to extraFilters[date_range] as the '
-        'canonical date,<start>,<end> wire and clears the comparable slot',
-        () async {
-      final vm = await makeVm();
+    test(
+      'addValue routes a window to extraFilters[date_range] as the '
+      'canonical date,<start>,<end> wire and clears the comparable slot',
+      () async {
+        final vm = await makeVm();
 
-      // Seed a single-date comparable filter first.
-      await key.addValue(vm, 'gte:2026-01-01');
-      expect(vm.extraFilters['date'], {'gte:2026-01-01'});
+        // Seed a single-date comparable filter first.
+        await key.addValue(vm, 'gte:2026-01-01');
+        expect(vm.extraFilters['date'], {'gte:2026-01-01'});
 
-      // Legacy 2-part window normalizes to canonical 3-part in the
-      // date_range slot, and the comparable slot is cleared (mutually
-      // exclusive within the key).
-      await key.addValue(vm, '2026-05-01,2026-05-31');
-      expect(vm.extraFilters['date_range'], {'date,2026-05-01,2026-05-31'});
-      expect(vm.extraFilters['date'] ?? const <String>{}, isEmpty);
+        // Legacy 2-part window normalizes to canonical 3-part in the
+        // date_range slot, and the comparable slot is cleared (mutually
+        // exclusive within the key).
+        await key.addValue(vm, '2026-05-01,2026-05-31');
+        expect(vm.extraFilters['date_range'], {'date,2026-05-01,2026-05-31'});
+        expect(vm.extraFilters['date'] ?? const <String>{}, isEmpty);
 
-      // The between: prefix and a non-date column prefix both normalize.
-      await key.addValue(vm, 'between:2026-06-01,2026-06-30');
-      expect(vm.extraFilters['date_range'], {'date,2026-06-01,2026-06-30'});
+        // The between: prefix and a non-date column prefix both normalize.
+        await key.addValue(vm, 'between:2026-06-01,2026-06-30');
+        expect(vm.extraFilters['date_range'], {'date,2026-06-01,2026-06-30'});
 
-      await key.removeValue(vm, 'date,2026-06-01,2026-06-30');
-      expect(vm.extraFilters['date_range'] ?? const <String>{}, isEmpty);
-      expect(key.isAtDefault(vm), isTrue);
+        await key.removeValue(vm, 'date,2026-06-01,2026-06-30');
+        expect(vm.extraFilters['date_range'] ?? const <String>{}, isEmpty);
+        expect(key.isAtDefault(vm), isTrue);
 
-      vm.dispose();
-    });
+        vm.dispose();
+      },
+    );
 
     test('switching back to a single-date op seeds from the window start '
         'and clears the range slot', () async {
@@ -175,8 +177,9 @@ void main() {
       vm.dispose();
     });
 
-    testWidgets('the window renders as one chip; clear drops both slots',
-        (tester) async {
+    testWidgets('the window renders as one chip; clear drops both slots', (
+      tester,
+    ) async {
       late BuildContext ctx;
       await tester.pumpWidget(
         Directionality(

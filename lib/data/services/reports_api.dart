@@ -291,7 +291,6 @@ class ReportsApi {
     }
     throw ReportPollingTimeout(hash);
   }
-
 }
 
 class ReportExportResult {

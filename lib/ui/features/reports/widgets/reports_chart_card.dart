@@ -61,8 +61,8 @@ class _ReportsChartCardState extends State<ReportsChartCard> {
       final numeric = vm.numericChartColumns();
       if (numeric.isEmpty) return;
       final current = vm.chartColumn;
-      final isValid = current != null &&
-          numeric.any((c) => c.identifier == current);
+      final isValid =
+          current != null && numeric.any((c) => c.identifier == current);
       if (!isValid) {
         vm.setChartColumn(numeric.first.identifier);
       }
@@ -103,8 +103,7 @@ class _ReportsChartCardState extends State<ReportsChartCard> {
             // against the new column's currency mix.
             setState(() => _activeCurrency = null);
           },
-          onCurrencyChanged: (cur) =>
-              setState(() => _activeCurrency = cur),
+          onCurrencyChanged: (cur) => setState(() => _activeCurrency = cur),
           onClose: () => vm.setChartVisible(false),
         ),
         child: _Body(
@@ -113,8 +112,7 @@ class _ReportsChartCardState extends State<ReportsChartCard> {
           pickedColumn: picked,
           groupColumn: groupColumn,
           currency: currency,
-          showCurrencyHint:
-              allCurrencies.length > 1 && _activeCurrency == null,
+          showCurrencyHint: allCurrencies.length > 1 && _activeCurrency == null,
           accent: tokens.accent,
           axisLabelStyle: theme.textTheme.bodySmall?.copyWith(
             color: tokens.ink2,
@@ -127,10 +125,7 @@ class _ReportsChartCardState extends State<ReportsChartCard> {
   /// The column currently selected for charting, resolved to a `ReportColumn`
   /// from the available numeric set. Returns null when no numeric columns
   /// exist (the body renders the empty-state hint in that case).
-  ReportColumn? _pickedColumn(
-    ReportsViewModel vm,
-    List<ReportColumn> numeric,
-  ) {
+  ReportColumn? _pickedColumn(ReportsViewModel vm, List<ReportColumn> numeric) {
     if (numeric.isEmpty) return null;
     final id = vm.chartColumn;
     if (id == null) return numeric.first;
@@ -321,7 +316,8 @@ class _Body extends StatelessWidget {
             ),
           ),
         Semantics(
-          label: 'Bar chart, ${values.length} groups by '
+          label:
+              'Bar chart, ${values.length} groups by '
               '${pickedColumn!.displayLabel}',
           child: SizedBox(
             height: 240,
@@ -347,9 +343,9 @@ class _Body extends StatelessWidget {
                     if (spot == null) return;
                     final idx = spot.touchedBarGroupIndex;
                     if (idx < 0 || idx >= values.length) return;
-                    context
-                        .read<ReportsViewModel>()
-                        .setSelectedGroup(values[idx].key);
+                    context.read<ReportsViewModel>().setSelectedGroup(
+                      values[idx].key,
+                    );
                   },
                 ),
                 titlesData: FlTitlesData(
@@ -464,9 +460,9 @@ class _EmptyHint extends StatelessWidget {
       padding: EdgeInsets.symmetric(vertical: InSpacing.md(context)),
       child: Text(
         message,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: context.inTheme.ink2,
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: context.inTheme.ink2),
       ),
     );
   }

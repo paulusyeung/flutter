@@ -143,11 +143,7 @@ void main() {
           label: 'Cart',
           dependencies: ['auth.login'],
         ),
-        PaymentLinkStep(
-          id: 'auth.login',
-          label: 'Login',
-          dependencies: [],
-        ),
+        PaymentLinkStep(id: 'auth.login', label: 'Login', dependencies: []),
       ]);
       expect(vm.missingDependencyAt(0), 'auth.login');
       expect(vm.missingDependencyAt(1), isNull);
@@ -165,11 +161,7 @@ void main() {
         ),
       );
       vm.seedStepsForTest(const [
-        PaymentLinkStep(
-          id: 'auth.login',
-          label: 'Login',
-          dependencies: [],
-        ),
+        PaymentLinkStep(id: 'auth.login', label: 'Login', dependencies: []),
         PaymentLinkStep(
           id: 'cart',
           label: 'Cart',

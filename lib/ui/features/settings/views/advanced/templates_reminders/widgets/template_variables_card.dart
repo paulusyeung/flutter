@@ -26,13 +26,16 @@ class TemplateVariablesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isPayment = const {'payment', 'payment_partial', 'payment_failed'}
-        .contains(templateKey);
+    final isPayment = const {
+      'payment',
+      'payment_partial',
+      'payment_failed',
+    }.contains(templateKey);
     final variables = isPayment ? _paymentVariables : _commonVariables;
     final firstGroupLabel =
         const {'quote', 'quote_reminder1'}.contains(templateKey)
-            ? 'quote'
-            : 'invoice';
+        ? 'quote'
+        : 'invoice';
     final groups = <(String, List<String>)>[
       (firstGroupLabel, variables['invoice']!),
       ('client', variables['client']!),
@@ -66,9 +69,7 @@ class TemplateVariablesCard extends StatelessWidget {
 
   void _copy(BuildContext context, String token) {
     Clipboard.setData(ClipboardData(text: token));
-    final msg = context
-        .tr('copied_to_clipboard')
-        .replaceFirst(':value', token);
+    final msg = context.tr('copied_to_clipboard').replaceFirst(':value', token);
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
       SnackBar(content: Text(msg), duration: const Duration(seconds: 2)),
     );

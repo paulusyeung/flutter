@@ -23,12 +23,12 @@ BlockSpec _specByType(String type) =>
     kBlockLibrary.firstWhere((s) => s.type == type);
 
 Widget _wrap(WysiwygDesignViewModel vm) => MaterialApp(
-      localizationsDelegates: kTestLocalizationsDelegates,
-      supportedLocales: kTestSupportedLocales,
-      locale: const Locale('en'),
-      theme: buildInTheme(InTheme.light),
-      home: Scaffold(body: WysiwygCanvas(vm: vm)),
-    );
+  localizationsDelegates: kTestLocalizationsDelegates,
+  supportedLocales: kTestSupportedLocales,
+  locale: const Locale('en'),
+  theme: buildInTheme(InTheme.light),
+  home: Scaffold(body: WysiwygCanvas(vm: vm)),
+);
 
 void main() {
   late AppDatabase db;
@@ -69,9 +69,7 @@ void main() {
         vm.addBlock(_specByType(c.type));
         final block = vm.blocks.single;
         vm.updateBlock(
-          block.copyWith(
-            gridPosition: GridPosition(x: 0, y: 0, w: c.w, h: 2),
-          ),
+          block.copyWith(gridPosition: GridPosition(x: 0, y: 0, w: c.w, h: 2)),
         );
         // addBlock selects the new block; updateBlock keeps the selection,
         // so both the header strip and the floating toolbar render for it.
@@ -83,7 +81,8 @@ void main() {
         expect(
           tester.takeException(),
           isNull,
-          reason: 'a narrow (${c.type} w=${c.w}) block must not '
+          reason:
+              'a narrow (${c.type} w=${c.w}) block must not '
               'RenderFlex-overflow on the canvas',
         );
       },
@@ -120,20 +119,24 @@ void main() {
       // The Material (the toolbar wrapper) should be fully inside the
       // canvas's left edge. Find the Material with the accent color
       // (the floating toolbar) and check its on-screen bounds.
-      final accentMaterial = find.byWidgetPredicate(
-        (w) {
-          if (w is! Material) return false;
-          // The toolbar uses tokens.accent; other Materials in the canvas
-          // are surface-coloured. Heuristic: pick the smallest one near
-          // the top of the canvas.
-          return w.elevation == 2;
-        },
+      final accentMaterial = find.byWidgetPredicate((w) {
+        if (w is! Material) return false;
+        // The toolbar uses tokens.accent; other Materials in the canvas
+        // are surface-coloured. Heuristic: pick the smallest one near
+        // the top of the canvas.
+        return w.elevation == 2;
+      });
+      expect(
+        accentMaterial,
+        findsOneWidget,
+        reason: 'expected exactly one floating toolbar Material',
       );
-      expect(accentMaterial, findsOneWidget,
-          reason: 'expected exactly one floating toolbar Material');
       final rect = tester.getRect(accentMaterial);
-      expect(rect.left, greaterThanOrEqualTo(0),
-          reason: 'toolbar left edge must stay inside the canvas');
+      expect(
+        rect.left,
+        greaterThanOrEqualTo(0),
+        reason: 'toolbar left edge must stay inside the canvas',
+      );
     },
   );
 }

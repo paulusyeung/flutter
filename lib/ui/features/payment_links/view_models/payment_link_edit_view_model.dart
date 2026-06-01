@@ -222,8 +222,7 @@ class PaymentLinkEditViewModel extends GenericEditViewModel<PaymentLink> {
     );
   }
 
-  void setTrialDuration(int v) =>
-      updateDraft(draft.copyWith(trialDuration: v));
+  void setTrialDuration(int v) => updateDraft(draft.copyWith(trialDuration: v));
 
   /// Same — turning per-seat off zeros the seat limit.
   void setPerSeatEnabled(bool v) {

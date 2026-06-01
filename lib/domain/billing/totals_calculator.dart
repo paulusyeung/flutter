@@ -36,13 +36,13 @@ class BillingTotalsInput {
     this.customTaxes2 = false,
     this.customTaxes3 = false,
     this.customTaxes4 = false,
-  })  : taxRate1 = taxRate1 ?? Decimal.zero,
-        taxRate2 = taxRate2 ?? Decimal.zero,
-        taxRate3 = taxRate3 ?? Decimal.zero,
-        customSurcharge1 = customSurcharge1 ?? Decimal.zero,
-        customSurcharge2 = customSurcharge2 ?? Decimal.zero,
-        customSurcharge3 = customSurcharge3 ?? Decimal.zero,
-        customSurcharge4 = customSurcharge4 ?? Decimal.zero;
+  }) : taxRate1 = taxRate1 ?? Decimal.zero,
+       taxRate2 = taxRate2 ?? Decimal.zero,
+       taxRate3 = taxRate3 ?? Decimal.zero,
+       customSurcharge1 = customSurcharge1 ?? Decimal.zero,
+       customSurcharge2 = customSurcharge2 ?? Decimal.zero,
+       customSurcharge3 = customSurcharge3 ?? Decimal.zero,
+       customSurcharge4 = customSurcharge4 ?? Decimal.zero;
 
   final List<LineItem> lineItems;
   final Decimal discount;
@@ -94,27 +94,22 @@ class BillingTotalsInput {
 
   @override
   int get hashCode => Object.hash(
-        const ListEquality<LineItem>().hash(lineItems),
-        discount,
-        isAmountDiscount,
-        usesInclusiveTaxes,
-        taxName1,
-        taxRate1,
-        taxName2,
-        taxRate2,
-        taxName3,
-        taxRate3,
-        customSurcharge1,
-        customSurcharge2,
-        customSurcharge3,
-        customSurcharge4,
-        Object.hash(
-          customTaxes1,
-          customTaxes2,
-          customTaxes3,
-          customTaxes4,
-        ),
-      );
+    const ListEquality<LineItem>().hash(lineItems),
+    discount,
+    isAmountDiscount,
+    usesInclusiveTaxes,
+    taxName1,
+    taxRate1,
+    taxName2,
+    taxRate2,
+    taxName3,
+    taxRate3,
+    customSurcharge1,
+    customSurcharge2,
+    customSurcharge3,
+    customSurcharge4,
+    Object.hash(customTaxes1, customTaxes2, customTaxes3, customTaxes4),
+  );
 }
 
 /// Result of [computeTotals]. `taxBreakdown` keys by tax name (collapses
@@ -165,8 +160,8 @@ Decimal computeSubtotal(BillingTotalsInput input, int precision) {
       if (input.isAmountDiscount) {
         lineTotal = lineTotal - itemDiscount;
       } else {
-        lineTotal = lineTotal -
-            _round(_mulRate(lineTotal, itemDiscount), precision);
+        lineTotal =
+            lineTotal - _round(_mulRate(lineTotal, itemDiscount), precision);
       }
     }
     total = total + _round(lineTotal, precision);
@@ -190,15 +185,30 @@ Map<String, Decimal> computeTaxBreakdown(
     final rate3 = _round(item.taxRate3, 3);
     final lineTotal = getItemTaxable(item, total, input, precision);
     if (rate1 != Decimal.zero) {
-      final t = _taxAmount(lineTotal, rate1, input.usesInclusiveTaxes, precision);
+      final t = _taxAmount(
+        lineTotal,
+        rate1,
+        input.usesInclusiveTaxes,
+        precision,
+      );
       map.update(item.taxName1, (v) => v + t, ifAbsent: () => t);
     }
     if (rate2 != Decimal.zero) {
-      final t = _taxAmount(lineTotal, rate2, input.usesInclusiveTaxes, precision);
+      final t = _taxAmount(
+        lineTotal,
+        rate2,
+        input.usesInclusiveTaxes,
+        precision,
+      );
       map.update(item.taxName2, (v) => v + t, ifAbsent: () => t);
     }
     if (rate3 != Decimal.zero) {
-      final t = _taxAmount(lineTotal, rate3, input.usesInclusiveTaxes, precision);
+      final t = _taxAmount(
+        lineTotal,
+        rate3,
+        input.usesInclusiveTaxes,
+        precision,
+      );
       map.update(item.taxName3, (v) => v + t, ifAbsent: () => t);
     }
   }
@@ -225,18 +235,30 @@ Map<String, Decimal> computeTaxBreakdown(
     total = total + _round(input.customSurcharge4, precision);
   }
   if (input.taxRate1 != Decimal.zero) {
-    final t =
-        _taxAmount(total, input.taxRate1, input.usesInclusiveTaxes, precision);
+    final t = _taxAmount(
+      total,
+      input.taxRate1,
+      input.usesInclusiveTaxes,
+      precision,
+    );
     map.update(input.taxName1, (v) => v + t, ifAbsent: () => t);
   }
   if (input.taxRate2 != Decimal.zero) {
-    final t =
-        _taxAmount(total, input.taxRate2, input.usesInclusiveTaxes, precision);
+    final t = _taxAmount(
+      total,
+      input.taxRate2,
+      input.usesInclusiveTaxes,
+      precision,
+    );
     map.update(input.taxName2, (v) => v + t, ifAbsent: () => t);
   }
   if (input.taxRate3 != Decimal.zero) {
-    final t =
-        _taxAmount(total, input.taxRate3, input.usesInclusiveTaxes, precision);
+    final t = _taxAmount(
+      total,
+      input.taxRate3,
+      input.usesInclusiveTaxes,
+      precision,
+    );
     map.update(input.taxName3, (v) => v + t, ifAbsent: () => t);
   }
 
@@ -266,13 +288,17 @@ Decimal getItemTaxable(
         // truncate `lineTotal / denom` and silently skew the per-item
         // tax breakdown — admin-portal's `double` math has no equivalent
         // precision loss, so the port must match that.
-        lineTotal = lineTotal -
+        lineTotal =
+            lineTotal -
             _safeDiv(lineTotal, denom, precision: 10) * input.discount;
       }
     } else {
       final factor = (Decimal.fromInt(100) - input.discount);
-      lineTotal = _safeDiv(lineTotal * factor, Decimal.fromInt(100),
-          precision: 10);
+      lineTotal = _safeDiv(
+        lineTotal * factor,
+        Decimal.fromInt(100),
+        precision: 10,
+      );
     }
   }
 
@@ -299,7 +325,8 @@ Decimal getTaxable(BillingTotalsInput input, int precision) {
       if (input.isAmountDiscount) {
         lineTotal = lineTotal - item.discount;
       } else {
-        lineTotal = lineTotal - _round(_mulRate(lineTotal, item.discount), precision);
+        lineTotal =
+            lineTotal - _round(_mulRate(lineTotal, item.discount), precision);
       }
     }
     total = total + lineTotal;
@@ -344,24 +371,24 @@ Decimal _calculateTotal(BillingTotalsInput input, int precision) {
       if (input.isAmountDiscount) {
         if (total != Decimal.zero) {
           // Wide working scale for the ratio — see getItemTaxable rationale.
-          lineTotal = lineTotal -
+          lineTotal =
+              lineTotal -
               _round(
-                _safeDiv(lineTotal, total, precision: 10) *
-                    input.discount,
+                _safeDiv(lineTotal, total, precision: 10) * input.discount,
                 precision,
               );
         }
       } else {
-        lineTotal = lineTotal -
-            _round(_mulRate(lineTotal, input.discount), precision);
+        lineTotal =
+            lineTotal - _round(_mulRate(lineTotal, input.discount), precision);
       }
     }
     if (itemDiscount != Decimal.zero) {
       if (input.isAmountDiscount) {
         lineTotal = lineTotal - itemDiscount;
       } else {
-        lineTotal = lineTotal -
-            _round(_mulRate(lineTotal, itemDiscount), precision);
+        lineTotal =
+            lineTotal - _round(_mulRate(lineTotal, itemDiscount), precision);
       }
     }
     lineTotal = _round(lineTotal, precision);
@@ -417,7 +444,12 @@ Decimal _calculateTotal(BillingTotalsInput input, int precision) {
   return _round(total, precision);
 }
 
-Decimal _taxAmount(Decimal amount, Decimal rate, bool inclusive, int precision) {
+Decimal _taxAmount(
+  Decimal amount,
+  Decimal rate,
+  bool inclusive,
+  int precision,
+) {
   if (inclusive) {
     // `amount - amount / (1 + rate/100)`
     final divisor = Decimal.one + _div(rate, Decimal.fromInt(100), 10);

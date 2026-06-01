@@ -593,9 +593,8 @@ void main() {
   });
 
   group('discard', () {
-    Future<OutboxRow?> rawRow(int id) => (db.select(
-      db.outbox,
-    )..where((o) => o.id.equals(id))).getSingleOrNull();
+    Future<OutboxRow?> rawRow(int id) =>
+        (db.select(db.outbox)..where((o) => o.id.equals(id))).getSingleOrNull();
 
     SyncRepository engineWith(_TestRepo repo) => SyncRepository(
       db: db,
@@ -603,34 +602,31 @@ void main() {
       now: () => DateTime.fromMillisecondsSinceEpoch(1000),
     );
 
-    test(
-      'discardOutboxRow on a never-synced ghost create deletes the local '
-      'record AND every outbox row for that tmp entity',
-      () async {
-        final repo = _TestRepo(db: db);
-        final engine = engineWith(repo);
-        final createId = await enqueueClient(
-          entityId: 'tmp_g',
-          kind: MutationKind.create,
-        );
-        // A queued follow-up edit against the same tmp entity.
-        final updateId = await enqueueClient(
-          entityId: 'tmp_g',
-          idempotencyKey: 'k2',
-        );
+    test('discardOutboxRow on a never-synced ghost create deletes the local '
+        'record AND every outbox row for that tmp entity', () async {
+      final repo = _TestRepo(db: db);
+      final engine = engineWith(repo);
+      final createId = await enqueueClient(
+        entityId: 'tmp_g',
+        kind: MutationKind.create,
+      );
+      // A queued follow-up edit against the same tmp entity.
+      final updateId = await enqueueClient(
+        entityId: 'tmp_g',
+        idempotencyKey: 'k2',
+      );
 
-        final removed = await engine.discardOutboxRow(createId);
+      final removed = await engine.discardOutboxRow(createId);
 
-        expect(removed, isTrue);
-        expect(repo.localDeletes, [('co', 'tmp_g')]);
-        expect(await rawRow(createId), isNull);
-        expect(
-          await rawRow(updateId),
-          isNull,
-          reason: 'follow-up rows for the gone entity go too',
-        );
-      },
-    );
+      expect(removed, isTrue);
+      expect(repo.localDeletes, [('co', 'tmp_g')]);
+      expect(await rawRow(createId), isNull);
+      expect(
+        await rawRow(updateId),
+        isNull,
+        reason: 'follow-up rows for the gone entity go too',
+      );
+    });
 
     test('discardOutboxRow on an in_flight ghost create only drops the '
         'outbox row — the network attempt may still be landing', () async {
@@ -730,71 +726,62 @@ void main() {
       expect(await rowById(rowId), isNull);
     });
 
-    test(
-      'returns validationFailed with fieldErrors when the dispatcher throws '
-      'ValidationException (422)',
-      () async {
-        final disp = _ProgrammableDispatcher()
-          ..queueThrow(
-            const ValidationException('Validation failed', {
-              'email': ['Must be unique'],
-            }),
-          );
-        final engine = makeEngine(disp);
-        final rowId = await enqueueClient(entityId: 'c1');
-
-        final result = await engine.awaitRow(
-          rowId: rowId,
-          companyId: 'co',
-          pollInterval: const Duration(milliseconds: 5),
+    test('returns validationFailed with fieldErrors when the dispatcher throws '
+        'ValidationException (422)', () async {
+      final disp = _ProgrammableDispatcher()
+        ..queueThrow(
+          const ValidationException('Validation failed', {
+            'email': ['Must be unique'],
+          }),
         );
+      final engine = makeEngine(disp);
+      final rowId = await enqueueClient(entityId: 'c1');
 
-        expect(result.outcome, SyncRowOutcome.validationFailed);
-        expect(result.statusCode, 422);
-        expect(result.fieldErrors['email'], ['Must be unique']);
-      },
-    );
+      final result = await engine.awaitRow(
+        rowId: rowId,
+        companyId: 'co',
+        pollInterval: const Duration(milliseconds: 5),
+      );
 
-    test(
-      'returns serverError when a transient failure parks the row with a '
-      'future nextAttemptAt (backoff scheduled)',
-      () async {
-        final disp = _ProgrammableDispatcher()
-          ..queueThrow(const NetworkException('Connection lost'));
-        final engine = makeEngine(disp);
-        final rowId = await enqueueClient(entityId: 'c1');
+      expect(result.outcome, SyncRowOutcome.validationFailed);
+      expect(result.statusCode, 422);
+      expect(result.fieldErrors['email'], ['Must be unique']);
+    });
 
-        final result = await engine.awaitRow(
-          rowId: rowId,
-          companyId: 'co',
-          pollInterval: const Duration(milliseconds: 5),
-        );
+    test('returns serverError when a transient failure parks the row with a '
+        'future nextAttemptAt (backoff scheduled)', () async {
+      final disp = _ProgrammableDispatcher()
+        ..queueThrow(const NetworkException('Connection lost'));
+      final engine = makeEngine(disp);
+      final rowId = await enqueueClient(entityId: 'c1');
 
-        expect(result.outcome, SyncRowOutcome.serverError);
-        expect(result.message, contains('Connection lost'));
-      },
-    );
+      final result = await engine.awaitRow(
+        rowId: rowId,
+        companyId: 'co',
+        pollInterval: const Duration(milliseconds: 5),
+      );
 
-    test(
-      'returns timeout when the deadline elapses while the row is still '
-      'pending or in-flight',
-      () async {
-        final blocker = Completer<void>();
-        final disp = _GatedDispatcher(firstBlocker: blocker.future);
-        final engine = makeEngine(disp);
-        final rowId = await enqueueClient(entityId: 'c1');
+      expect(result.outcome, SyncRowOutcome.serverError);
+      expect(result.message, contains('Connection lost'));
+    });
 
-        final result = await engine.awaitRow(
-          rowId: rowId,
-          companyId: 'co',
-          timeout: const Duration(milliseconds: 50),
-          pollInterval: const Duration(milliseconds: 5),
-        );
+    test('returns timeout when the deadline elapses while the row is still '
+        'pending or in-flight', () async {
+      final blocker = Completer<void>();
+      final disp = _GatedDispatcher(firstBlocker: blocker.future);
+      final engine = makeEngine(disp);
+      final rowId = await enqueueClient(entityId: 'c1');
 
-        expect(result.outcome, SyncRowOutcome.timeout);
-        blocker.complete();
-      },
-    );
+      final result = await engine.awaitRow(
+        rowId: rowId,
+        companyId: 'co',
+        timeout: const Duration(milliseconds: 50),
+        pollInterval: const Duration(milliseconds: 5),
+      );
+
+      expect(result.outcome, SyncRowOutcome.timeout);
+      blocker.complete();
+    });
   });
 }
 

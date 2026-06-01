@@ -90,10 +90,9 @@ class PurchaseOrderRepository
   Stream<PurchaseOrder?> watchByRealId({
     required String companyId,
     required String id,
-  }) =>
-      db.purchaseOrderDao
-          .watchById(companyId: companyId, id: id)
-          .map((row) => row == null ? null : _fromRow(row));
+  }) => db.purchaseOrderDao
+      .watchById(companyId: companyId, id: id)
+      .map((row) => row == null ? null : _fromRow(row));
 
   Future<bool> ensurePageLoaded({
     required String companyId,
@@ -202,8 +201,11 @@ class PurchaseOrderRepository
     required PurchaseOrder purchaseOrder,
     Map<String, String>? extraQuery,
   }) async {
-    final companion =
-        _domainToCompanion(purchaseOrder, companyId, isDirty: true);
+    final companion = _domainToCompanion(
+      purchaseOrder,
+      companyId,
+      isDirty: true,
+    );
     var rowId = 0;
     await db.transaction(() async {
       await db.purchaseOrderDao.upsert(companion);
@@ -308,13 +310,12 @@ class PurchaseOrderRepository
   Future<void> convertToExpense({
     required String companyId,
     required String id,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.convertToExpense,
-        payload: {'id': id},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: MutationKind.convertToExpense,
+    payload: {'id': id},
+  );
 
   Future<void> email({
     required String companyId,
@@ -323,19 +324,18 @@ class PurchaseOrderRepository
     String? subject,
     String? body,
     String? ccEmail,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.emailEntity,
-        payload: {
-          'id': id,
-          'template': template,
-          if (subject != null) 'subject': subject,
-          if (body != null) 'body': body,
-          if (ccEmail != null) 'cc_email': ccEmail,
-        },
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: MutationKind.emailEntity,
+    payload: {
+      'id': id,
+      'template': template,
+      if (subject != null) 'subject': subject,
+      if (body != null) 'body': body,
+      if (ccEmail != null) 'cc_email': ccEmail,
+    },
+  );
 
   Future<void> scheduleEmail({
     required String companyId,
@@ -344,55 +344,51 @@ class PurchaseOrderRepository
     required String sendAt,
     String? subject,
     String? body,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.scheduleEmail,
-        payload: {
-          'id': id,
-          'template': template,
-          'send_at': sendAt,
-          if (subject != null) 'subject': subject,
-          if (body != null) 'body': body,
-        },
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: MutationKind.scheduleEmail,
+    payload: {
+      'id': id,
+      'template': template,
+      'send_at': sendAt,
+      if (subject != null) 'subject': subject,
+      if (body != null) 'body': body,
+    },
+  );
 
   Future<void> cloneTo({
     required String companyId,
     required String id,
     required String targetType,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: _cloneKindFor(targetType),
-        payload: {'id': id, 'target': targetType},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: _cloneKindFor(targetType),
+    payload: {'id': id, 'target': targetType},
+  );
 
   Future<void> runTemplate({
     required String companyId,
     required String id,
     required String templateId,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.runTemplate,
-        payload: {'id': id, 'template_id': templateId},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: MutationKind.runTemplate,
+    payload: {'id': id, 'template_id': templateId},
+  );
 
   Future<void> addComment({
     required String companyId,
     required String purchaseOrderId,
     required String text,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: purchaseOrderId,
-        kind: MutationKind.addComment,
-        payload: {'entity_id': purchaseOrderId, 'notes': text.trim()},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: purchaseOrderId,
+    kind: MutationKind.addComment,
+    payload: {'entity_id': purchaseOrderId, 'notes': text.trim()},
+  );
 
   // ── Documents ──────────────────────────────────────────────────────
 
@@ -400,42 +396,39 @@ class PurchaseOrderRepository
     required String companyId,
     required String entityId,
     required UploadSource source,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: entityId,
-        kind: MutationKind.documentUpload,
-        payload: {'entity_id': entityId, ...source.toPayload()},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: entityId,
+    kind: MutationKind.documentUpload,
+    payload: {'entity_id': entityId, ...source.toPayload()},
+  );
 
   Future<void> deleteDocument({
     required String companyId,
     required String entityId,
     required String documentId,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: entityId,
-        kind: MutationKind.documentDelete,
-        payload: {'entity_id': entityId, 'document_id': documentId},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: entityId,
+    kind: MutationKind.documentDelete,
+    payload: {'entity_id': entityId, 'document_id': documentId},
+  );
 
   Future<void> setDocumentVisibility({
     required String companyId,
     required String entityId,
     required String documentId,
     required bool isPublic,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: entityId,
-        kind: MutationKind.documentVisibility,
-        payload: {
-          'entity_id': entityId,
-          'document_id': documentId,
-          'is_public': isPublic,
-        },
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: entityId,
+    kind: MutationKind.documentVisibility,
+    payload: {
+      'entity_id': entityId,
+      'document_id': documentId,
+      'is_public': isPublic,
+    },
+  );
 
   // ── Apply* response handlers ───────────────────────────────────────
 
@@ -447,8 +440,9 @@ class PurchaseOrderRepository
   }) async {
     final realId = serverResponse.id;
     await db.transaction(() async {
-      await db.purchaseOrderDao
-          .upsert(_apiToCompanion(serverResponse, companyId));
+      await db.purchaseOrderDao.upsert(
+        _apiToCompanion(serverResponse, companyId),
+      );
       if (realId != tempId) {
         await db.purchaseOrderDao.deleteById(companyId: companyId, id: tempId);
       }
@@ -465,8 +459,9 @@ class PurchaseOrderRepository
     required String companyId,
     required PurchaseOrderApi serverResponse,
   }) async {
-    await db.purchaseOrderDao
-        .upsert(_apiToCompanion(serverResponse, companyId));
+    await db.purchaseOrderDao.upsert(
+      _apiToCompanion(serverResponse, companyId),
+    );
   }
 
   @override
@@ -498,14 +493,12 @@ class PurchaseOrderRepository
     final next = current.where((d) => d.id != documentId).toList();
     if (next.length == current.length) return;
     await (db.update(db.purchaseOrders)
-          ..where(
-            (e) => e.companyId.equals(companyId) & e.id.equals(entityId),
-          ))
+          ..where((e) => e.companyId.equals(companyId) & e.id.equals(entityId)))
         .write(
-      PurchaseOrdersCompanion(
-        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
-      ),
-    );
+          PurchaseOrdersCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   Future<void> applyDocumentChanged({
@@ -526,14 +519,12 @@ class PurchaseOrderRepository
       next.add(document);
     }
     await (db.update(db.purchaseOrders)
-          ..where(
-            (e) => e.companyId.equals(companyId) & e.id.equals(entityId),
-          ))
+          ..where((e) => e.companyId.equals(companyId) & e.id.equals(entityId)))
         .write(
-      PurchaseOrdersCompanion(
-        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
-      ),
-    );
+          PurchaseOrdersCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   // ── Conversions ────────────────────────────────────────────────────

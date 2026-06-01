@@ -65,35 +65,34 @@ class _QuickbooksScreenState extends State<QuickbooksScreen> {
       body: companyId == null || companyId.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : !allowed
-              ? const SingleChildScrollView(
-                  child: PlanGateBanner(style: PlanGateStyle.inset),
-                )
-              : StreamBuilder<Company?>(
-                  stream: services.company.watchCompany(companyId),
-                  builder: (context, snapshot) {
-                    final company = snapshot.data;
-                    if (company == null) {
-                      return const Center(
-                          child: CircularProgressIndicator());
-                    }
-                    final quickbooks = company.quickbooks;
-                    if (quickbooks == null || quickbooks.isEmpty) {
-                      return _NotConnected(
-                        busy: _connecting,
-                        refreshing: _refreshing,
-                        onConnect: _onConnect,
-                        onRefresh: _onRefresh,
-                      );
-                    }
-                    return _Connected(
-                      company: company,
-                      busy: _disconnecting,
-                      reconnecting: _reconnecting,
-                      onDisconnect: _onDisconnect,
-                      onReconnect: _onReconnect,
-                    );
-                  },
-                ),
+          ? const SingleChildScrollView(
+              child: PlanGateBanner(style: PlanGateStyle.inset),
+            )
+          : StreamBuilder<Company?>(
+              stream: services.company.watchCompany(companyId),
+              builder: (context, snapshot) {
+                final company = snapshot.data;
+                if (company == null) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final quickbooks = company.quickbooks;
+                if (quickbooks == null || quickbooks.isEmpty) {
+                  return _NotConnected(
+                    busy: _connecting,
+                    refreshing: _refreshing,
+                    onConnect: _onConnect,
+                    onRefresh: _onRefresh,
+                  );
+                }
+                return _Connected(
+                  company: company,
+                  busy: _disconnecting,
+                  reconnecting: _reconnecting,
+                  onDisconnect: _onDisconnect,
+                  onReconnect: _onReconnect,
+                );
+              },
+            ),
     );
   }
 
@@ -440,11 +439,7 @@ class _ConnectedState extends State<_Connected> {
         invoice: _impInvoices,
       );
       if (!mounted) return;
-      Notify.success(
-        context,
-        context.tr('sync_started'),
-        messenger: messenger,
-      );
+      Notify.success(context, context.tr('sync_started'), messenger: messenger);
       setState(() {
         _impClients = false;
         _impProducts = false;
@@ -609,13 +604,11 @@ class _ConnectedState extends State<_Connected> {
                       ? const SizedBox(
                           width: 16,
                           height: 16,
-                          child:
-                              CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.open_in_new, size: 18),
                   label: Text(context.tr('reconnect')),
-                  onPressed:
-                      widget.reconnecting ? null : widget.onReconnect,
+                  onPressed: widget.reconnecting ? null : widget.onReconnect,
                 ),
               ),
               SizedBox(height: InSpacing.md(context)),
@@ -639,19 +632,12 @@ class _ConnectedState extends State<_Connected> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.schedule,
-                          size: 18,
-                          color: tokens.ink3,
-                        ),
+                        Icon(Icons.schedule, size: 18, color: tokens.ink3),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             context.tr('quickbooks_import_started'),
-                            style: TextStyle(
-                              color: tokens.ink2,
-                              fontSize: 13,
-                            ),
+                            style: TextStyle(color: tokens.ink2, fontSize: 13),
                           ),
                         ),
                       ],
@@ -663,8 +649,7 @@ class _ConnectedState extends State<_Connected> {
                     child: TextButton.icon(
                       icon: const Icon(Icons.refresh, size: 18),
                       label: Text(context.tr('import')),
-                      onPressed: () =>
-                          setState(() => _importStarted = false),
+                      onPressed: () => setState(() => _importStarted = false),
                     ),
                   ),
                 ]
@@ -707,14 +692,11 @@ class _ConnectedState extends State<_Connected> {
                           ? const SizedBox(
                               width: 16,
                               height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.download, size: 18),
                       label: Text(context.tr('import')),
-                      onPressed:
-                          (_importing || !anyImport) ? null : _import,
+                      onPressed: (_importing || !anyImport) ? null : _import,
                     ),
                   ),
                 ],
@@ -731,10 +713,7 @@ class _ConnectedState extends State<_Connected> {
             ),
             for (final group in _kQbSyncGroups.entries) ...[
               Padding(
-                padding: EdgeInsets.only(
-                  top: InSpacing.sm,
-                  bottom: 4,
-                ),
+                padding: EdgeInsets.only(top: InSpacing.sm, bottom: 4),
                 child: Text(
                   context.tr(group.key).toUpperCase(),
                   style: TextStyle(
@@ -781,8 +760,9 @@ class _ConnectedState extends State<_Connected> {
                     onChanged: _saving
                         ? (_) {}
                         : (a) => setState(() {
-                            _incomeAccountId =
-                                (a == null || a.id.isEmpty) ? null : a.id;
+                            _incomeAccountId = (a == null || a.id.isEmpty)
+                                ? null
+                                : a.id;
                             _settingsDirty = true;
                           }),
                   );
@@ -796,9 +776,9 @@ class _ConnectedState extends State<_Connected> {
               onChanged: _saving
                   ? null
                   : (v) => setState(() {
-                        _automaticTaxes = v;
-                        _settingsDirty = true;
-                      }),
+                      _automaticTaxes = v;
+                      _settingsDirty = true;
+                    }),
               title: Text(context.tr('automatic_taxes')),
             ),
             const SizedBox(height: 8),
@@ -825,9 +805,7 @@ class _ConnectedState extends State<_Connected> {
             Align(
               alignment: Alignment.centerLeft,
               child: FilledButton(
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(160, 44),
-                ),
+                style: FilledButton.styleFrom(minimumSize: const Size(160, 44)),
                 onPressed: (_saving || !_settingsDirty) ? null : _saveSettings,
                 child: _saving
                     ? const SizedBox(
@@ -846,8 +824,7 @@ class _ConnectedState extends State<_Connected> {
             spacing: 0,
             children: [
               InkWell(
-                onTap: () =>
-                    setState(() => _refExpanded = !_refExpanded),
+                onTap: () => setState(() => _refExpanded = !_refExpanded),
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: InSpacing.sm),
                   child: Row(
@@ -858,16 +835,11 @@ class _ConnectedState extends State<_Connected> {
                           '(${_incomeAccounts.length})  ·  '
                           '${context.tr('tax_rates')} '
                           '(${_taxRates.length})',
-                          style: TextStyle(
-                            color: tokens.ink3,
-                            fontSize: 13,
-                          ),
+                          style: TextStyle(color: tokens.ink3, fontSize: 13),
                         ),
                       ),
                       Icon(
-                        _refExpanded
-                            ? Icons.expand_less
-                            : Icons.expand_more,
+                        _refExpanded ? Icons.expand_less : Icons.expand_more,
                         size: 18,
                         color: tokens.ink3,
                       ),

@@ -415,7 +415,9 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
           // snapshot so the purged company re-seeds instead of pulling an
           // empty delta.
           await services.auth.refreshSession(fullSync: true);
-        } catch (_) {/* non-fatal */}
+        } catch (_) {
+          /* non-fatal */
+        }
         if (!mounted) return;
         Navigator.of(context).pop();
         Notify.success(context, purgeSuccessMsg, messenger: messenger);
@@ -452,14 +454,18 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
           .toList();
       try {
         await services.db.wipeForCompany(companyId);
-      } catch (_) {/* non-fatal */}
+      } catch (_) {
+        /* non-fatal */
+      }
       if (remaining.isNotEmpty) {
         await services.auth.switchCompany(remaining.first.id);
         try {
           // A company was just deleted + wiped locally; force a full
           // snapshot so the switched-to company's state is authoritative.
           await services.auth.refreshSession(fullSync: true);
-        } catch (_) {/* non-fatal */}
+        } catch (_) {
+          /* non-fatal */
+        }
         if (!mounted) return;
         Navigator.of(context).pop();
         Notify.success(context, deleteSuccessMsg, messenger: messenger);
@@ -527,10 +533,9 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
     // decoded" never belongs under the password field).
     if (terminal.fieldErrorsJson != null) {
       try {
-        final errs = jsonDecode(terminal.fieldErrorsJson!)
-            as Map<String, dynamic>;
-        final pwErr =
-            (errs['password'] as List?)?.cast<String>().firstOrNull;
+        final errs =
+            jsonDecode(terminal.fieldErrorsJson!) as Map<String, dynamic>;
+        final pwErr = (errs['password'] as List?)?.cast<String>().firstOrNull;
         final fbErr = (errs['cancellation_message'] as List?)
             ?.cast<String>()
             .firstOrNull;
@@ -554,7 +559,9 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
           _topBannerError = firstMsg ?? terminal.lastError ?? fallbackErrMsg;
         });
         return;
-      } catch (_) {/* fall through to status-code branch */}
+      } catch (_) {
+        /* fall through to status-code branch */
+      }
     }
     switch (code) {
       case 401:
@@ -727,8 +734,9 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
                             height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation(tokens.onOverdue),
+                              valueColor: AlwaysStoppedAnimation(
+                                tokens.onOverdue,
+                              ),
                             ),
                           )
                         : Text(context.tr('continue')),
@@ -765,10 +773,7 @@ class _ErrorBanner extends StatelessWidget {
           Icon(Icons.error_outline, color: tokens.overdue, size: 18),
           SizedBox(width: InSpacing.sm),
           Expanded(
-            child: Text(
-              message,
-              style: TextStyle(color: tokens.ink),
-            ),
+            child: Text(message, style: TextStyle(color: tokens.ink)),
           ),
         ],
       ),

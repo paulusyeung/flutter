@@ -16,11 +16,17 @@ void main() {
 
   group('company / client / contact substitution', () {
     test(r'substitutes $company.name', () {
-      expect(replaceVariables(r'$company.name', data: data), 'Your Company LLC');
+      expect(
+        replaceVariables(r'$company.name', data: data),
+        'Your Company LLC',
+      );
     });
     test(r'substitutes $client.address1 + city_state_postal', () {
       expect(
-        replaceVariables(r'$client.address1, $client.city_state_postal', data: data),
+        replaceVariables(
+          r'$client.address1, $client.city_state_postal',
+          data: data,
+        ),
         '123 Business Street, New York, NY 10001',
       );
     });
@@ -80,7 +86,10 @@ void main() {
       expect(replaceVariables(r'$date', data: data), 'Dec 9, 2025');
     });
     test(r'$invoice.due_date formats', () {
-      expect(replaceVariables(r'$invoice.due_date', data: data), 'Dec 23, 2025');
+      expect(
+        replaceVariables(r'$invoice.due_date', data: data),
+        'Dec 23, 2025',
+      );
     });
   });
 
@@ -111,10 +120,7 @@ void main() {
       expect(resolveItemVariable('item.product_key', item), 'item.product_key');
     });
     test('unknown item.field → empty string', () {
-      expect(
-        resolveItemVariable('item.nonexistent', item, data: data),
-        '',
-      );
+      expect(resolveItemVariable('item.nonexistent', item, data: data), '');
     });
     test('non-item variable falls through to replaceVariables', () {
       expect(
@@ -166,10 +172,7 @@ void main() {
     String upper(String key) => key.toUpperCase();
 
     test('translates a single token', () {
-      expect(
-        replaceLabelVariables(r'$subtotal_label', upper),
-        'SUBTOTAL',
-      );
+      expect(replaceLabelVariables(r'$subtotal_label', upper), 'SUBTOTAL');
     });
 
     test('translates ten representative tokens', () {
@@ -187,8 +190,11 @@ void main() {
         [r'$product.unit_cost_label', 'unit_cost'],
       ];
       for (final s in samples) {
-        expect(replaceLabelVariables(s[0], upper), s[1].toUpperCase(),
-            reason: 'token ${s[0]}');
+        expect(
+          replaceLabelVariables(s[0], upper),
+          s[1].toUpperCase(),
+          reason: 'token ${s[0]}',
+        );
       }
     });
 
@@ -211,17 +217,23 @@ void main() {
 
     test('mixed labels in one string each translate independently', () {
       expect(
-        replaceLabelVariables(r'$subtotal_label: 1.00 / $total_label: 2.00', upper),
+        replaceLabelVariables(
+          r'$subtotal_label: 1.00 / $total_label: 2.00',
+          upper,
+        ),
         'SUBTOTAL: 1.00 / TOTAL: 2.00',
       );
     });
 
-    test('kLabelTranslationMap covers core entity + client + company + product', () {
-      expect(kLabelTranslationMap.length, greaterThan(80));
-      expect(kLabelTranslationMap[r'$subtotal_label'], 'subtotal');
-      expect(kLabelTranslationMap[r'$client.address1_label'], 'address1');
-      expect(kLabelTranslationMap[r'$company.phone_label'], 'phone');
-      expect(kLabelTranslationMap[r'$task.hours_label'], 'hours');
-    });
+    test(
+      'kLabelTranslationMap covers core entity + client + company + product',
+      () {
+        expect(kLabelTranslationMap.length, greaterThan(80));
+        expect(kLabelTranslationMap[r'$subtotal_label'], 'subtotal');
+        expect(kLabelTranslationMap[r'$client.address1_label'], 'address1');
+        expect(kLabelTranslationMap[r'$company.phone_label'], 'phone');
+        expect(kLabelTranslationMap[r'$task.hours_label'], 'hours');
+      },
+    );
   });
 }

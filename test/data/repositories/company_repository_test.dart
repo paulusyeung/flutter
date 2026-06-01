@@ -175,54 +175,51 @@ void main() {
       expect(settings['a_brand_new_field_we_dont_model'], 42);
     });
 
-    test(
-      'persists portal fields and clientRegistrationFields edits',
-      () async {
-        const companyId = 'co';
-        await seedCompany(companyId);
-        final repo = makeRepo();
+    test('persists portal fields and clientRegistrationFields edits', () async {
+      const companyId = 'co';
+      await seedCompany(companyId);
+      final repo = makeRepo();
 
-        final current = await repo.get(companyId);
-        final draft = current!.copyWith(
-          subdomain: 'acme',
-          portalDomain: 'https://billing.acme.test',
-          portalMode: 'subdomain',
-          companyKey: 'CK1',
-          clientRegistrationFields: [
-            const ClientRegistrationFieldApi(
-              key: 'email',
-              required: true,
-              visible: true,
-            ),
-            const ClientRegistrationFieldApi(
-              key: 'phone',
-              required: false,
-              visible: true,
-            ),
-          ],
-        );
-        await repo.updateCompany(draft: draft);
+      final current = await repo.get(companyId);
+      final draft = current!.copyWith(
+        subdomain: 'acme',
+        portalDomain: 'https://billing.acme.test',
+        portalMode: 'subdomain',
+        companyKey: 'CK1',
+        clientRegistrationFields: [
+          const ClientRegistrationFieldApi(
+            key: 'email',
+            required: true,
+            visible: true,
+          ),
+          const ClientRegistrationFieldApi(
+            key: 'phone',
+            required: false,
+            visible: true,
+          ),
+        ],
+      );
+      await repo.updateCompany(draft: draft);
 
-        final row = await db.companiesDao.byId(companyId);
-        expect(row!.subdomain, 'acme');
-        expect(row.portalDomain, 'https://billing.acme.test');
-        expect(row.portalMode, 'subdomain');
-        expect(row.companyKey, 'CK1');
-        final decoded = jsonDecode(row.clientRegistrationFields) as List;
-        expect(decoded, hasLength(2));
-        expect(decoded.first, {
-          'key': 'email',
-          'required': true,
-          'visible': true,
-        });
+      final row = await db.companiesDao.byId(companyId);
+      expect(row!.subdomain, 'acme');
+      expect(row.portalDomain, 'https://billing.acme.test');
+      expect(row.portalMode, 'subdomain');
+      expect(row.companyKey, 'CK1');
+      final decoded = jsonDecode(row.clientRegistrationFields) as List;
+      expect(decoded, hasLength(2));
+      expect(decoded.first, {
+        'key': 'email',
+        'required': true,
+        'visible': true,
+      });
 
-        final reloaded = await repo.get(companyId);
-        expect(reloaded!.subdomain, 'acme');
-        expect(reloaded.clientRegistrationFields, hasLength(2));
-        expect(reloaded.clientRegistrationFields.first.key, 'email');
-        expect(reloaded.clientRegistrationFields.first.required, true);
-      },
-    );
+      final reloaded = await repo.get(companyId);
+      expect(reloaded!.subdomain, 'acme');
+      expect(reloaded.clientRegistrationFields, hasLength(2));
+      expect(reloaded.clientRegistrationFields.first.key, 'email');
+      expect(reloaded.clientRegistrationFields.first.required, true);
+    });
 
     test('persists custom_fields edits', () async {
       const companyId = 'co';

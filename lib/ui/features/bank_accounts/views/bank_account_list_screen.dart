@@ -109,8 +109,9 @@ class _BankAccountRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final displayName =
-        account.name.trim().isEmpty ? context.tr('untitled') : account.name;
+    final displayName = account.name.trim().isEmpty
+        ? context.tr('untitled')
+        : account.name;
     final balanceLabel = _formatBalance(formatter, account);
     final isUrlSelected = selectedIdFromRoute(context) == account.id;
 
@@ -193,10 +194,7 @@ String _formatBalance(Formatter? formatter, BankAccount account) {
         }
       }
     }
-    final formatted = formatter.money(
-      account.balance,
-      currencyId: resolvedId,
-    );
+    final formatted = formatter.money(account.balance, currencyId: resolvedId);
     if (formatted.isNotEmpty) return formatted;
   }
   final prefix = account.currency.isEmpty ? '' : '${account.currency} ';
@@ -234,8 +232,7 @@ class _ConnectAccountsButton extends StatelessWidget {
     final baseUrl = services.auth.session.value?.baseUrl ?? '';
     final messenger = ScaffoldMessenger.maybeOf(context);
     try {
-      final hash =
-          await services.bankAccounts.api.oneTimeToken(context: ctx);
+      final hash = await services.bankAccounts.api.oneTimeToken(context: ctx);
       final url = connectBankUrl(ctx, hash, baseUrl);
       final ok = await launchUrl(
         Uri.parse(url),
@@ -300,7 +297,7 @@ class _ConnectAccountsButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final enterprise =
         context.read<Services>().auth.session.value?.hasEnterpriseAccess ??
-            false;
+        false;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Tooltip(

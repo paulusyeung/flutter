@@ -158,10 +158,14 @@ Future<void> _copyAll(BuildContext context, DebugCaptureStore store) async {
   buf.writeln('## Network');
   for (final n in network) {
     buf.writeln('--');
-    buf.writeln('${n.startedAt.toUtc().toIso8601String()}  '
-        '${n.method} ${n.url}');
-    buf.writeln('status: ${n.statusCode ?? "—"}  '
-        'duration: ${n.duration.inMilliseconds}ms');
+    buf.writeln(
+      '${n.startedAt.toUtc().toIso8601String()}  '
+      '${n.method} ${n.url}',
+    );
+    buf.writeln(
+      'status: ${n.statusCode ?? "—"}  '
+      'duration: ${n.duration.inMilliseconds}ms',
+    );
     if (n.error != null) buf.writeln('error: ${n.error}');
     buf.writeln('request_headers: ${n.requestHeaders}');
     if (n.requestBody != null) buf.writeln('request_body: ${n.requestBody}');
@@ -174,8 +178,10 @@ Future<void> _copyAll(BuildContext context, DebugCaptureStore store) async {
   buf.writeln('## Errors');
   for (final e in errors) {
     buf.writeln('--');
-    buf.writeln('${e.time.toUtc().toIso8601String()}  '
-        '[${e.level}]${e.loggerName == null ? "" : " ${e.loggerName}"}');
+    buf.writeln(
+      '${e.time.toUtc().toIso8601String()}  '
+      '[${e.level}]${e.loggerName == null ? "" : " ${e.loggerName}"}',
+    );
     buf.writeln(e.message);
     if (e.stack != null) buf.writeln(e.stack);
   }
@@ -248,19 +254,14 @@ class _NetworkTabState extends State<_NetworkTab>
           ),
         ),
         if (_filter.text.isNotEmpty)
-          _FilteredCount(
-            shown: filtered.length,
-            total: widget.entries.length,
-          ),
+          _FilteredCount(shown: filtered.length, total: widget.entries.length),
         Expanded(
           child: _ListBody(
             isEmpty: widget.entries.isEmpty,
             filteredEmpty: widget.entries.isNotEmpty && filtered.isEmpty,
             enabled: widget.enabled,
             child: ListView.separated(
-              padding: EdgeInsets.symmetric(
-                horizontal: InSpacing.lg(context),
-              ),
+              padding: EdgeInsets.symmetric(horizontal: InSpacing.lg(context)),
               itemCount: filtered.length,
               separatorBuilder: (_, _) => Divider(
                 height: 1,
@@ -365,19 +366,14 @@ class _ErrorsTabState extends State<_ErrorsTab>
           ),
         ),
         if (_level != _LevelFilter.all)
-          _FilteredCount(
-            shown: filtered.length,
-            total: widget.entries.length,
-          ),
+          _FilteredCount(shown: filtered.length, total: widget.entries.length),
         Expanded(
           child: _ListBody(
             isEmpty: widget.entries.isEmpty,
             filteredEmpty: widget.entries.isNotEmpty && filtered.isEmpty,
             enabled: widget.enabled,
             child: ListView.separated(
-              padding: EdgeInsets.symmetric(
-                horizontal: InSpacing.lg(context),
-              ),
+              padding: EdgeInsets.symmetric(horizontal: InSpacing.lg(context)),
               itemCount: filtered.length,
               separatorBuilder: (_, _) => Divider(
                 height: 1,
@@ -636,8 +632,8 @@ class _DetailDialog extends StatelessWidget {
     final title = entry is NetworkCaptureEntry
         ? '${entry.method} ${_pathOf(entry.url)}'
         : entry is DiagnosticCaptureEntry
-            ? '[${entry.level}] ${entry.loggerName ?? ''}'
-            : '';
+        ? '[${entry.level}] ${entry.loggerName ?? ''}'
+        : '';
     return AlertDialog(
       title: Text(
         title,
@@ -649,17 +645,15 @@ class _DetailDialog extends StatelessWidget {
           child: entry is NetworkCaptureEntry
               ? _NetworkDetail(entry: entry)
               : entry is DiagnosticCaptureEntry
-                  ? _ErrorDetail(entry: entry)
-                  : const SizedBox.shrink(),
+              ? _ErrorDetail(entry: entry)
+              : const SizedBox.shrink(),
         ),
       ),
       actions: [
         if (entry is NetworkCaptureEntry)
           TextButton(
             onPressed: () async {
-              await Clipboard.setData(
-                ClipboardData(text: _entryAsCurl(entry)),
-              );
+              await Clipboard.setData(ClipboardData(text: _entryAsCurl(entry)));
               if (!context.mounted) return;
               Notify.success(context, context.tr('copied_to_clipboard'));
             },
@@ -786,16 +780,13 @@ class _NetworkDetail extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _kv(
-          context,
-          [
-            ('URL', entry.url),
-            ('Started', entry.startedAt.toUtc().toIso8601String()),
-            ('Status', entry.statusCode?.toString() ?? '—'),
-            ('Duration', '${entry.duration.inMilliseconds}ms'),
-            if (entry.error != null) ('Error', entry.error!),
-          ],
-        ),
+        _kv(context, [
+          ('URL', entry.url),
+          ('Started', entry.startedAt.toUtc().toIso8601String()),
+          ('Status', entry.statusCode?.toString() ?? '—'),
+          ('Duration', '${entry.duration.inMilliseconds}ms'),
+          if (entry.error != null) ('Error', entry.error!),
+        ]),
         const SizedBox(height: 12),
         _MonoBlock(
           label: context.tr('request_headers'),
@@ -915,10 +906,7 @@ class _MonoBlock extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          label,
-          style: TextStyle(color: tokens.ink3, fontSize: 12),
-        ),
+        Text(label, style: TextStyle(color: tokens.ink3, fontSize: 12)),
         const SizedBox(height: 4),
         Container(
           decoration: BoxDecoration(
@@ -952,8 +940,7 @@ String _wallClock(DateTime t) {
 String _formatMap(Map<String, String> map) {
   if (map.isEmpty) return '(none)';
   final buf = StringBuffer();
-  final entries = map.entries.toList()
-    ..sort((a, b) => a.key.compareTo(b.key));
+  final entries = map.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
   for (final e in entries) {
     buf.writeln('${e.key}: ${e.value}');
   }

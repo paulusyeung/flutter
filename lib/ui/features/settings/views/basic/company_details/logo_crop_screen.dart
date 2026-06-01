@@ -10,10 +10,7 @@ import 'package:admin/l10n/localization.dart';
 /// the `image_cropper` package). `crop_your_image` is pure-Dart so it works
 /// on every target incl. macOS desktop. Returns the cropped PNG bytes, or
 /// null if the user cancelled.
-Future<Uint8List?> showLogoCropScreen(
-  BuildContext context,
-  Uint8List source,
-) {
+Future<Uint8List?> showLogoCropScreen(BuildContext context, Uint8List source) {
   return Navigator.of(context).push<Uint8List>(
     MaterialPageRoute(
       fullscreenDialog: true,

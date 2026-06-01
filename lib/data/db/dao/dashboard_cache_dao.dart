@@ -72,10 +72,8 @@ class DashboardCacheDao extends DatabaseAccessor<AppDatabase>
   /// Delete every cached row for one `kind` (all filter-hashes). Called when
   /// a configured dashboard card is removed/reconfigured so its per-card
   /// rows don't accumulate across every date-range/currency combination.
-  Future<int> deleteKind({
-    required String companyId,
-    required String kind,
-  }) => (delete(dashboardCache)..where(
-    (c) => c.companyId.equals(companyId) & c.kind.equals(kind),
-  )).go();
+  Future<int> deleteKind({required String companyId, required String kind}) =>
+      (delete(dashboardCache)
+            ..where((c) => c.companyId.equals(companyId) & c.kind.equals(kind)))
+          .go();
 }

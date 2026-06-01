@@ -111,7 +111,9 @@ class _SmtpMailDriverCardState extends State<SmtpMailDriverCard> {
     SettingsDraftHost host,
     Company company,
   ) {
-    final value = company.smtpEncryption.isEmpty ? 'TLS' : company.smtpEncryption;
+    final value = company.smtpEncryption.isEmpty
+        ? 'TLS'
+        : company.smtpEncryption;
     return DropdownButtonFormField<String>(
       initialValue: value,
       decoration: InputDecoration(labelText: context.tr('encryption')),
@@ -238,8 +240,7 @@ class _SmtpTextFieldState extends State<_SmtpTextField> {
   @override
   void didUpdateWidget(covariant _SmtpTextField old) {
     super.didUpdateWidget(old);
-    if (widget.initial != _controller.text &&
-        widget.initial != old.initial) {
+    if (widget.initial != _controller.text && widget.initial != old.initial) {
       _controller.value = TextEditingValue(
         text: widget.initial,
         selection: TextSelection.collapsed(offset: widget.initial.length),

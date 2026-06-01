@@ -175,9 +175,7 @@ class _EntityDetailScaffoldState<T> extends State<EntityDetailScaffold<T>> {
     // SingleChildScrollView's `DetailScrollScope.maybeOf` resolves.
     return DetailScrollScope(
       controller: _outerScroll,
-      child: Builder(
-        builder: (context) => widget.bodyBuilder(context, item),
-      ),
+      child: Builder(builder: (context) => widget.bodyBuilder(context, item)),
     );
   }
 }

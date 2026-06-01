@@ -54,10 +54,7 @@ Future<void> launchUpgrade(BuildContext context) async {
   await showUpgradeSheet(context);
 }
 
-Future<void> _openPortalOrPlanScreen(
-  BuildContext context,
-  String url,
-) async {
+Future<void> _openPortalOrPlanScreen(BuildContext context, String url) async {
   if (url.isNotEmpty) {
     final uri = Uri.parse(url);
     try {

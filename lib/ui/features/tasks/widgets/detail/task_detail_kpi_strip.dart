@@ -15,11 +15,7 @@ import 'package:admin/utils/formatting.dart';
 /// Layout switches at 1100 px: horizontal row with vertical dividers vs
 /// 2×2 grid on narrow widths.
 class TaskDetailKpiStrip extends StatelessWidget {
-  const TaskDetailKpiStrip({
-    super.key,
-    required this.task,
-    this.formatter,
-  });
+  const TaskDetailKpiStrip({super.key, required this.task, this.formatter});
 
   final Task task;
   final Formatter? formatter;

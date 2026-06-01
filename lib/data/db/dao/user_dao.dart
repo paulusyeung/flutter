@@ -13,8 +13,7 @@ part 'user_dao.g.dart';
 ///  * Auth user — single-row reads via [watchByCompanyAndId] / [getByCompanyAndId].
 ///  * Settings → User Management — paged + filtered reads via [watchPage].
 @DriftAccessor(tables: [Users])
-class UserDao extends BaseEntityDao<$UsersTable, UserRow>
-    with _$UserDaoMixin {
+class UserDao extends BaseEntityDao<$UsersTable, UserRow> with _$UserDaoMixin {
   UserDao(super.db);
 
   @override
@@ -85,9 +84,9 @@ class UserDao extends BaseEntityDao<$UsersTable, UserRow>
       for (final state in states) {
         final term = switch (state) {
           EntityState.active =>
-              users.archivedAt.isNull() & users.isDeleted.equals(false),
+            users.archivedAt.isNull() & users.isDeleted.equals(false),
           EntityState.archived =>
-              users.archivedAt.isNotNull() & users.isDeleted.equals(false),
+            users.archivedAt.isNotNull() & users.isDeleted.equals(false),
           EntityState.deleted => users.isDeleted.equals(true),
         };
         predicate = predicate == null ? term : predicate | term;

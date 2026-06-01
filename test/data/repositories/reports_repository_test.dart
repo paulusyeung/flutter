@@ -120,8 +120,12 @@ void main() {
             {'identifier': 'client.name', 'display_value': 'Client'},
           ],
           '0': [
-            {'value': 'ACME', 'display_value': 'ACME', 'entity': 'client',
-              'id': 'abc'},
+            {
+              'value': 'ACME',
+              'display_value': 'ACME',
+              'entity': 'client',
+              'id': 'abc',
+            },
           ],
         });
       final repo = ReportsRepository(api: api);
@@ -140,8 +144,7 @@ void main() {
     });
 
     test('product_sales sends literal null client_id', () async {
-      final api = _FakeApi()
-        ..queuePreviewSuccess({'columns': []});
+      final api = _FakeApi()..queuePreviewSuccess({'columns': []});
       final repo = ReportsRepository(api: api);
       await repo.runPreview(
         reportIdentifier: 'product_sales',
@@ -155,9 +158,11 @@ void main() {
 
     test('422 maps to validation with fieldErrors', () async {
       final api = _FakeApi()
-        ..queuePreviewError(const ValidationException('bad', {
-          'start_date': ['must be in the past'],
-        }));
+        ..queuePreviewError(
+          const ValidationException('bad', {
+            'start_date': ['must be in the past'],
+          }),
+        );
       final repo = ReportsRepository(api: api);
       expect(
         () => repo.runPreview(
@@ -168,11 +173,9 @@ void main() {
         throwsA(
           isA<ReportError>()
               .having((e) => e.kind, 'kind', ReportErrorKind.validation)
-              .having(
-                (e) => e.fieldErrors,
-                'fieldErrors',
-                {'start_date': ['must be in the past']},
-              ),
+              .having((e) => e.fieldErrors, 'fieldErrors', {
+                'start_date': ['must be in the past'],
+              }),
         ),
       );
     });
@@ -201,9 +204,11 @@ void main() {
     test('UnauthorizedException with upgrade message maps to planRequired '
         '(fallback for legacy servers without the typed signal)', () async {
       final api = _FakeApi()
-        ..queuePreviewError(const UnauthorizedException(
-          'Please upgrade your plan to access reports',
-        ));
+        ..queuePreviewError(
+          const UnauthorizedException(
+            'Please upgrade your plan to access reports',
+          ),
+        );
       final repo = ReportsRepository(api: api);
       expect(
         () => repo.runPreview(
@@ -212,19 +217,21 @@ void main() {
           payload: const ReportPayload(),
         ),
         throwsA(
-          isA<ReportError>()
-              .having((e) => e.kind, 'kind', ReportErrorKind.planRequired),
+          isA<ReportError>().having(
+            (e) => e.kind,
+            'kind',
+            ReportErrorKind.planRequired,
+          ),
         ),
       );
     });
 
     test('UnauthorizedException with non-plan message stays unauthorized '
-        '(fallback heuristic only fires on plan / upgrade keywords)',
-        () async {
+        '(fallback heuristic only fires on plan / upgrade keywords)', () async {
       final api = _FakeApi()
-        ..queuePreviewError(const UnauthorizedException(
-          'Your session has expired',
-        ));
+        ..queuePreviewError(
+          const UnauthorizedException('Your session has expired'),
+        );
       final repo = ReportsRepository(api: api);
       expect(
         () => repo.runPreview(
@@ -233,8 +240,11 @@ void main() {
           payload: const ReportPayload(),
         ),
         throwsA(
-          isA<ReportError>()
-              .having((e) => e.kind, 'kind', ReportErrorKind.unauthorized),
+          isA<ReportError>().having(
+            (e) => e.kind,
+            'kind',
+            ReportErrorKind.unauthorized,
+          ),
         ),
       );
     });

@@ -106,10 +106,9 @@ Future<String?> pickDateRangeWindow(
 }) async {
   final seedStart = seed == null ? null : Date.tryParse(seed.$1);
   final seedEnd = seed == null ? null : Date.tryParse(seed.$2);
-  final DashboardDateRange current =
-      (seedStart != null && seedEnd != null)
-          ? DashboardCustomRange(start: seedStart, end: seedEnd)
-          : const DashboardPresetRange(DashboardDatePreset.thisMonth);
+  final DashboardDateRange current = (seedStart != null && seedEnd != null)
+      ? DashboardCustomRange(start: seedStart, end: seedEnd)
+      : const DashboardPresetRange(DashboardDatePreset.thisMonth);
   String? wire;
   await openDateRangePicker(
     context,

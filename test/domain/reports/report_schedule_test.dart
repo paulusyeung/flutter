@@ -11,13 +11,12 @@ ReportScheduleSeed _seed({
   ReportPayload payload = const ReportPayload(),
   List<String> reportKeys = const ['number', 'amount'],
   String? groupBy,
-}) =>
-    ReportScheduleSeed(
-      reportIdentifier: id,
-      payload: payload,
-      reportKeys: reportKeys,
-      groupBy: groupBy,
-    );
+}) => ReportScheduleSeed(
+  reportIdentifier: id,
+  payload: payload,
+  reportKeys: reportKeys,
+  groupBy: groupBy,
+);
 
 void main() {
   final now = DateTime.utc(2026, 5, 19, 14, 30);
@@ -45,49 +44,62 @@ void main() {
   group('date-range alias (React DATE_RANGES_ALIASES parity)', () {
     test('last7 → last7_days, last30 → last30_days', () {
       expect(
-        reportEmailSchedule(_seed(
-          payload: const ReportPayload(datePreset: ReportDatePreset.last7),
-        )).parameters['date_range'],
+        reportEmailSchedule(
+          _seed(
+            payload: const ReportPayload(datePreset: ReportDatePreset.last7),
+          ),
+        ).parameters['date_range'],
         'last7_days',
       );
       expect(
-        reportEmailSchedule(_seed(
-          payload: const ReportPayload(datePreset: ReportDatePreset.last30),
-        )).parameters['date_range'],
+        reportEmailSchedule(
+          _seed(
+            payload: const ReportPayload(datePreset: ReportDatePreset.last30),
+          ),
+        ).parameters['date_range'],
         'last30_days',
       );
     });
 
     test('other presets pass through verbatim', () {
       expect(
-        reportEmailSchedule(_seed(
-          payload: const ReportPayload(datePreset: ReportDatePreset.allTime),
-        )).parameters['date_range'],
+        reportEmailSchedule(
+          _seed(
+            payload: const ReportPayload(datePreset: ReportDatePreset.allTime),
+          ),
+        ).parameters['date_range'],
         'all',
       );
       expect(
-        reportEmailSchedule(_seed(
-          payload:
-              const ReportPayload(datePreset: ReportDatePreset.thisMonth),
-        )).parameters['date_range'],
+        reportEmailSchedule(
+          _seed(
+            payload: const ReportPayload(
+              datePreset: ReportDatePreset.thisMonth,
+            ),
+          ),
+        ).parameters['date_range'],
         'this_month',
       );
       expect(
-        reportEmailSchedule(_seed(
-          payload: const ReportPayload(datePreset: ReportDatePreset.last90),
-        )).parameters['date_range'],
+        reportEmailSchedule(
+          _seed(
+            payload: const ReportPayload(datePreset: ReportDatePreset.last90),
+          ),
+        ).parameters['date_range'],
         'last90',
       );
     });
 
     test('custom range carries start/end ISO', () {
-      final s = reportEmailSchedule(_seed(
-        payload: ReportPayload(
-          datePreset: ReportDatePreset.custom,
-          startDate: Date(2026, 1, 1),
-          endDate: Date(2026, 3, 31),
+      final s = reportEmailSchedule(
+        _seed(
+          payload: ReportPayload(
+            datePreset: ReportDatePreset.custom,
+            startDate: Date(2026, 1, 1),
+            endDate: Date(2026, 3, 31),
+          ),
         ),
-      ));
+      );
       expect(s.parameters['date_range'], 'custom');
       expect(s.parameters['start_date'], '2026-01-01');
       expect(s.parameters['end_date'], '2026-03-31');
@@ -95,18 +107,20 @@ void main() {
   });
 
   test('CSV filters: clients → list, others verbatim string', () {
-    final s = reportEmailSchedule(_seed(
-      payload: const ReportPayload(
-        clientId: 'c1',
-        clients: 'c2, c3 ,',
-        vendors: 'v1,v2',
-        projects: 'p1',
-        categories: 'cat1',
-        status: 'paid',
-        productKey: 'SKU1',
-        templateId: 't1',
+    final s = reportEmailSchedule(
+      _seed(
+        payload: const ReportPayload(
+          clientId: 'c1',
+          clients: 'c2, c3 ,',
+          vendors: 'v1,v2',
+          projects: 'p1',
+          categories: 'cat1',
+          status: 'paid',
+          productKey: 'SKU1',
+          templateId: 't1',
+        ),
       ),
-    ));
+    );
     expect(s.parameters['client_id'], 'c1');
     expect(s.parameters['clients'], ['c2', 'c3']); // trimmed, empties dropped
     expect(s.parameters['vendors'], 'v1,v2');
@@ -123,16 +137,18 @@ void main() {
   });
 
   test('bool flags copied from payload', () {
-    final s = reportEmailSchedule(_seed(
-      payload: const ReportPayload(
-        isIncomeBilled: true,
-        isExpenseBilled: true,
-        includeTax: true,
-        includeDeleted: true,
-        documentEmailAttachment: true,
-        pdfEmailAttachment: true,
+    final s = reportEmailSchedule(
+      _seed(
+        payload: const ReportPayload(
+          isIncomeBilled: true,
+          isExpenseBilled: true,
+          includeTax: true,
+          includeDeleted: true,
+          documentEmailAttachment: true,
+          pdfEmailAttachment: true,
+        ),
       ),
-    ));
+    );
     expect(s.parameters['is_income_billed'], true);
     expect(s.parameters['is_expense_billed'], true);
     expect(s.parameters['include_tax'], true);

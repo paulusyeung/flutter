@@ -175,8 +175,9 @@ void main() {
         );
         expect(first, hasLength(1));
         await db.outboxDao.deleteRow(first.first.id);
-        final updatedAtBefore =
-            (await db.userSettingsDao.get(companyId))!.updatedAt;
+        final updatedAtBefore = (await db.userSettingsDao.get(
+          companyId,
+        ))!.updatedAt;
 
         // Re-apply the identical list — what clicking a freshly-created
         // saved view does.
@@ -272,19 +273,16 @@ void main() {
       },
     );
 
-    test(
-      'skips the write when there is no userId and no local row',
-      () async {
-        await repo.applyServerResponse(
-          companyId: 'unknown_co',
-          response: {
-            'data': {
-              'settings': {'accent_color': '#abcdef'},
-            },
+    test('skips the write when there is no userId and no local row', () async {
+      await repo.applyServerResponse(
+        companyId: 'unknown_co',
+        response: {
+          'data': {
+            'settings': {'accent_color': '#abcdef'},
           },
-        );
-        expect(await db.userSettingsDao.get('unknown_co'), isNull);
-      },
-    );
+        },
+      );
+      expect(await db.userSettingsDao.get('unknown_co'), isNull);
+    });
   });
 }

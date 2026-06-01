@@ -78,20 +78,22 @@ class ExpenseEditLayout extends StatelessWidget {
                 title: context.tr('currency_conversion'),
                 initiallyExpanded:
                     vm.draft.invoiceCurrencyId.isNotEmpty &&
-                        vm.draft.invoiceCurrencyId != vm.draft.currencyId,
+                    vm.draft.invoiceCurrencyId != vm.draft.currencyId,
                 child: ExpenseEditCurrencyConversionSection(vm: vm),
               ),
               SizedBox(height: InSpacing.md(context)),
               _CollapsibleFormSection(
                 title: context.tr('banking'),
-                initiallyExpanded: vm.draft.bankId.isNotEmpty ||
+                initiallyExpanded:
+                    vm.draft.bankId.isNotEmpty ||
                     vm.draft.transactionId.isNotEmpty,
                 child: ExpenseEditBankingSection(vm: vm),
               ),
               SizedBox(height: InSpacing.md(context)),
               _CollapsibleFormSection(
                 title: context.tr('custom_fields'),
-                initiallyExpanded: vm.draft.customValue1.isNotEmpty ||
+                initiallyExpanded:
+                    vm.draft.customValue1.isNotEmpty ||
                     vm.draft.customValue2.isNotEmpty ||
                     vm.draft.customValue3.isNotEmpty ||
                     vm.draft.customValue4.isNotEmpty,
@@ -122,20 +124,21 @@ class ExpenseEditLayout extends StatelessWidget {
           title: context.tr('currency_conversion'),
           initiallyExpanded:
               vm.draft.invoiceCurrencyId.isNotEmpty &&
-                  vm.draft.invoiceCurrencyId != vm.draft.currencyId,
+              vm.draft.invoiceCurrencyId != vm.draft.currencyId,
           child: ExpenseEditCurrencyConversionSection(vm: vm),
         ),
         SizedBox(height: InSpacing.md(context)),
         _CollapsibleFormSection(
           title: context.tr('banking'),
-          initiallyExpanded: vm.draft.bankId.isNotEmpty ||
-              vm.draft.transactionId.isNotEmpty,
+          initiallyExpanded:
+              vm.draft.bankId.isNotEmpty || vm.draft.transactionId.isNotEmpty,
           child: ExpenseEditBankingSection(vm: vm),
         ),
         SizedBox(height: InSpacing.md(context)),
         _CollapsibleFormSection(
           title: context.tr('custom_fields'),
-          initiallyExpanded: vm.draft.customValue1.isNotEmpty ||
+          initiallyExpanded:
+              vm.draft.customValue1.isNotEmpty ||
               vm.draft.customValue2.isNotEmpty ||
               vm.draft.customValue3.isNotEmpty ||
               vm.draft.customValue4.isNotEmpty,
@@ -174,9 +177,7 @@ class _CollapsibleFormSectionState extends State<_CollapsibleFormSection> {
     return DashboardCardShell(
       title: widget.title,
       trailing: IconButton(
-        tooltip: _expanded
-            ? context.tr('collapse')
-            : context.tr('expand'),
+        tooltip: _expanded ? context.tr('collapse') : context.tr('expand'),
         icon: Icon(_expanded ? Icons.expand_less : Icons.expand_more),
         onPressed: () => setState(() => _expanded = !_expanded),
       ),

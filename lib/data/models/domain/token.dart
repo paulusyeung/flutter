@@ -74,8 +74,9 @@ abstract class Token with _$Token {
       isDeleted: isDeleted,
       updatedAt: updatedAt.millisecondsSinceEpoch ~/ 1000,
       createdAt: createdAt.millisecondsSinceEpoch ~/ 1000,
-      archivedAt:
-          archivedAt == null ? 0 : archivedAt!.millisecondsSinceEpoch ~/ 1000,
+      archivedAt: archivedAt == null
+          ? 0
+          : archivedAt!.millisecondsSinceEpoch ~/ 1000,
     ).toJson();
     if (!preserveTempId && id.startsWith('tmp_')) {
       json.remove('id');

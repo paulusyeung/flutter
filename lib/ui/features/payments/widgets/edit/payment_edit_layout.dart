@@ -114,9 +114,8 @@ class _IdentitySection extends StatelessWidget {
         InDateField(
           labelText: context.tr('date'),
           value: vm.draft.date?.toDateTime(),
-          onChanged: (dt) => vm.setDate(
-            dt == null ? null : Date(dt.year, dt.month, dt.day),
-          ),
+          onChanged: (dt) =>
+              vm.setDate(dt == null ? null : Date(dt.year, dt.month, dt.day)),
         ),
         const SizedBox(height: 12),
         // Controller-based so the auto-sync from allocations
@@ -483,7 +482,6 @@ class _CreditsSectionGateState extends State<_CreditsSectionGate> {
   }
 }
 
-
 /// Controller-backed top-form Amount input. Re-seeds from `vm.draft.amount`
 /// when the external value drifts (auto-sync from allocations) without
 /// stealing the user's cursor or wiping mid-keystroke text.
@@ -502,8 +500,9 @@ class _AmountFieldState extends State<_AmountField> {
   @override
   void initState() {
     super.initState();
-    _controller =
-        TextEditingController(text: decimalInputText(widget.vm.draft.amount));
+    _controller = TextEditingController(
+      text: decimalInputText(widget.vm.draft.amount),
+    );
     widget.vm.addListener(_onVmChanged);
   }
 
@@ -514,8 +513,7 @@ class _AmountFieldState extends State<_AmountField> {
     // vs "100.00") don't trigger a needless reseed.
     if (_focusNode.hasFocus) return;
     final external = widget.vm.draft.amount;
-    final typed =
-        Decimal.tryParse(_controller.text.trim()) ?? Decimal.zero;
+    final typed = Decimal.tryParse(_controller.text.trim()) ?? Decimal.zero;
     if (typed == external) return;
     final next = decimalInputText(external);
     _controller.value = TextEditingValue(

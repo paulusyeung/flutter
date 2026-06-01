@@ -201,10 +201,8 @@ Future<void> showWysiwygDesignScreen(
   try {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => WysiwygDesignScreen(
-          existingId: existingId,
-          seedFrom: seedFrom,
-        ),
+        builder: (_) =>
+            WysiwygDesignScreen(existingId: existingId, seedFrom: seedFrom),
       ),
     );
   } finally {
@@ -301,9 +299,9 @@ class _SectionHeader extends StatelessWidget {
       padding: EdgeInsets.only(bottom: InSpacing.sm),
       child: Text(
         label,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          color: context.inTheme.ink2,
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.titleSmall?.copyWith(color: context.inTheme.ink2),
       ),
     );
   }
@@ -418,10 +416,7 @@ class _DesignDetailScreen extends StatelessWidget {
                 : context.tr('built_in'),
           ),
           if (design.isTemplate)
-            _MetaRow(
-              label: context.tr('template'),
-              value: context.tr('yes'),
-            ),
+            _MetaRow(label: context.tr('template'), value: context.tr('yes')),
           SizedBox(height: InSpacing.lg(context)),
           for (final s in sections)
             if (s.$2.isNotEmpty)
@@ -462,10 +457,7 @@ class _MetaRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 120,
-            child: Text(
-              label,
-              style: TextStyle(color: context.inTheme.ink3),
-            ),
+            child: Text(label, style: TextStyle(color: context.inTheme.ink3)),
           ),
           Expanded(child: Text(value)),
         ],
@@ -494,10 +486,7 @@ class _Pill extends StatelessWidget {
         color: bg,
         borderRadius: BorderRadius.circular(InRadii.r2),
       ),
-      child: Text(
-        label,
-        style: TextStyle(color: fg, fontSize: 11),
-      ),
+      child: Text(label, style: TextStyle(color: fg, fontSize: 11)),
     );
   }
 }
@@ -527,9 +516,8 @@ List<DesignListRow> mergeDesignRows(List<Design> bundled) {
   //     same name are legitimate (user named both "Invoice v2"); they
   //     must not silently merge.
   final byKey = <String, _Row>{};
-  String keyFor(_Row r) => r.isCustom
-      ? 'c:${r.id}'
-      : 'b:${r.name.toLowerCase().trim()}';
+  String keyFor(_Row r) =>
+      r.isCustom ? 'c:${r.id}' : 'b:${r.name.toLowerCase().trim()}';
 
   final hasBundledBuiltIns = bundled.any((d) => !d.isCustom);
   if (!hasBundledBuiltIns) {

@@ -108,9 +108,9 @@ class RecurringInvoiceDao
     }
     q.orderBy([
       (e) => OrderingTerm(
-            expression: _sortExpression(e, sortField),
-            mode: sortAscending ? OrderingMode.asc : OrderingMode.desc,
-          ),
+        expression: _sortExpression(e, sortField),
+        mode: sortAscending ? OrderingMode.asc : OrderingMode.desc,
+      ),
       (e) => OrderingTerm(expression: e.id),
     ]);
     q.limit(limit, offset: offset);

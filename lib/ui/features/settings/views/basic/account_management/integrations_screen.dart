@@ -16,8 +16,7 @@ import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 /// clients.
 const String _kApiDocsUrl =
     'https://invoiceninja.github.io/docs/api-reference/invoice-ninja-api-reference/';
-const String _kZapierUrl =
-    'https://zapier.com/apps/invoice-ninja/integrations';
+const String _kZapierUrl = 'https://zapier.com/apps/invoice-ninja/integrations';
 
 /// Account Management → Integrations. Three text fields (Google Analytics
 /// tracking ID, Matomo ID, Matomo URL) plus link tiles to API Tokens / API
@@ -184,41 +183,40 @@ class _AccountManagementIntegrationsScreenState
                   ),
               ],
             ),
-                    FormSection(
-                      title: context.tr('api_tokens'),
-                      spacing: 0,
-                      children: [
-                        _IntegrationTile(
-                          icon: Icons.lock_outline,
-                          labelKey: 'api_tokens',
-                          onTap: () =>
-                              context.go('/settings/integrations/api_tokens'),
-                        ),
-                        _IntegrationTile(
-                          icon: Icons.webhook_outlined,
-                          labelKey: 'api_webhooks',
-                          onTap: () =>
-                              context.go('/settings/integrations/api_webhooks'),
-                        ),
-                        _IntegrationTile(
-                          icon: Icons.menu_book_outlined,
-                          labelKey: 'api_docs',
-                          external: true,
-                          onTap: () => _openExternal(context, _kApiDocsUrl),
-                        ),
-                        _IntegrationTile(
-                          icon: Icons.electrical_services_outlined,
-                          label: 'Zapier',
-                          external: true,
-                          onTap: () => _openExternal(context, _kZapierUrl),
-                        ),
-                        _IntegrationTile(
-                          icon: Icons.account_balance_outlined,
-                          labelKey: 'quickbooks',
-                          onTap: () => context.go(
-                            '/settings/account_management/integrations/quickbooks',
-                          ),
-                        ),
+            FormSection(
+              title: context.tr('api_tokens'),
+              spacing: 0,
+              children: [
+                _IntegrationTile(
+                  icon: Icons.lock_outline,
+                  labelKey: 'api_tokens',
+                  onTap: () => context.go('/settings/integrations/api_tokens'),
+                ),
+                _IntegrationTile(
+                  icon: Icons.webhook_outlined,
+                  labelKey: 'api_webhooks',
+                  onTap: () =>
+                      context.go('/settings/integrations/api_webhooks'),
+                ),
+                _IntegrationTile(
+                  icon: Icons.menu_book_outlined,
+                  labelKey: 'api_docs',
+                  external: true,
+                  onTap: () => _openExternal(context, _kApiDocsUrl),
+                ),
+                _IntegrationTile(
+                  icon: Icons.electrical_services_outlined,
+                  label: 'Zapier',
+                  external: true,
+                  onTap: () => _openExternal(context, _kZapierUrl),
+                ),
+                _IntegrationTile(
+                  icon: Icons.account_balance_outlined,
+                  labelKey: 'quickbooks',
+                  onTap: () => context.go(
+                    '/settings/account_management/integrations/quickbooks',
+                  ),
+                ),
               ],
             ),
           ],

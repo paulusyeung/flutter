@@ -61,9 +61,7 @@ class QrcodeBlockPreview extends StatelessWidget {
     final alignment = parseAlignment(block.properties['align'] as String?);
     final size = parsePx(block.properties['size']) ?? 100.0;
     final raw = (block.properties['data'] as String?)?.trim() ?? '';
-    final resolved = sample == null
-        ? raw
-        : replaceVariables(raw, data: sample);
+    final resolved = sample == null ? raw : replaceVariables(raw, data: sample);
     final hasData = resolved.isNotEmpty && resolved != raw
         ? true
         : (raw.isNotEmpty && !raw.startsWith(r'$'));
@@ -124,8 +122,8 @@ class SignatureBlock extends StatelessWidget {
         crossAxisAlignment: align == Alignment.center
             ? CrossAxisAlignment.center
             : align == Alignment.centerRight
-                ? CrossAxisAlignment.end
-                : CrossAxisAlignment.start,
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.end,
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -137,7 +135,10 @@ class SignatureBlock extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 4),
             ),
           if (label.isNotEmpty)
-            Text(label, style: TextStyle(fontSize: fontSize, color: color)),
+            Text(
+              label,
+              style: TextStyle(fontSize: fontSize, color: color),
+            ),
           if (showDate)
             Padding(
               padding: const EdgeInsets.only(top: 2),

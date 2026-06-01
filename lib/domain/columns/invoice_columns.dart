@@ -52,8 +52,7 @@ final List<InvoiceColumn> kAllInvoiceColumns = <InvoiceColumn>[
     id: InvoiceFieldIds.clientId,
     labelKey: 'client',
     width: 200,
-    cellBuilder: (i, _) =>
-        i.clientId.isEmpty
+    cellBuilder: (i, _) => i.clientId.isEmpty
         ? cellEmpty()
         : ClientNameLabel(clientId: i.clientId, link: true),
     valueBuilder: (i) => cellNonZeroString(i.clientId),
@@ -136,8 +135,7 @@ final List<InvoiceColumn> kAllInvoiceColumns = <InvoiceColumn>[
     id: InvoiceFieldIds.projectId,
     labelKey: 'project',
     width: 160,
-    cellBuilder: (i, _) =>
-        i.projectId.isEmpty
+    cellBuilder: (i, _) => i.projectId.isEmpty
         ? cellEmpty()
         : ProjectNameLabel(projectId: i.projectId, link: true),
     valueBuilder: (i) => cellNonZeroString(i.projectId),

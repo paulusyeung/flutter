@@ -166,58 +166,57 @@ void main() {
     });
   });
 
-  testWidgets(
-    'activeChips collapses multi-value checkbox keys into one chip',
-    (tester) async {
-      late BuildContext ctx;
-      await tester.pumpWidget(
-        Builder(
-          builder: (c) {
-            ctx = c;
-            return const SizedBox();
-          },
-        ),
+  testWidgets('activeChips collapses multi-value checkbox keys into one chip', (
+    tester,
+  ) async {
+    late BuildContext ctx;
+    await tester.pumpWidget(
+      Builder(
+        builder: (c) {
+          ctx = c;
+          return const SizedBox();
+        },
+      ),
+    );
+
+    await tester.runAsync(() async {
+      final vm = await makeVm();
+      final controller = TokenSearchController(
+        vm: vm,
+        filterKeys: const [IsFilterKey()],
+        initialText: '',
       );
+      addTearDown(controller.dispose);
 
-      await tester.runAsync(() async {
-        final vm = await makeVm();
-        final controller = TokenSearchController(
-          vm: vm,
-          filterKeys: const [IsFilterKey()],
-          initialText: '',
-        );
-        addTearDown(controller.dispose);
+      // Fresh VM: states == {active} → exactly one non-aggregate chip.
+      var chips = controller.activeChips(ctx);
+      expect(chips, hasLength(1));
+      expect(chips.single.aggregate, isFalse);
 
-        // Fresh VM: states == {active} → exactly one non-aggregate chip.
-        var chips = controller.activeChips(ctx);
-        expect(chips, hasLength(1));
-        expect(chips.single.aggregate, isFalse);
-
-        // Three states → one aggregate chip listing all three, sorted.
-        await vm.setStates({
-          EntityState.active,
-          EntityState.archived,
-          EntityState.deleted,
-        });
-        chips = controller.activeChips(ctx);
-        expect(chips, hasLength(1));
-        final chip = chips.single;
-        expect(chip.aggregate, isTrue);
-        expect(chip.rawValues, hasLength(3));
-        expect(chip.token.displayValue.split(', '), hasLength(3));
-        final parts = chip.token.displayValue.split(', ');
-        final sorted = [...parts]..sort();
-        expect(parts, sorted, reason: 'chip values must be deterministic');
-
-        // Removing the aggregate chip clears the whole dimension.
-        await controller.removeChip(chip, ctx);
-        expect(vm.states, isEmpty);
-        expect(controller.activeChips(ctx), isEmpty);
-
-        vm.dispose();
+      // Three states → one aggregate chip listing all three, sorted.
+      await vm.setStates({
+        EntityState.active,
+        EntityState.archived,
+        EntityState.deleted,
       });
-    },
-  );
+      chips = controller.activeChips(ctx);
+      expect(chips, hasLength(1));
+      final chip = chips.single;
+      expect(chip.aggregate, isTrue);
+      expect(chip.rawValues, hasLength(3));
+      expect(chip.token.displayValue.split(', '), hasLength(3));
+      final parts = chip.token.displayValue.split(', ');
+      final sorted = [...parts]..sort();
+      expect(parts, sorted, reason: 'chip values must be deterministic');
+
+      // Removing the aggregate chip clears the whole dimension.
+      await controller.removeChip(chip, ctx);
+      expect(vm.states, isEmpty);
+      expect(controller.activeChips(ctx), isEmpty);
+
+      vm.dispose();
+    });
+  });
 
   test('aliased `state`, not `status` (no clash with entity Status key)', () {
     const key = IsFilterKey();
@@ -317,65 +316,64 @@ void main() {
     },
   );
 
-  testWidgets(
-    'Backspace on a pinned empty input clears the pin, not a chip',
-    (tester) async {
-      late BuildContext ctx;
-      await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: kTestLocalizationsDelegates,
-          supportedLocales: kTestSupportedLocales,
-          home: Builder(
-            builder: (c) {
-              ctx = c;
-              return const SizedBox();
-            },
-          ),
+  testWidgets('Backspace on a pinned empty input clears the pin, not a chip', (
+    tester,
+  ) async {
+    late BuildContext ctx;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: kTestLocalizationsDelegates,
+        supportedLocales: kTestSupportedLocales,
+        home: Builder(
+          builder: (c) {
+            ctx = c;
+            return const SizedBox();
+          },
         ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.runAsync(() async {
+      final vm = await makeVm();
+      final controller = TokenSearchController(
+        vm: vm,
+        filterKeys: const [IsFilterKey()],
+        initialText: '',
       );
-      await tester.pumpAndSettle();
+      addTearDown(controller.dispose);
 
-      await tester.runAsync(() async {
-        final vm = await makeVm();
-        final controller = TokenSearchController(
-          vm: vm,
-          filterKeys: const [IsFilterKey()],
-          initialText: '',
-        );
-        addTearDown(controller.dispose);
+      final backspace = KeyDownEvent(
+        physicalKey: PhysicalKeyboardKey.backspace,
+        logicalKey: LogicalKeyboardKey.backspace,
+        timeStamp: Duration.zero,
+      );
 
-        final backspace = KeyDownEvent(
-          physicalKey: PhysicalKeyboardKey.backspace,
-          logicalKey: LogicalKeyboardKey.backspace,
-          timeStamp: Duration.zero,
-        );
+      // Pinned + empty input → Backspace returns to the key list
+      // (clears the pin) and leaves the applied state set untouched.
+      controller.pinValueKey(const IsFilterKey());
+      final statesBefore = {...vm.states};
+      final handled = controller.handleArrowEnterBackspace(
+        backspace,
+        suggestionsActive: false,
+        context: ctx,
+      );
+      expect(handled, KeyEventResult.handled);
+      expect(controller.pinnedValueKey, isNull);
+      expect(vm.states, statesBefore, reason: 'no chip removed');
 
-        // Pinned + empty input → Backspace returns to the key list
-        // (clears the pin) and leaves the applied state set untouched.
-        controller.pinValueKey(const IsFilterKey());
-        final statesBefore = {...vm.states};
-        final handled = controller.handleArrowEnterBackspace(
-          backspace,
-          suggestionsActive: false,
-          context: ctx,
-        );
-        expect(handled, KeyEventResult.handled);
-        expect(controller.pinnedValueKey, isNull);
-        expect(vm.states, statesBefore, reason: 'no chip removed');
+      // No pin + empty input + a chip present → Backspace removes the
+      // last chip (unchanged behavior).
+      expect(vm.states, isNotEmpty);
+      controller.handleArrowEnterBackspace(
+        backspace,
+        suggestionsActive: false,
+        context: ctx,
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(vm.states, isEmpty);
 
-        // No pin + empty input + a chip present → Backspace removes the
-        // last chip (unchanged behavior).
-        expect(vm.states, isNotEmpty);
-        controller.handleArrowEnterBackspace(
-          backspace,
-          suggestionsActive: false,
-          context: ctx,
-        );
-        await Future<void>.delayed(Duration.zero);
-        expect(vm.states, isEmpty);
-
-        vm.dispose();
-      });
-    },
-  );
+      vm.dispose();
+    });
+  });
 }

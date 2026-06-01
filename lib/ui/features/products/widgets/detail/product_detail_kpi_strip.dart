@@ -71,9 +71,7 @@ class _Strip extends StatelessWidget {
       ..maximumFractionDigits = 2;
     String fmt(Decimal value) => numberFmt.format(value.toDouble());
 
-    final inStockText = tracksInventory
-        ? p.inStockQuantity.toString()
-        : '—';
+    final inStockText = tracksInventory ? p.inStockQuantity.toString() : '—';
 
     final cells = <Widget>[
       _KpiCell(

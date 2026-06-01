@@ -123,12 +123,7 @@ class _CustomFieldRowState<V extends SettingsDraftHost>
   /// `multi_line_text`. The first edit through this method rewrites it as
   /// `"Color|multi_line_text"` — silent shape upgrade matching React's
   /// `Field.tsx`. Server treats both encodings identically.
-  void _write(
-    V vm, {
-    String? label,
-    String? type,
-    String? options,
-  }) {
+  void _write(V vm, {String? label, String? type, String? options}) {
     final draft = vm.draft;
     if (draft == null) return;
     final next = Map<String, String>.from(draft.customFields);
@@ -141,8 +136,11 @@ class _CustomFieldRowState<V extends SettingsDraftHost>
         // paired "charge taxes" boolean so the server doesn't keep a flag
         // pointing at a non-existent slot.
         vm.updateCompany(
-          (c) => _writeSurchargeTax(c, widget.slot, false)
-              .copyWith(customFields: next),
+          (c) => _writeSurchargeTax(
+            c,
+            widget.slot,
+            false,
+          ).copyWith(customFields: next),
         );
         return;
       } else {
@@ -206,7 +204,10 @@ class _CustomFieldRowState<V extends SettingsDraftHost>
       // Literal-key calls keep `search_catalog_consistency_test` happy — its
       // regex scans for `context.tr('<key>')` at parse time.
       items: [
-        DropdownMenuItem(value: '', child: Text(context.tr('single_line_text'))),
+        DropdownMenuItem(
+          value: '',
+          child: Text(context.tr('single_line_text')),
+        ),
         DropdownMenuItem(
           value: 'multi_line_text',
           child: Text(context.tr('multi_line_text')),
@@ -238,10 +239,7 @@ class _CustomFieldRowState<V extends SettingsDraftHost>
               labelField,
               SizedBox(height: InSpacing.sm),
               typeField,
-              if (isDropdown) ...[
-                SizedBox(height: InSpacing.sm),
-                optionsField,
-              ],
+              if (isDropdown) ...[SizedBox(height: InSpacing.sm), optionsField],
             ],
           );
         }
@@ -309,8 +307,8 @@ class _SurchargeLayout<V extends SettingsDraftHost> extends StatelessWidget {
                   value: _readSwitch(draft),
                   onChanged: enabled
                       ? (v) => vm.updateCompany(
-                            (c) => _writeSurchargeTax(c, slot, v),
-                          )
+                          (c) => _writeSurchargeTax(c, slot, v),
+                        )
                       : null,
                 ),
                 SizedBox(width: InSpacing.sm),

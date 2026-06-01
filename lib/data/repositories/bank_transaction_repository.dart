@@ -169,8 +169,7 @@ class BankTransactionRepository
     required String companyId,
     required BankTransaction transaction,
   }) async {
-    final companion =
-        _domainToCompanion(transaction, companyId, isDirty: true);
+    final companion = _domainToCompanion(transaction, companyId, isDirty: true);
     var rowId = 0;
     await db.transaction(() async {
       await db.bankTransactionDao.upsert(companion);
@@ -382,8 +381,7 @@ class BankTransactionRepository
       participant: Value(domain.participant),
       updatedAt: a.updatedAt,
       createdAt: Value(a.createdAt),
-      archivedAt:
-          a.archivedAt > 0 ? Value(a.archivedAt) : const Value.absent(),
+      archivedAt: a.archivedAt > 0 ? Value(a.archivedAt) : const Value.absent(),
       isDirty: const Value(false),
       isDeleted: Value(a.isDeleted),
       payload: jsonEncode(a.toJson()),

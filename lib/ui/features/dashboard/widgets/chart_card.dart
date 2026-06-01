@@ -147,10 +147,7 @@ class ChartCard extends StatelessWidget {
     ButtonSegment<ChartGrouping> seg(ChartGrouping g, String key) =>
         ButtonSegment<ChartGrouping>(
           value: g,
-          label: Text(
-            context.tr(key),
-            style: const TextStyle(fontSize: 12),
-          ),
+          label: Text(context.tr(key), style: const TextStyle(fontSize: 12)),
         );
     return SegmentedButton<ChartGrouping>(
       showSelectedIcon: false,

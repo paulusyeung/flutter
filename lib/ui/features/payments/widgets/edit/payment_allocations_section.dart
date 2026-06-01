@@ -46,8 +46,7 @@ class AllocationTarget {
 
   /// Preferred starting amount when the user selects this target — matches
   /// admin-portal's `PaymentableEntity.fromInvoice` math.
-  Decimal get preferredAmount =>
-      partial > Decimal.zero ? partial : balance;
+  Decimal get preferredAmount => partial > Decimal.zero ? partial : balance;
 }
 
 /// One section of the allocations editor — either Invoices or Credits.
@@ -172,11 +171,11 @@ class _LiveSectionState extends State<_LiveSection> {
     final companyId = services.auth.session.value!.currentCompanyId;
     final next = widget.kind == AllocationKind.invoice
         ? services.invoices
-            .watchForClient(companyId: companyId, clientId: widget.clientId)
-            .map<List<AllocationTarget>>(_invoiceTargets)
+              .watchForClient(companyId: companyId, clientId: widget.clientId)
+              .map<List<AllocationTarget>>(_invoiceTargets)
         : services.credits
-            .watchForClient(companyId: companyId, clientId: widget.clientId)
-            .map<List<AllocationTarget>>(_creditTargets);
+              .watchForClient(companyId: companyId, clientId: widget.clientId)
+              .map<List<AllocationTarget>>(_creditTargets);
     _stream = next;
     _streamClientId = widget.clientId;
     _streamKind = widget.kind;
@@ -197,9 +196,9 @@ class _LiveSectionState extends State<_LiveSection> {
       stream: stream,
       builder: (context, snapshot) {
         final all = snapshot.data ?? const <AllocationTarget>[];
-        final rowsForKind = paymentables.where(belongsToThisKind).toList(
-              growable: false,
-            );
+        final rowsForKind = paymentables
+            .where(belongsToThisKind)
+            .toList(growable: false);
         // Credits hide entirely when the client has none AND no row is
         // already selected — matches admin-portal payment_edit.dart:627-630.
         if (kind == AllocationKind.credit &&
@@ -207,7 +206,9 @@ class _LiveSectionState extends State<_LiveSection> {
             rowsForKind.isEmpty) {
           return const SizedBox.shrink();
         }
-        final titleKey = kind == AllocationKind.invoice ? 'invoices' : 'credits';
+        final titleKey = kind == AllocationKind.invoice
+            ? 'invoices'
+            : 'credits';
         if (all.isEmpty && rowsForKind.isEmpty) {
           return _Section(
             title: context.tr(titleKey),
@@ -345,7 +346,9 @@ class _WideEditor extends StatelessWidget {
     for (var i = 0; i < rowsForKind.length; i++) {
       widgets.add(
         _AllocationRow(
-          key: ValueKey('paymentable_${kind.name}_${i}_${idOfRow(rowsForKind[i])}'),
+          key: ValueKey(
+            'paymentable_${kind.name}_${i}_${idOfRow(rowsForKind[i])}',
+          ),
           kind: kind,
           paymentables: paymentables,
           rowIndex: _indexOfRow(paymentables, rowsForKind[i]),
@@ -504,9 +507,7 @@ class _AllocationRow extends StatelessWidget {
           color: isPlaceholder || currentId.isEmpty
               ? Theme.of(context).disabledColor
               : null,
-          onPressed: isPlaceholder || currentId.isEmpty
-              ? null
-              : _remove,
+          onPressed: isPlaceholder || currentId.isEmpty ? null : _remove,
         ),
       ],
     );
@@ -678,7 +679,9 @@ class _NarrowEditor extends StatelessWidget {
       children: [
         for (var i = 0; i < rowsForKind.length; i++)
           PaymentAllocationCard(
-            key: ValueKey('paymentable_card_${kind.name}_${i}_${idOfRow(rowsForKind[i])}'),
+            key: ValueKey(
+              'paymentable_card_${kind.name}_${i}_${idOfRow(rowsForKind[i])}',
+            ),
             kind: kind,
             row: rowsForKind[i],
             targets: targets,
@@ -696,8 +699,9 @@ class _NarrowEditor extends StatelessWidget {
             child: Align(
               alignment: Alignment.centerLeft,
               child: OutlinedButton.icon(
-                style:
-                    OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(64, 40),
+                ),
                 icon: const Icon(Icons.add),
                 label: Text(
                   context.tr(

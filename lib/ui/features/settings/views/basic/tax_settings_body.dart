@@ -318,11 +318,7 @@ class _CalculateTaxesRegional extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
-        _SellerSubregionRow(
-          host: host,
-          kind: subregionKind,
-          taxData: taxData,
-        ),
+        _SellerSubregionRow(host: host, kind: subregionKind, taxData: taxData),
         SizedBox(height: InSpacing.md(context)),
         for (final region in kTaxRegionOrder) ...[
           _RegionCard(host: host, regionKey: region),
@@ -391,9 +387,8 @@ class _SellerSubregionRowState extends State<_SellerSubregionRow> {
   @override
   Widget build(BuildContext context) {
     final label = context.tr('seller_subregion');
-    final errorText = widget.host
-        .fieldErrors['tax_data.seller_subregion']
-        ?.firstOrNull;
+    final errorText =
+        widget.host.fieldErrors['tax_data.seller_subregion']?.firstOrNull;
     switch (widget.kind) {
       case SellerSubregionKind.none:
         return const SizedBox.shrink();
@@ -495,9 +490,7 @@ class _RegionCardState extends State<_RegionCard> {
         kTaxRegionLabelKeys[widget.regionKey] ?? widget.regionKey;
     final subregions = region.subregions;
     final total = subregions.length;
-    final selectedCount = subregions.values
-        .where((s) => s.applyTax)
-        .length;
+    final selectedCount = subregions.values.where((s) => s.applyTax).length;
 
     return Container(
       decoration: BoxDecoration(
@@ -539,9 +532,8 @@ class _RegionCardState extends State<_RegionCard> {
             dense: true,
             title: Text(context.tr('apply_tax_to_all_subregions')),
             value: region.taxAllSubregions,
-            onChanged: (v) => _updateRegion(
-              (r) => r.copyWith(taxAllSubregions: v),
-            ),
+            onChanged: (v) =>
+                _updateRegion((r) => r.copyWith(taxAllSubregions: v)),
           ),
           if (kTaxRegionsWithSalesThreshold.contains(widget.regionKey))
             SwitchListTile(
@@ -549,9 +541,8 @@ class _RegionCardState extends State<_RegionCard> {
               dense: true,
               title: Text(context.tr('sales_above_threshold')),
               value: region.hasSalesAboveThreshold,
-              onChanged: (v) => _updateRegion(
-                (r) => r.copyWith(hasSalesAboveThreshold: v),
-              ),
+              onChanged: (v) =>
+                  _updateRegion((r) => r.copyWith(hasSalesAboveThreshold: v)),
             ),
           if (_expanded) ...[
             const Divider(),
@@ -661,9 +652,9 @@ class _SubregionRow extends StatelessWidget {
                 width: 64,
                 child: Text(
                   subregionKey,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
                 ),
               ),
               Expanded(
@@ -691,16 +682,12 @@ class _SubregionRow extends StatelessWidget {
           ),
           if (firstError != null)
             Padding(
-              padding: EdgeInsets.only(
-                left: 80,
-                top: 2,
-                bottom: InSpacing.xs,
-              ),
+              padding: EdgeInsets.only(left: 80, top: 2, bottom: InSpacing.xs),
               child: Text(
                 firstError,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: tokens.overdue,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: tokens.overdue),
               ),
             ),
         ],

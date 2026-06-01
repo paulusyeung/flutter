@@ -21,11 +21,7 @@ import 'package:admin/ui/features/credits/widgets/credit_token_search_field.dart
 import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
 
 class CreditListScreen extends StatelessWidget {
-  const CreditListScreen({
-    super.key,
-    this.clientId,
-    this.embedded = false,
-  });
+  const CreditListScreen({super.key, this.clientId, this.embedded = false});
 
   /// When set, the list is filtered to one client.
   final String? clientId;
@@ -43,9 +39,9 @@ class CreditListScreen extends StatelessWidget {
       embeddedNewOverride: cid == null
           ? null
           : (ctx) => ctx.go(
-                '/credits/new',
-                extra: emptyCredit().copyWith(clientId: cid),
-              ),
+              '/credits/new',
+              extra: emptyCredit().copyWith(clientId: cid),
+            ),
       emptyIcon: Icons.assignment_return_outlined,
       emptyTitleKey: 'no_credits_yet',
       wantsFormatter: true,
@@ -98,12 +94,12 @@ class CreditListScreen extends StatelessWidget {
           onAction: options.selecting
               ? null
               : (action) => CreditActions.dispatch(
-                    context,
-                    context.read<Services>(),
-                    vm.companyId,
-                    credit,
-                    action,
-                  ),
+                  context,
+                  context.read<Services>(),
+                  vm.companyId,
+                  credit,
+                  action,
+                ),
         );
       },
       bulkActions: [

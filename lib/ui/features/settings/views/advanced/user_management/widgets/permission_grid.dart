@@ -34,8 +34,7 @@ class PermissionGrid extends StatelessWidget {
   /// the callback, the 14 boxes collapse to 1 with no explanation.
   final void Function(String verb)? onAutoPromote;
 
-  bool _isAllSet(String verb) =>
-      permissions.contains(permissionAllToken(verb));
+  bool _isAllSet(String verb) => permissions.contains(permissionAllToken(verb));
 
   bool _cellChecked(String verb, String entity) {
     if (isAdmin) return true;
@@ -114,10 +113,7 @@ class PermissionGrid extends StatelessWidget {
       children: [
         Expanded(child: headerCell('name', align: TextAlign.start)),
         for (final verb in kPermissionVerbs)
-          SizedBox(
-            width: 90,
-            child: headerCell(verb, align: TextAlign.center),
-          ),
+          SizedBox(width: 90, child: headerCell(verb, align: TextAlign.center)),
       ],
     );
 
@@ -176,7 +172,9 @@ class PermissionGrid extends StatelessWidget {
               checked: checked,
               child: Checkbox(
                 value: checked,
-                onChanged: disabled ? null : (v) => _toggleCell(verb, entity, v),
+                onChanged: disabled
+                    ? null
+                    : (v) => _toggleCell(verb, entity, v),
               ),
             ),
           ),

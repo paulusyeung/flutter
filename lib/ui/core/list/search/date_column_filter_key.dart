@@ -84,14 +84,10 @@ class DateColumnFilterKey extends FilterKey with ComparableFilterKey {
     if (w.startsWith('between:')) w = w.substring('between:'.length).trim();
     final parts = w.split(',');
     if (parts.length < 2) return ('', '');
-    return (
-      parts[parts.length - 2].trim(),
-      parts[parts.length - 1].trim(),
-    );
+    return (parts[parts.length - 2].trim(), parts[parts.length - 1].trim());
   }
 
-  String canonicalWindow(String start, String end) =>
-      '$serverKey,$start,$end';
+  String canonicalWindow(String start, String end) => '$serverKey,$start,$end';
 
   Set<String> _rangeValues(GenericListViewModel<dynamic> vm) =>
       vm.extraFilters[rangeServerKey] ?? const <String>{};
@@ -116,8 +112,10 @@ class DateColumnFilterKey extends FilterKey with ComparableFilterKey {
   /// the per-screen formatter is cached by paint time). Guarded so the
   /// bare-`BuildContext` unit tests — which have no `Provider<Services>`
   /// — fall back to raw ISO instead of throwing.
-  Formatter? _formatterOrNull(GenericListViewModel<dynamic> vm,
-      BuildContext context) {
+  Formatter? _formatterOrNull(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+  ) {
     try {
       return context.read<Services>().formatterIfReady(vm.companyId);
     } catch (_) {
@@ -142,8 +140,11 @@ class DateColumnFilterKey extends FilterKey with ComparableFilterKey {
             displayKey: displayLabel(context),
             rawValue: canonicalWindow(start, end),
             displayValue: formatted.isEmpty ? raw : formatted,
-            displayComparator:
-                filterOpPhrase(context, FilterOp.between, valueType),
+            displayComparator: filterOpPhrase(
+              context,
+              FilterOp.between,
+              valueType,
+            ),
             // Keep the exact ISO bounds inspectable on hover.
             valueTooltip: raw,
           );
@@ -180,10 +181,7 @@ class DateColumnFilterKey extends FilterKey with ComparableFilterKey {
   }
 
   @override
-  Future<void> removeValue(
-    GenericListViewModel<dynamic> vm,
-    String rawValue,
-  ) {
+  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
     if (isWindowWire(rawValue)) {
       return writeSingleExtraFilter(vm, rangeServerKey, null);
     }
@@ -191,10 +189,7 @@ class DateColumnFilterKey extends FilterKey with ComparableFilterKey {
   }
 
   @override
-  Future<void> clear(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-  ) {
+  Future<void> clear(GenericListViewModel<dynamic> vm, BuildContext context) {
     // Mirrors ComparableFilterKey.clear (clears the comparable slot) plus
     // the window slot — done inline so no BuildContext crosses the await.
     Future<void> run() async {

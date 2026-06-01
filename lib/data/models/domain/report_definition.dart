@@ -4,11 +4,11 @@ import 'package:admin/domain/entity_type.dart';
 /// Fields not listed are hidden — keeps the popover compact and per-report
 /// relevant (e.g. a Clients report doesn't show "Cash / accrual basis").
 enum ReportFilterField {
-  dateRange,            // every report; rendered on the toolbar, not the popover
-  dateColumn,           // which date column the range filters on
-  status,               // invoice / quote / credit / payment / task status
-  clientsMulti,         // multi-select of clients
-  clientSingle,         // single-client picker (product_sales)
+  dateRange, // every report; rendered on the toolbar, not the popover
+  dateColumn, // which date column the range filters on
+  status, // invoice / quote / credit / payment / task status
+  clientsMulti, // multi-select of clients
+  clientSingle, // single-client picker (product_sales)
   vendorsMulti,
   projectsMulti,
   categoriesMulti,

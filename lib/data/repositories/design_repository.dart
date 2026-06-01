@@ -90,10 +90,8 @@ class DesignRepository extends BaseEntityRepository<Design, DesignApi> {
     idOf: (a) => a.id,
     updatedAtOf: (a) => a.updatedAt,
     toCompanion: (a) => _apiToCompanion(a, companyId),
-    upsert: (byId) => db.designDao.upsertAllPreservingDirty(
-      companyId: companyId,
-      byId: byId,
-    ),
+    upsert: (byId) =>
+        db.designDao.upsertAllPreservingDirty(companyId: companyId, byId: byId),
   );
 
   Future<bool> ensurePageLoaded({
@@ -115,10 +113,8 @@ class DesignRepository extends BaseEntityRepository<Design, DesignApi> {
     itemsOf: (l) => l.data,
     idOf: (a) => a.id,
     toCompanion: (a) => _apiToCompanion(a, companyId),
-    upsert: (byId) => db.designDao.upsertAllPreservingDirty(
-      companyId: companyId,
-      byId: byId,
-    ),
+    upsert: (byId) =>
+        db.designDao.upsertAllPreservingDirty(companyId: companyId, byId: byId),
   );
 
   Future<void> refreshAll({

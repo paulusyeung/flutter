@@ -645,10 +645,7 @@ class _ChartPart extends StatelessWidget {
                       // right-axis tick labels.
                       alignment: Alignment.topLeft,
                       padding: const EdgeInsets.only(right: 4, bottom: 2),
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: tokens.ink3,
-                      ),
+                      style: TextStyle(fontSize: 10, color: tokens.ink3),
                       labelResolver: (_) => context.tr('today'),
                     ),
                   ),

@@ -88,8 +88,7 @@ InvoiceLockReason invoiceLockReason({
       final date = invoice.date;
       if (date == null) return InvoiceLockReason.none;
       final now = today ?? Date.today();
-      final pastMonth =
-          date.year != now.year || date.month != now.month;
+      final pastMonth = date.year != now.year || date.month != now.month;
       return pastMonth ? InvoiceLockReason.endOfMonth : InvoiceLockReason.none;
     case 'off':
     default:

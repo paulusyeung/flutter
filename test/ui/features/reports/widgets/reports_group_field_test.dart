@@ -28,8 +28,7 @@ class _NullStaticsService implements StaticsService {
   Future<Map<String, dynamic>> fetch({
     bool includeStatic = true,
     bool? includeData,
-  }) async =>
-      const <String, dynamic>{};
+  }) async => const <String, dynamic>{};
 
   @override
   Object? noSuchMethod(Invocation invocation) => null;

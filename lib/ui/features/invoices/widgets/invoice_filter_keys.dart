@@ -115,10 +115,7 @@ class InvoiceOverdueFilterKey extends FilterKey {
     if (q.isEmpty) return const [];
     if (!context.tr('overdue').toLowerCase().startsWith(q)) return const [];
     return [
-      FilterValueSuggestion(
-        rawValue: _on,
-        displayLabel: context.tr('overdue'),
-      ),
+      FilterValueSuggestion(rawValue: _on, displayLabel: context.tr('overdue')),
     ];
   }
 
@@ -138,10 +135,8 @@ class InvoiceOverdueFilterKey extends FilterKey {
   ) => writeSingleExtraFilter(vm, _serverKey, _on);
 
   @override
-  Future<void> clear(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-  ) => writeSingleExtraFilter(vm, _serverKey, null);
+  Future<void> clear(GenericListViewModel<dynamic> vm, BuildContext context) =>
+      writeSingleExtraFilter(vm, _serverKey, null);
 }
 
 /// `status:draft|sent|partial|paid|cancelled|reversed` — multi-valued.
@@ -209,9 +204,7 @@ class InvoiceStatusFilterKey extends FilterKey {
     ];
     final filtered = q.isEmpty
         ? all
-        : all
-              .where((s) => s.displayLabel.toLowerCase().contains(q))
-              .toList();
+        : all.where((s) => s.displayLabel.toLowerCase().contains(q)).toList();
     return Stream.value(filtered);
   }
 
@@ -263,8 +256,6 @@ class InvoiceStatusFilterKey extends FilterKey {
 
   /// Clear the whole status set in one VM write.
   @override
-  Future<void> clear(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-  ) => writeSingleExtraFilter(vm, _serverKey, null);
+  Future<void> clear(GenericListViewModel<dynamic> vm, BuildContext context) =>
+      writeSingleExtraFilter(vm, _serverKey, null);
 }

@@ -265,8 +265,8 @@ class _SelectedIdScope extends InheritedWidget {
   /// J/K nav + auto-scroll).
   final bool editorCoversList;
 
-  static _SelectedIdScope? _maybeOf(BuildContext context) => context
-      .dependOnInheritedWidgetOfExactType<_SelectedIdScope>();
+  static _SelectedIdScope? _maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_SelectedIdScope>();
 
   @override
   bool updateShouldNotify(_SelectedIdScope oldWidget) =>

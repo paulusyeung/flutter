@@ -149,14 +149,16 @@ class _BillingDocItemsTabsState extends State<BillingDocItemsTabs>
     _hasTasks = widget.lineItems.any(_isTaskLine);
     _hasExpenses = widget.lineItems.any(_isExpenseLine);
     _rebuildTabController(jumpTo: 0);
-    _unregisterProductsFlush =
-        widget.vm.addBeforeSaveHook(_productsCtl.flushPending);
-    _unregisterTasksFlush =
-        widget.vm.addBeforeSaveHook(_tasksCtl.flushPending);
-    _unregisterExpensesFlush =
-        widget.vm.addBeforeSaveHook(_expensesCtl.flushPending);
-    _unregisterStrip =
-        widget.vm.addBeforeSaveHook(widget.vm.stripEmptyLineItems);
+    _unregisterProductsFlush = widget.vm.addBeforeSaveHook(
+      _productsCtl.flushPending,
+    );
+    _unregisterTasksFlush = widget.vm.addBeforeSaveHook(_tasksCtl.flushPending);
+    _unregisterExpensesFlush = widget.vm.addBeforeSaveHook(
+      _expensesCtl.flushPending,
+    );
+    _unregisterStrip = widget.vm.addBeforeSaveHook(
+      widget.vm.stripEmptyLineItems,
+    );
   }
 
   @override
@@ -197,10 +199,10 @@ class _BillingDocItemsTabsState extends State<BillingDocItemsTabs>
   }
 
   List<_LineKind> _visibleTabs() => <_LineKind>[
-        _LineKind.products,
-        if (_hasTasks) _LineKind.tasks,
-        if (_hasExpenses) _LineKind.expenses,
-      ];
+    _LineKind.products,
+    if (_hasTasks) _LineKind.tasks,
+    if (_hasExpenses) _LineKind.expenses,
+  ];
 
   int _stackIndexOf(_LineKind kind) {
     switch (kind) {
@@ -281,9 +283,7 @@ class _BillingDocItemsTabsState extends State<BillingDocItemsTabs>
           isScrollable: false,
           labelColor: tokens.ink,
           unselectedLabelColor: tokens.ink3,
-          tabs: [
-            for (final k in visible) Tab(text: _tabLabel(context, k)),
-          ],
+          tabs: [for (final k in visible) Tab(text: _tabLabel(context, k))],
         ),
         Divider(height: 1, color: tokens.border),
         SizedBox(height: InSpacing.md(context)),

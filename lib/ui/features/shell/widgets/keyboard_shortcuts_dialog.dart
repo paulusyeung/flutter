@@ -19,9 +19,7 @@ Future<void> showKeyboardShortcutsDialog(BuildContext context) {
 @visibleForTesting
 String platformModifierLabel([TargetPlatform? override]) {
   final p = override ?? defaultTargetPlatform;
-  return (p == TargetPlatform.macOS || p == TargetPlatform.iOS)
-      ? '⌘'
-      : 'Ctrl';
+  return (p == TargetPlatform.macOS || p == TargetPlatform.iOS) ? '⌘' : 'Ctrl';
 }
 
 /// Modifier for browser-style history (back/forward). Follows the per-OS
@@ -30,9 +28,7 @@ String platformModifierLabel([TargetPlatform? override]) {
 @visibleForTesting
 String platformHistoryModifierLabel([TargetPlatform? override]) {
   final p = override ?? defaultTargetPlatform;
-  return (p == TargetPlatform.macOS || p == TargetPlatform.iOS)
-      ? '⌘'
-      : 'Alt+';
+  return (p == TargetPlatform.macOS || p == TargetPlatform.iOS) ? '⌘' : 'Alt+';
 }
 
 class _KeyboardShortcutsDialog extends StatelessWidget {
@@ -49,10 +45,7 @@ class _KeyboardShortcutsDialog extends StatelessWidget {
         icon: Icons.public_outlined,
         title: context.tr('shortcuts_global'),
         rows: [
-          _Row(
-            keys: ['${mod}K'],
-            description: context.tr('switch_company'),
-          ),
+          _Row(keys: ['${mod}K'], description: context.tr('switch_company')),
           _Row(keys: ['$mod/'], description: context.tr('search')),
           _Row(keys: ['${mod}B'], description: context.tr('toggle_sidebar')),
           _Row(keys: ['$mod,'], description: context.tr('settings')),
@@ -76,14 +69,8 @@ class _KeyboardShortcutsDialog extends StatelessWidget {
         icon: Icons.unfold_more,
         title: context.tr('shortcuts_navigation'),
         rows: [
-          _Row(
-            keys: ['J', '↓'],
-            description: context.tr('next_record'),
-          ),
-          _Row(
-            keys: ['K', '↑'],
-            description: context.tr('previous_record'),
-          ),
+          _Row(keys: ['J', '↓'], description: context.tr('next_record')),
+          _Row(keys: ['K', '↑'], description: context.tr('previous_record')),
           _Row(keys: ['$navMod←'], description: context.tr('go_back')),
           _Row(keys: ['$navMod→'], description: context.tr('go_forward')),
           _Row(keys: ['F'], description: context.tr('toggle_full_screen')),
@@ -95,10 +82,7 @@ class _KeyboardShortcutsDialog extends StatelessWidget {
         title: context.tr('shortcuts_search'),
         rows: [
           _Row(keys: ['/'], description: context.tr('focus_search')),
-          _Row(
-            keys: ['↑', '↓'],
-            description: context.tr('move_selection'),
-          ),
+          _Row(keys: ['↑', '↓'], description: context.tr('move_selection')),
           _Row(keys: ['Enter'], description: context.tr('apply_filter')),
           _Row(
             keys: ['Backspace'],
@@ -193,9 +177,7 @@ class _KeyboardShortcutsDialog extends StatelessWidget {
             // is the breathing room each column gets from the divider;
             // combined it roughly equals the previous 24-px gap.
             Container(
-              margin: EdgeInsets.symmetric(
-                horizontal: InSpacing.lg(context),
-              ),
+              margin: EdgeInsets.symmetric(horizontal: InSpacing.lg(context)),
               width: 1,
               color: tokens.border,
             ),
@@ -221,11 +203,7 @@ class _KeyboardShortcutsDialog extends StatelessWidget {
 }
 
 class _Section {
-  const _Section({
-    required this.icon,
-    required this.title,
-    required this.rows,
-  });
+  const _Section({required this.icon, required this.title, required this.rows});
 
   final IconData icon;
   final String title;

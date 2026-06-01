@@ -45,12 +45,12 @@ class TemplateOption {
   /// True when this template is a reminder rule (renders the
   /// enable/days/schedule/late-fee section).
   bool get isReminder => const {
-        'reminder1',
-        'reminder2',
-        'reminder3',
-        'reminder_endless',
-        'quote_reminder1',
-      }.contains(key);
+    'reminder1',
+    'reminder2',
+    'reminder3',
+    'reminder_endless',
+    'quote_reminder1',
+  }.contains(key);
 }
 
 const List<TemplateOption> kTemplateOptions = <TemplateOption>[
@@ -91,9 +91,11 @@ const List<TemplateOption> kTemplateOptions = <TemplateOption>[
 /// Filter [kTemplateOptions] by the company's enabled-modules bitmask.
 List<TemplateOption> visibleTemplateOptions(int enabledModules) {
   return kTemplateOptions
-      .where((o) =>
-          o.moduleGate == null ||
-          isModuleEnabled(enabledModules, o.moduleGate!))
+      .where(
+        (o) =>
+            o.moduleGate == null ||
+            isModuleEnabled(enabledModules, o.moduleGate!),
+      )
       .toList(growable: false);
 }
 

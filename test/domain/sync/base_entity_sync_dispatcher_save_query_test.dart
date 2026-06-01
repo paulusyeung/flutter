@@ -46,57 +46,61 @@ void main() {
     requiresPassword: false,
   );
 
-  test('create promotes __save_query to query and strips it from body',
-      () async {
-    final api = _RecordingClientsApi();
-    final repo = ClientRepository(db: db, api: api);
-    final dispatcher = BaseEntitySyncDispatcher<ClientItemApi, ClientApi>(
-      api: api,
-      repo: repo,
-      dataOf: (item) => item.data,
-    );
+  test(
+    'create promotes __save_query to query and strips it from body',
+    () async {
+      final api = _RecordingClientsApi();
+      final repo = ClientRepository(db: db, api: api);
+      final dispatcher = BaseEntitySyncDispatcher<ClientItemApi, ClientApi>(
+        api: api,
+        repo: repo,
+        dataOf: (item) => item.data,
+      );
 
-    final row = rowWith(
-      kind: 'create',
-      entityId: 'tmp_1',
-      payload: {
-        'name': 'Acme',
-        kSaveQueryPayloadKey: {'mark_sent': 'true'},
-      },
-    );
+      final row = rowWith(
+        kind: 'create',
+        entityId: 'tmp_1',
+        payload: {
+          'name': 'Acme',
+          kSaveQueryPayloadKey: {'mark_sent': 'true'},
+        },
+      );
 
-    await dispatcher.dispatch(row: row, kind: MutationKind.create);
+      await dispatcher.dispatch(row: row, kind: MutationKind.create);
 
-    expect(api.createQuery, {'mark_sent': 'true'});
-    expect(api.createBody, containsPair('name', 'Acme'));
-    expect(api.createBody!.containsKey(kSaveQueryPayloadKey), isFalse);
-  });
+      expect(api.createQuery, {'mark_sent': 'true'});
+      expect(api.createBody, containsPair('name', 'Acme'));
+      expect(api.createBody!.containsKey(kSaveQueryPayloadKey), isFalse);
+    },
+  );
 
-  test('update promotes __save_query to query and strips it from body',
-      () async {
-    final api = _RecordingClientsApi();
-    final repo = ClientRepository(db: db, api: api);
-    final dispatcher = BaseEntitySyncDispatcher<ClientItemApi, ClientApi>(
-      api: api,
-      repo: repo,
-      dataOf: (item) => item.data,
-    );
+  test(
+    'update promotes __save_query to query and strips it from body',
+    () async {
+      final api = _RecordingClientsApi();
+      final repo = ClientRepository(db: db, api: api);
+      final dispatcher = BaseEntitySyncDispatcher<ClientItemApi, ClientApi>(
+        api: api,
+        repo: repo,
+        dataOf: (item) => item.data,
+      );
 
-    final row = rowWith(
-      kind: 'update',
-      entityId: 'c1',
-      payload: {
-        'name': 'Acme',
-        kSaveQueryPayloadKey: {'paid': 'true'},
-      },
-    );
+      final row = rowWith(
+        kind: 'update',
+        entityId: 'c1',
+        payload: {
+          'name': 'Acme',
+          kSaveQueryPayloadKey: {'paid': 'true'},
+        },
+      );
 
-    await dispatcher.dispatch(row: row, kind: MutationKind.update);
+      await dispatcher.dispatch(row: row, kind: MutationKind.update);
 
-    expect(api.updateQuery, {'paid': 'true'});
-    expect(api.updateBody, containsPair('name', 'Acme'));
-    expect(api.updateBody!.containsKey(kSaveQueryPayloadKey), isFalse);
-  });
+      expect(api.updateQuery, {'paid': 'true'});
+      expect(api.updateBody, containsPair('name', 'Acme'));
+      expect(api.updateBody!.containsKey(kSaveQueryPayloadKey), isFalse);
+    },
+  );
 
   test('no __save_query => null query, body untouched', () async {
     final api = _RecordingClientsApi();
@@ -132,7 +136,9 @@ class _RecordingClientsApi implements ClientsApi {
   }) async {
     createQuery = query;
     createBody = payload;
-    return const ClientItemApi(data: ClientApi(id: 'c1', name: 'Acme'));
+    return const ClientItemApi(
+      data: ClientApi(id: 'c1', name: 'Acme'),
+    );
   }
 
   @override
@@ -145,7 +151,9 @@ class _RecordingClientsApi implements ClientsApi {
   }) async {
     updateQuery = query;
     updateBody = payload;
-    return const ClientItemApi(data: ClientApi(id: 'c1', name: 'Acme'));
+    return const ClientItemApi(
+      data: ClientApi(id: 'c1', name: 'Acme'),
+    );
   }
 
   @override

@@ -30,34 +30,30 @@ class QuotesApi extends BaseEntityApi<QuoteListApi, QuoteItemApi> {
   Future<QuoteItemApi?> markSent({
     required String id,
     required String idempotencyKey,
-  }) =>
-      action(id: id, action: 'mark_sent', idempotencyKey: idempotencyKey);
+  }) => action(id: id, action: 'mark_sent', idempotencyKey: idempotencyKey);
 
   Future<QuoteItemApi?> approve({
     required String id,
     required String idempotencyKey,
-  }) =>
-      action(id: id, action: 'approve', idempotencyKey: idempotencyKey);
+  }) => action(id: id, action: 'approve', idempotencyKey: idempotencyKey);
 
   Future<QuoteItemApi?> convertToInvoice({
     required String id,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'convert_to_invoice',
-        idempotencyKey: idempotencyKey,
-      );
+  }) => action(
+    id: id,
+    action: 'convert_to_invoice',
+    idempotencyKey: idempotencyKey,
+  );
 
   Future<QuoteItemApi?> convertToProject({
     required String id,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'convert_to_project',
-        idempotencyKey: idempotencyKey,
-      );
+  }) => action(
+    id: id,
+    action: 'convert_to_project',
+    idempotencyKey: idempotencyKey,
+  );
 
   Future<QuoteItemApi?> email({
     required String id,
@@ -66,18 +62,17 @@ class QuotesApi extends BaseEntityApi<QuoteListApi, QuoteItemApi> {
     String? body,
     String? ccEmail,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'email',
-        idempotencyKey: idempotencyKey,
-        payload: {
-          'template': template,
-          if (subject != null) 'subject': subject,
-          if (body != null) 'body': body,
-          if (ccEmail != null) 'cc_email': ccEmail,
-        },
-      );
+  }) => action(
+    id: id,
+    action: 'email',
+    idempotencyKey: idempotencyKey,
+    payload: {
+      'template': template,
+      if (subject != null) 'subject': subject,
+      if (body != null) 'body': body,
+      if (ccEmail != null) 'cc_email': ccEmail,
+    },
+  );
 
   Future<QuoteItemApi?> scheduleEmail({
     required String id,
@@ -86,47 +81,43 @@ class QuotesApi extends BaseEntityApi<QuoteListApi, QuoteItemApi> {
     String? subject,
     String? body,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'email',
-        idempotencyKey: idempotencyKey,
-        payload: {
-          'template': template,
-          'send_at': sendAt,
-          if (subject != null) 'subject': subject,
-          if (body != null) 'body': body,
-        },
-      );
+  }) => action(
+    id: id,
+    action: 'email',
+    idempotencyKey: idempotencyKey,
+    payload: {
+      'template': template,
+      'send_at': sendAt,
+      if (subject != null) 'subject': subject,
+      if (body != null) 'body': body,
+    },
+  );
 
   Future<QuoteItemApi?> cloneTo({
     required String id,
     required String targetType,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'clone_to_$targetType',
-        idempotencyKey: idempotencyKey,
-      );
+  }) => action(
+    id: id,
+    action: 'clone_to_$targetType',
+    idempotencyKey: idempotencyKey,
+  );
 
   Future<QuoteItemApi?> cancel({
     required String id,
     required String idempotencyKey,
-  }) =>
-      action(id: id, action: 'cancel', idempotencyKey: idempotencyKey);
+  }) => action(id: id, action: 'cancel', idempotencyKey: idempotencyKey);
 
   Future<QuoteItemApi?> runTemplate({
     required String id,
     required String templateId,
     required String idempotencyKey,
-  }) =>
-      action(
-        id: id,
-        action: 'template',
-        idempotencyKey: idempotencyKey,
-        payload: {'template_id': templateId},
-      );
+  }) => action(
+    id: id,
+    action: 'template',
+    idempotencyKey: idempotencyKey,
+    payload: {'template_id': templateId},
+  );
 
   /// Server-rendered PDF via `POST /api/v1/live_preview?entity=quote
   /// [&entity_id=<id>]` with the full quote entity (`Quote.toApiJson()`) as

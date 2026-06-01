@@ -428,11 +428,7 @@ class _PreviewBarButton extends StatelessWidget {
         InSpacing.md(context),
       ),
       child: Row(
-        children: [
-          if (leading != null) leading!,
-          const Spacer(),
-          previewBtn,
-        ],
+        children: [if (leading != null) leading!, const Spacer(), previewBtn],
       ),
     );
   }

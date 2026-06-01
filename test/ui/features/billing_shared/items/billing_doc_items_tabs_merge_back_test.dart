@@ -101,8 +101,7 @@ void main() {
       expect(
         result
             .map(
-              (li) =>
-                  li.productKey + (li.taskId ?? '') + (li.expenseId ?? ''),
+              (li) => li.productKey + (li.taskId ?? '') + (li.expenseId ?? ''),
             )
             .toList(),
         ['P1', 'E2', 'T1', 'E1'],

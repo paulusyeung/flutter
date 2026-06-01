@@ -33,8 +33,7 @@ final List<ExpenseColumn> kAllExpenseColumns = <ExpenseColumn>[
     id: ExpenseFieldIds.status,
     labelKey: 'status',
     width: 110,
-    cellBuilder: (e, _) =>
-        ExpenseStatusPill(statusId: e.calculatedStatusId),
+    cellBuilder: (e, _) => ExpenseStatusPill(statusId: e.calculatedStatusId),
     valueBuilder: (e) => e.calculatedStatusId,
   ),
   ExpenseColumn(
@@ -53,8 +52,7 @@ final List<ExpenseColumn> kAllExpenseColumns = <ExpenseColumn>[
     id: ExpenseFieldIds.vendorId,
     labelKey: 'vendor',
     width: 180,
-    cellBuilder: (e, _) =>
-        e.vendorId.isEmpty
+    cellBuilder: (e, _) => e.vendorId.isEmpty
         ? cellEmpty()
         : VendorNameLabel(vendorId: e.vendorId, link: true),
     valueBuilder: (e) => cellNonZeroString(e.vendorId),
@@ -63,8 +61,7 @@ final List<ExpenseColumn> kAllExpenseColumns = <ExpenseColumn>[
     id: ExpenseFieldIds.clientId,
     labelKey: 'client',
     width: 180,
-    cellBuilder: (e, _) =>
-        e.clientId.isEmpty
+    cellBuilder: (e, _) => e.clientId.isEmpty
         ? cellEmpty()
         : ClientNameLabel(clientId: e.clientId, link: true),
     valueBuilder: (e) => cellNonZeroString(e.clientId),
@@ -73,8 +70,7 @@ final List<ExpenseColumn> kAllExpenseColumns = <ExpenseColumn>[
     id: ExpenseFieldIds.projectId,
     labelKey: 'project',
     width: 160,
-    cellBuilder: (e, _) =>
-        e.projectId.isEmpty
+    cellBuilder: (e, _) => e.projectId.isEmpty
         ? cellEmpty()
         : ProjectNameLabel(projectId: e.projectId, link: true),
     valueBuilder: (e) => cellNonZeroString(e.projectId),
@@ -83,8 +79,7 @@ final List<ExpenseColumn> kAllExpenseColumns = <ExpenseColumn>[
     id: ExpenseFieldIds.categoryId,
     labelKey: 'category',
     width: 160,
-    cellBuilder: (e, _) =>
-        e.categoryId.isEmpty
+    cellBuilder: (e, _) => e.categoryId.isEmpty
         ? cellEmpty()
         : CategoryNameLabel(categoryId: e.categoryId, link: true),
     valueBuilder: (e) => cellNonZeroString(e.categoryId),
@@ -93,9 +88,8 @@ final List<ExpenseColumn> kAllExpenseColumns = <ExpenseColumn>[
     id: ExpenseFieldIds.date,
     labelKey: 'date',
     width: 120,
-    cellBuilder: (e, ctx) => e.date == null
-        ? cellEmpty()
-        : cellDate(e.date!.toDateTime(), ctx),
+    cellBuilder: (e, ctx) =>
+        e.date == null ? cellEmpty() : cellDate(e.date!.toDateTime(), ctx),
     valueBuilder: (e) => e.date?.toIso(),
   ),
   ExpenseColumn(
@@ -112,15 +106,15 @@ final List<ExpenseColumn> kAllExpenseColumns = <ExpenseColumn>[
     labelKey: 'amount',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (e, context) => cellMoney(e.amount, context, currencyId: e.currencyId),
+    cellBuilder: (e, context) =>
+        cellMoney(e.amount, context, currencyId: e.currencyId),
     valueBuilder: (e) => cellMoneyValue(e.amount),
   ),
   ExpenseColumn(
     id: ExpenseFieldIds.invoiceId,
     labelKey: 'invoice',
     width: 130,
-    cellBuilder: (e, _) =>
-        e.invoiceId.isEmpty
+    cellBuilder: (e, _) => e.invoiceId.isEmpty
         ? cellEmpty()
         : InvoiceNameLabel(invoiceId: e.invoiceId, link: true),
     valueBuilder: (e) => cellNonZeroString(e.invoiceId),

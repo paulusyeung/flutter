@@ -11,11 +11,7 @@ const String kWebhookDefaultRestMethod = 'POST';
 
 /// Allowed HTTP verbs the server accepts on `/api/v1/webhooks`. Drives the
 /// REST-method dropdown in the edit screen.
-const List<String> kWebhookRestMethods = <String>[
-  'POST',
-  'PUT',
-  'PATCH',
-];
+const List<String> kWebhookRestMethods = <String>['POST', 'PUT', 'PATCH'];
 
 /// Server-side webhook event IDs and their human-readable wire names. The
 /// server stores `event_id` as the numeric string (e.g. `'1'`); the value
@@ -116,8 +112,7 @@ abstract class Webhook with _$Webhook {
     eventId: a.eventId,
     targetUrl: a.targetUrl,
     format: a.format.isEmpty ? kWebhookDefaultFormat : a.format,
-    restMethod:
-        a.restMethod.isEmpty ? kWebhookDefaultRestMethod : a.restMethod,
+    restMethod: a.restMethod.isEmpty ? kWebhookDefaultRestMethod : a.restMethod,
     headers: Map<String, String>.from(a.headers),
     isDeleted: a.isDeleted,
     updatedAt: epochSecondsToUtc(a.updatedAt),
@@ -136,8 +131,9 @@ abstract class Webhook with _$Webhook {
       isDeleted: isDeleted,
       updatedAt: updatedAt.millisecondsSinceEpoch ~/ 1000,
       createdAt: createdAt.millisecondsSinceEpoch ~/ 1000,
-      archivedAt:
-          archivedAt == null ? 0 : archivedAt!.millisecondsSinceEpoch ~/ 1000,
+      archivedAt: archivedAt == null
+          ? 0
+          : archivedAt!.millisecondsSinceEpoch ~/ 1000,
     ).toJson();
     if (!preserveTempId && id.startsWith('tmp_')) {
       json.remove('id');

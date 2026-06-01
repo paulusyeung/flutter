@@ -11,10 +11,7 @@ import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
 /// Search keys rendered by this tab. See
 /// `kCompanyDetailsDetailsSearchKeys` for the colocation pattern.
-const kBackupTabSearchKeys = <String>[
-  'backup',
-  'export',
-];
+const kBackupTabSearchKeys = <String>['backup', 'export'];
 
 /// Backup tab body — one-shot `POST /api/v1/export` that asks the server to
 /// build a zip of the active company and email the user a download link.
@@ -110,8 +107,7 @@ class _BackupTabBodyState extends State<BackupTabBody> {
                           TextSpan(
                             children: [
                               TextSpan(
-                                text:
-                                    '${context.tr('backup_sent_to_email')} ',
+                                text: '${context.tr('backup_sent_to_email')} ',
                                 style: TextStyle(color: tokens.ink2),
                               ),
                               TextSpan(
@@ -144,10 +140,7 @@ class _BackupTabBodyState extends State<BackupTabBody> {
                       height: 18,
                       child: _busy
                           ? const CircularProgressIndicator(strokeWidth: 2)
-                          : const Icon(
-                              Icons.cloud_download_outlined,
-                              size: 18,
-                            ),
+                          : const Icon(Icons.cloud_download_outlined, size: 18),
                     ),
                     label: Text(context.tr('export')),
                     style: FilledButton.styleFrom(

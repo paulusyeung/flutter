@@ -20,27 +20,18 @@ AuthSession _s({
 void main() {
   group('planGateFor — settings slugs', () {
     test('free hosted user is gated on a pro section', () {
-      expect(
-        planGateFor(_s(), settingsSlug: 'invoice_design'),
-        PlanTier.pro,
-      );
+      expect(planGateFor(_s(), settingsSlug: 'invoice_design'), PlanTier.pro);
     });
 
     test('free hosted user is gated on an enterprise section', () {
       expect(planGateFor(_s(), settingsSlug: 'users'), PlanTier.enterprise);
-      expect(
-        planGateFor(_s(), settingsSlug: 'e_invoice'),
-        PlanTier.enterprise,
-      );
+      expect(planGateFor(_s(), settingsSlug: 'e_invoice'), PlanTier.enterprise);
     });
 
     test('pro user clears pro gates but not enterprise', () {
       final pro = _s(plan: 'pro');
       expect(planGateFor(pro, settingsSlug: 'invoice_design'), isNull);
-      expect(
-        planGateFor(pro, settingsSlug: 'users'),
-        PlanTier.enterprise,
-      );
+      expect(planGateFor(pro, settingsSlug: 'users'), PlanTier.enterprise);
     });
 
     test('trial user clears both (trial-aware, no regression)', () {
@@ -50,10 +41,7 @@ void main() {
     });
 
     test('group_settings is Pro-gated and trial-aware (R1 regression)', () {
-      expect(
-        planGateFor(_s(), settingsSlug: 'group_settings'),
-        PlanTier.pro,
-      );
+      expect(planGateFor(_s(), settingsSlug: 'group_settings'), PlanTier.pro);
       expect(
         planGateFor(_s(plan: 'pro'), settingsSlug: 'group_settings'),
         isNull,
@@ -81,10 +69,7 @@ void main() {
   group('planGateFor — features', () {
     test('reports is pro, documents/e-invoice are enterprise', () {
       final free = _s();
-      expect(
-        planGateFor(free, feature: GatedFeature.reports),
-        PlanTier.pro,
-      );
+      expect(planGateFor(free, feature: GatedFeature.reports), PlanTier.pro);
       expect(
         planGateFor(free, feature: GatedFeature.documents),
         PlanTier.enterprise,

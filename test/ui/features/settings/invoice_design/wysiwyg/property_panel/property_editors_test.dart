@@ -24,8 +24,7 @@ class _FakeDesignsApi implements DesignsApi {
   Object? noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
 
-BlockSpec _spec(String type) =>
-    kBlockLibrary.firstWhere((s) => s.type == type);
+BlockSpec _spec(String type) => kBlockLibrary.firstWhere((s) => s.type == type);
 
 Widget _wrap(Widget child) => MaterialApp(
   localizationsDelegates: kTestLocalizationsDelegates,
@@ -54,7 +53,9 @@ void main() {
       final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
       vm.addBlock(_spec('table'));
       final block = vm.blocks.single;
-      await tester.pumpWidget(_wrap(TableBlockProperties(vm: vm, block: block)));
+      await tester.pumpWidget(
+        _wrap(TableBlockProperties(vm: vm, block: block)),
+      );
       await tester.pump();
       // Default products table ships 5 columns.
       expect(find.byIcon(Icons.drag_indicator), findsNWidgets(5));
@@ -65,9 +66,9 @@ void main() {
       final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
       vm.addBlock(_spec('table'));
       final initial = (vm.blocks.single.properties['columns'] as List).length;
-      await tester.pumpWidget(_wrap(
-        TableBlockProperties(vm: vm, block: vm.blocks.single),
-      ));
+      await tester.pumpWidget(
+        _wrap(TableBlockProperties(vm: vm, block: vm.blocks.single)),
+      );
       await tester.pump();
       await tester.tap(find.byIcon(Icons.delete_outline).first);
       await tester.pump();
@@ -78,21 +79,23 @@ void main() {
     testWidgets('shows an Add column button', (tester) async {
       final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
       vm.addBlock(_spec('table'));
-      await tester.pumpWidget(_wrap(
-        TableBlockProperties(vm: vm, block: vm.blocks.single),
-      ));
+      await tester.pumpWidget(
+        _wrap(TableBlockProperties(vm: vm, block: vm.blocks.single)),
+      );
       await tester.pump();
       expect(find.text('Add Column'), findsOneWidget);
     });
   });
 
   group('TotalBlockProperties', () {
-    testWidgets('lists each item with show toggle + drag handle', (tester) async {
+    testWidgets('lists each item with show toggle + drag handle', (
+      tester,
+    ) async {
       final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
       vm.addBlock(_spec('total'));
-      await tester.pumpWidget(_wrap(
-        TotalBlockProperties(vm: vm, block: vm.blocks.single),
-      ));
+      await tester.pumpWidget(
+        _wrap(TotalBlockProperties(vm: vm, block: vm.blocks.single)),
+      );
       await tester.pump();
       // 6 default items.
       expect(find.byIcon(Icons.drag_indicator), findsNWidgets(6));
@@ -103,9 +106,9 @@ void main() {
     testWidgets('renders the Show labels toggle', (tester) async {
       final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
       vm.addBlock(_spec('total'));
-      await tester.pumpWidget(_wrap(
-        TotalBlockProperties(vm: vm, block: vm.blocks.single),
-      ));
+      await tester.pumpWidget(
+        _wrap(TotalBlockProperties(vm: vm, block: vm.blocks.single)),
+      );
       await tester.pump();
       expect(find.text('Show labels'), findsOneWidget);
     });
@@ -115,9 +118,9 @@ void main() {
     testWidgets('lists each fieldConfig with hide + delete', (tester) async {
       final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
       vm.addBlock(_spec('client-info'));
-      await tester.pumpWidget(_wrap(
-        InfoBlockProperties(vm: vm, block: vm.blocks.single),
-      ));
+      await tester.pumpWidget(
+        _wrap(InfoBlockProperties(vm: vm, block: vm.blocks.single)),
+      );
       await tester.pump();
       // Default client-info ships 5 fieldConfigs.
       expect(find.byIcon(Icons.drag_indicator), findsNWidgets(5));
@@ -127,9 +130,9 @@ void main() {
     testWidgets('renders the Add field button', (tester) async {
       final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
       vm.addBlock(_spec('client-info'));
-      await tester.pumpWidget(_wrap(
-        InfoBlockProperties(vm: vm, block: vm.blocks.single),
-      ));
+      await tester.pumpWidget(
+        _wrap(InfoBlockProperties(vm: vm, block: vm.blocks.single)),
+      );
       await tester.pump();
       expect(find.text('Add Field'), findsOneWidget);
     });
@@ -137,9 +140,9 @@ void main() {
     testWidgets('toggling hide-if-empty updates the field', (tester) async {
       final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
       vm.addBlock(_spec('client-info'));
-      await tester.pumpWidget(_wrap(
-        InfoBlockProperties(vm: vm, block: vm.blocks.single),
-      ));
+      await tester.pumpWidget(
+        _wrap(InfoBlockProperties(vm: vm, block: vm.blocks.single)),
+      );
       await tester.pump();
       // Phase 7c moved the hide-if-empty toggle into the per-row
       // expansion: tap the chevron to expand the first row, then flip
@@ -155,8 +158,7 @@ void main() {
           .first;
       await tester.tap(hideSwitch);
       await tester.pump();
-      final fields =
-          vm.blocks.single.properties['fieldConfigs'] as List;
+      final fields = vm.blocks.single.properties['fieldConfigs'] as List;
       expect((fields.first as Map)['hideIfEmpty'], isFalse);
     });
   });
@@ -164,12 +166,16 @@ void main() {
   group('Phase 8a — PxInput clamping (table border width)', () {
     testWidgets('PxInput maxPx clamps to the cap', (tester) async {
       String? captured;
-      await tester.pumpWidget(_wrap(PxInput(
-        labelKey: 'width',
-        value: null,
-        maxPx: 20,
-        onChanged: (v) => captured = v,
-      )));
+      await tester.pumpWidget(
+        _wrap(
+          PxInput(
+            labelKey: 'width',
+            value: null,
+            maxPx: 20,
+            onChanged: (v) => captured = v,
+          ),
+        ),
+      );
       await tester.enterText(find.byType(TextField), '999');
       expect(captured, '20px');
 
@@ -179,13 +185,17 @@ void main() {
 
     testWidgets('PxInput minPx floors low values', (tester) async {
       String? captured;
-      await tester.pumpWidget(_wrap(PxInput(
-        labelKey: 'width',
-        value: null,
-        minPx: 0,
-        maxPx: 20,
-        onChanged: (v) => captured = v,
-      )));
+      await tester.pumpWidget(
+        _wrap(
+          PxInput(
+            labelKey: 'width',
+            value: null,
+            minPx: 0,
+            maxPx: 20,
+            onChanged: (v) => captured = v,
+          ),
+        ),
+      );
       // Negative not parseable as int; '0' clamps in-bounds.
       await tester.enterText(find.byType(TextField), '0');
       expect(captured, '0px');
@@ -198,9 +208,9 @@ void main() {
       (tester) async {
         final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
         vm.addBlock(_spec('total'));
-        await tester.pumpWidget(_wrap(
-          TotalBlockProperties(vm: vm, block: vm.blocks.single),
-        ));
+        await tester.pumpWidget(
+          _wrap(TotalBlockProperties(vm: vm, block: vm.blocks.single)),
+        );
         await tester.pump();
         // Expand the first item row.
         final firstExpand = find.byIcon(Icons.expand_more).first;
@@ -210,7 +220,10 @@ void main() {
         expect(find.byType(CellTypographyEditor), findsOneWidget);
         // Italic toggle inside the sub-card flips fontStyle.
         final italic = find
-            .ancestor(of: find.text('Italic'), matching: find.byType(OutlinedButton))
+            .ancestor(
+              of: find.text('Italic'),
+              matching: find.byType(OutlinedButton),
+            )
             .first;
         await tester.tap(italic);
         await tester.pump();
@@ -221,38 +234,38 @@ void main() {
   });
 
   group('Phase 8c — Text content 300 ms debounce', () {
-    testWidgets(
-      'typing does not commit until the 300ms timer fires',
-      (tester) async {
-        final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
-        vm.addBlock(_spec('text'));
-        await tester.pumpWidget(_wrap(
-          TextBlockProperties(vm: vm, block: vm.blocks.single),
-        ));
-        await tester.pump();
-        // Find the multi-line content TextField (the only one with
-        // OutlineInputBorder + no labelText is the content field).
-        final contentField = find.byType(TextField).first;
-        await tester.enterText(contentField, 'h');
-        await tester.enterText(contentField, 'hi');
-        await tester.pump(const Duration(milliseconds: 100));
-        // Still within the debounce window — nothing committed yet.
-        expect(vm.blocks.single.properties['content'], isNot('hi'));
-        // Past the debounce — the latest value commits exactly once.
-        await tester.pump(const Duration(milliseconds: 250));
-        expect(vm.blocks.single.properties['content'], 'hi');
-      },
-    );
+    testWidgets('typing does not commit until the 300ms timer fires', (
+      tester,
+    ) async {
+      final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
+      vm.addBlock(_spec('text'));
+      await tester.pumpWidget(
+        _wrap(TextBlockProperties(vm: vm, block: vm.blocks.single)),
+      );
+      await tester.pump();
+      // Find the multi-line content TextField (the only one with
+      // OutlineInputBorder + no labelText is the content field).
+      final contentField = find.byType(TextField).first;
+      await tester.enterText(contentField, 'h');
+      await tester.enterText(contentField, 'hi');
+      await tester.pump(const Duration(milliseconds: 100));
+      // Still within the debounce window — nothing committed yet.
+      expect(vm.blocks.single.properties['content'], isNot('hi'));
+      // Past the debounce — the latest value commits exactly once.
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(vm.blocks.single.properties['content'], 'hi');
+    });
   });
 
   group('Phase 8j — Total keepTogether switch', () {
-    testWidgets('toggling the keep-together switch writes the boolean',
-        (tester) async {
+    testWidgets('toggling the keep-together switch writes the boolean', (
+      tester,
+    ) async {
       final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
       vm.addBlock(_spec('total'));
-      await tester.pumpWidget(_wrap(
-        TotalBlockProperties(vm: vm, block: vm.blocks.single),
-      ));
+      await tester.pumpWidget(
+        _wrap(TotalBlockProperties(vm: vm, block: vm.blocks.single)),
+      );
       await tester.pump();
       // Defaults to false; tap the switch via its title text. Editor
       // is tall — scroll the switch into the visible viewport first.
@@ -271,13 +284,14 @@ void main() {
   });
 
   group('Phase 9b — Total block-level fontSize', () {
-    testWidgets('selecting a font-size chip writes the block-level value',
-        (tester) async {
+    testWidgets('selecting a font-size chip writes the block-level value', (
+      tester,
+    ) async {
       final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
       vm.addBlock(_spec('total'));
-      await tester.pumpWidget(_wrap(
-        TotalBlockProperties(vm: vm, block: vm.blocks.single),
-      ));
+      await tester.pumpWidget(
+        _wrap(TotalBlockProperties(vm: vm, block: vm.blocks.single)),
+      );
       await tester.pump();
       // FontSizeInput exposes presets as ChoiceChips. Pick 18px.
       final chip = find.widgetWithText(ChoiceChip, '18px').first;
@@ -337,12 +351,12 @@ void main() {
     // "Ri..." at the panel's 280 px width inside a 4-cell _Quad row.
     // This guard catches a regression that flips back.
     Widget bareWrap(Widget child) => MaterialApp(
-          localizationsDelegates: kTestLocalizationsDelegates,
-          supportedLocales: kTestSupportedLocales,
-          locale: const Locale('en'),
-          theme: buildInTheme(InTheme.light),
-          home: Scaffold(body: child),
-        );
+      localizationsDelegates: kTestLocalizationsDelegates,
+      supportedLocales: kTestSupportedLocales,
+      locale: const Locale('en'),
+      theme: buildInTheme(InTheme.light),
+      home: Scaffold(body: child),
+    );
 
     testWidgets(
       'each direction label renders twice — once per Quad (margin + padding)',
@@ -396,10 +410,10 @@ void main() {
           final lbl = field.decoration?.labelText;
           if (lbl != null) {
             expect(
-              const <String>{'Top', 'Right', 'Bottom', 'Left'}
-                  .contains(lbl),
+              const <String>{'Top', 'Right', 'Bottom', 'Left'}.contains(lbl),
               isFalse,
-              reason: '_NumberField must not regress to a floating '
+              reason:
+                  '_NumberField must not regress to a floating '
                   'direction label (found "$lbl")',
             );
           }
@@ -409,36 +423,44 @@ void main() {
   });
 
   group('Phase 19a — AlignmentInput is icon-only with tooltips', () {
-    testWidgets(
-      'segments carry only icons + tooltips, no per-segment text',
-      (tester) async {
-        await tester.pumpWidget(_wrap(
+    testWidgets('segments carry only icons + tooltips, no per-segment text', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
           AlignmentInput(
             labelKey: 'alignment',
             value: 'left',
             onChanged: (_) {},
           ),
-        ));
-        await tester.pump();
+        ),
+      );
+      await tester.pump();
 
-        // The three format_align icons render.
-        expect(find.byIcon(Icons.format_align_left), findsOneWidget);
-        expect(find.byIcon(Icons.format_align_center), findsOneWidget);
-        expect(find.byIcon(Icons.format_align_right), findsOneWidget);
+      // The three format_align icons render.
+      expect(find.byIcon(Icons.format_align_left), findsOneWidget);
+      expect(find.byIcon(Icons.format_align_center), findsOneWidget);
+      expect(find.byIcon(Icons.format_align_right), findsOneWidget);
 
-        // Each segment carries a tooltip (per ButtonSegment.tooltip).
-        final segmented =
-            tester.widget<SegmentedButton<String>>(find.byType(SegmentedButton<String>));
-        expect(segmented.segments, hasLength(3));
-        for (final seg in segmented.segments) {
-          expect(seg.tooltip, isNotNull,
-              reason: 'segment ${seg.value} should expose a tooltip');
-          // The wordy label was removed in Phase 19a — no per-segment
-          // text widget should be embedded.
-          expect(seg.label, isNull,
-              reason: 'segment ${seg.value} should not carry a text label');
-        }
-      },
-    );
+      // Each segment carries a tooltip (per ButtonSegment.tooltip).
+      final segmented = tester.widget<SegmentedButton<String>>(
+        find.byType(SegmentedButton<String>),
+      );
+      expect(segmented.segments, hasLength(3));
+      for (final seg in segmented.segments) {
+        expect(
+          seg.tooltip,
+          isNotNull,
+          reason: 'segment ${seg.value} should expose a tooltip',
+        );
+        // The wordy label was removed in Phase 19a — no per-segment
+        // text widget should be embedded.
+        expect(
+          seg.label,
+          isNull,
+          reason: 'segment ${seg.value} should not carry a text label',
+        );
+      }
+    });
   });
 }

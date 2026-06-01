@@ -48,7 +48,9 @@ void main() {
                 'created_at': 1778835000,
               },
             ],
-            'meta': {'pagination': {'total': 2}},
+            'meta': {
+              'pagination': {'total': 2},
+            },
           }),
           200,
           headers: const {'content-type': 'application/json'},

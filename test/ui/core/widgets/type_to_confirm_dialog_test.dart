@@ -60,17 +60,13 @@ void main() {
     ) async {
       await _open(tester, typeToConfirm: 'delete');
       // Dialog renders with Continue disabled.
-      final disabledButton =
-          tester.widget<FilledButton>(_continueButton());
+      final disabledButton = tester.widget<FilledButton>(_continueButton());
       expect(disabledButton.onPressed, isNull);
 
       // Typing the wrong thing keeps it disabled.
       await tester.enterText(find.byType(TextField), 'wrong');
       await tester.pump();
-      expect(
-        tester.widget<FilledButton>(_continueButton()).onPressed,
-        isNull,
-      );
+      expect(tester.widget<FilledButton>(_continueButton()).onPressed, isNull);
 
       // Typing the right thing enables it.
       await tester.enterText(find.byType(TextField), 'delete');
@@ -81,18 +77,19 @@ void main() {
       );
     });
 
-    testWidgets('match is case-insensitive and ignores leading/trailing space', (
-      tester,
-    ) async {
-      await _open(tester, typeToConfirm: 'purge');
+    testWidgets(
+      'match is case-insensitive and ignores leading/trailing space',
+      (tester) async {
+        await _open(tester, typeToConfirm: 'purge');
 
-      await tester.enterText(find.byType(TextField), '  PURGE  ');
-      await tester.pump();
-      expect(
-        tester.widget<FilledButton>(_continueButton()).onPressed,
-        isNotNull,
-      );
-    });
+        await tester.enterText(find.byType(TextField), '  PURGE  ');
+        await tester.pump();
+        expect(
+          tester.widget<FilledButton>(_continueButton()).onPressed,
+          isNotNull,
+        );
+      },
+    );
 
     testWidgets(
       'Cancel pops with confirmed=false (no reason captured even when shown)',

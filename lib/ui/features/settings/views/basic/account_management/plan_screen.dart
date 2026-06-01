@@ -83,7 +83,8 @@ class _PlanStatusCard extends StatelessWidget {
             color: tokens.ink,
           ),
         ),
-        if (session.isHosted && session.planExpires.isNotEmpty &&
+        if (session.isHosted &&
+            session.planExpires.isNotEmpty &&
             !session.isTrial &&
             session.plan.isNotEmpty) ...[
           SizedBox(height: InSpacing.sm),
@@ -169,9 +170,7 @@ class _HostedActionsCard extends StatelessWidget {
             runSpacing: InSpacing.sm,
             children: [
               FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(160, 44),
-                ),
+                style: FilledButton.styleFrom(minimumSize: const Size(160, 44)),
                 icon: const Icon(Icons.open_in_new, size: 18),
                 label: Text(context.tr(labelKey)),
                 // Single platform-conditional seam: store IAP on
@@ -194,4 +193,3 @@ class _HostedActionsCard extends StatelessWidget {
     );
   }
 }
-

@@ -77,8 +77,7 @@ class RecurringExpenses extends Table
 
   /// `'1'..'4'` — Draft / Active / Paused / Completed. Nullable: the server
   /// omits the field on a freshly-created row.
-  TextColumn get statusId =>
-      text().named('status_id').nullable()();
+  TextColumn get statusId => text().named('status_id').nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

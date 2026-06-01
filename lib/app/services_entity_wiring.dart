@@ -352,8 +352,7 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
           body: (payload['body'] as Map).cast<String, dynamic>(),
           idempotencyKey: row.idempotencyKey,
         );
-        final client =
-            await clientsApi.get(payload['client_id'] as String);
+        final client = await clientsApi.get(payload['client_id'] as String);
         return client.data;
       },
       MutationKind.locationUpdate: ({required row, required payload}) async {
@@ -362,8 +361,7 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
           body: (payload['body'] as Map).cast<String, dynamic>(),
           idempotencyKey: row.idempotencyKey,
         );
-        final client =
-            await clientsApi.get(payload['client_id'] as String);
+        final client = await clientsApi.get(payload['client_id'] as String);
         return client.data;
       },
       MutationKind.locationDelete: ({required row, required payload}) async {
@@ -371,8 +369,7 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
           id: payload['location_id'] as String,
           idempotencyKey: row.idempotencyKey,
         );
-        final client =
-            await clientsApi.get(payload['client_id'] as String);
+        final client = await clientsApi.get(payload['client_id'] as String);
         return client.data;
       },
       ...reactivateEmailHandlers<ClientApi>(ctx.emailsApi),
@@ -788,32 +785,35 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
       // the detail tab updates (the 112-location dispatcher shape).
       MutationKind.paymentScheduleCreate:
           ({required row, required payload}) async {
-        await invoicesApi.createPaymentSchedule(
-          id: payload['id'] as String,
-          body: (payload['body'] as Map).cast<String, dynamic>(),
-          idempotencyKey: row.idempotencyKey,
-        );
-        return (await invoicesApi.getWithSchedule(payload['id'] as String))
-            .data;
-      },
+            await invoicesApi.createPaymentSchedule(
+              id: payload['id'] as String,
+              body: (payload['body'] as Map).cast<String, dynamic>(),
+              idempotencyKey: row.idempotencyKey,
+            );
+            return (await invoicesApi.getWithSchedule(
+              payload['id'] as String,
+            )).data;
+          },
       MutationKind.paymentScheduleCreateCustom:
           ({required row, required payload}) async {
-        await invoicesApi.createCustomPaymentSchedule(
-          body: (payload['body'] as Map).cast<String, dynamic>(),
-          idempotencyKey: row.idempotencyKey,
-        );
-        return (await invoicesApi.getWithSchedule(payload['id'] as String))
-            .data;
-      },
+            await invoicesApi.createCustomPaymentSchedule(
+              body: (payload['body'] as Map).cast<String, dynamic>(),
+              idempotencyKey: row.idempotencyKey,
+            );
+            return (await invoicesApi.getWithSchedule(
+              payload['id'] as String,
+            )).data;
+          },
       MutationKind.paymentScheduleDelete:
           ({required row, required payload}) async {
-        await invoicesApi.deletePaymentSchedule(
-          id: payload['id'] as String,
-          idempotencyKey: row.idempotencyKey,
-        );
-        return (await invoicesApi.getWithSchedule(payload['id'] as String))
-            .data;
-      },
+            await invoicesApi.deletePaymentSchedule(
+              id: payload['id'] as String,
+              idempotencyKey: row.idempotencyKey,
+            );
+            return (await invoicesApi.getWithSchedule(
+              payload['id'] as String,
+            )).data;
+          },
       MutationKind.markSent: ({required row, required payload}) async {
         final response = await invoicesApi.markSent(
           id: payload['id'] as String,
@@ -895,14 +895,15 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         );
         return null;
       },
-      MutationKind.cloneToPurchaseOrder: ({required row, required payload}) async {
-        await invoicesApi.cloneTo(
-          id: payload['id'] as String,
-          targetType: 'purchase_order',
-          idempotencyKey: row.idempotencyKey,
-        );
-        return null;
-      },
+      MutationKind.cloneToPurchaseOrder:
+          ({required row, required payload}) async {
+            await invoicesApi.cloneTo(
+              id: payload['id'] as String,
+              targetType: 'purchase_order',
+              idempotencyKey: row.idempotencyKey,
+            );
+            return null;
+          },
       MutationKind.autoBill: ({required row, required payload}) async {
         final response = await invoicesApi.autoBill(
           id: payload['id'] as String,
@@ -1046,14 +1047,15 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         );
         return null;
       },
-      MutationKind.cloneToPurchaseOrder: ({required row, required payload}) async {
-        await quotesApi.cloneTo(
-          id: payload['id'] as String,
-          targetType: 'purchase_order',
-          idempotencyKey: row.idempotencyKey,
-        );
-        return null;
-      },
+      MutationKind.cloneToPurchaseOrder:
+          ({required row, required payload}) async {
+            await quotesApi.cloneTo(
+              id: payload['id'] as String,
+              targetType: 'purchase_order',
+              idempotencyKey: row.idempotencyKey,
+            );
+            return null;
+          },
       MutationKind.cancelEntity: ({required row, required payload}) async {
         final response = await quotesApi.cancel(
           id: payload['id'] as String,
@@ -1132,32 +1134,32 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     customActions: {
       MutationKind.matchToPayment: ({required row, required payload}) async {
         final response = await bankTransactionsApi.match(
-          transactions:
-              (payload['transactions'] as List).cast<Map<String, dynamic>>(),
+          transactions: (payload['transactions'] as List)
+              .cast<Map<String, dynamic>>(),
           idempotencyKey: row.idempotencyKey,
         );
         return response.data.isEmpty ? null : response.data.first;
       },
       MutationKind.linkToPayment: ({required row, required payload}) async {
         final response = await bankTransactionsApi.match(
-          transactions:
-              (payload['transactions'] as List).cast<Map<String, dynamic>>(),
+          transactions: (payload['transactions'] as List)
+              .cast<Map<String, dynamic>>(),
           idempotencyKey: row.idempotencyKey,
         );
         return response.data.isEmpty ? null : response.data.first;
       },
       MutationKind.matchToExpense: ({required row, required payload}) async {
         final response = await bankTransactionsApi.match(
-          transactions:
-              (payload['transactions'] as List).cast<Map<String, dynamic>>(),
+          transactions: (payload['transactions'] as List)
+              .cast<Map<String, dynamic>>(),
           idempotencyKey: row.idempotencyKey,
         );
         return response.data.isEmpty ? null : response.data.first;
       },
       MutationKind.linkToExpense: ({required row, required payload}) async {
         final response = await bankTransactionsApi.match(
-          transactions:
-              (payload['transactions'] as List).cast<Map<String, dynamic>>(),
+          transactions: (payload['transactions'] as List)
+              .cast<Map<String, dynamic>>(),
           idempotencyKey: row.idempotencyKey,
         );
         return response.data.isEmpty ? null : response.data.first;
@@ -1172,8 +1174,7 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         // already watches Drift; the next list refresh re-syncs.
         return null;
       },
-      MutationKind.unlinkTransaction:
-          ({required row, required payload}) async {
+      MutationKind.unlinkTransaction: ({required row, required payload}) async {
         await bankTransactionsApi.bulkAction(
           action: 'unlink',
           ids: (payload['ids'] as List).cast<String>(),
@@ -1309,14 +1310,15 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         );
         return null;
       },
-      MutationKind.cloneToPurchaseOrder: ({required row, required payload}) async {
-        await creditsApi.cloneTo(
-          id: payload['id'] as String,
-          targetType: 'purchase_order',
-          idempotencyKey: row.idempotencyKey,
-        );
-        return null;
-      },
+      MutationKind.cloneToPurchaseOrder:
+          ({required row, required payload}) async {
+            await creditsApi.cloneTo(
+              id: payload['id'] as String,
+              targetType: 'purchase_order',
+              idempotencyKey: row.idempotencyKey,
+            );
+            return null;
+          },
       MutationKind.runTemplate: ({required row, required payload}) async {
         final response = await creditsApi.runTemplate(
           id: payload['id'] as String,
@@ -1381,8 +1383,7 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         );
         return response?.data;
       },
-      MutationKind.convertToExpense:
-          ({required row, required payload}) async {
+      MutationKind.convertToExpense: ({required row, required payload}) async {
         await purchaseOrdersApi.expense(
           id: payload['id'] as String,
           idempotencyKey: row.idempotencyKey,
@@ -1437,13 +1438,13 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
       },
       MutationKind.cloneToPurchaseOrder:
           ({required row, required payload}) async {
-        await purchaseOrdersApi.cloneTo(
-          id: payload['id'] as String,
-          targetType: 'purchase_order',
-          idempotencyKey: row.idempotencyKey,
-        );
-        return null;
-      },
+            await purchaseOrdersApi.cloneTo(
+              id: payload['id'] as String,
+              targetType: 'purchase_order',
+              idempotencyKey: row.idempotencyKey,
+            );
+            return null;
+          },
       MutationKind.runTemplate: ({required row, required payload}) async {
         final response = await purchaseOrdersApi.runTemplate(
           id: payload['id'] as String,
@@ -1571,13 +1572,13 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
       },
       MutationKind.cloneToPurchaseOrder:
           ({required row, required payload}) async {
-        await recurringInvoicesApi.cloneTo(
-          id: payload['id'] as String,
-          targetType: 'purchase_order',
-          idempotencyKey: row.idempotencyKey,
-        );
-        return null;
-      },
+            await recurringInvoicesApi.cloneTo(
+              id: payload['id'] as String,
+              targetType: 'purchase_order',
+              idempotencyKey: row.idempotencyKey,
+            );
+            return null;
+          },
       MutationKind.runTemplate: ({required row, required payload}) async {
         final response = await recurringInvoicesApi.runTemplate(
           id: payload['id'] as String,
@@ -1638,8 +1639,8 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         );
       },
       MutationKind.applyPayment: ({required row, required payload}) async {
-        final allocations =
-            (payload['invoices'] as List).cast<Map<String, dynamic>>();
+        final allocations = (payload['invoices'] as List)
+            .cast<Map<String, dynamic>>();
         return paymentsApi.apply(
           id: payload['id'] as String,
           allocations: allocations,
@@ -1689,13 +1690,15 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     EntityType.transaction: (c) => bankTransactionRepo.watchCount(companyId: c),
   };
   final firstPagePrefetchers = <EntityType, Future<bool> Function(String)>{
-    EntityType.client: (c) => clientRepo.ensurePageLoaded(companyId: c, page: 1),
+    EntityType.client: (c) =>
+        clientRepo.ensurePageLoaded(companyId: c, page: 1),
     EntityType.product: (c) =>
         productRepo.ensurePageLoaded(companyId: c, page: 1),
     EntityType.task: (c) => taskRepo.ensurePageLoaded(companyId: c, page: 1),
     EntityType.project: (c) =>
         projectRepo.ensurePageLoaded(companyId: c, page: 1),
-    EntityType.vendor: (c) => vendorRepo.ensurePageLoaded(companyId: c, page: 1),
+    EntityType.vendor: (c) =>
+        vendorRepo.ensurePageLoaded(companyId: c, page: 1),
     EntityType.expense: (c) =>
         expenseRepo.ensurePageLoaded(companyId: c, page: 1),
     EntityType.recurringExpense: (c) =>
@@ -1703,7 +1706,8 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     EntityType.invoice: (c) =>
         invoiceRepo.ensurePageLoaded(companyId: c, page: 1),
     EntityType.quote: (c) => quoteRepo.ensurePageLoaded(companyId: c, page: 1),
-    EntityType.credit: (c) => creditRepo.ensurePageLoaded(companyId: c, page: 1),
+    EntityType.credit: (c) =>
+        creditRepo.ensurePageLoaded(companyId: c, page: 1),
     EntityType.purchaseOrder: (c) =>
         purchaseOrderRepo.ensurePageLoaded(companyId: c, page: 1),
     EntityType.recurringInvoice: (c) =>

@@ -653,8 +653,9 @@ final kWiredEntityModules = <EntityModuleSpec>[
       );
     },
     createBuilder: (context, state) => PurchaseOrderEditScreen(
-      cloneFrom:
-          state.extra is PurchaseOrder ? state.extra as PurchaseOrder : null,
+      cloneFrom: state.extra is PurchaseOrder
+          ? state.extra as PurchaseOrder
+          : null,
       // `?product=<id>` seeds a line item from the picked product
       // (Product kebab → "New Purchase Order"). See InvoiceEditScreen.
       prefillProductId: state.uri.queryParameters['product'],
@@ -666,9 +667,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
     extraChildRoutes: [
       GoRoute(
         path: 'pdf',
-        builder: (context, state) => PurchaseOrderPdfRouteScreen(
-          id: state.pathParameters['id']!,
-        ),
+        builder: (context, state) =>
+            PurchaseOrderPdfRouteScreen(id: state.pathParameters['id']!),
       ),
     ],
     badgeStream: (ctx, companyId) =>
@@ -712,9 +712,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
     extraChildRoutes: [
       GoRoute(
         path: 'pdf',
-        builder: (context, state) => RecurringInvoicePdfRouteScreen(
-          id: state.pathParameters['id']!,
-        ),
+        builder: (context, state) =>
+            RecurringInvoicePdfRouteScreen(id: state.pathParameters['id']!),
       ),
     ],
     badgeStream: (ctx, companyId) =>
@@ -804,9 +803,7 @@ final kWiredEntityModules = <EntityModuleSpec>[
     requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
     listBuilder: (context, state) => const PaymentLinkListScreen(),
     createBuilder: (context, state) => PaymentLinkEditScreen(
-      cloneFrom: state.extra is PaymentLink
-          ? state.extra as PaymentLink
-          : null,
+      cloneFrom: state.extra is PaymentLink ? state.extra as PaymentLink : null,
     ),
     detailBuilder: (context, state) =>
         PaymentLinkDetailScreen(id: state.pathParameters['id']!),

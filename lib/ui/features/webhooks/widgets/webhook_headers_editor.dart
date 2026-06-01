@@ -84,9 +84,7 @@ class _WebhookHeadersEditorState extends State<WebhookHeadersEditor> {
             const SizedBox(width: 8),
             FilledButton.tonal(
               onPressed: _addHeader,
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(64, 44),
-              ),
+              style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
               child: Text(context.tr('add')),
             ),
           ],

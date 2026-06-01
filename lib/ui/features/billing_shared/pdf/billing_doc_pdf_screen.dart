@@ -25,7 +25,8 @@ class BillingDocPdfScreen extends StatelessWidget {
   final Future<Uint8List> Function({
     String? designId,
     required bool deliveryNote,
-  }) fetcher;
+  })
+  fetcher;
 
   /// Forwarded to [BillingDocPdfView.initialDeliveryNote] — opens the
   /// preview with the delivery-note variant pre-selected (invoices only).

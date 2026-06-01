@@ -39,17 +39,18 @@ List<DesignBlock> pushCollisionsDown(List<DesignBlock> blocks) {
 
   // Sort by (y, x) for deterministic settle order; remember original index
   // so we can rebuild the input ordering on the way out.
-  final indexed = List<MapEntry<int, DesignBlock>>.generate(
-    blocks.length,
-    (i) => MapEntry(i, blocks[i]),
-    growable: false,
-  )..sort((a, b) {
-      final ap = a.value.gridPosition;
-      final bp = b.value.gridPosition;
-      if (ap.y != bp.y) return ap.y - bp.y;
-      if (ap.x != bp.x) return ap.x - bp.x;
-      return a.key - b.key;
-    });
+  final indexed =
+      List<MapEntry<int, DesignBlock>>.generate(
+        blocks.length,
+        (i) => MapEntry(i, blocks[i]),
+        growable: false,
+      )..sort((a, b) {
+        final ap = a.value.gridPosition;
+        final bp = b.value.gridPosition;
+        if (ap.y != bp.y) return ap.y - bp.y;
+        if (ap.x != bp.x) return ap.x - bp.x;
+        return a.key - b.key;
+      });
 
   final settled = <DesignBlock>[];
   final resolved = <String, DesignBlock>{};
@@ -63,7 +64,9 @@ List<DesignBlock> pushCollisionsDown(List<DesignBlock> blocks) {
         if (blocksOverlap(next, other)) {
           final p = next.gridPosition;
           next = next.copyWith(
-            gridPosition: p.copyWith(y: other.gridPosition.y + other.gridPosition.h),
+            gridPosition: p.copyWith(
+              y: other.gridPosition.y + other.gridPosition.h,
+            ),
           );
           moved = true;
         }
@@ -85,11 +88,7 @@ List<DesignBlock> pushCollisionsDown(List<DesignBlock> blocks) {
 /// from the palette: the new block goes wherever it fits without colliding.
 ///
 /// If no slot exists between existing rows, places below the lowest block.
-GridPosition findFirstEmptySlot(
-  List<DesignBlock> blocks,
-  int w,
-  int h,
-) {
+GridPosition findFirstEmptySlot(List<DesignBlock> blocks, int w, int h) {
   final cw = w.clamp(1, kGridCols);
   if (blocks.isEmpty) return GridPosition(x: 0, y: 0, w: cw, h: h);
 

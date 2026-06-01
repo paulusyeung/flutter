@@ -29,8 +29,7 @@ class PaymentLinkListViewModel extends GenericListViewModel<PaymentLink> {
   EntityType get entityType => EntityType.paymentLink;
 
   @override
-  List<ColumnDefinition<PaymentLink>> get allColumns =>
-      kAllPaymentLinkColumns;
+  List<ColumnDefinition<PaymentLink>> get allColumns => kAllPaymentLinkColumns;
 
   @override
   List<String> get defaultColumnIds => kDefaultPaymentLinkColumns;

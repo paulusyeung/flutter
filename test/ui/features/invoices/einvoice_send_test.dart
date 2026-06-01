@@ -17,9 +17,9 @@ ValueListenable<ApiCredentials?> _creds() => ValueNotifier<ApiCredentials?>(
   const ApiCredentials(baseUrl: 'https://t', token: 't'),
 );
 
-Invoice _inv(String statusId, {bool deleted = false}) =>
-    Invoice.fromApi(InvoiceApi(id: 'i1', statusId: statusId,
-        isDeleted: deleted));
+Invoice _inv(String statusId, {bool deleted = false}) => Invoice.fromApi(
+  InvoiceApi(id: 'i1', statusId: statusId, isDeleted: deleted),
+);
 
 void main() {
   group('canSendEInvoice (tightened: Sent only)', () {
@@ -42,10 +42,7 @@ void main() {
       expect(canSendEInvoice(_inv('1'), 'PEPPOL'), isFalse); // draft
       expect(canSendEInvoice(_inv('5'), 'PEPPOL'), isFalse); // cancelled
       expect(canSendEInvoice(_inv('6'), 'PEPPOL'), isFalse); // reversed
-      expect(
-        canSendEInvoice(_inv('2', deleted: true), 'PEPPOL'),
-        isFalse,
-      );
+      expect(canSendEInvoice(_inv('2', deleted: true), 'PEPPOL'), isFalse);
     });
   });
 
@@ -70,22 +67,26 @@ void main() {
   });
 
   group('InvoicesApi e-invoice endpoints', () {
-    test('sendEInvoice POSTs peppol/send {entity:invoice,entity_id}',
-        () async {
+    test('sendEInvoice POSTs peppol/send {entity:invoice,entity_id}', () async {
       Uri? url;
       Map<String, dynamic>? body;
       final fake = MockClient((req) async {
         url = req.url;
         body = jsonDecode(req.body) as Map<String, dynamic>;
-        return http.Response('{}', 200,
-            headers: const {'content-type': 'application/json'});
+        return http.Response(
+          '{}',
+          200,
+          headers: const {'content-type': 'application/json'},
+        );
       });
-      final api = InvoicesApi(ApiClient(
-        credentials: _creds(),
-        passwordCache: PasswordCache(),
-        onUnauthorized: () async {},
-        httpClient: fake,
-      ));
+      final api = InvoicesApi(
+        ApiClient(
+          credentials: _creds(),
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fake,
+        ),
+      );
 
       await api.sendEInvoice(id: 'i1', idempotencyKey: 'k');
       expect(url!.path, '/api/v1/einvoice/peppol/send');

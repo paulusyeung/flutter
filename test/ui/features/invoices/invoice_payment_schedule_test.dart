@@ -9,11 +9,14 @@ Invoice _inv(
   String statusId, {
   bool deleted = false,
   List<ScheduleItemApi>? schedule,
-}) =>
-    Invoice.fromApi(
-      InvoiceApi(id: 'inv1', statusId: statusId, isDeleted: deleted,
-          schedule: schedule),
-    );
+}) => Invoice.fromApi(
+  InvoiceApi(
+    id: 'inv1',
+    statusId: statusId,
+    isDeleted: deleted,
+    schedule: schedule,
+  ),
+);
 
 void main() {
   group('invoiceSupportsPaymentSchedule (React useTabs parity)', () {
@@ -56,10 +59,13 @@ void main() {
 
   group('Invoice.schedule mapping', () {
     test('fromApi parses the embedded schedule[]; toApiJson omits it', () {
-      final inv = _inv('2', schedule: const [
-        ScheduleItemApi(date: '2026-06-01', amount: '50.00', autoBill: true),
-        ScheduleItemApi(date: '2026-07-01', amount: '50.00'),
-      ]);
+      final inv = _inv(
+        '2',
+        schedule: const [
+          ScheduleItemApi(date: '2026-06-01', amount: '50.00', autoBill: true),
+          ScheduleItemApi(date: '2026-07-01', amount: '50.00'),
+        ],
+      );
       expect(inv.schedule, hasLength(2));
       expect(inv.schedule.first.date, '2026-06-01');
       expect(inv.schedule.first.amount, '50.00');

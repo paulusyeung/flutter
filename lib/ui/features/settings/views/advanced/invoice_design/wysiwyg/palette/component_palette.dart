@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/block_library.dart';
-import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/canvas/wysiwyg_canvas.dart' show CanvasDropPayload, PalettePayload;
+import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/canvas/wysiwyg_canvas.dart'
+    show CanvasDropPayload, PalettePayload;
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/wysiwyg_design_view_model.dart';
 
 /// Left pane of the WYSIWYG designer. Lists the 17 block types grouped by
@@ -40,13 +41,17 @@ class ComponentPalette extends StatelessWidget {
             ),
             child: Text(
               context.tr('drag_and_drop_to_add'),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: tokens.ink3,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: tokens.ink3),
             ),
           ),
           for (final category in BlockCategory.values)
-            ..._categorySection(context, category, groups[category] ?? const []),
+            ..._categorySection(
+              context,
+              category,
+              groups[category] ?? const [],
+            ),
         ],
       ),
     );
@@ -79,11 +84,11 @@ class ComponentPalette extends StatelessWidget {
   }
 
   String _labelKeyFor(BlockCategory c) => switch (c) {
-        BlockCategory.branding => 'branding',
-        BlockCategory.content => 'content',
-        BlockCategory.data => 'data',
-        BlockCategory.layout => 'layout',
-      };
+    BlockCategory.branding => 'branding',
+    BlockCategory.content => 'content',
+    BlockCategory.data => 'data',
+    BlockCategory.layout => 'layout',
+  };
 }
 
 class _PaletteTile extends StatelessWidget {
@@ -134,12 +139,12 @@ class _Header extends StatelessWidget {
   final String label;
   @override
   Widget build(BuildContext context) => Padding(
-        padding: EdgeInsets.fromLTRB(
-          InSpacing.lg(context),
-          InSpacing.md(context),
-          InSpacing.lg(context),
-          0,
-        ),
-        child: Text(label, style: Theme.of(context).textTheme.titleSmall),
-      );
+    padding: EdgeInsets.fromLTRB(
+      InSpacing.lg(context),
+      InSpacing.md(context),
+      InSpacing.lg(context),
+      0,
+    ),
+    child: Text(label, style: Theme.of(context).textTheme.titleSmall),
+  );
 }

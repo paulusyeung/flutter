@@ -31,8 +31,7 @@ final List<PaymentColumn> kAllPaymentColumns = <PaymentColumn>[
     id: PaymentFieldIds.statusId,
     labelKey: 'status',
     width: 130,
-    cellBuilder: (p, _) =>
-        PaymentStatusPill(statusId: p.calculatedStatusId),
+    cellBuilder: (p, _) => PaymentStatusPill(statusId: p.calculatedStatusId),
     valueBuilder: (p) => p.calculatedStatusId,
   ),
   PaymentColumn(
@@ -51,8 +50,7 @@ final List<PaymentColumn> kAllPaymentColumns = <PaymentColumn>[
     id: PaymentFieldIds.clientId,
     labelKey: 'client',
     width: 200,
-    cellBuilder: (p, _) =>
-        p.clientId.isEmpty
+    cellBuilder: (p, _) => p.clientId.isEmpty
         ? cellEmpty()
         : ClientNameLabel(clientId: p.clientId, link: true),
     valueBuilder: (p) => cellNonZeroString(p.clientId),
@@ -61,17 +59,15 @@ final List<PaymentColumn> kAllPaymentColumns = <PaymentColumn>[
     id: PaymentFieldIds.date,
     labelKey: 'date',
     width: 120,
-    cellBuilder: (p, ctx) => p.date == null
-        ? cellEmpty()
-        : cellDate(p.date!.toDateTime(), ctx),
+    cellBuilder: (p, ctx) =>
+        p.date == null ? cellEmpty() : cellDate(p.date!.toDateTime(), ctx),
     valueBuilder: (p) => p.date?.toIso(),
   ),
   PaymentColumn(
     id: PaymentFieldIds.typeId,
     labelKey: 'type',
     width: 140,
-    cellBuilder: (p, _) =>
-        p.typeId.isEmpty ? cellEmpty() : cellText(p.typeId),
+    cellBuilder: (p, _) => p.typeId.isEmpty ? cellEmpty() : cellText(p.typeId),
     valueBuilder: (p) => cellNonZeroString(p.typeId),
   ),
   PaymentColumn(
@@ -79,7 +75,8 @@ final List<PaymentColumn> kAllPaymentColumns = <PaymentColumn>[
     labelKey: 'amount',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (p, context) => cellMoney(p.amount, context, currencyId: p.currencyId),
+    cellBuilder: (p, context) =>
+        cellMoney(p.amount, context, currencyId: p.currencyId),
     valueBuilder: (p) => cellMoneyValue(p.amount),
   ),
   PaymentColumn(
@@ -87,7 +84,8 @@ final List<PaymentColumn> kAllPaymentColumns = <PaymentColumn>[
     labelKey: 'applied',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (p, context) => cellMoney(p.applied, context, currencyId: p.currencyId),
+    cellBuilder: (p, context) =>
+        cellMoney(p.applied, context, currencyId: p.currencyId),
     valueBuilder: (p) => cellMoneyValue(p.applied),
   ),
   PaymentColumn(
@@ -95,7 +93,8 @@ final List<PaymentColumn> kAllPaymentColumns = <PaymentColumn>[
     labelKey: 'refunded',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (p, context) => cellMoney(p.refunded, context, currencyId: p.currencyId),
+    cellBuilder: (p, context) =>
+        cellMoney(p.refunded, context, currencyId: p.currencyId),
     valueBuilder: (p) => cellMoneyValue(p.refunded),
   ),
   PaymentColumn(
@@ -111,9 +110,8 @@ final List<PaymentColumn> kAllPaymentColumns = <PaymentColumn>[
     id: PaymentFieldIds.gatewayId,
     labelKey: 'gateway',
     width: 160,
-    cellBuilder: (p, _) => p.companyGatewayId.isEmpty
-        ? cellEmpty()
-        : cellText(p.companyGatewayId),
+    cellBuilder: (p, _) =>
+        p.companyGatewayId.isEmpty ? cellEmpty() : cellText(p.companyGatewayId),
     valueBuilder: (p) => cellNonZeroString(p.companyGatewayId),
   ),
   PaymentColumn(
@@ -128,8 +126,7 @@ final List<PaymentColumn> kAllPaymentColumns = <PaymentColumn>[
     id: PaymentFieldIds.projectId,
     labelKey: 'project',
     width: 160,
-    cellBuilder: (p, _) =>
-        p.projectId.isEmpty
+    cellBuilder: (p, _) => p.projectId.isEmpty
         ? cellEmpty()
         : ProjectNameLabel(projectId: p.projectId, link: true),
     valueBuilder: (p) => cellNonZeroString(p.projectId),
@@ -138,8 +135,7 @@ final List<PaymentColumn> kAllPaymentColumns = <PaymentColumn>[
     id: PaymentFieldIds.vendorId,
     labelKey: 'vendor',
     width: 180,
-    cellBuilder: (p, _) =>
-        p.vendorId.isEmpty
+    cellBuilder: (p, _) => p.vendorId.isEmpty
         ? cellEmpty()
         : VendorNameLabel(vendorId: p.vendorId, link: true),
     valueBuilder: (p) => cellNonZeroString(p.vendorId),

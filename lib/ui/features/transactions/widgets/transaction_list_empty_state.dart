@@ -24,12 +24,14 @@ class TransactionListEmptyState extends StatelessWidget {
         subtitle: context.tr('no_transactions_hint'),
       );
     }
-    final onlyArchived = vm.states.length == 1 &&
+    final onlyArchived =
+        vm.states.length == 1 &&
         vm.states.contains(EntityState.archived) &&
         vm.customFilters.isEmpty &&
         vm.extraFilters.isEmpty &&
         vm.search.isEmpty;
-    final onlyDeleted = vm.states.length == 1 &&
+    final onlyDeleted =
+        vm.states.length == 1 &&
         vm.states.contains(EntityState.deleted) &&
         vm.customFilters.isEmpty &&
         vm.extraFilters.isEmpty &&

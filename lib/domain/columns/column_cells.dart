@@ -128,16 +128,17 @@ Widget cellMoney(
   }
   final formatter = FormatterScope.maybeOf(context);
   final text = formatter?.money(
-        value,
-        clientCurrencyId: clientCurrencyId,
-        vendorCurrencyId: vendorCurrencyId,
-        currencyId: currencyId,
-      );
+    value,
+    clientCurrencyId: clientCurrencyId,
+    vendorCurrencyId: vendorCurrencyId,
+    currencyId: currencyId,
+  );
   return MoneyCellText(
     text: (text != null && text.isNotEmpty)
         ? text
-        : (cents ? _moneyCentsFormat : _moneyWholeFormat)
-              .format(value.toDouble()),
+        : (cents ? _moneyCentsFormat : _moneyWholeFormat).format(
+            value.toDouble(),
+          ),
     isZero: false,
   );
 }
@@ -147,8 +148,7 @@ Widget cellMoney(
 /// `cellEmpty()` for a null/missing date.
 Widget cellDate(DateTime value, BuildContext context) {
   final localeKey = Localizations.localeOf(context).toString();
-  final formatter =
-      _dateFormatCache[localeKey] ??= DateFormat.yMMMd(localeKey);
+  final formatter = _dateFormatCache[localeKey] ??= DateFormat.yMMMd(localeKey);
   return CellText(value: formatter.format(value.toLocal()));
 }
 

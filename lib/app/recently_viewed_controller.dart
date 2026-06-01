@@ -33,10 +33,10 @@ class RecentlyViewedController extends ChangeNotifier {
     this.maxEntries = 12,
     DateTime Function()? now,
     Duration persistDebounce = const Duration(milliseconds: 400),
-  })  : _db = db,
-        _session = session,
-        _now = now ?? DateTime.now,
-        _persistDebounce = persistDebounce {
+  }) : _db = db,
+       _session = session,
+       _now = now ?? DateTime.now,
+       _persistDebounce = persistDebounce {
     _currentCompanyId = _session.value?.currentCompanyId;
     _session.addListener(_onSession);
   }

@@ -59,9 +59,7 @@ void main() {
     });
     test('rejects intent:// (Android intent hijacking)', () {
       expect(
-        isSafeWebUrl(
-          'intent://malicious#Intent;package=com.attacker;end',
-        ),
+        isSafeWebUrl('intent://malicious#Intent;package=com.attacker;end'),
         isFalse,
       );
     });

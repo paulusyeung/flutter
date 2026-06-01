@@ -141,6 +141,7 @@ class _ScheduleRow extends StatelessWidget {
        onPause = null;
 
   final Schedule schedule;
+
   /// May be null while the `formatterFor` future is still resolving — the
   /// row falls back to `—` for the date in that case.
   final Formatter? formatter;
@@ -212,9 +213,7 @@ class _ScheduleRow extends StatelessWidget {
         itemBuilder: (context) => [
           PopupMenuItem<String>(
             value: schedule.isPaused ? 'resume' : 'pause',
-            child: Text(
-              context.tr(schedule.isPaused ? 'resume' : 'pause'),
-            ),
+            child: Text(context.tr(schedule.isPaused ? 'resume' : 'pause')),
           ),
         ],
       ),

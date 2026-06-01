@@ -1,9 +1,11 @@
 import 'dart:convert';
 
-import 'package:admin/data/models/api/design_api_model.dart' show DesignTemplateApi;
+import 'package:admin/data/models/api/design_api_model.dart'
+    show DesignTemplateApi;
 import 'package:admin/data/models/domain/company_settings.dart';
 import 'package:admin/data/models/domain/design.dart';
-import 'package:admin/data/models/domain/design_block_layout.dart' show kDesignerGridCols;
+import 'package:admin/data/models/domain/design_block_layout.dart'
+    show kDesignerGridCols;
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/design_repository.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
@@ -89,8 +91,9 @@ class WysiwygDesignViewModel extends GenericEditViewModel<Design> {
   bool get canUndo => _history.canUndo;
   bool get canRedo => _history.canRedo;
 
-  PropertyPanelMode get panelMode =>
-      _selectedBlockId == null ? PropertyPanelMode.document : PropertyPanelMode.block;
+  PropertyPanelMode get panelMode => _selectedBlockId == null
+      ? PropertyPanelMode.document
+      : PropertyPanelMode.block;
 
   /// Live blocks list (read-only — mutate via the methods below).
   List<DesignBlock> get blocks => draft.template.blocks;
@@ -145,7 +148,11 @@ class WysiwygDesignViewModel extends GenericEditViewModel<Design> {
   /// Used by the palette's tap-to-add and as a fallback when a drop
   /// coordinate isn't available.
   void addBlock(BlockSpec spec) {
-    final slot = findFirstEmptySlot(blocks, spec.defaultWidth, spec.defaultHeight);
+    final slot = findFirstEmptySlot(
+      blocks,
+      spec.defaultWidth,
+      spec.defaultHeight,
+    );
     addBlockAt(spec, slot.x, slot.y);
   }
 
@@ -173,7 +180,8 @@ class WysiwygDesignViewModel extends GenericEditViewModel<Design> {
   /// [recordHistorySnapshot] if they want the gesture as one undoable step.
   void updateBlock(DesignBlock updated) {
     final next = [
-      for (final b in blocks) if (b.id == updated.id) updated else b,
+      for (final b in blocks)
+        if (b.id == updated.id) updated else b,
     ];
     _replaceBlocks(next);
   }
@@ -191,10 +199,15 @@ class WysiwygDesignViewModel extends GenericEditViewModel<Design> {
   void duplicateBlock(String id) {
     final src = blocks.firstWhere(
       (b) => b.id == id,
-      orElse: () =>
-          throw StateError('duplicateBlock: no block with id "$id" in the canvas'),
+      orElse: () => throw StateError(
+        'duplicateBlock: no block with id "$id" in the canvas',
+      ),
     );
-    final slot = findFirstEmptySlot(blocks, src.gridPosition.w, src.gridPosition.h);
+    final slot = findFirstEmptySlot(
+      blocks,
+      src.gridPosition.w,
+      src.gridPosition.h,
+    );
     final clone = DesignBlock(
       id: newBlockId(src.type),
       type: src.type,
@@ -265,7 +278,11 @@ class WysiwygDesignViewModel extends GenericEditViewModel<Design> {
     y = 0;
     for (final b in stacked) {
       final h = b.gridPosition.h;
-      laid.add(b.copyWith(gridPosition: GridPosition(x: 0, y: y, w: 12, h: h)));
+      laid.add(
+        b.copyWith(
+          gridPosition: GridPosition(x: 0, y: y, w: 12, h: h),
+        ),
+      );
       y += h;
     }
 
@@ -381,10 +398,7 @@ class WysiwygDesignViewModel extends GenericEditViewModel<Design> {
   /// (pass null to deselect). Used by `addBlockAt` / `duplicateBlock` to
   /// auto-select the new block, and by `deleteBlock` when removing the
   /// currently-selected block.
-  void _replaceBlocksAndSelect(
-    List<DesignBlock> next,
-    String? newSelectionId,
-  ) {
+  void _replaceBlocksAndSelect(List<DesignBlock> next, String? newSelectionId) {
     _selectedBlockId = newSelectionId;
     updateDraft(
       draft.copyWith(template: draft.template.copyWith(blocks: next)),

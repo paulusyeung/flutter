@@ -69,4 +69,3 @@ class CompanyDetailsShell extends StatelessWidget {
     );
   }
 }
-

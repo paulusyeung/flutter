@@ -300,7 +300,8 @@ class TaskStatusRepository
     realId: serverResponse.id,
     companion: _apiToCompanion(serverResponse, companyId),
     upsert: db.taskStatusDao.upsert,
-    deleteById: (id) => db.taskStatusDao.deleteById(companyId: companyId, id: id),
+    deleteById: (id) =>
+        db.taskStatusDao.deleteById(companyId: companyId, id: id),
   );
 
   @override

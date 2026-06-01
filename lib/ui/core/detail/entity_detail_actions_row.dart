@@ -161,7 +161,10 @@ class EntityOverflowActionBar<A> extends StatelessWidget {
     // Drop unsupported actions up front so the visible cluster and the
     // `remaining`→`hidden` overflow slice both index the same list — the
     // hidden-count math below depends on that.
-    final shown = [for (final item in items) if (item.isVisible) item];
+    final shown = [
+      for (final item in items)
+        if (item.isVisible) item,
+    ];
     return OverflowView.flexible(
       spacing: 8,
       children: [

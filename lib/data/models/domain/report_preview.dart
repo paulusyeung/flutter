@@ -46,11 +46,7 @@ class ReportColumn {
 /// `Date.tryParse` / `DateTime.tryParse`. `double` is forbidden for money by
 /// the CI lint.
 sealed class ReportCell {
-  const ReportCell({
-    this.entityWire,
-    this.entityId,
-    this.displayValue,
-  });
+  const ReportCell({this.entityWire, this.entityId, this.displayValue});
 
   /// Server wire string for the entity this cell belongs to (`client`,
   /// `invoice`, `invoice_item`, `activity`, …). Drill-down resolves this via
@@ -93,8 +89,7 @@ class ReportStringCell extends ReportCell {
   Object? get sortKey => value?.toLowerCase();
 
   @override
-  String get filterText =>
-      (displayValue ?? value)?.toLowerCase() ?? '';
+  String get filterText => (displayValue ?? value)?.toLowerCase() ?? '';
 }
 
 /// Numeric cell. For money columns set [isMoney] = true and supply
@@ -122,7 +117,8 @@ class ReportNumberCell extends ReportCell {
 
   /// Numeric value as `double` for chart axes — chart libraries expect
   /// doubles. **Not** used for totals (which stay in Decimal).
-  double? get chartValue => value == null ? null : double.parse(value!.toString());
+  double? get chartValue =>
+      value == null ? null : double.parse(value!.toString());
 }
 
 class ReportDateCell extends ReportCell {

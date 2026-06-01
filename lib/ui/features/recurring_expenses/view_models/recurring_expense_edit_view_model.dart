@@ -84,8 +84,7 @@ class RecurringExpenseEditViewModel
   void setEndlessCycles(bool endless) =>
       updateDraft(draft.copyWith(remainingCycles: endless ? -1 : 1));
 
-  void setNextSendDate(Date? d) =>
-      updateDraft(draft.copyWith(nextSendDate: d));
+  void setNextSendDate(Date? d) => updateDraft(draft.copyWith(nextSendDate: d));
 
   /// Stored Draft/Active/Paused/Completed/Pending. Mostly server-managed;
   /// the edit form rarely writes this directly (Start/Stop actions do).
@@ -113,9 +112,7 @@ class RecurringExpenseEditViewModel
     ),
   );
   void setExchangeRate(String input) => updateDraft(
-    draft.copyWith(
-      exchangeRate: Decimal.tryParse(input.trim()) ?? Decimal.one,
-    ),
+    draft.copyWith(exchangeRate: Decimal.tryParse(input.trim()) ?? Decimal.one),
   );
   void setTaxName1(String v) => updateDraft(draft.copyWith(taxName1: v));
   void setTaxName2(String v) => updateDraft(draft.copyWith(taxName2: v));

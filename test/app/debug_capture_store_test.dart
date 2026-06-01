@@ -16,9 +16,7 @@ void main() {
       );
       expect(id, isNull);
       store.recordError(StateError('boom'), null);
-      store.recordLog(
-        LogRecord(Level.WARNING, 'msg', 'logger'),
-      );
+      store.recordLog(LogRecord(Level.WARNING, 'msg', 'logger'));
       expect(store.networkEntries, isEmpty);
       expect(store.diagnosticEntries, isEmpty);
     });
@@ -132,8 +130,7 @@ void main() {
         method: 'POST',
         url: '/api/v1/login',
         headers: const {},
-        requestBody:
-            '{"email":"a@b","password":"hunter2","token":"abc"}',
+        requestBody: '{"email":"a@b","password":"hunter2","token":"abc"}',
       );
       store.completeRequest(
         id,
@@ -178,11 +175,7 @@ void main() {
           url: '/api/v1/clients?page=$i',
           headers: const {},
         );
-        store.completeRequest(
-          id,
-          statusCode: 200,
-          duration: Duration.zero,
-        );
+        store.completeRequest(id, statusCode: 200, duration: Duration.zero);
       }
       expect(store.networkEntries, hasLength(200));
       // Newest-first: the latest request lives at index 0.
@@ -241,13 +234,8 @@ void main() {
 
     test('completeRequest with unknown id is a no-op', () {
       final store = DebugCaptureStore()..setEnabled(true);
-      store.completeRequest(
-        99999,
-        statusCode: 200,
-        duration: Duration.zero,
-      );
+      store.completeRequest(99999, statusCode: 200, duration: Duration.zero);
       expect(store.networkEntries, isEmpty);
     });
-
   });
 }

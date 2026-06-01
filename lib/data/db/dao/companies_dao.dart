@@ -13,7 +13,8 @@ class CompaniesDao extends DatabaseAccessor<AppDatabase>
   CompaniesDao(super.db);
 
   Future<List<CompanyRow>> all() => select(companies).get();
-  Stream<List<CompanyRow>> watchAll() => select(companies).watch().distinctRows();
+  Stream<List<CompanyRow>> watchAll() =>
+      select(companies).watch().distinctRows();
 
   Future<CompanyRow?> byId(String id) =>
       (select(companies)

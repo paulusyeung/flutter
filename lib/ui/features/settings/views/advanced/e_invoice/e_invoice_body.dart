@@ -158,7 +158,10 @@ class EInvoiceBody extends StatelessWidget {
                   apiKey: 'e_quote_type',
                   value: settings.eQuoteType ?? kEQuoteTypeOrderX_Comfort,
                   items: kEQuoteTypes
-                      .map((t) => DropdownMenuItem<String>(value: t, child: Text(t)))
+                      .map(
+                        (t) =>
+                            DropdownMenuItem<String>(value: t, child: Text(t)),
+                      )
                       .toList(),
                   onChanged: (v) =>
                       host.updateSettings((s) => s.copyWith(eQuoteType: v)),
@@ -190,15 +193,11 @@ class EInvoiceBody extends StatelessWidget {
               : const PeppolPreferencesCard(),
 
         // ── Payment Means ────────────────────────────────────────────
-        if (isCompany &&
-            (enableEInvoice || isPeppol) &&
-            company != null)
+        if (isCompany && (enableEInvoice || isPeppol) && company != null)
           const PaymentMeansCard(),
 
         // ── Additional Tax Identifiers ──────────────────────────────
-        if (isCompany &&
-            (enableEInvoice || isPeppol) &&
-            company != null)
+        if (isCompany && (enableEInvoice || isPeppol) && company != null)
           const TaxIdentifiersCard(),
       ],
     );
@@ -300,4 +299,3 @@ class _VerifactuInfoCard extends StatelessWidget {
     );
   }
 }
-

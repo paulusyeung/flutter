@@ -35,11 +35,7 @@ class TransactionMatchedEntities extends StatelessWidget {
     if (tx.isDeposit) {
       for (final id in tx.linkedInvoiceIds) {
         children.add(
-          _InvoiceChip(
-            id: id,
-            companyId: companyId,
-            services: services,
-          ),
+          _InvoiceChip(id: id, companyId: companyId, services: services),
         );
       }
       if (tx.paymentId.isNotEmpty) {
@@ -79,11 +75,7 @@ class TransactionMatchedEntities extends StatelessWidget {
       }
       for (final id in tx.linkedExpenseIds) {
         children.add(
-          _ExpenseChip(
-            id: id,
-            companyId: companyId,
-            services: services,
-          ),
+          _ExpenseChip(id: id, companyId: companyId, services: services),
         );
       }
     }
@@ -98,11 +90,7 @@ class TransactionMatchedEntities extends StatelessWidget {
       );
     }
 
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: children,
-    );
+    return Wrap(spacing: 8, runSpacing: 8, children: children);
   }
 }
 
@@ -287,13 +275,7 @@ class _ReadOnlyChip extends StatelessWidget {
         children: [
           Icon(icon, size: 14, color: tokens.ink2),
           const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              color: tokens.ink2,
-            ),
-          ),
+          Text(label, style: TextStyle(fontSize: 13, color: tokens.ink2)),
         ],
       ),
     );

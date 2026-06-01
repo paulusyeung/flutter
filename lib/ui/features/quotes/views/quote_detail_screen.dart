@@ -64,20 +64,12 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen>
         items: QuoteActions.itemsFor(
           context,
           quote,
-          (a) => QuoteActions.dispatch(
-            context,
-            _services,
-            _companyId,
-            quote,
-            a,
-          ),
+          (a) =>
+              QuoteActions.dispatch(context, _services, _companyId, quote, a),
         ),
       ),
-      bodyBuilder: (context, quote) => _Body(
-        quote: quote,
-        services: _services,
-        companyId: _companyId,
-      ),
+      bodyBuilder: (context, quote) =>
+          _Body(quote: quote, services: _services, companyId: _companyId),
     );
   }
 }
@@ -97,8 +89,8 @@ class _Body extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = Breakpoints.isWide(constraints) &&
-            constraints.maxWidth >= 900;
+        final wide =
+            Breakpoints.isWide(constraints) && constraints.maxWidth >= 900;
         final main = SingleChildScrollView(
           padding: EdgeInsets.all(InSpacing.lg(context)),
           child: Column(
@@ -180,8 +172,7 @@ class _Body extends StatelessWidget {
                       entityId: quote.id,
                       invitations: quote.invitations,
                       clientId: quote.clientId,
-                      isHosted:
-                          services.auth.session.value?.isHosted ?? false,
+                      isHosted: services.auth.session.value?.isHosted ?? false,
                       onReactivate: (messageId) =>
                           services.quotes.reactivateInvitationEmail(
                             companyId: companyId,
@@ -339,10 +330,10 @@ class _PdfPane extends StatelessWidget {
       entityNumber: quote.number,
       fetcher: ({String? designId, required bool deliveryNote}) =>
           services.quotes.api.downloadPdf(
-        entityJson: quote.toApiJson(),
-        designId: designId ??
-            (quote.designId.isEmpty ? null : quote.designId),
-      ),
+            entityJson: quote.toApiJson(),
+            designId:
+                designId ?? (quote.designId.isEmpty ? null : quote.designId),
+          ),
     );
   }
 }

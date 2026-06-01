@@ -54,16 +54,12 @@ Future<String?> showTaxCategoryDialog(
           ),
           actions: [
             OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(64, 40),
-              ),
+              style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
               onPressed: () => Navigator.of(ctx).pop(),
               child: Text(ctx.tr('cancel')),
             ),
             FilledButton(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(64, 44),
-              ),
+              style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
               onPressed: () => Navigator.of(ctx).pop(selected),
               child: Text(ctx.tr('save')),
             ),

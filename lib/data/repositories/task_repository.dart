@@ -151,10 +151,8 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
     itemsOf: (l) => l.data,
     idOf: (a) => a.id,
     toCompanion: (a) => _apiToCompanion(a, companyId),
-    upsert: (byId) => db.taskDao.upsertAllPreservingDirty(
-      companyId: companyId,
-      byId: byId,
-    ),
+    upsert: (byId) =>
+        db.taskDao.upsertAllPreservingDirty(companyId: companyId, byId: byId),
   );
 
   Future<void> refreshAll({

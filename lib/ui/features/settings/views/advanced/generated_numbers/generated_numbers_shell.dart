@@ -49,11 +49,7 @@ class GeneratedNumbersShell extends StatelessWidget {
     );
   }
 
-  Widget _buildShell(
-    BuildContext context,
-    Company company,
-    String companyId,
-  ) {
+  Widget _buildShell(BuildContext context, Company company, String companyId) {
     final modules = company.enabledModules;
     bool isOn(EnabledModule m) => isModuleEnabled(modules, m);
 

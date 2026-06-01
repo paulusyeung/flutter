@@ -87,10 +87,8 @@ class _PaymentRefundScreenState extends State<PaymentRefundScreen> {
     });
   }
 
-  Decimal get _allocatedTotal => _allocations.values.fold(
-        Decimal.zero,
-        (sum, v) => sum + v,
-      );
+  Decimal get _allocatedTotal =>
+      _allocations.values.fold(Decimal.zero, (sum, v) => sum + v);
 
   Decimal get _remaining {
     final p = _payment;
@@ -105,11 +103,11 @@ class _PaymentRefundScreenState extends State<PaymentRefundScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _payment == null
-              ? EmptyState(
-                  icon: Icons.payments_outlined,
-                  title: context.tr('payment_not_found'),
-                )
-              : _body(context, _payment!),
+          ? EmptyState(
+              icon: Icons.payments_outlined,
+              title: context.tr('payment_not_found'),
+            )
+          : _body(context, _payment!),
     );
   }
 
@@ -164,9 +162,7 @@ class _PaymentRefundScreenState extends State<PaymentRefundScreen> {
               ),
               SizedBox(width: InSpacing.md(context)),
               FilledButton(
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(64, 44),
-                ),
+                style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
                 onPressed: _canSubmit ? () => _submit(context, p) : null,
                 child: Text(context.tr('refund')),
               ),
@@ -237,8 +233,7 @@ class _PaymentRefundScreenState extends State<PaymentRefundScreen> {
   }
 
   Widget _modeToggle(BuildContext context, Payment p) {
-    final hasAllocations =
-        p.paymentables.any((pa) => pa.invoiceId.isNotEmpty);
+    final hasAllocations = p.paymentables.any((pa) => pa.invoiceId.isNotEmpty);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -251,10 +246,7 @@ class _PaymentRefundScreenState extends State<PaymentRefundScreen> {
               // mode when there are no paymentables to refund against.
               enabled: hasAllocations,
             ),
-            ButtonSegment(
-              value: false,
-              label: Text(context.tr('custom')),
-            ),
+            ButtonSegment(value: false, label: Text(context.tr('custom'))),
           ],
           selected: {_fullRefund},
           onSelectionChanged: (s) => setState(() {
@@ -303,20 +295,19 @@ class _PaymentRefundScreenState extends State<PaymentRefundScreen> {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    '${context.tr('invoice')} ${pa.invoiceId}',
-                  ),
+                  child: Text('${context.tr('invoice')} ${pa.invoiceId}'),
                 ),
                 SizedBox(
                   width: 140,
                   child: TextFormField(
-                    initialValue:
-                        (_allocations[pa.invoiceId] ?? Decimal.zero).toString(),
+                    initialValue: (_allocations[pa.invoiceId] ?? Decimal.zero)
+                        .toString(),
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration:
-                        InputDecoration(labelText: context.tr('amount')),
+                    decoration: InputDecoration(
+                      labelText: context.tr('amount'),
+                    ),
                     onChanged: (v) {
                       setState(() {
                         _allocations[pa.invoiceId] =
@@ -373,8 +364,7 @@ class _PaymentRefundScreenState extends State<PaymentRefundScreen> {
   bool get _canSubmit {
     final p = _payment;
     if (p == null) return false;
-    final hasAllocations =
-        p.paymentables.any((pa) => pa.invoiceId.isNotEmpty);
+    final hasAllocations = p.paymentables.any((pa) => pa.invoiceId.isNotEmpty);
     if (!hasAllocations) return false;
     if (_fullRefund) return true;
     if (_remaining < Decimal.zero) return false;

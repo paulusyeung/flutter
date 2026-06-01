@@ -28,9 +28,7 @@ class ProjectListViewModel extends GenericListViewModel<Project> {
   final String? clientId;
 
   @override
-  Set<String> get lockedFilterKeyIds => {
-    if (clientId != null) 'client',
-  };
+  Set<String> get lockedFilterKeyIds => {if (clientId != null) 'client'};
 
   @override
   EntityType get entityType => EntityType.project;

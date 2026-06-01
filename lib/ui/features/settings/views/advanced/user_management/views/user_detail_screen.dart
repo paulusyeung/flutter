@@ -87,8 +87,8 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                       isOwner
                           ? 'owner'
                           : user.companyUser.isAdmin
-                              ? 'administrator'
-                              : 'user',
+                          ? 'administrator'
+                          : 'user',
                     ),
                   ),
                   if (user.companyUser.isLocked)
@@ -111,10 +111,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
               FormSection(
                 title: context.tr('activity'),
                 children: [
-                  _UserActivitySection(
-                    userId: user.id,
-                    companyId: companyId,
-                  ),
+                  _UserActivitySection(userId: user.id, companyId: companyId),
                 ],
               ),
               FormSection(
@@ -130,12 +127,16 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                   ListTile(
                     leading: const Icon(Icons.email_outlined),
                     title: Text(context.tr('resend_email')),
-                    onTap: canModify ? () => _resendEmail(services, companyId, user) : null,
+                    onTap: canModify
+                        ? () => _resendEmail(services, companyId, user)
+                        : null,
                   ),
                   ListTile(
                     leading: const Icon(Icons.person_remove_outlined),
                     title: Text(context.tr('remove_user')),
-                    onTap: canModify ? () => _detach(services, companyId, user) : null,
+                    onTap: canModify
+                        ? () => _detach(services, companyId, user)
+                        : null,
                   ),
                   if (!isOwner) ...[
                     if (user.archivedAt == 0 && !user.isDeleted)
@@ -180,7 +181,11 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     );
   }
 
-  Future<void> _resendEmail(Services services, String companyId, User user) async {
+  Future<void> _resendEmail(
+    Services services,
+    String companyId,
+    User user,
+  ) async {
     await services.user.resendEmail(companyId: companyId, userId: user.id);
     if (mounted) {
       Notify.success(
@@ -198,7 +203,10 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       user: user,
     );
     if (!confirmed) return;
-    await services.user.detachFromCompany(companyId: companyId, userId: user.id);
+    await services.user.detachFromCompany(
+      companyId: companyId,
+      userId: user.id,
+    );
     if (mounted) context.go('/settings/users');
   }
 
@@ -289,10 +297,9 @@ class _UserActivitySectionState extends State<_UserActivitySection> {
   @override
   void initState() {
     super.initState();
-    _future = context
-        .read<Services>()
-        .activities
-        .fetchUserActivities(widget.userId);
+    _future = context.read<Services>().activities.fetchUserActivities(
+      widget.userId,
+    );
   }
 
   @override
@@ -416,10 +423,7 @@ class _SummaryRow extends StatelessWidget {
     final tokens = context.inTheme;
     final theme = Theme.of(context);
     return Padding(
-      padding: EdgeInsets.symmetric(
-        vertical: 6,
-        horizontal: InSpacing.sm,
-      ),
+      padding: EdgeInsets.symmetric(vertical: 6, horizontal: InSpacing.sm),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -460,7 +464,9 @@ class _Banner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: theme.textTheme.bodyMedium?.copyWith(color: tokens.overdue),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: tokens.overdue,
+              ),
             ),
           ),
         ],

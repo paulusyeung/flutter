@@ -126,10 +126,7 @@ class _ProjectPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     final services = context.read<Services>();
     final stream = vm.draft.clientId.isEmpty
-        ? services.projects.watchPage(
-            companyId: vm.companyId,
-            loadedPages: 100,
-          )
+        ? services.projects.watchPage(companyId: vm.companyId, loadedPages: 100)
         : services.projects.watchForClient(
             companyId: vm.companyId,
             clientId: vm.draft.clientId,

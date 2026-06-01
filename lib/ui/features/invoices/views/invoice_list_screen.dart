@@ -62,9 +62,9 @@ class InvoiceListScreen extends StatelessWidget {
           : cid == null
           ? null
           : (ctx) => ctx.go(
-                '/invoices/new',
-                extra: emptyInvoice().copyWith(clientId: cid),
-              ),
+              '/invoices/new',
+              extra: emptyInvoice().copyWith(clientId: cid),
+            ),
       emptyIcon: Icons.receipt_long_outlined,
       emptyTitleKey: 'no_invoices_yet',
       wantsFormatter: true,
@@ -118,12 +118,12 @@ class InvoiceListScreen extends StatelessWidget {
           onAction: options.selecting
               ? null
               : (action) => InvoiceActions.dispatch(
-                    context,
-                    context.read<Services>(),
-                    vm.companyId,
-                    invoice,
-                    action,
-                  ),
+                  context,
+                  context.read<Services>(),
+                  vm.companyId,
+                  invoice,
+                  action,
+                ),
         );
       },
       bulkActions: [

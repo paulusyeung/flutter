@@ -27,7 +27,8 @@ import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 /// Per-entity simple setters (setClientId, setNumber, setDate, etc.)
 /// stay in the subclass since they're already one-liners via the
 /// `setStr` / `setBool` / `setDec` helpers on [GenericEditViewModel].
-abstract class GenericBillingDocEditViewModel<T> extends GenericEditViewModel<T> {
+abstract class GenericBillingDocEditViewModel<T>
+    extends GenericEditViewModel<T> {
   GenericBillingDocEditViewModel({
     required super.initialDraft,
     super.original,
@@ -214,13 +215,19 @@ abstract class GenericBillingDocEditViewModel<T> extends GenericEditViewModel<T>
         .toSet();
     if (neededTaskIds.isEmpty && neededExpenseIds.isEmpty) return;
     try {
-      final tasks = await Future.wait(neededTaskIds.map((id) => services.tasks
-          .watchByRealId(companyId: companyId, id: id)
-          .first));
-      final expenses = await Future.wait(neededExpenseIds.map((id) => services
-          .expenses
-          .watchByRealId(companyId: companyId, id: id)
-          .first));
+      final tasks = await Future.wait(
+        neededTaskIds.map(
+          (id) =>
+              services.tasks.watchByRealId(companyId: companyId, id: id).first,
+        ),
+      );
+      final expenses = await Future.wait(
+        neededExpenseIds.map(
+          (id) => services.expenses
+              .watchByRealId(companyId: companyId, id: id)
+              .first,
+        ),
+      );
       var changed = false;
       for (final t in tasks) {
         if (t != null && t.clientId.isNotEmpty) {
@@ -383,8 +390,9 @@ abstract class GenericBillingDocEditViewModel<T> extends GenericEditViewModel<T>
   /// invitation even though CC-only auto-clears `sendEmail`.
   List<Invitation> _autoInvitations(Iterable<Contact> contacts) {
     final live = contacts.where((c) => !c.isDeleted).toList(growable: false);
-    var chosen =
-        live.where((c) => c.sendEmail || c.ccOnly).toList(growable: false);
+    var chosen = live
+        .where((c) => c.sendEmail || c.ccOnly)
+        .toList(growable: false);
     if (chosen.isEmpty && live.isNotEmpty) {
       final primary = live.where((c) => c.isPrimary).toList(growable: false);
       chosen = primary.isNotEmpty ? primary : [live.first];
@@ -418,9 +426,7 @@ abstract class GenericBillingDocEditViewModel<T> extends GenericEditViewModel<T>
     } else {
       current[key] = value;
     }
-    updateDraft(
-      copyWithEInvoice(draft, current.isEmpty ? null : current),
-    );
+    updateDraft(copyWithEInvoice(draft, current.isEmpty ? null : current));
   }
 
   /// Read a nested value out of the `eInvoice` structure. [path] mixes

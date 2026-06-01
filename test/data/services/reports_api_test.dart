@@ -113,41 +113,43 @@ void main() {
       expect(pollCount, lessThanOrEqualTo(1));
     });
 
-    test('500 ServerException during polling propagates (not retried)',
-        () async {
-      var pollCount = 0;
-      final fake = MockClient((req) async {
-        if (req.url.path == '/api/v1/reports/clients') {
-          return http.Response(
-            jsonEncode({'message': 'hash-500'}),
-            200,
-            headers: const {'content-type': 'application/json'},
-          );
-        }
-        pollCount++;
-        return http.Response('boom', 500);
-      });
-      final client = ApiClient(
-        credentials: _creds(),
-        passwordCache: PasswordCache(),
-        onUnauthorized: () async {},
-        httpClient: fake,
-      );
-      final api = ReportsApi(client);
+    test(
+      '500 ServerException during polling propagates (not retried)',
+      () async {
+        var pollCount = 0;
+        final fake = MockClient((req) async {
+          if (req.url.path == '/api/v1/reports/clients') {
+            return http.Response(
+              jsonEncode({'message': 'hash-500'}),
+              200,
+              headers: const {'content-type': 'application/json'},
+            );
+          }
+          pollCount++;
+          return http.Response('boom', 500);
+        });
+        final client = ApiClient(
+          credentials: _creds(),
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fake,
+        );
+        final api = ReportsApi(client);
 
-      expect(
-        () => api.runPreview(
-          endpoint: '/api/v1/reports/clients',
-          payload: const {},
-          pollInterval: const Duration(milliseconds: 1),
-        ),
-        throwsA(isA<ServerException>()),
-      );
-      await Future<void>.delayed(const Duration(milliseconds: 20));
-      // 500 is a non-retriable ServerException — the polling loop must
-      // surface it, not spin.
-      expect(pollCount, lessThanOrEqualTo(1));
-    });
+        expect(
+          () => api.runPreview(
+            endpoint: '/api/v1/reports/clients',
+            payload: const {},
+            pollInterval: const Duration(milliseconds: 1),
+          ),
+          throwsA(isA<ServerException>()),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        // 500 is a non-retriable ServerException — the polling loop must
+        // surface it, not spin.
+        expect(pollCount, lessThanOrEqualTo(1));
+      },
+    );
   });
 
   group('ReportsApi.runExport polling contract', () {

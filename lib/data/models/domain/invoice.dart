@@ -203,7 +203,8 @@ extension InvoiceCalculation on Invoice {
       statusId == InvoiceStatus.draft ? amount : balance;
 
   bool get isDraft => statusId == InvoiceStatus.draft;
-  bool get isSent => statusId == InvoiceStatus.sent ||
+  bool get isSent =>
+      statusId == InvoiceStatus.sent ||
       statusId == InvoiceStatus.partial ||
       statusId == InvoiceStatus.paid;
   bool get isPaid => statusId == InvoiceStatus.paid;
@@ -211,8 +212,7 @@ extension InvoiceCalculation on Invoice {
   bool get isCancelled => statusId == InvoiceStatus.cancelled;
   bool get isReversed => statusId == InvoiceStatus.reversed;
 
-  bool get hasViewedInvitation =>
-      invitations.any((i) => i.hasBeenViewed);
+  bool get hasViewedInvitation => invitations.any((i) => i.hasBeenViewed);
 
   /// Any invitation whose email bounced or errored — drives the red
   /// alert overlay on the list status chip (mirrors admin-portal

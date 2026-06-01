@@ -82,8 +82,7 @@ class SettingsShell extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (!hidden)
-                    const VerticalDivider(width: 1, thickness: 1),
+                  if (!hidden) const VerticalDivider(width: 1, thickness: 1),
                   Expanded(child: rightPane),
                 ],
               );

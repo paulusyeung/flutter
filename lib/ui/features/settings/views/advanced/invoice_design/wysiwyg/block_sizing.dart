@@ -19,37 +19,37 @@ class BlockSizeBounds {
   final int maxH;
 }
 
-const Map<String, BlockSizeBounds> _kBlockSizeBounds = <String, BlockSizeBounds>{
-  // Branding
-  'logo': BlockSizeBounds(minW: 2, minH: 2),
-  'image': BlockSizeBounds(minW: 2, minH: 2),
-  'company-info': BlockSizeBounds(minW: 3, minH: 2),
+const Map<String, BlockSizeBounds> _kBlockSizeBounds =
+    <String, BlockSizeBounds>{
+      // Branding
+      'logo': BlockSizeBounds(minW: 2, minH: 2),
+      'image': BlockSizeBounds(minW: 2, minH: 2),
+      'company-info': BlockSizeBounds(minW: 3, minH: 2),
 
-  // Content
-  'text': BlockSizeBounds(minW: 2, minH: 1),
-  'public-notes': BlockSizeBounds(minW: 3, minH: 1),
-  'terms': BlockSizeBounds(minW: 3, minH: 1),
-  'footer': BlockSizeBounds(minW: 3, minH: 1),
-  'client-info': BlockSizeBounds(minW: 3, minH: 2),
-  'client-shipping-info': BlockSizeBounds(minW: 3, minH: 2),
-  'invoice-details': BlockSizeBounds(minW: 3, minH: 2),
+      // Content
+      'text': BlockSizeBounds(minW: 2, minH: 1),
+      'public-notes': BlockSizeBounds(minW: 3, minH: 1),
+      'terms': BlockSizeBounds(minW: 3, minH: 1),
+      'footer': BlockSizeBounds(minW: 3, minH: 1),
+      'client-info': BlockSizeBounds(minW: 3, minH: 2),
+      'client-shipping-info': BlockSizeBounds(minW: 3, minH: 2),
+      'invoice-details': BlockSizeBounds(minW: 3, minH: 2),
 
-  // Data — tables need real space for headers
-  'table': BlockSizeBounds(minW: 6, minH: 2),
-  'tasks-table': BlockSizeBounds(minW: 6, minH: 2),
-  'total': BlockSizeBounds(minW: 3, minH: 2),
+      // Data — tables need real space for headers
+      'table': BlockSizeBounds(minW: 6, minH: 2),
+      'tasks-table': BlockSizeBounds(minW: 6, minH: 2),
+      'total': BlockSizeBounds(minW: 3, minH: 2),
 
-  // Layout
-  'divider': BlockSizeBounds(minW: 2, minH: 1, maxH: 2),
-  'spacer': BlockSizeBounds(minW: 1, minH: 1),
-  'qrcode': BlockSizeBounds(minW: 2, minH: 2, maxW: 6, maxH: 6),
-  'signature': BlockSizeBounds(minW: 2, minH: 2),
-};
+      // Layout
+      'divider': BlockSizeBounds(minW: 2, minH: 1, maxH: 2),
+      'spacer': BlockSizeBounds(minW: 1, minH: 1),
+      'qrcode': BlockSizeBounds(minW: 2, minH: 2, maxW: 6, maxH: 6),
+      'signature': BlockSizeBounds(minW: 2, minH: 2),
+    };
 
 /// Default bounds for an unknown block type — wide enough for most things
 /// but still constrained so a typo doesn't let the user shrink to 0.
-const BlockSizeBounds _kDefaultBounds =
-    BlockSizeBounds(minW: 1, minH: 1);
+const BlockSizeBounds _kDefaultBounds = BlockSizeBounds(minW: 1, minH: 1);
 
 BlockSizeBounds sizeBoundsFor(String type) =>
     _kBlockSizeBounds[type] ?? _kDefaultBounds;

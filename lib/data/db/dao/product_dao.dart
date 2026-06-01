@@ -115,10 +115,13 @@ class ProductDao extends BaseEntityDao<$ProductsTable, ProductRow>
             products.productKey.equals('').not(),
       )
       ..orderBy([OrderingTerm(expression: products.productKey.lower())]);
-    return q.map((row) {
-      final key = row.read<String>(products.productKey) ?? '';
-      return (id: key, name: key);
-    }).watch().distinctRows();
+    return q
+        .map((row) {
+          final key = row.read<String>(products.productKey) ?? '';
+          return (id: key, name: key);
+        })
+        .watch()
+        .distinctRows();
   }
 
   Expression _sortExpression(Products p, String field) {

@@ -76,7 +76,8 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
       _initialFetchAttempted = true;
     });
     final now = DateTime.now().toUtc();
-    final stale = last == null || now.difference(last) > const Duration(hours: 1);
+    final stale =
+        last == null || now.difference(last) > const Duration(hours: 1);
     if (stale) {
       await _refresh();
     }
@@ -96,7 +97,8 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
     if (!mounted) return;
     // If the user switched companies mid-await, don't apply this refresh's
     // result to the new company's screen state — bail.
-    final currentCompanyId = services.auth.session.value?.currentCompanyId ?? '';
+    final currentCompanyId =
+        services.auth.session.value?.currentCompanyId ?? '';
     if (currentCompanyId != companyId) {
       setState(() => _refreshing = false);
       return;
@@ -261,10 +263,10 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
                 onPressed: companyId.isEmpty
                     ? null
                     : () => _appendSnapshot(
-                          services: services,
-                          diag: diag,
-                          companyId: companyId,
-                        ),
+                        services: services,
+                        diag: diag,
+                        companyId: companyId,
+                      ),
               ),
             ),
           ],
@@ -364,8 +366,7 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             for (var i = 0; i < rows.length; i++) ...[
-              if (i > 0)
-                Divider(height: 1, thickness: 1, color: tokens.border),
+              if (i > 0) Divider(height: 1, thickness: 1, color: tokens.border),
               _SystemLogRow(log: rows[i], isWide: isWide),
             ],
           ],
@@ -595,11 +596,7 @@ class _LogBlock extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              Icon(
-                Icons.expand_more,
-                size: 18,
-                color: tokens.ink3,
-              ),
+              Icon(Icons.expand_more, size: 18, color: tokens.ink3),
             ],
           ),
         ),
@@ -659,7 +656,7 @@ class _LogBlock extends StatelessWidget {
     final trimmed = raw.trim();
     if (trimmed.isEmpty) return null;
     final first = trimmed.codeUnitAt(0);
-    if (first != 0x7B /* { */ && first != 0x5B /* [ */) return null;
+    if (first != 0x7B /* { */ && first != 0x5B /* [ */ ) return null;
     try {
       return jsonDecode(trimmed);
     } catch (_) {

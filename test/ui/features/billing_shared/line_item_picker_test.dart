@@ -49,10 +49,7 @@ void main() {
       var tapped = 0;
       await _pump(
         tester,
-        BillingDocEditFab(
-          heroTag: 'test_fab',
-          onPressed: () => tapped++,
-        ),
+        BillingDocEditFab(heroTag: 'test_fab', onPressed: () => tapped++),
       );
       expect(find.byIcon(Icons.add), findsOneWidget);
       expect(find.byType(FloatingActionButton), findsOneWidget);

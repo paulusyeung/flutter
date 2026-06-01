@@ -308,25 +308,22 @@ void main() {
       },
     );
 
-    test(
-      '404 also produces ConflictException — entity deleted server-side '
-      'while we held a pending mutation. Without this, the outbox row '
-      'retries five times and dies silently, never reaching the '
-      'ConflictResolutionSheet.',
-      () async {
-        final fake = MockClient((_) async => http.Response('{}', 404));
-        final client = ApiClient(
-          credentials: _creds(),
-          passwordCache: PasswordCache(),
-          onUnauthorized: () async {},
-          httpClient: fake,
-        );
-        await expectLater(
-          () => client.getOne('/api/v1/x'),
-          throwsA(isA<ConflictException>()),
-        );
-      },
-    );
+    test('404 also produces ConflictException — entity deleted server-side '
+        'while we held a pending mutation. Without this, the outbox row '
+        'retries five times and dies silently, never reaching the '
+        'ConflictResolutionSheet.', () async {
+      final fake = MockClient((_) async => http.Response('{}', 404));
+      final client = ApiClient(
+        credentials: _creds(),
+        passwordCache: PasswordCache(),
+        onUnauthorized: () async {},
+        httpClient: fake,
+      );
+      await expectLater(
+        () => client.getOne('/api/v1/x'),
+        throwsA(isA<ConflictException>()),
+      );
+    });
 
     test(
       '3xx redirect is rejected as a server error — without this guard '
@@ -415,32 +412,34 @@ void main() {
       );
     });
 
-    test('403 with error_type=plan_required produces PlanRequiredException',
-        () async {
-      // Parallel to the password sniff above: a structured signal in
-      // the body lets the server distinguish "wrong plan tier" from
-      // generic 403 without changing the status code.
-      final fake = MockClient(
-        (_) async => http.Response(
-          jsonEncode({
-            'message': 'Premium feature',
-            'error_type': 'plan_required',
-          }),
-          403,
-          headers: {'content-type': 'application/json'},
-        ),
-      );
-      final client = ApiClient(
-        credentials: _creds(),
-        passwordCache: PasswordCache(),
-        onUnauthorized: () async {},
-        httpClient: fake,
-      );
-      await expectLater(
-        () => client.getOne('/api/v1/reports/profitloss'),
-        throwsA(isA<PlanRequiredException>()),
-      );
-    });
+    test(
+      '403 with error_type=plan_required produces PlanRequiredException',
+      () async {
+        // Parallel to the password sniff above: a structured signal in
+        // the body lets the server distinguish "wrong plan tier" from
+        // generic 403 without changing the status code.
+        final fake = MockClient(
+          (_) async => http.Response(
+            jsonEncode({
+              'message': 'Premium feature',
+              'error_type': 'plan_required',
+            }),
+            403,
+            headers: {'content-type': 'application/json'},
+          ),
+        );
+        final client = ApiClient(
+          credentials: _creds(),
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fake,
+        );
+        await expectLater(
+          () => client.getOne('/api/v1/reports/profitloss'),
+          throwsA(isA<PlanRequiredException>()),
+        );
+      },
+    );
 
     test('403 with error_type=password still produces '
         'PasswordRequiredException (password sniff wins over the '
@@ -473,8 +472,10 @@ void main() {
       // trigger the unauthorized-logout machinery. Use matching active
       // credentials so the 401 isn't swallowed as a stale-credential
       // discard.
-      const creds =
-          ApiCredentials(baseUrl: 'https://test', token: 'plan-token');
+      const creds = ApiCredentials(
+        baseUrl: 'https://test',
+        token: 'plan-token',
+      );
       final fake = MockClient(
         (_) async => http.Response(
           jsonEncode({
@@ -541,7 +542,10 @@ void main() {
       );
     }
 
-    test('accepts plain application/pdf', () => expectAccepts('application/pdf'));
+    test(
+      'accepts plain application/pdf',
+      () => expectAccepts('application/pdf'),
+    );
     test(
       'accepts application/pdf with charset parameter (legitimate server)',
       () => expectAccepts('application/pdf; charset=utf-8'),
@@ -803,17 +807,20 @@ void main() {
     test(
       'HTML / stack-trace body is sampled into ServerException.message',
       () async {
-        const stackTrace = '<html><body>'
+        const stackTrace =
+            '<html><body>'
             'PHP Fatal Error: Call to undefined method '
             'DesignProcessor::renderBlocks() in '
             '/var/www/html/app/Services/DesignProcessor.php:142'
             '</body></html>';
-        final fake = MockClient((_) async => http.Response(
-              stackTrace,
-              500,
-              headers: {'content-type': 'text/html; charset=utf-8'},
-              reasonPhrase: 'Internal Server Error',
-            ));
+        final fake = MockClient(
+          (_) async => http.Response(
+            stackTrace,
+            500,
+            headers: {'content-type': 'text/html; charset=utf-8'},
+            reasonPhrase: 'Internal Server Error',
+          ),
+        );
         final client = ApiClient(
           credentials: _creds(),
           passwordCache: PasswordCache(),
@@ -837,12 +844,14 @@ void main() {
     test(
       'JSON {"message": "..."} 500 keeps the old behaviour (no body sample)',
       () async {
-        final fake = MockClient((_) async => http.Response(
-              jsonEncode({'message': 'Database temporarily unavailable'}),
-              500,
-              headers: {'content-type': 'application/json'},
-              reasonPhrase: 'Internal Server Error',
-            ));
+        final fake = MockClient(
+          (_) async => http.Response(
+            jsonEncode({'message': 'Database temporarily unavailable'}),
+            500,
+            headers: {'content-type': 'application/json'},
+            reasonPhrase: 'Internal Server Error',
+          ),
+        );
         final client = ApiClient(
           credentials: _creds(),
           passwordCache: PasswordCache(),
@@ -863,12 +872,14 @@ void main() {
 
     test('huge HTML body is truncated to ~240 chars in the message', () async {
       final huge = 'X' * 10000;
-      final fake = MockClient((_) async => http.Response(
-            huge,
-            500,
-            headers: {'content-type': 'text/html'},
-            reasonPhrase: 'Internal Server Error',
-          ));
+      final fake = MockClient(
+        (_) async => http.Response(
+          huge,
+          500,
+          headers: {'content-type': 'text/html'},
+          reasonPhrase: 'Internal Server Error',
+        ),
+      );
       final client = ApiClient(
         credentials: _creds(),
         passwordCache: PasswordCache(),

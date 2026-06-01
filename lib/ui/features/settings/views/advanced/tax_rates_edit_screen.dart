@@ -64,9 +64,7 @@ class TaxRatesEditScreen extends StatelessWidget {
               externalSyncKey: vm.original?.id,
             ),
             SettingsTextField(
-              initialValue: vm.draft.rate != 0
-                  ? vm.draft.rate.toString()
-                  : '',
+              initialValue: vm.draft.rate != 0 ? vm.draft.rate.toString() : '',
               labelKey: 'rate',
               onChanged: (v) => vm.setRate(double.tryParse(v) ?? 0),
               errorText: vm.fieldErrorFor('rate'),

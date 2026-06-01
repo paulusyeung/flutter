@@ -88,8 +88,7 @@ class ProductDetailCardsGrid extends StatelessWidget {
   }) {
     final rightCards = <Widget>[
       if (hasInventory) _InventoryCard(product: product),
-      if (hasTaxes)
-        _TaxesCard(product: product, enabledSlots: enabledTaxSlots),
+      if (hasTaxes) _TaxesCard(product: product, enabledSlots: enabledTaxSlots),
     ];
     return IntrinsicHeight(
       child: Row(
@@ -112,8 +111,7 @@ class ProductDetailCardsGrid extends StatelessWidget {
     final cards = <Widget>[
       _DetailsCard(product: product),
       if (hasInventory) _InventoryCard(product: product),
-      if (hasTaxes)
-        _TaxesCard(product: product, enabledSlots: enabledTaxSlots),
+      if (hasTaxes) _TaxesCard(product: product, enabledSlots: enabledTaxSlots),
     ];
     return _stack(context, cards);
   }

@@ -209,11 +209,11 @@ class _DesignCodeFieldState extends State<DesignCodeField> {
           ),
           indicatorBuilder:
               (context, editingController, chunkController, notifier) {
-            return DefaultCodeLineNumber(
-              controller: editingController,
-              notifier: notifier,
-            );
-          },
+                return DefaultCodeLineNumber(
+                  controller: editingController,
+                  notifier: notifier,
+                );
+              },
         ),
       ),
     );
@@ -278,10 +278,10 @@ class _SnippetCompletion extends _CompletionItem {
 
   @override
   CodeAutocompleteResult get autocomplete => CodeAutocompleteResult(
-        input: '',
-        word: word,
-        selection: TextSelection.collapsed(offset: caretOffset),
-      );
+    input: '',
+    word: word,
+    selection: TextSelection.collapsed(offset: caretOffset),
+  );
 }
 
 class _DesignCompletionsBuilder implements CodeAutocompletePromptsBuilder {
@@ -350,18 +350,15 @@ class _DesignCompletionsBuilder implements CodeAutocompletePromptsBuilder {
   // ---- element-id detection ------------------------------------------------
 
   CodeAutocompleteEditingValue? _buildElementId(String before) {
-    final m =
-        RegExp(r'''\bid\s*=\s*["']([\w-]*)$''').firstMatch(before);
+    final m = RegExp(r'''\bid\s*=\s*["']([\w-]*)$''').firstMatch(before);
     if (m == null) return null;
     final input = m.group(1) ?? '';
     final prompts = <CodePrompt>[];
     for (final id in kDocumentedElementIds) {
       if (input.isEmpty || id.toLowerCase().contains(input.toLowerCase())) {
-        prompts.add(_CompletionItem(
-          word: id,
-          kind: _PromptKind.elementId,
-          label: 'id',
-        ));
+        prompts.add(
+          _CompletionItem(word: id, kind: _PromptKind.elementId, label: 'id'),
+        );
       }
     }
     if (prompts.isEmpty) return null;
@@ -408,11 +405,13 @@ class _DesignCompletionsBuilder implements CodeAutocompletePromptsBuilder {
     final prompts = <CodePrompt>[];
     for (final t in kDesignTokens) {
       if (query.isEmpty || t.token.toLowerCase().contains(query)) {
-        prompts.add(_CompletionItem(
-          word: t.token,
-          kind: _PromptKind.dollar,
-          label: t.categoryKey,
-        ));
+        prompts.add(
+          _CompletionItem(
+            word: t.token,
+            kind: _PromptKind.dollar,
+            label: t.categoryKey,
+          ),
+        );
       }
     }
     if (prompts.isEmpty) return null;
@@ -448,11 +447,13 @@ class _DesignCompletionsBuilder implements CodeAutocompletePromptsBuilder {
       final prompts = <CodePrompt>[];
       for (final f in kTwigCatalog.filters) {
         if (input.isEmpty || f.toLowerCase().contains(input.toLowerCase())) {
-          prompts.add(_CompletionItem(
-            word: f,
-            kind: _PromptKind.twigFilter,
-            label: 'filter',
-          ));
+          prompts.add(
+            _CompletionItem(
+              word: f,
+              kind: _PromptKind.twigFilter,
+              label: 'filter',
+            ),
+          );
         }
       }
       return _wrap(input, prompts);
@@ -470,43 +471,48 @@ class _DesignCompletionsBuilder implements CodeAutocompletePromptsBuilder {
     final input = ident;
     final prompts = <CodePrompt>[];
     for (final root in kTwigCatalog.entityGraph.keys) {
-      if (!isPublicTwigRoot(root)) continue; // skip helper schemas (e.g. _po_vendor)
+      if (!isPublicTwigRoot(root))
+        continue; // skip helper schemas (e.g. _po_vendor)
       if (input.isEmpty || root.toLowerCase().contains(input.toLowerCase())) {
-        prompts.add(_CompletionItem(
-          word: root,
-          kind: _PromptKind.twigRoot,
-          label: 'variable',
-        ));
+        prompts.add(
+          _CompletionItem(
+            word: root,
+            kind: _PromptKind.twigRoot,
+            label: 'variable',
+          ),
+        );
       }
     }
     if (isTagCtx) {
       for (final t in kTwigCatalog.tags) {
         if (input.isEmpty || t.toLowerCase().contains(input.toLowerCase())) {
-          prompts.add(_CompletionItem(
-            word: t,
-            kind: _PromptKind.twigTag,
-            label: 'tag',
-          ));
+          prompts.add(
+            _CompletionItem(word: t, kind: _PromptKind.twigTag, label: 'tag'),
+          );
         }
       }
     }
     for (final f in kTwigCatalog.functions) {
       if (input.isEmpty || f.toLowerCase().contains(input.toLowerCase())) {
-        prompts.add(_CompletionItem(
-          word: f,
-          kind: _PromptKind.twigFunction,
-          label: 'function',
-        ));
+        prompts.add(
+          _CompletionItem(
+            word: f,
+            kind: _PromptKind.twigFunction,
+            label: 'function',
+          ),
+        );
       }
     }
     // Twig literals — useful in both expression and tag contexts.
     for (final lit in kTwigLiterals) {
       if (input.isEmpty || lit.toLowerCase().contains(input.toLowerCase())) {
-        prompts.add(_CompletionItem(
-          word: lit,
-          kind: _PromptKind.twigField,
-          label: 'literal',
-        ));
+        prompts.add(
+          _CompletionItem(
+            word: lit,
+            kind: _PromptKind.twigField,
+            label: 'literal',
+          ),
+        );
       }
     }
     // Single-word operators (`and`, `or`, `not`, `in`, `is`, `defined`,
@@ -514,11 +520,13 @@ class _DesignCompletionsBuilder implements CodeAutocompletePromptsBuilder {
     if (isTagCtx) {
       for (final op in kTwigOperatorKeywords) {
         if (input.isEmpty || op.toLowerCase().contains(input.toLowerCase())) {
-          prompts.add(_CompletionItem(
-            word: op,
-            kind: _PromptKind.twigField,
-            label: 'operator',
-          ));
+          prompts.add(
+            _CompletionItem(
+              word: op,
+              kind: _PromptKind.twigField,
+              label: 'operator',
+            ),
+          );
         }
       }
     }
@@ -603,7 +611,9 @@ class _OverlayView extends StatelessWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize {
     final rowCount = notifier.value.prompts.length.clamp(1, _kMaxRows);
-    final extraForOverflow = notifier.value.prompts.length > _kMaxRows ? 24.0 : 0;
+    final extraForOverflow = notifier.value.prompts.length > _kMaxRows
+        ? 24.0
+        : 0;
     return Size(
       _kOverlayWidth,
       rowCount * _kRowHeight + extraForOverflow + _kFooterHeight + 8,
@@ -636,7 +646,8 @@ class _OverlayView extends StatelessWidget implements PreferredSizeWidget {
                     prompt: visible[i] as _CompletionItem,
                     input: value.input,
                     selected: i == value.index,
-                    onTap: () => onSelected(value.copyWith(index: i).autocomplete),
+                    onTap: () =>
+                        onSelected(value.copyWith(index: i).autocomplete),
                   ),
                 if (overflow > 0)
                   Padding(
@@ -783,13 +794,13 @@ class _HighlightedText extends StatelessWidget {
 /// ("filter", "tag", "function") instead of dense glyphs that aren't
 /// intuitive to non-developers.
 String _glyphFor(_PromptKind k) => switch (k) {
-      _PromptKind.dollar => r'$',
-      _PromptKind.twigRoot => '{}',
-      _PromptKind.elementId => '#',
-      _PromptKind.snippet => '<>',
-      _PromptKind.twigField || _PromptKind.twigTag => '',
-      _PromptKind.twigFunction || _PromptKind.twigFilter => '',
-    };
+  _PromptKind.dollar => r'$',
+  _PromptKind.twigRoot => '{}',
+  _PromptKind.elementId => '#',
+  _PromptKind.snippet => '<>',
+  _PromptKind.twigField || _PromptKind.twigTag => '',
+  _PromptKind.twigFunction || _PromptKind.twigFilter => '',
+};
 
 /// True when [selection]'s caret sits inside an open `<ninja>...</ninja>`
 /// block in [controller]. If [selection] is null, uses the controller's
@@ -816,14 +827,14 @@ bool isCaretInNinja(
 }
 
 Color _colorFor(_PromptKind k, InTheme t) => switch (k) {
-      _PromptKind.dollar => t.accent,
-      _PromptKind.twigRoot => t.accent,
-      _PromptKind.elementId => t.accent,
-      // Distinct from `twigFunction` (also paid-green) — `partial` orange
-      // signals "wrap helper" cleanly without overloading function/filter.
-      _PromptKind.snippet => t.partial,
-      _PromptKind.twigField => t.ink2,
-      _PromptKind.twigTag => t.overdue,
-      _PromptKind.twigFunction => t.paid,
-      _PromptKind.twigFilter => t.overdue,
-    };
+  _PromptKind.dollar => t.accent,
+  _PromptKind.twigRoot => t.accent,
+  _PromptKind.elementId => t.accent,
+  // Distinct from `twigFunction` (also paid-green) — `partial` orange
+  // signals "wrap helper" cleanly without overloading function/filter.
+  _PromptKind.snippet => t.partial,
+  _PromptKind.twigField => t.ink2,
+  _PromptKind.twigTag => t.overdue,
+  _PromptKind.twigFunction => t.paid,
+  _PromptKind.twigFilter => t.overdue,
+};

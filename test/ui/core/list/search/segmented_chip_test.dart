@@ -97,7 +97,9 @@ void main() {
     testWidgets('readOnly variant has no carets and no close button', (
       tester,
     ) async {
-      await tester.pumpWidget(_host(const FilterTokenChip.readOnly(token: segToken)));
+      await tester.pumpWidget(
+        _host(const FilterTokenChip.readOnly(token: segToken)),
+      );
       expect(find.byIcon(Icons.arrow_drop_down), findsNothing);
       expect(find.byIcon(Icons.close), findsNothing);
       // Comparator still shown inline for context.
@@ -117,7 +119,9 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        _host(FilterTokenChip(token: plainToken, onRemove: () {}, onTap: (_) {})),
+        _host(
+          FilterTokenChip(token: plainToken, onRemove: () {}, onTap: (_) {}),
+        ),
       );
       expect(find.byIcon(Icons.arrow_drop_down), findsNothing);
       expect(find.text('country'), findsOneWidget);

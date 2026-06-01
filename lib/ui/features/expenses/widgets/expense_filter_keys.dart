@@ -49,7 +49,10 @@ List<FilterKey> buildExpenseFilterKeys({
 /// the same stream populates an in-memory `id → name` cache so chips show
 /// the category name instead of the raw id.
 class ExpenseCategoryFilterKey extends MembershipFilterKey {
-  ExpenseCategoryFilterKey({required this.categories, required this.companyId}) {
+  ExpenseCategoryFilterKey({
+    required this.categories,
+    required this.companyId,
+  }) {
     _namesSub = categories.watchActive(companyId: companyId).listen((rows) {
       _names
         ..clear()

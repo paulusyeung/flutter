@@ -96,18 +96,15 @@ abstract class Payment with _$Payment {
     updatedAt: epochSecondsToUtc(a.updatedAt),
     createdAt: epochSecondsToUtc(a.createdAt),
     archivedAt: epochSecondsToUtcOrNull(a.archivedAt),
-    paymentables:
-        (a.paymentables ?? const <PaymentableApi>[])
-            .map(Paymentable.fromApi)
-            .toList(growable: false),
-    invoices:
-        (a.invoices ?? const <PaymentInvoiceRefApi>[])
-            .map(PaymentInvoiceRef.fromApi)
-            .toList(growable: false),
-    credits:
-        (a.credits ?? const <PaymentCreditRefApi>[])
-            .map(PaymentCreditRef.fromApi)
-            .toList(growable: false),
+    paymentables: (a.paymentables ?? const <PaymentableApi>[])
+        .map(Paymentable.fromApi)
+        .toList(growable: false),
+    invoices: (a.invoices ?? const <PaymentInvoiceRefApi>[])
+        .map(PaymentInvoiceRef.fromApi)
+        .toList(growable: false),
+    credits: (a.credits ?? const <PaymentCreditRefApi>[])
+        .map(PaymentCreditRef.fromApi)
+        .toList(growable: false),
     documents: mapDocuments(a.documents),
   );
 }

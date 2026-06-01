@@ -53,7 +53,8 @@ class VendorDetailCardsGrid extends StatelessWidget {
 
   Widget _wide(BuildContext context) {
     final hasContacts = vendor.contacts.isNotEmpty;
-    final hasNotes = vendor.privateNotes.isNotEmpty || vendor.publicNotes.isNotEmpty;
+    final hasNotes =
+        vendor.privateNotes.isNotEmpty || vendor.publicNotes.isNotEmpty;
     final columns = <Widget>[
       Expanded(child: VendorDetailDetailsCard(vendor: vendor)),
       SizedBox(width: InSpacing.md(context)),
@@ -312,7 +313,9 @@ class VendorDetailNotesCard extends StatelessWidget {
               label: context.tr('private_notes'),
               body: vendor.privateNotes,
               labelColor: tokens.ink3,
-              bodyStyle: theme.textTheme.bodyMedium?.copyWith(color: tokens.ink),
+              bodyStyle: theme.textTheme.bodyMedium?.copyWith(
+                color: tokens.ink,
+              ),
             ),
           if (hasPrivate && hasPublic) ...[
             SizedBox(height: InSpacing.md(context)),
@@ -324,7 +327,9 @@ class VendorDetailNotesCard extends StatelessWidget {
               label: context.tr('public_notes'),
               body: vendor.publicNotes,
               labelColor: tokens.ink3,
-              bodyStyle: theme.textTheme.bodyMedium?.copyWith(color: tokens.ink),
+              bodyStyle: theme.textTheme.bodyMedium?.copyWith(
+                color: tokens.ink,
+              ),
             ),
         ],
       ),

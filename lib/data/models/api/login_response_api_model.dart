@@ -57,9 +57,7 @@ abstract class UserCompanyApi with _$UserCompanyApi {
     // Settings → Account Management → Plan as the "Manage Plan" CTA target;
     // the server bakes `account_key` and `product_id` into the URL so we
     // don't have to know them on the client.
-    @JsonKey(name: 'ninja_portal_url')
-    @Default('')
-    String ninjaPortalUrl,
+    @JsonKey(name: 'ninja_portal_url') @Default('') String ninjaPortalUrl,
   }) = _UserCompanyApi;
 
   factory UserCompanyApi.fromJson(Map<String, dynamic> json) =>
@@ -215,9 +213,7 @@ abstract class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
     // the full `design.{body,header,footer,includes,product,task}` HTML
     // strings. `DesignRepository.applyBundle` upserts into the `designs`
     // table on every login/refresh.
-    @JsonKey(name: 'designs')
-    @Default(<DesignApi>[])
-    List<DesignApi> designs,
+    @JsonKey(name: 'designs') @Default(<DesignApi>[]) List<DesignApi> designs,
     // Top-level tax fields on the envelope, mirroring `CompanyApi`. Settings
     // → Tax Settings writes these via `host.updateCompany(...)`.
     @JsonKey(name: 'enabled_tax_rates') @Default(0) int enabledTaxRates,
@@ -248,9 +244,7 @@ abstract class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
     // the login envelope persists them straight into the `companies` Drift
     // table so they're available offline before the first refresh.
     @JsonKey(name: 'track_inventory') @Default(false) bool trackInventory,
-    @JsonKey(name: 'stock_notification')
-    @Default(false)
-    bool stockNotification,
+    @JsonKey(name: 'stock_notification') @Default(false) bool stockNotification,
     @JsonKey(name: 'inventory_notification_threshold')
     @Default(0)
     int inventoryNotificationThreshold,

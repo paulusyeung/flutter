@@ -45,12 +45,13 @@ class TemplatePreviewPanel extends StatelessWidget {
           return switch (state) {
             TemplatePreviewIdle() => const _PreviewPlaceholder(),
             TemplatePreviewLoading() => const _PreviewLoading(),
-            TemplatePreviewLoaded(:final preview) =>
-              _PreviewBody(preview: preview),
+            TemplatePreviewLoaded(:final preview) => _PreviewBody(
+              preview: preview,
+            ),
             TemplatePreviewError(:final kind) => _PreviewError(
-                kind: kind,
-                onRetry: controller.refresh,
-              ),
+              kind: kind,
+              onRetry: controller.refresh,
+            ),
           };
         },
       ),
@@ -119,7 +120,9 @@ class _PreviewError extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isNetwork = kind == TemplatePreviewErrorKind.network;
-    final labelKey = isNetwork ? 'no_internet_connection' : 'error_refresh_page';
+    final labelKey = isNetwork
+        ? 'no_internet_connection'
+        : 'error_refresh_page';
     return _PreviewFrame(
       child: Container(
         padding: const EdgeInsets.all(32),
@@ -127,26 +130,26 @@ class _PreviewError extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-          Icon(
-            isNetwork ? Icons.wifi_off : Icons.error_outline,
-            size: 48,
-            color: theme.colorScheme.error,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            context.tr(labelKey),
-            style: theme.textTheme.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          TextButton.icon(
-            // Network errors can't be solved by an immediate retry —
-            // disable the button so the user knows to fix connectivity
-            // first. Timeout and server-side errors are retryable.
-            onPressed: isNetwork ? null : onRetry,
-            icon: const Icon(Icons.refresh),
-            label: Text(context.tr('retry')),
-          ),
+            Icon(
+              isNetwork ? Icons.wifi_off : Icons.error_outline,
+              size: 48,
+              color: theme.colorScheme.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              context.tr(labelKey),
+              style: theme.textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            TextButton.icon(
+              // Network errors can't be solved by an immediate retry —
+              // disable the button so the user knows to fix connectivity
+              // first. Timeout and server-side errors are retryable.
+              onPressed: isNetwork ? null : onRetry,
+              icon: const Icon(Icons.refresh),
+              label: Text(context.tr('retry')),
+            ),
           ],
         ),
       ),
@@ -161,7 +164,8 @@ class _PreviewBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = defaultTargetPlatform == TargetPlatform.iOS ||
+    final isMobile =
+        defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.android;
     return LayoutBuilder(
       builder: (context, c) {
@@ -301,7 +305,10 @@ class _DesktopMarkdownPreviewState extends State<_DesktopMarkdownPreview> {
   void _seed(String body) {
     final stripped = body
         .replaceAll(RegExp(r'<\s*/?\s*p\s*/?\s*>', caseSensitive: false), '\n')
-        .replaceAll(RegExp(r'<\s*/?\s*div\s*/?\s*>', caseSensitive: false), '\n')
+        .replaceAll(
+          RegExp(r'<\s*/?\s*div\s*/?\s*>', caseSensitive: false),
+          '\n',
+        )
         .replaceAll(RegExp(r'<\s*br\s*/?\s*>', caseSensitive: false), '\n');
     _document = stripped.trim().isEmpty
         ? MutableDocument.empty()

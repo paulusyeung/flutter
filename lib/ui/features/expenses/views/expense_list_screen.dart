@@ -56,12 +56,12 @@ class ExpenseListScreen extends StatelessWidget {
           : (cid == null && vid == null)
           ? null
           : (ctx) => ctx.go(
-                '/expenses/new',
-                extra: emptyExpense().copyWith(
-                  clientId: cid ?? '',
-                  vendorId: vid ?? '',
-                ),
+              '/expenses/new',
+              extra: emptyExpense().copyWith(
+                clientId: cid ?? '',
+                vendorId: vid ?? '',
               ),
+            ),
       emptyIcon: Icons.account_balance_wallet_outlined,
       emptyTitleKey: 'no_expenses_yet',
       wantsFormatter: true,
@@ -122,12 +122,12 @@ class ExpenseListScreen extends StatelessWidget {
           onAction: options.selecting
               ? null
               : (action) => ExpenseActions.dispatch(
-                    context,
-                    context.read<Services>(),
-                    vm.companyId,
-                    expense,
-                    action,
-                  ),
+                  context,
+                  context.read<Services>(),
+                  vm.companyId,
+                  expense,
+                  action,
+                ),
         );
       },
       bulkActions: const [

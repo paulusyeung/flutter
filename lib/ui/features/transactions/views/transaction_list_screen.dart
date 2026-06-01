@@ -70,10 +70,7 @@ class TransactionListScreen extends StatelessWidget {
         bankAccountId: bankAccountId,
       ),
       sortOptions: (context) => [
-        SortOption(
-          id: BankTransactionFieldIds.date,
-          label: context.tr('date'),
-        ),
+        SortOption(id: BankTransactionFieldIds.date, label: context.tr('date')),
         SortOption(
           id: BankTransactionFieldIds.amount,
           label: context.tr('amount'),
@@ -126,12 +123,12 @@ class TransactionListScreen extends StatelessWidget {
           onAction: options.selecting
               ? null
               : (action) => TransactionActions.dispatch(
-                    context,
-                    context.read<Services>(),
-                    vm.companyId,
-                    transaction,
-                    action,
-                  ),
+                  context,
+                  context.read<Services>(),
+                  vm.companyId,
+                  transaction,
+                  action,
+                ),
         );
       },
       bulkActions: const [

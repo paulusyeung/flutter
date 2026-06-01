@@ -139,6 +139,7 @@ class _FakeDashboardRepo extends DashboardRepository {
     final gate = dropGate;
     if (gate != null) await gate.future;
   }
+
   @override
   Future<void> refreshTotals(String c, DashboardFilter f) async {}
   @override
@@ -182,33 +183,30 @@ void main() {
     await db.close();
   });
 
-  test(
-    'a single section emission bumps only that section listenable, '
-    'not peers and not the global notify',
-    () async {
-      var activitiesHits = 0;
-      var pastDueHits = 0;
-      var globalHits = 0;
-      vm.listenableFor(DashboardKind.activities).addListener(
-        () => activitiesHits++,
-      );
-      vm.listenableFor(DashboardKind.pastDue).addListener(() => pastDueHits++);
-      vm.addListener(() => globalHits++);
+  test('a single section emission bumps only that section listenable, '
+      'not peers and not the global notify', () async {
+    var activitiesHits = 0;
+    var pastDueHits = 0;
+    var globalHits = 0;
+    vm
+        .listenableFor(DashboardKind.activities)
+        .addListener(() => activitiesHits++);
+    vm.listenableFor(DashboardKind.pastDue).addListener(() => pastDueHits++);
+    vm.addListener(() => globalHits++);
 
-      // Content is irrelevant — routing is what's under test. An empty
-      // list still drives the stream → onData → _bumpSection(activities).
-      repo.activities.add(const []);
-      await Future<void>.delayed(const Duration(milliseconds: 10));
+    // Content is irrelevant — routing is what's under test. An empty
+    // list still drives the stream → onData → _bumpSection(activities).
+    repo.activities.add(const []);
+    await Future<void>.delayed(const Duration(milliseconds: 10));
 
-      expect(activitiesHits, 1, reason: 'activities card should rebuild');
-      expect(pastDueHits, 0, reason: 'peer section must not rebuild');
-      expect(
-        globalHits,
-        0,
-        reason: 'a data emission must not fire the global notify',
-      );
-    },
-  );
+    expect(activitiesHits, 1, reason: 'activities card should rebuild');
+    expect(pastDueHits, 0, reason: 'peer section must not rebuild');
+    expect(
+      globalHits,
+      0,
+      reason: 'a data emission must not fire the global notify',
+    );
+  });
 
   test('setFilter fires the global notify (chrome) ', () async {
     var globalHits = 0;
@@ -225,9 +223,9 @@ void main() {
     var pastDueHits = 0;
     var activitiesHits = 0;
     vm.listenableFor(DashboardKind.pastDue).addListener(() => pastDueHits++);
-    vm.listenableFor(DashboardKind.activities).addListener(
-      () => activitiesHits++,
-    );
+    vm
+        .listenableFor(DashboardKind.activities)
+        .addListener(() => activitiesHits++);
 
     // refreshPastDue is overridden to succeed; force the error path by
     // making the section error via retry of a kind whose refresh throws.
@@ -245,30 +243,27 @@ void main() {
       expect(vm.chartGrouping, ChartGrouping.month);
     });
 
-    test(
-      'setChartGrouping fires global notify, does not change the filter, '
-      'and never refetches',
-      () async {
-        var globalHits = 0;
-        vm.addListener(() => globalHits++);
-        final filterBefore = vm.filter;
-        final hashBefore = vm.filter.filterHash();
+    test('setChartGrouping fires global notify, does not change the filter, '
+        'and never refetches', () async {
+      var globalHits = 0;
+      vm.addListener(() => globalHits++);
+      final filterBefore = vm.filter;
+      final hashBefore = vm.filter.filterHash();
 
-        vm.setChartGrouping(ChartGrouping.week);
+      vm.setChartGrouping(ChartGrouping.week);
 
-        expect(vm.chartGrouping, ChartGrouping.week);
-        expect(globalHits, greaterThanOrEqualTo(1));
-        // Pure client-side re-bucket: the filter (and its hash, which keys
-        // the network fetch) is untouched.
-        expect(vm.filter, filterBefore);
-        expect(vm.filter.filterHash(), hashBefore);
+      expect(vm.chartGrouping, ChartGrouping.week);
+      expect(globalHits, greaterThanOrEqualTo(1));
+      // Pure client-side re-bucket: the filter (and its hash, which keys
+      // the network fetch) is untouched.
+      expect(vm.filter, filterBefore);
+      expect(vm.filter.filterHash(), hashBefore);
 
-        // No-op when unchanged.
-        globalHits = 0;
-        vm.setChartGrouping(ChartGrouping.week);
-        expect(globalHits, 0);
-      },
-    );
+      // No-op when unchanged.
+      globalHits = 0;
+      vm.setChartGrouping(ChartGrouping.week);
+      expect(globalHits, 0);
+    });
 
     test('add/remove/reorder persist, fetch, and purge cache', () async {
       const a = DashboardCardConfig(
@@ -311,12 +306,14 @@ void main() {
         persistDebounce: const Duration(milliseconds: 5),
       );
       await Future<void>.delayed(const Duration(milliseconds: 20));
-      writer.addCard(const DashboardCardConfig(
-        field: 'active_quotes',
-        period: CardPeriod.previous,
-        calculate: CardCalc.avg,
-        format: CardFormat.money,
-      ));
+      writer.addCard(
+        const DashboardCardConfig(
+          field: 'active_quotes',
+          period: CardPeriod.previous,
+          calculate: CardCalc.avg,
+          format: CardFormat.money,
+        ),
+      );
       await Future<void>.delayed(const Duration(milliseconds: 40));
       writer.dispose();
 
@@ -330,8 +327,10 @@ void main() {
         ),
       );
       await Future<void>.delayed(const Duration(milliseconds: 20));
-      expect(reader.dashboardCards.single.key,
-          'active_quotes|previous|avg|money');
+      expect(
+        reader.dashboardCards.single.key,
+        'active_quotes|previous|avg|money',
+      );
       reader.dispose();
     });
 
@@ -366,36 +365,38 @@ void main() {
       reader.dispose();
     });
 
-    test('re-add after remove waits for the pending drop before refetch',
-        () async {
-      const a = DashboardCardConfig(
-        field: 'active_invoices',
-        period: CardPeriod.current,
-        calculate: CardCalc.sum,
-        format: CardFormat.money,
-      );
-      vm.addCard(a);
-      await Future<void>.delayed(const Duration(milliseconds: 10));
-      repo.refreshedCardKeys.clear();
+    test(
+      're-add after remove waits for the pending drop before refetch',
+      () async {
+        const a = DashboardCardConfig(
+          field: 'active_invoices',
+          period: CardPeriod.current,
+          calculate: CardCalc.sum,
+          format: CardFormat.money,
+        );
+        vm.addCard(a);
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        repo.refreshedCardKeys.clear();
 
-      final gate = Completer<void>();
-      repo.dropGate = gate;
-      vm.removeCard(a.key); // drop starts, blocked on the gate
-      vm.addCard(a); // re-add → _refreshCard must await the pending drop
-      await Future<void>.delayed(const Duration(milliseconds: 10));
-      expect(
-        repo.refreshedCardKeys,
-        isNot(contains(a.key)),
-        reason: 'refetch must not run while the drop is still pending',
-      );
+        final gate = Completer<void>();
+        repo.dropGate = gate;
+        vm.removeCard(a.key); // drop starts, blocked on the gate
+        vm.addCard(a); // re-add → _refreshCard must await the pending drop
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        expect(
+          repo.refreshedCardKeys,
+          isNot(contains(a.key)),
+          reason: 'refetch must not run while the drop is still pending',
+        );
 
-      gate.complete();
-      await Future<void>.delayed(const Duration(milliseconds: 10));
-      expect(
-        repo.refreshedCardKeys,
-        contains(a.key),
-        reason: 'refetch runs once the drop completes (fresh row survives)',
-      );
-    });
+        gate.complete();
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        expect(
+          repo.refreshedCardKeys,
+          contains(a.key),
+          reason: 'refetch runs once the drop completes (fresh row survives)',
+        );
+      },
+    );
   });
 }

@@ -54,7 +54,10 @@ class DividerBlockProperties extends StatelessWidget {
           initialValue: (props['style'] as String?) ?? 'solid',
           items: [
             DropdownMenuItem(value: 'solid', child: Text(context.tr('solid'))),
-            DropdownMenuItem(value: 'dashed', child: Text(context.tr('dashed'))),
+            DropdownMenuItem(
+              value: 'dashed',
+              child: Text(context.tr('dashed')),
+            ),
           ],
           onChanged: (v) {
             if (v != null) _write('style', v);

@@ -4,7 +4,8 @@ import 'package:admin/data/repositories/transaction_rule_repository.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 
 /// Drives the transaction-rule edit/create screen.
-class TransactionRuleEditViewModel extends GenericEditViewModel<TransactionRule> {
+class TransactionRuleEditViewModel
+    extends GenericEditViewModel<TransactionRule> {
   TransactionRuleEditViewModel({
     required this.repo,
     required this.companyId,
@@ -12,17 +13,16 @@ class TransactionRuleEditViewModel extends GenericEditViewModel<TransactionRule>
     super.sync,
     super.connectivity,
   }) : super(
-          initialDraft: existing ?? _emptyRule(),
-          original: existing,
-          companyId: companyId,
-        );
+         initialDraft: existing ?? _emptyRule(),
+         original: existing,
+         companyId: companyId,
+       );
 
   final TransactionRuleRepository repo;
   final String companyId;
 
   @override
-  bool draftIsNonEmpty() =>
-      draft.name.isNotEmpty || draft.rules.isNotEmpty;
+  bool draftIsNonEmpty() => draft.name.isNotEmpty || draft.rules.isNotEmpty;
 
   @override
   Future<SaveResult<TransactionRule>> performSave() async {
@@ -50,13 +50,10 @@ class TransactionRuleEditViewModel extends GenericEditViewModel<TransactionRule>
     updateDraft(next);
   }
 
-  void setMatchesOnAll(bool v) =>
-      updateDraft(draft.copyWith(matchesOnAll: v));
-  void setAutoConvert(bool v) =>
-      updateDraft(draft.copyWith(autoConvert: v));
+  void setMatchesOnAll(bool v) => updateDraft(draft.copyWith(matchesOnAll: v));
+  void setAutoConvert(bool v) => updateDraft(draft.copyWith(autoConvert: v));
   void setVendorId(String v) => updateDraft(draft.copyWith(vendorId: v));
-  void setCategoryId(String v) =>
-      updateDraft(draft.copyWith(categoryId: v));
+  void setCategoryId(String v) => updateDraft(draft.copyWith(categoryId: v));
 
   void addCriterion(RuleCriterion c) {
     updateDraft(draft.copyWith(rules: [...draft.rules, c]));

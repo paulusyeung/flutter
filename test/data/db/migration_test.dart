@@ -237,33 +237,35 @@ void main() {
       await db.close();
     });
 
-    test('v51 → v52 upgrade adds saved_views.icon (null for legacy rows)',
-        () async {
-      final schema = await verifier.schemaAt(51);
-      // Seed a v51 saved_views row via the typed v51 schema so the row is
-      // written at the old shape (no icon column) without triggering the
-      // current-schema migration.
-      final v51Db = v51schema.DatabaseAtV51(schema.newConnection());
-      await v51Db.customStatement(
-        'INSERT INTO saved_views (id, company_id, entity_type, name, '
-        'payload_json, created_at, updated_at) '
-        "VALUES ('sv1', 'co', 'invoice', 'Deleted', '{}', 1, 1)",
-      );
-      await v51Db.close();
+    test(
+      'v51 → v52 upgrade adds saved_views.icon (null for legacy rows)',
+      () async {
+        final schema = await verifier.schemaAt(51);
+        // Seed a v51 saved_views row via the typed v51 schema so the row is
+        // written at the old shape (no icon column) without triggering the
+        // current-schema migration.
+        final v51Db = v51schema.DatabaseAtV51(schema.newConnection());
+        await v51Db.customStatement(
+          'INSERT INTO saved_views (id, company_id, entity_type, name, '
+          'payload_json, created_at, updated_at) '
+          "VALUES ('sv1', 'co', 'invoice', 'Deleted', '{}', 1, 1)",
+        );
+        await v51Db.close();
 
-      final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, db.schemaVersion);
-      final cols = await db
-          .customSelect('PRAGMA table_info(saved_views)')
-          .get();
-      expect(cols.map((r) => r.data['name']).toSet(), contains('icon'));
-      final rows = await db
-          .customSelect('SELECT id, icon FROM saved_views')
-          .get();
-      expect(rows.single.data['id'], 'sv1');
-      expect(rows.single.data['icon'], isNull);
-      await db.close();
-    });
+        final db = AppDatabase(schema.newConnection());
+        await verifier.migrateAndValidate(db, db.schemaVersion);
+        final cols = await db
+            .customSelect('PRAGMA table_info(saved_views)')
+            .get();
+        expect(cols.map((r) => r.data['name']).toSet(), contains('icon'));
+        final rows = await db
+            .customSelect('SELECT id, icon FROM saved_views')
+            .get();
+        expect(rows.single.data['id'], 'sv1');
+        expect(rows.single.data['icon'], isNull);
+        await db.close();
+      },
+    );
 
     test('v11 → v12 upgrade adds companies.documents (null for legacy '
         'rows so the next applyUpdateResponse repopulates)', () async {
@@ -488,110 +490,100 @@ void main() {
       await db.close();
     });
 
-    test(
-      'v26 → current upgrade adds the 12 Account Management columns plus '
-      'quickbooks_json (Phase 4) to companies — defaults are 0 / "" / false '
-      '/ null; legacy rows survive with backfilled values',
-      () async {
-        final schema = await verifier.schemaAt(26);
-        final v26Db = v26schema.DatabaseAtV26(schema.newConnection());
-        await v26Db.customStatement(
-          'INSERT INTO companies (id, name, settings, permissions, account_id, '
-          "token, updated_at) VALUES ('co1', 'Acme', '{}', '', 'a', 't', 1)",
-        );
-        await v26Db.close();
+    test('v26 → current upgrade adds the 12 Account Management columns plus '
+        'quickbooks_json (Phase 4) to companies — defaults are 0 / "" / false '
+        '/ null; legacy rows survive with backfilled values', () async {
+      final schema = await verifier.schemaAt(26);
+      final v26Db = v26schema.DatabaseAtV26(schema.newConnection());
+      await v26Db.customStatement(
+        'INSERT INTO companies (id, name, settings, permissions, account_id, '
+        "token, updated_at) VALUES ('co1', 'Acme', '{}', '', 'a', 't', 1)",
+      );
+      await v26Db.close();
 
-        final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, db.schemaVersion);
-        final cols = await db
-            .customSelect('PRAGMA table_info(companies)')
-            .get();
-        final names = cols.map((r) => r.data['name'] as String).toSet();
-        // v29 (Account Management Phase 1) adds these 12.
-        expect(names, contains('enabled_modules'));
-        expect(names, contains('google_analytics_key'));
-        expect(names, contains('matomo_id'));
-        expect(names, contains('matomo_url'));
-        expect(names, contains('session_timeout'));
-        expect(names, contains('default_password_timeout'));
-        expect(names, contains('oauth_password_required'));
-        expect(names, contains('is_disabled'));
-        expect(names, contains('markdown_enabled'));
-        expect(names, contains('markdown_email_enabled'));
-        expect(names, contains('report_include_drafts'));
-        expect(names, contains('report_include_deleted'));
-        // v30 (Account Management Phase 4 — QuickBooks) adds the
-        // nullable JSON blob.
-        expect(names, contains('quickbooks_json'));
+      final db = AppDatabase(schema.newConnection());
+      await verifier.migrateAndValidate(db, db.schemaVersion);
+      final cols = await db.customSelect('PRAGMA table_info(companies)').get();
+      final names = cols.map((r) => r.data['name'] as String).toSet();
+      // v29 (Account Management Phase 1) adds these 12.
+      expect(names, contains('enabled_modules'));
+      expect(names, contains('google_analytics_key'));
+      expect(names, contains('matomo_id'));
+      expect(names, contains('matomo_url'));
+      expect(names, contains('session_timeout'));
+      expect(names, contains('default_password_timeout'));
+      expect(names, contains('oauth_password_required'));
+      expect(names, contains('is_disabled'));
+      expect(names, contains('markdown_enabled'));
+      expect(names, contains('markdown_email_enabled'));
+      expect(names, contains('report_include_drafts'));
+      expect(names, contains('report_include_deleted'));
+      // v30 (Account Management Phase 4 — QuickBooks) adds the
+      // nullable JSON blob.
+      expect(names, contains('quickbooks_json'));
 
-        // The seeded legacy row gets backfilled with the defaults — int / text
-        // / bool columns return 0 / '' / 0 in SQLite respectively.
-        // `quickbooks_json` is nullable with no default; existing rows get
-        // NULL on the ALTER TABLE.
-        final rows = await db
-            .customSelect(
-              'SELECT enabled_modules, google_analytics_key, session_timeout, '
-              'oauth_password_required, is_disabled, markdown_enabled, '
-              'report_include_drafts, quickbooks_json '
-              "FROM companies WHERE id = 'co1'",
-            )
-            .get();
-        final row = rows.single.data;
-        expect(row['enabled_modules'], 0);
-        expect(row['google_analytics_key'], '');
-        expect(row['session_timeout'], 0);
-        expect(row['oauth_password_required'], 0);
-        expect(row['is_disabled'], 0);
-        expect(row['markdown_enabled'], 0);
-        expect(row['report_include_drafts'], 0);
-        expect(row['quickbooks_json'], isNull);
-        await db.close();
-      },
-    );
+      // The seeded legacy row gets backfilled with the defaults — int / text
+      // / bool columns return 0 / '' / 0 in SQLite respectively.
+      // `quickbooks_json` is nullable with no default; existing rows get
+      // NULL on the ALTER TABLE.
+      final rows = await db
+          .customSelect(
+            'SELECT enabled_modules, google_analytics_key, session_timeout, '
+            'oauth_password_required, is_disabled, markdown_enabled, '
+            'report_include_drafts, quickbooks_json '
+            "FROM companies WHERE id = 'co1'",
+          )
+          .get();
+      final row = rows.single.data;
+      expect(row['enabled_modules'], 0);
+      expect(row['google_analytics_key'], '');
+      expect(row['session_timeout'], 0);
+      expect(row['oauth_password_required'], 0);
+      expect(row['is_disabled'], 0);
+      expect(row['markdown_enabled'], 0);
+      expect(row['report_include_drafts'], 0);
+      expect(row['quickbooks_json'], isNull);
+      await db.close();
+    });
 
-    test(
-      'v31 → v32 upgrade adds the 4 custom_surcharge_taxes columns to '
-      'companies (all default false; legacy rows survive with the new '
-      'columns backfilled). Paired with `custom_fields.surcharge1..4` for '
-      'the per-surcharge "Charge taxes" toggle on Settings → Custom '
-      'Fields → Invoices.',
-      () async {
-        final schema = await verifier.schemaAt(31);
-        final v31Db = v31schema.DatabaseAtV31(schema.newConnection());
-        // Seed a v31 company row — every prior column already present.
-        await v31Db.customStatement(
-          'INSERT INTO companies (id, name, settings, permissions, account_id, '
-          "token, updated_at) VALUES ('co1', 'Acme', '{}', '', 'a', 't', 1)",
-        );
-        await v31Db.close();
+    test('v31 → v32 upgrade adds the 4 custom_surcharge_taxes columns to '
+        'companies (all default false; legacy rows survive with the new '
+        'columns backfilled). Paired with `custom_fields.surcharge1..4` for '
+        'the per-surcharge "Charge taxes" toggle on Settings → Custom '
+        'Fields → Invoices.', () async {
+      final schema = await verifier.schemaAt(31);
+      final v31Db = v31schema.DatabaseAtV31(schema.newConnection());
+      // Seed a v31 company row — every prior column already present.
+      await v31Db.customStatement(
+        'INSERT INTO companies (id, name, settings, permissions, account_id, '
+        "token, updated_at) VALUES ('co1', 'Acme', '{}', '', 'a', 't', 1)",
+      );
+      await v31Db.close();
 
-        final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, db.schemaVersion);
-        final cols = await db
-            .customSelect('PRAGMA table_info(companies)')
-            .get();
-        final names = cols.map((r) => r.data['name'] as String).toSet();
-        expect(names, contains('custom_surcharge_taxes1'));
-        expect(names, contains('custom_surcharge_taxes2'));
-        expect(names, contains('custom_surcharge_taxes3'));
-        expect(names, contains('custom_surcharge_taxes4'));
+      final db = AppDatabase(schema.newConnection());
+      await verifier.migrateAndValidate(db, db.schemaVersion);
+      final cols = await db.customSelect('PRAGMA table_info(companies)').get();
+      final names = cols.map((r) => r.data['name'] as String).toSet();
+      expect(names, contains('custom_surcharge_taxes1'));
+      expect(names, contains('custom_surcharge_taxes2'));
+      expect(names, contains('custom_surcharge_taxes3'));
+      expect(names, contains('custom_surcharge_taxes4'));
 
-        // SQLite returns 0 for BOOLEAN columns defaulting to false.
-        final rows = await db
-            .customSelect(
-              'SELECT custom_surcharge_taxes1, custom_surcharge_taxes2, '
-              'custom_surcharge_taxes3, custom_surcharge_taxes4 '
-              "FROM companies WHERE id = 'co1'",
-            )
-            .get();
-        final row = rows.single.data;
-        expect(row['custom_surcharge_taxes1'], 0);
-        expect(row['custom_surcharge_taxes2'], 0);
-        expect(row['custom_surcharge_taxes3'], 0);
-        expect(row['custom_surcharge_taxes4'], 0);
-        await db.close();
-      },
-    );
+      // SQLite returns 0 for BOOLEAN columns defaulting to false.
+      final rows = await db
+          .customSelect(
+            'SELECT custom_surcharge_taxes1, custom_surcharge_taxes2, '
+            'custom_surcharge_taxes3, custom_surcharge_taxes4 '
+            "FROM companies WHERE id = 'co1'",
+          )
+          .get();
+      final row = rows.single.data;
+      expect(row['custom_surcharge_taxes1'], 0);
+      expect(row['custom_surcharge_taxes2'], 0);
+      expect(row['custom_surcharge_taxes3'], 0);
+      expect(row['custom_surcharge_taxes4'], 0);
+      await db.close();
+    });
 
     test('v26 → v27 upgrade adds stop_on_unpaid_recurring + '
         'use_quote_terms_on_conversion to companies (both default false; '
@@ -608,9 +600,7 @@ void main() {
 
       final db = AppDatabase(schema.newConnection());
       await verifier.migrateAndValidate(db, db.schemaVersion);
-      final cols = await db
-          .customSelect('PRAGMA table_info(companies)')
-          .get();
+      final cols = await db.customSelect('PRAGMA table_info(companies)').get();
       final names = cols.map((r) => r.data['name'] as String).toSet();
       expect(names, contains('stop_on_unpaid_recurring'));
       expect(names, contains('use_quote_terms_on_conversion'));
@@ -637,14 +627,17 @@ void main() {
       await db.customSelect('SELECT 1').getSingle();
 
       Future<Set<String>> indexesOn(String table) async {
-        final rows = await db
-            .customSelect('PRAGMA index_list($table)')
-            .get();
+        final rows = await db.customSelect('PRAGMA index_list($table)').get();
         return rows.map((r) => r.data['name'] as String).toSet();
       }
 
       // Representative high-volume entity tables across the mixin set.
-      for (final t in ['clients', 'invoices', 'payments', 'bank_transactions']) {
+      for (final t in [
+        'clients',
+        'invoices',
+        'payments',
+        'bank_transactions',
+      ]) {
         final idx = await indexesOn(t);
         expect(
           idx,
@@ -695,9 +688,7 @@ void main() {
       // onUpgrade chain through to the current schemaVersion (incl. v50).
       final db = AppDatabase(schema.newConnection());
       await db.customSelect('SELECT 1').getSingle();
-      final idx = await db
-          .customSelect('PRAGMA index_list(clients)')
-          .get();
+      final idx = await db.customSelect('PRAGMA index_list(clients)').get();
       expect(
         idx.map((r) => r.data['name'] as String).toSet(),
         containsAll(<String>{

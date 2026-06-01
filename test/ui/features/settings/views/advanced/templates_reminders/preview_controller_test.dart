@@ -34,7 +34,6 @@ class _FakeTemplatesApi implements TemplatesApi {
       rawBody: body,
     );
   }
-
 }
 
 void main() {
@@ -205,7 +204,6 @@ class _SlowFakeApi implements TemplatesApi {
   void completeAll() {
     _completed = true;
   }
-
 }
 
 /// Fake whose `render` stays pending until [complete] is called — lets a

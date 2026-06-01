@@ -57,7 +57,8 @@ class _InvoicePdfRouteScreenState extends State<InvoicePdfRouteScreen> {
           fetcher: ({String? designId, required bool deliveryNote}) =>
               _services.invoices.api.downloadPdf(
                 entityJson: invoice.toApiJson(),
-                designId: designId ??
+                designId:
+                    designId ??
                     (invoice.designId.isEmpty ? null : invoice.designId),
                 deliveryNote: deliveryNote,
               ),

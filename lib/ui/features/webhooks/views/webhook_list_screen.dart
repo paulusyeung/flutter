@@ -37,10 +37,7 @@ class WebhookListScreen extends StatelessWidget {
         companyId: companyId,
         loadedPages: 4,
         states: includeArchived
-            ? const {
-                EntityState.active,
-                EntityState.archived,
-              }
+            ? const {EntityState.active, EntityState.archived}
             : const {EntityState.active},
       ),
       isArchivedOf: (w) => w.archivedAt != null,
@@ -103,9 +100,8 @@ class _WebhookRow extends StatelessWidget {
                   ),
                 )
               : const Icon(Icons.chevron_right),
-          onTap: () => context.go(
-            '/settings/integrations/api_webhooks/${webhook.id}',
-          ),
+          onTap: () =>
+              context.go('/settings/integrations/api_webhooks/${webhook.id}'),
         ),
         const Divider(height: 1),
       ],

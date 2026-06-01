@@ -8,10 +8,7 @@ import 'package:admin/ui/features/settings/views/advanced/templates_reminders/wi
 import '../../../../../../_localization_helper.dart';
 
 void main() {
-  Widget host({
-    required Widget child,
-    required Size size,
-  }) {
+  Widget host({required Widget child, required Size size}) {
     return MaterialApp(
       theme: buildInTheme(InTheme.light),
       localizationsDelegates: kTestLocalizationsDelegates,
@@ -35,10 +32,12 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      await tester.pumpWidget(host(
-        child: const TemplateVariablesCard(templateKey: 'invoice'),
-        size: const Size(1200, 1024),
-      ));
+      await tester.pumpWidget(
+        host(
+          child: const TemplateVariablesCard(templateKey: 'invoice'),
+          size: const Size(1200, 1024),
+        ),
+      );
       await tester.pumpAndSettle();
 
       // ExpansionTile is the mobile-only collapse — should NOT be on wide.
@@ -58,10 +57,12 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      await tester.pumpWidget(host(
-        child: const TemplateVariablesCard(templateKey: 'invoice'),
-        size: const Size(400, 800),
-      ));
+      await tester.pumpWidget(
+        host(
+          child: const TemplateVariablesCard(templateKey: 'invoice'),
+          size: const Size(400, 800),
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Collapse target — present.
@@ -78,25 +79,26 @@ void main() {
     },
   );
 
-  testWidgets(
-    'payment template swaps in payment-specific variables',
-    (tester) async {
-      tester.view.physicalSize = const Size(1200, 1024);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
+  testWidgets('payment template swaps in payment-specific variables', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 1024);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
 
-      await tester.pumpWidget(host(
+    await tester.pumpWidget(
+      host(
         child: const TemplateVariablesCard(templateKey: 'payment'),
         size: const Size(1200, 1024),
-      ));
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      // $payment.status appears only in the payment-specific list.
-      expect(find.text(r'$payment.status'), findsOneWidget);
-      // Invoice-only `$footer` should NOT appear on a payment template.
-      expect(find.text(r'$footer'), findsNothing);
-    },
-  );
+    // $payment.status appears only in the payment-specific list.
+    expect(find.text(r'$payment.status'), findsOneWidget);
+    // Invoice-only `$footer` should NOT appear on a payment template.
+    expect(find.text(r'$footer'), findsNothing);
+  });
 
   testWidgets(
     'quote template relabels the first group header from "Invoice" to "Quote"',
@@ -105,10 +107,12 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      await tester.pumpWidget(host(
-        child: const TemplateVariablesCard(templateKey: 'quote'),
-        size: const Size(1200, 1024),
-      ));
+      await tester.pumpWidget(
+        host(
+          child: const TemplateVariablesCard(templateKey: 'quote'),
+          size: const Size(1200, 1024),
+        ),
+      );
       await tester.pumpAndSettle();
 
       // The group header is rendered as "Quote" (localized) not "Invoice".

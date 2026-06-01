@@ -24,9 +24,7 @@ final _formatter = Formatter(
   settings: _settings,
   currencies: const {},
   countries: const {},
-  dateFormats: const {
-    'X': DatetimeFormat(id: 'X', format: 'd/MMM/yyyy'),
-  },
+  dateFormats: const {'X': DatetimeFormat(id: 'X', format: 'd/MMM/yyyy')},
 );
 
 Future<void> _pump(WidgetTester tester, {Formatter? formatter}) async {
@@ -52,8 +50,9 @@ Future<void> _pump(WidgetTester tester, {Formatter? formatter}) async {
 }
 
 void main() {
-  testWidgets('renders the company-formatted date when a Formatter is passed',
-      (tester) async {
+  testWidgets('renders the company-formatted date when a Formatter is passed', (
+    tester,
+  ) async {
     await _pump(tester, formatter: _formatter);
     expect(find.text('14/May/2026'), findsOneWidget);
     expect(find.text('2026-05-14'), findsNothing);

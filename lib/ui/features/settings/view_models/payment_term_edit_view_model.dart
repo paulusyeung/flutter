@@ -14,10 +14,10 @@ class PaymentTermEditViewModel extends GenericEditViewModel<PaymentTerm> {
     super.sync,
     super.connectivity,
   }) : super(
-          initialDraft: existing ?? _emptyTerm(),
-          original: existing,
-          companyId: companyId,
-        );
+         initialDraft: existing ?? _emptyTerm(),
+         original: existing,
+         companyId: companyId,
+       );
 
   final PaymentTermRepository repo;
   final String companyId;

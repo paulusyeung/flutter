@@ -90,10 +90,9 @@ class RecurringInvoiceRepository
   Stream<RecurringInvoice?> watchByRealId({
     required String companyId,
     required String id,
-  }) =>
-      db.recurringInvoiceDao
-          .watchById(companyId: companyId, id: id)
-          .map((row) => row == null ? null : _fromRow(row));
+  }) => db.recurringInvoiceDao
+      .watchById(companyId: companyId, id: id)
+      .map((row) => row == null ? null : _fromRow(row));
 
   Future<bool> ensurePageLoaded({
     required String companyId,
@@ -202,8 +201,11 @@ class RecurringInvoiceRepository
     required RecurringInvoice recurringInvoice,
     Map<String, String>? extraQuery,
   }) async {
-    final companion =
-        _domainToCompanion(recurringInvoice, companyId, isDirty: true);
+    final companion = _domainToCompanion(
+      recurringInvoice,
+      companyId,
+      isDirty: true,
+    );
     var rowId = 0;
     await db.transaction(() async {
       await db.recurringInvoiceDao.upsert(companion);
@@ -320,19 +322,18 @@ class RecurringInvoiceRepository
     String? subject,
     String? body,
     String? ccEmail,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.emailEntity,
-        payload: {
-          'id': id,
-          'template': template,
-          if (subject != null) 'subject': subject,
-          if (body != null) 'body': body,
-          if (ccEmail != null) 'cc_email': ccEmail,
-        },
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: MutationKind.emailEntity,
+    payload: {
+      'id': id,
+      'template': template,
+      if (subject != null) 'subject': subject,
+      if (body != null) 'body': body,
+      if (ccEmail != null) 'cc_email': ccEmail,
+    },
+  );
 
   Future<void> scheduleEmail({
     required String companyId,
@@ -341,55 +342,51 @@ class RecurringInvoiceRepository
     required String sendAt,
     String? subject,
     String? body,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.scheduleEmail,
-        payload: {
-          'id': id,
-          'template': template,
-          'send_at': sendAt,
-          if (subject != null) 'subject': subject,
-          if (body != null) 'body': body,
-        },
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: MutationKind.scheduleEmail,
+    payload: {
+      'id': id,
+      'template': template,
+      'send_at': sendAt,
+      if (subject != null) 'subject': subject,
+      if (body != null) 'body': body,
+    },
+  );
 
   Future<void> cloneTo({
     required String companyId,
     required String id,
     required String targetType,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: _cloneKindFor(targetType),
-        payload: {'id': id, 'target': targetType},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: _cloneKindFor(targetType),
+    payload: {'id': id, 'target': targetType},
+  );
 
   Future<void> runTemplate({
     required String companyId,
     required String id,
     required String templateId,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.runTemplate,
-        payload: {'id': id, 'template_id': templateId},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: MutationKind.runTemplate,
+    payload: {'id': id, 'template_id': templateId},
+  );
 
   Future<void> addComment({
     required String companyId,
     required String recurringInvoiceId,
     required String text,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: recurringInvoiceId,
-        kind: MutationKind.addComment,
-        payload: {'entity_id': recurringInvoiceId, 'notes': text.trim()},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: recurringInvoiceId,
+    kind: MutationKind.addComment,
+    payload: {'entity_id': recurringInvoiceId, 'notes': text.trim()},
+  );
 
   // ── Documents ──────────────────────────────────────────────────────
 
@@ -397,42 +394,39 @@ class RecurringInvoiceRepository
     required String companyId,
     required String entityId,
     required UploadSource source,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: entityId,
-        kind: MutationKind.documentUpload,
-        payload: {'entity_id': entityId, ...source.toPayload()},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: entityId,
+    kind: MutationKind.documentUpload,
+    payload: {'entity_id': entityId, ...source.toPayload()},
+  );
 
   Future<void> deleteDocument({
     required String companyId,
     required String entityId,
     required String documentId,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: entityId,
-        kind: MutationKind.documentDelete,
-        payload: {'entity_id': entityId, 'document_id': documentId},
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: entityId,
+    kind: MutationKind.documentDelete,
+    payload: {'entity_id': entityId, 'document_id': documentId},
+  );
 
   Future<void> setDocumentVisibility({
     required String companyId,
     required String entityId,
     required String documentId,
     required bool isPublic,
-  }) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: entityId,
-        kind: MutationKind.documentVisibility,
-        payload: {
-          'entity_id': entityId,
-          'document_id': documentId,
-          'is_public': isPublic,
-        },
-      );
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: entityId,
+    kind: MutationKind.documentVisibility,
+    payload: {
+      'entity_id': entityId,
+      'document_id': documentId,
+      'is_public': isPublic,
+    },
+  );
 
   // ── Apply* response handlers ───────────────────────────────────────
 
@@ -444,11 +438,14 @@ class RecurringInvoiceRepository
   }) async {
     final realId = serverResponse.id;
     await db.transaction(() async {
-      await db.recurringInvoiceDao
-          .upsert(_apiToCompanion(serverResponse, companyId));
+      await db.recurringInvoiceDao.upsert(
+        _apiToCompanion(serverResponse, companyId),
+      );
       if (realId != tempId) {
-        await db.recurringInvoiceDao
-            .deleteById(companyId: companyId, id: tempId);
+        await db.recurringInvoiceDao.deleteById(
+          companyId: companyId,
+          id: tempId,
+        );
       }
       await recordCreateSuccess(
         companyId: companyId,
@@ -463,8 +460,9 @@ class RecurringInvoiceRepository
     required String companyId,
     required RecurringInvoiceApi serverResponse,
   }) async {
-    await db.recurringInvoiceDao
-        .upsert(_apiToCompanion(serverResponse, companyId));
+    await db.recurringInvoiceDao.upsert(
+      _apiToCompanion(serverResponse, companyId),
+    );
   }
 
   @override
@@ -496,14 +494,12 @@ class RecurringInvoiceRepository
     final next = current.where((d) => d.id != documentId).toList();
     if (next.length == current.length) return;
     await (db.update(db.recurringInvoices)
-          ..where(
-            (e) => e.companyId.equals(companyId) & e.id.equals(entityId),
-          ))
+          ..where((e) => e.companyId.equals(companyId) & e.id.equals(entityId)))
         .write(
-      RecurringInvoicesCompanion(
-        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
-      ),
-    );
+          RecurringInvoicesCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   Future<void> applyDocumentChanged({
@@ -524,14 +520,12 @@ class RecurringInvoiceRepository
       next.add(document);
     }
     await (db.update(db.recurringInvoices)
-          ..where(
-            (e) => e.companyId.equals(companyId) & e.id.equals(entityId),
-          ))
+          ..where((e) => e.companyId.equals(companyId) & e.id.equals(entityId)))
         .write(
-      RecurringInvoicesCompanion(
-        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
-      ),
-    );
+          RecurringInvoicesCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   // ── Conversions ────────────────────────────────────────────────────

@@ -14,17 +14,18 @@ void main() {
     EntityRepositoryContractFixture<Token, TokenApi>.build(
       entityType: 'token',
       buildRepo: (db) => TokenRepository(db: db, api: _FakeTokensApi()),
-      buildApiModel: ({
-        required String id,
-        String? displayValue,
-        int updatedAt = 1700000000,
-      }) => TokenApi(
-        id: id,
-        name: displayValue ?? id,
-        // List/refresh responses come masked (10 chars + 'xxxxxxxxxxx').
-        token: 'cnm1dcvo01xxxxxxxxxxx',
-        updatedAt: updatedAt,
-      ),
+      buildApiModel:
+          ({
+            required String id,
+            String? displayValue,
+            int updatedAt = 1700000000,
+          }) => TokenApi(
+            id: id,
+            name: displayValue ?? id,
+            // List/refresh responses come masked (10 chars + 'xxxxxxxxxxx').
+            token: 'cnm1dcvo01xxxxxxxxxxx',
+            updatedAt: updatedAt,
+          ),
       fromApi: Token.fromApi,
       editCopy: (item, {required String displayValue}) =>
           item.copyWith(name: displayValue),
@@ -109,8 +110,9 @@ void main() {
             ),
           ],
         );
-        final rows =
-            await repo.watchPage(companyId: 'co', loadedPages: 4).first;
+        final rows = await repo
+            .watchPage(companyId: 'co', loadedPages: 4)
+            .first;
         expect(rows.map((t) => t.id).toSet(), {'t_a', 't_b'});
         // Every persisted row should be the masked form.
         expect(rows.every((t) => t.isMasked), isTrue);
@@ -159,82 +161,76 @@ void main() {
       expect(stillDirty.isDirty, isTrue);
     });
 
-    test(
-      'applyCreateResponse broadcasts the raw secret on newSecrets '
-      'AND persists the masked form to Drift',
-      () async {
-        final repo = makeRepo();
+    test('applyCreateResponse broadcasts the raw secret on newSecrets '
+        'AND persists the masked form to Drift', () async {
+      final repo = makeRepo();
 
-        final draft = Token.fromApi(const TokenApi(name: 'My Token'));
-        final stored = (await repo.create(companyId: 'co', draft: draft)).entity;
-        final tempId = stored.id;
+      final draft = Token.fromApi(const TokenApi(name: 'My Token'));
+      final stored = (await repo.create(companyId: 'co', draft: draft)).entity;
+      final tempId = stored.id;
 
-        final firstSecret = repo.newSecrets.first;
+      final firstSecret = repo.newSecrets.first;
 
-        await repo.applyCreateResponse(
-          companyId: 'co',
-          tempId: tempId,
-          serverResponse: const TokenApi(
-            id: 't_real',
-            name: 'My Token',
-            token: 'this-is-the-raw-bearer-secret',
-            userId: 'u_1',
-            updatedAt: 1700000123,
-          ),
-        );
+      await repo.applyCreateResponse(
+        companyId: 'co',
+        tempId: tempId,
+        serverResponse: const TokenApi(
+          id: 't_real',
+          name: 'My Token',
+          token: 'this-is-the-raw-bearer-secret',
+          userId: 'u_1',
+          updatedAt: 1700000123,
+        ),
+      );
 
-        final secret = await firstSecret.timeout(const Duration(seconds: 2));
-        expect(secret.tempId, tempId);
-        expect(secret.secret, 'this-is-the-raw-bearer-secret');
+      final secret = await firstSecret.timeout(const Duration(seconds: 2));
+      expect(secret.tempId, tempId);
+      expect(secret.secret, 'this-is-the-raw-bearer-secret');
 
-        // After applyCreateResponse, the dedicated `token` column holds the
-        // raw secret (temporarily, until the next `/refresh` overwrites it
-        // with the masked form). The crucial invariant is what we *send*:
-        // `Token.toApiJson` strips `token`, so the outbox never echoes the
-        // secret back. Verify the sent shape explicitly.
-        final row = await db.tokenDao
-            .watchById(companyId: 'co', id: 't_real')
-            .first;
-        expect(row, isNotNull);
-        final domain = Token.fromApi(
-          const TokenApi(
-            id: 't_real',
-            name: 'My Token',
-            token: 'this-is-the-raw-bearer-secret',
-            userId: 'u_1',
-          ),
-        );
-        final sentJson = domain.toApiJson(preserveTempId: true);
-        expect(sentJson.containsKey('token'), isFalse);
-        expect(sentJson.containsKey('user_id'), isFalse);
-      },
-    );
+      // After applyCreateResponse, the dedicated `token` column holds the
+      // raw secret (temporarily, until the next `/refresh` overwrites it
+      // with the masked form). The crucial invariant is what we *send*:
+      // `Token.toApiJson` strips `token`, so the outbox never echoes the
+      // secret back. Verify the sent shape explicitly.
+      final row = await db.tokenDao
+          .watchById(companyId: 'co', id: 't_real')
+          .first;
+      expect(row, isNotNull);
+      final domain = Token.fromApi(
+        const TokenApi(
+          id: 't_real',
+          name: 'My Token',
+          token: 'this-is-the-raw-bearer-secret',
+          userId: 'u_1',
+        ),
+      );
+      final sentJson = domain.toApiJson(preserveTempId: true);
+      expect(sentJson.containsKey('token'), isFalse);
+      expect(sentJson.containsKey('user_id'), isFalse);
+    });
 
-    test(
-      'applyCreateResponse does NOT emit on newSecrets when the response '
-      'token is already masked (e.g. a refresh-driven re-create)',
-      () async {
-        final repo = makeRepo();
+    test('applyCreateResponse does NOT emit on newSecrets when the response '
+        'token is already masked (e.g. a refresh-driven re-create)', () async {
+      final repo = makeRepo();
 
-        var emitted = 0;
-        final sub = repo.newSecrets.listen((_) => emitted++);
-        addTearDown(sub.cancel);
+      var emitted = 0;
+      final sub = repo.newSecrets.listen((_) => emitted++);
+      addTearDown(sub.cancel);
 
-        await repo.applyCreateResponse(
-          companyId: 'co',
-          tempId: 'tmp_abc',
-          serverResponse: const TokenApi(
-            id: 't_masked',
-            name: 'Masked',
-            token: 'abc1234567xxxxxxxxxxx',
-            updatedAt: 1700000200,
-          ),
-        );
-        // Give the broadcast stream a tick to deliver if it were going to.
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-        expect(emitted, 0);
-      },
-    );
+      await repo.applyCreateResponse(
+        companyId: 'co',
+        tempId: 'tmp_abc',
+        serverResponse: const TokenApi(
+          id: 't_masked',
+          name: 'Masked',
+          token: 'abc1234567xxxxxxxxxxx',
+          updatedAt: 1700000200,
+        ),
+      );
+      // Give the broadcast stream a tick to deliver if it were going to.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(emitted, 0);
+    });
 
     test(
       '_fromRow overlays is_dirty so an offline create reads as dirty',

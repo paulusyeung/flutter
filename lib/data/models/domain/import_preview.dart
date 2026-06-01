@@ -40,10 +40,7 @@ class ImportPreview {
   /// for column `i`, or -1 / out-of-range when it has no guess.
   final List<int> hints;
 
-  factory ImportPreview.fromJson(
-    Map<String, dynamic> json,
-    String entity,
-  ) {
+  factory ImportPreview.fromJson(Map<String, dynamic> json, String entity) {
     String hash = '';
     final h = json['hash'];
     if (h is String) {

@@ -17,14 +17,16 @@ import 'package:admin/ui/features/bank_accounts/widgets/reconnect_banner.dart'
     show bankReconnectArgs;
 
 BankAccount _acct({required String integrationType, String inst = ''}) =>
-    BankAccount.fromApi(BankAccountApi(
-      integrationType: integrationType,
-      nordigenInstitutionId: inst,
-    ));
+    BankAccount.fromApi(
+      BankAccountApi(
+        integrationType: integrationType,
+        nordigenInstitutionId: inst,
+      ),
+    );
 
 ValueListenable<ApiCredentials?> _creds() => ValueNotifier<ApiCredentials?>(
-      const ApiCredentials(baseUrl: 'https://co.example.com/', token: 't'),
-    );
+  const ApiCredentials(baseUrl: 'https://co.example.com/', token: 't'),
+);
 
 ({ApiClient client, List<Map<String, dynamic>> bodies}) _capture() {
   final bodies = <Map<String, dynamic>>[];
@@ -35,7 +37,9 @@ ValueListenable<ApiCredentials?> _creds() => ValueNotifier<ApiCredentials?>(
     httpClient: MockClient((req) async {
       bodies.add(jsonDecode(req.body) as Map<String, dynamic>);
       return http.Response(
-        jsonEncode({'data': {'hash': 'H'}}),
+        jsonEncode({
+          'data': {'hash': 'H'},
+        }),
         200,
         headers: const {'content-type': 'application/json'},
       );
@@ -52,29 +56,31 @@ void main() {
     });
 
     test('NORDIGEN → nordigen context + its institution id', () {
-      final a =
-          _acct(integrationType: kBankIntegrationNordigen, inst: 'INST_42');
-      expect(
-        bankReconnectArgs(a),
-        (ctx: 'nordigen', institutionId: 'INST_42'),
+      final a = _acct(
+        integrationType: kBankIntegrationNordigen,
+        inst: 'INST_42',
       );
+      expect(bankReconnectArgs(a), (ctx: 'nordigen', institutionId: 'INST_42'));
     });
 
     test('unknown / empty integration type throws (no silent Nordigen)', () {
-      expect(() => bankReconnectArgs(_acct(integrationType: '')),
-          throwsArgumentError);
-      expect(() => bankReconnectArgs(_acct(integrationType: 'GOCARDLESS')),
-          throwsArgumentError);
+      expect(
+        () => bankReconnectArgs(_acct(integrationType: '')),
+        throwsArgumentError,
+      );
+      expect(
+        () => bankReconnectArgs(_acct(integrationType: 'GOCARDLESS')),
+        throwsArgumentError,
+      );
     });
   });
 
   group('Reconnect — oneTimeToken with institution_id (Nordigen)', () {
     test('nordigen reconnect sends institution_id', () async {
       final c = _capture();
-      final hash = await BankAccountsApi(c.client).oneTimeToken(
-        context: 'nordigen',
-        institutionId: 'INST_42',
-      );
+      final hash = await BankAccountsApi(
+        c.client,
+      ).oneTimeToken(context: 'nordigen', institutionId: 'INST_42');
       expect(hash, 'H');
       expect(c.bodies.single['context'], 'nordigen');
       expect(c.bodies.single['platform'], 'flutter');
@@ -83,21 +89,24 @@ void main() {
 
     test('empty / null institutionId omits the key entirely', () async {
       final c = _capture();
-      await BankAccountsApi(c.client)
-          .oneTimeToken(context: 'nordigen', institutionId: '');
+      await BankAccountsApi(
+        c.client,
+      ).oneTimeToken(context: 'nordigen', institutionId: '');
       await BankAccountsApi(c.client).oneTimeToken(context: 'yodlee');
       expect(c.bodies[0].containsKey('institution_id'), isFalse);
       expect(c.bodies[1].containsKey('institution_id'), isFalse);
     });
 
-    test('the existing connect call is unchanged (no institution_id)',
-        () async {
-      // Regression guard: the connect flow still sends exactly
-      // {context, platform} — adding the optional param must not alter it.
-      final c = _capture();
-      await BankAccountsApi(c.client).oneTimeToken(context: 'yodlee');
-      expect(c.bodies.single.keys.toSet(), {'context', 'platform'});
-    });
+    test(
+      'the existing connect call is unchanged (no institution_id)',
+      () async {
+        // Regression guard: the connect flow still sends exactly
+        // {context, platform} — adding the optional param must not alter it.
+        final c = _capture();
+        await BankAccountsApi(c.client).oneTimeToken(context: 'yodlee');
+        expect(c.bodies.single.keys.toSet(), {'context', 'platform'});
+      },
+    );
 
     test('reconnect reuses the same hosted-URL builder as connect', () {
       // Reconnect is "re-trigger connect" — same URL contract per provider.

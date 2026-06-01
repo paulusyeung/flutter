@@ -50,8 +50,7 @@ class ScheduleDao extends DatabaseAccessor<AppDatabase>
     if (search != null && search.isNotEmpty) {
       final needle = '%${search.toLowerCase()}%';
       q.where(
-        (t) =>
-            t.name.lower().like(needle) | t.template.lower().like(needle),
+        (t) => t.name.lower().like(needle) | t.template.lower().like(needle),
       );
     }
 
@@ -141,9 +140,7 @@ class ScheduleDao extends DatabaseAccessor<AppDatabase>
             schedules.id.isIn(candidateIds) &
             schedules.isDirty.equals(true),
       );
-    final dirty = {
-      for (final r in await dirtyQ.get()) r.read(schedules.id)!,
-    };
+    final dirty = {for (final r in await dirtyQ.get()) r.read(schedules.id)!};
     final filtered = [
       for (final entry in byId.entries)
         if (!dirty.contains(entry.key)) entry.value,

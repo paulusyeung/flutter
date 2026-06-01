@@ -57,24 +57,27 @@ class _PaymentLinkFixture
     BaseEntityRepository<PaymentLink, SubscriptionApi> repo, {
     required String companyId,
     required PaymentLink draft,
-  }) => (repo as PaymentLinkRepository)
-      .create(companyId: companyId, draft: draft);
+  }) => (repo as PaymentLinkRepository).create(
+    companyId: companyId,
+    draft: draft,
+  );
 
   @override
   Future<SaveResult<PaymentLink>> save(
     BaseEntityRepository<PaymentLink, SubscriptionApi> repo, {
     required String companyId,
     required PaymentLink entity,
-  }) => (repo as PaymentLinkRepository)
-      .save(companyId: companyId, paymentLink: entity);
+  }) => (repo as PaymentLinkRepository).save(
+    companyId: companyId,
+    paymentLink: entity,
+  );
 
   @override
   Future<void> delete(
     BaseEntityRepository<PaymentLink, SubscriptionApi> repo, {
     required String companyId,
     required String id,
-  }) =>
-      (repo as PaymentLinkRepository).delete(companyId: companyId, id: id);
+  }) => (repo as PaymentLinkRepository).delete(companyId: companyId, id: id);
 }
 
 void main() {
@@ -93,33 +96,43 @@ void main() {
     PaymentLinkRepository makeRepo() =>
         PaymentLinkRepository(db: db, api: _FakeSubscriptionsApi());
 
-    test('webhook_configuration headers round-trip through Drift save→load',
-        () async {
-      final repo = makeRepo();
-      final draft = emptyPaymentLink().copyWith(
-        name: 'Hooked',
-        webhookConfiguration: const PaymentLinkWebhook(
-          returnUrl: 'https://example.test/return',
-          postPurchaseUrl: 'https://example.test/hook',
-          postPurchaseRestMethod: 'post',
-          postPurchaseHeaders: {'X-Custom': 'value', 'Authorization': 'Bearer'},
-          postPurchaseBody: 'legacy-body',
-        ),
-      );
-      final created = (await repo.create(companyId: 'co', draft: draft)).entity;
-      final reloaded = await repo
-          .watch(companyId: 'co', id: created.id)
-          .first;
-      expect(reloaded, isNotNull);
-      expect(reloaded!.webhookConfiguration.postPurchaseUrl,
-          'https://example.test/hook');
-      expect(reloaded.webhookConfiguration.postPurchaseRestMethod, 'post');
-      expect(
-        reloaded.webhookConfiguration.postPurchaseHeaders,
-        {'X-Custom': 'value', 'Authorization': 'Bearer'},
-      );
-      expect(reloaded.webhookConfiguration.postPurchaseBody, 'legacy-body');
-    });
+    test(
+      'webhook_configuration headers round-trip through Drift save→load',
+      () async {
+        final repo = makeRepo();
+        final draft = emptyPaymentLink().copyWith(
+          name: 'Hooked',
+          webhookConfiguration: const PaymentLinkWebhook(
+            returnUrl: 'https://example.test/return',
+            postPurchaseUrl: 'https://example.test/hook',
+            postPurchaseRestMethod: 'post',
+            postPurchaseHeaders: {
+              'X-Custom': 'value',
+              'Authorization': 'Bearer',
+            },
+            postPurchaseBody: 'legacy-body',
+          ),
+        );
+        final created = (await repo.create(
+          companyId: 'co',
+          draft: draft,
+        )).entity;
+        final reloaded = await repo
+            .watch(companyId: 'co', id: created.id)
+            .first;
+        expect(reloaded, isNotNull);
+        expect(
+          reloaded!.webhookConfiguration.postPurchaseUrl,
+          'https://example.test/hook',
+        );
+        expect(reloaded.webhookConfiguration.postPurchaseRestMethod, 'post');
+        expect(reloaded.webhookConfiguration.postPurchaseHeaders, {
+          'X-Custom': 'value',
+          'Authorization': 'Bearer',
+        });
+        expect(reloaded.webhookConfiguration.postPurchaseBody, 'legacy-body');
+      },
+    );
 
     test('steps comma-joined string round-trips through Drift', () async {
       final repo = makeRepo();
@@ -128,9 +141,7 @@ void main() {
         steps: 'auth.login,cart,custom.confirmation',
       );
       final created = (await repo.create(companyId: 'co', draft: draft)).entity;
-      final reloaded = await repo
-          .watch(companyId: 'co', id: created.id)
-          .first;
+      final reloaded = await repo.watch(companyId: 'co', id: created.id).first;
       expect(reloaded?.steps, 'auth.login,cart,custom.confirmation');
     });
 
@@ -141,9 +152,7 @@ void main() {
         planMap: 'opaque-internal-blob',
       );
       final created = (await repo.create(companyId: 'co', draft: draft)).entity;
-      final reloaded = await repo
-          .watch(companyId: 'co', id: created.id)
-          .first;
+      final reloaded = await repo.watch(companyId: 'co', id: created.id).first;
       expect(reloaded?.planMap, 'opaque-internal-blob');
     });
 
@@ -190,16 +199,8 @@ void main() {
       await repo.applyBundle(
         companyId: 'co',
         bundle: const [
-          SubscriptionApi(
-            id: 's_a',
-            name: 'Plan A',
-            updatedAt: 1700000100,
-          ),
-          SubscriptionApi(
-            id: 's_b',
-            name: 'Plan B',
-            updatedAt: 1700000300,
-          ),
+          SubscriptionApi(id: 's_a', name: 'Plan A', updatedAt: 1700000100),
+          SubscriptionApi(id: 's_b', name: 'Plan B', updatedAt: 1700000300),
         ],
       );
       final rows = await repo.watchPage(companyId: 'co').first;
@@ -252,8 +253,7 @@ void main() {
 
       // Local save (simulates an offline edit). The payload column now
       // carries `toApiJson(preserveTempId: true)`.
-      final loaded =
-          await repo.watch(companyId: 'co', id: 's_existing').first;
+      final loaded = await repo.watch(companyId: 'co', id: 's_existing').first;
       await repo.save(
         companyId: 'co',
         paymentLink: loaded!.copyWith(name: 'Edited'),

@@ -15,10 +15,10 @@ class BankAccountEditViewModel extends GenericEditViewModel<BankAccount> {
     super.sync,
     super.connectivity,
   }) : super(
-          initialDraft: existing ?? _emptyAccount(),
-          original: existing,
-          companyId: companyId,
-        );
+         initialDraft: existing ?? _emptyAccount(),
+         original: existing,
+         companyId: companyId,
+       );
 
   final BankAccountRepository repo;
   final String companyId;

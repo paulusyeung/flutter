@@ -12,10 +12,10 @@ class WebhookEditViewModel extends GenericEditViewModel<Webhook> {
     super.sync,
     super.connectivity,
   }) : super(
-          initialDraft: existing ?? _emptyWebhook(),
-          original: existing,
-          companyId: companyId,
-        );
+         initialDraft: existing ?? _emptyWebhook(),
+         original: existing,
+         companyId: companyId,
+       );
 
   final WebhookRepository repo;
   final String companyId;

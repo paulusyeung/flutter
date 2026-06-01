@@ -127,8 +127,7 @@ extension EmailStatementParametersAccess on Schedule {
 }
 
 extension EmailRecordParametersAccess on Schedule {
-  String get recordEntityType =>
-      (parameters['entity'] as String?) ?? 'invoice';
+  String get recordEntityType => (parameters['entity'] as String?) ?? 'invoice';
 
   String get recordEntityId => (parameters['entity_id'] as String?) ?? '';
 
@@ -138,8 +137,7 @@ extension EmailRecordParametersAccess on Schedule {
 }
 
 extension EmailReportParametersAccess on Schedule {
-  String get reportName =>
-      (parameters['report_name'] as String?) ?? 'activity';
+  String get reportName => (parameters['report_name'] as String?) ?? 'activity';
 
   String get reportDateRange =>
       (parameters['date_range'] as String?) ?? 'last7_days';
@@ -204,7 +202,8 @@ extension InvoiceOutstandingTasksParametersAccess on Schedule {
   bool get outstandingTasksIncludeProjectTasks =>
       (parameters['include_project_tasks'] as bool?) ?? false;
 
-  List<String> get outstandingTasksClients => _stringList(parameters['clients']);
+  List<String> get outstandingTasksClients =>
+      _stringList(parameters['clients']);
 }
 
 extension PaymentScheduleParametersAccess on Schedule {
@@ -360,9 +359,11 @@ List<String> _csvOrList(Object? raw) {
   if (raw is String) {
     final s = raw.trim();
     if (s.isEmpty) return const <String>[];
-    return s.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(
-      growable: false,
-    );
+    return s
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList(growable: false);
   }
   return const <String>[];
 }

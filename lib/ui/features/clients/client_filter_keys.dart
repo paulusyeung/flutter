@@ -173,7 +173,6 @@ List<FilterKey> buildClientFilterKeys({
   ];
 }
 
-
 /// `country:US` — multi-valued, suggestions come from the cached statics
 /// bundle. Raw value is the Invoice Ninja numeric country id (e.g. `"840"`
 /// for US); the chip renders the country name. Paste-friendly: accepts

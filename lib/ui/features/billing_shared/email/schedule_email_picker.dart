@@ -19,10 +19,8 @@ Future<DateTime?> showScheduleEmailPicker(
 }) {
   return showDialog<DateTime>(
     context: context,
-    builder: (_) => _ScheduleEmailDialog(
-      formatter: formatter,
-      initial: initial,
-    ),
+    builder: (_) =>
+        _ScheduleEmailDialog(formatter: formatter, initial: initial),
   );
 }
 
@@ -43,7 +41,8 @@ class _ScheduleEmailDialogState extends State<_ScheduleEmailDialog> {
   @override
   void initState() {
     super.initState();
-    final start = widget.initial ?? DateTime.now().add(const Duration(hours: 1));
+    final start =
+        widget.initial ?? DateTime.now().add(const Duration(hours: 1));
     _date = DateTime(start.year, start.month, start.day);
     _time = TimeOfDay(hour: start.hour, minute: start.minute);
   }
@@ -94,9 +93,7 @@ class _ScheduleEmailDialogState extends State<_ScheduleEmailDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(64, 40),
-              ),
+              style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
               onPressed: () => Navigator.of(context).pop(),
               child: Text(context.tr('cancel')),
             ),

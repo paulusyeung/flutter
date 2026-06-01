@@ -38,9 +38,8 @@ abstract class BankAccountApi with _$BankAccountApi {
 /// `GET /bank_integrations` envelope.
 @freezed
 abstract class BankAccountListApi with _$BankAccountListApi {
-  const factory BankAccountListApi({
-    @Default([]) List<BankAccountApi> data,
-  }) = _BankAccountListApi;
+  const factory BankAccountListApi({@Default([]) List<BankAccountApi> data}) =
+      _BankAccountListApi;
 
   factory BankAccountListApi.fromJson(Map<String, dynamic> json) =>
       _$BankAccountListApiFromJson(json);

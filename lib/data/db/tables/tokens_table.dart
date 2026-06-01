@@ -15,8 +15,7 @@ class Tokens extends Table
         EntityTimestampColumns,
         EntityFlagColumns,
         EntityPayloadColumn {
-  TextColumn get name =>
-      text().named('name').withDefault(const Constant(''))();
+  TextColumn get name => text().named('name').withDefault(const Constant(''))();
   TextColumn get userId =>
       text().named('user_id').withDefault(const Constant(''))();
   TextColumn get token =>

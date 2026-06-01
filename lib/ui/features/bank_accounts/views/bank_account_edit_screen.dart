@@ -29,10 +29,7 @@ class BankAccountEditScreen extends StatelessWidget {
     final companyId = services.auth.session.value?.currentCompanyId ?? '';
     final repo = services.bankAccounts;
 
-    return SettingsEntityEditScaffold<
-      BankAccount,
-      BankAccountEditViewModel
-    >(
+    return SettingsEntityEditScaffold<BankAccount, BankAccountEditViewModel>(
       existingId: existingId,
       backRoute: '/settings/bank_accounts',
       createTitleKey: 'new_bank_account',
@@ -87,4 +84,3 @@ class BankAccountEditScreen extends StatelessWidget {
     );
   }
 }
-

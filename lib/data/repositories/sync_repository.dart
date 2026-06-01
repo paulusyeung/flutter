@@ -485,10 +485,11 @@ class SyncRepository {
     // `nextAttempt` is the count of attempts including this one (1, 2, 3, …);
     // the schedule is the wait BEFORE attempt N+1, so index by `nextAttempt - 1`
     // — first failure (nextAttempt=1) uses kBackoffSchedule[0] = 5s, etc.
-    final delay = kBackoffSchedule[(nextAttempt - 1).clamp(
-      0,
-      kBackoffSchedule.length - 1,
-    )];
+    final delay =
+        kBackoffSchedule[(nextAttempt - 1).clamp(
+          0,
+          kBackoffSchedule.length - 1,
+        )];
     await db.outboxDao.scheduleRetry(
       id: row.id,
       attempts: nextAttempt,

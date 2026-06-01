@@ -18,11 +18,7 @@ import 'package:admin/utils/formatting.dart';
 ///   * **Remaining** — `draft.amount - net`. Negative means the user has
 ///     over-allocated relative to the payment amount they typed.
 class PaymentAllocationsFooter extends StatelessWidget {
-  const PaymentAllocationsFooter({
-    super.key,
-    required this.vm,
-    this.formatter,
-  });
+  const PaymentAllocationsFooter({super.key, required this.vm, this.formatter});
 
   final PaymentEditViewModel vm;
   final Formatter? formatter;
@@ -62,16 +58,13 @@ class PaymentAllocationsFooter extends StatelessWidget {
             leading: overCredited
                 ? Icon(Icons.error_outline, color: errorColor, size: 16)
                 : null,
-            tooltip: overCredited
-                ? context.tr('credit_payment_error')
-                : null,
+            tooltip: overCredited ? context.tr('credit_payment_error') : null,
           ),
           if (hasAnyAllocation)
             _Cell(
               label: context.tr('credit'),
               value: _fmt(creditTotal),
-              valueColor:
-                  creditTotal > Decimal.zero ? tokens.ink : tokens.ink3,
+              valueColor: creditTotal > Decimal.zero ? tokens.ink : tokens.ink3,
             ),
           if (vm.draft.amount > Decimal.zero)
             _Cell(
@@ -110,14 +103,8 @@ class _Cell extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        if (leading != null) ...[
-          leading!,
-          const SizedBox(width: 4),
-        ],
-        Text(
-          '$label ',
-          style: TextStyle(color: tokens.ink3, fontSize: 12),
-        ),
+        if (leading != null) ...[leading!, const SizedBox(width: 4)],
+        Text('$label ', style: TextStyle(color: tokens.ink3, fontSize: 12)),
         Text(
           value,
           style: TextStyle(

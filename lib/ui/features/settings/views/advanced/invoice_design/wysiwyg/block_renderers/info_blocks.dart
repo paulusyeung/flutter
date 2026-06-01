@@ -25,7 +25,8 @@ class InfoBlock extends StatelessWidget {
     final color = parseCssColor(props['color'] as String?);
     final fontSize = parsePx(props['fontSize']) ?? 12;
     final align = parseTextAlign(props['align'] as String?);
-    final lineHeight = parsePx(props['lineHeight']) ??
+    final lineHeight =
+        parsePx(props['lineHeight']) ??
         double.tryParse((props['lineHeight'] as String?) ?? '') ??
         1.3;
     final showTitle = props['showTitle'] as bool? ?? false;
@@ -66,8 +67,7 @@ class InfoBlock extends StatelessWidget {
         textAlign: align,
         style: TextStyle(
           fontSize: parsePx(props['titleFontSize']) ?? 13,
-          fontWeight:
-              parseFontWeight(props['titleFontWeight'] as String?),
+          fontWeight: parseFontWeight(props['titleFontWeight'] as String?),
           fontStyle: parseFontStyle(props['titleFontStyle'] as String?),
           color: parseCssColor(
             props['titleColor'] as String?,
@@ -79,10 +79,10 @@ class InfoBlock extends StatelessWidget {
   }
 
   CrossAxisAlignment _crossFor(TextAlign a) => switch (a) {
-        TextAlign.center => CrossAxisAlignment.center,
-        TextAlign.right => CrossAxisAlignment.end,
-        _ => CrossAxisAlignment.start,
-      };
+    TextAlign.center => CrossAxisAlignment.center,
+    TextAlign.right => CrossAxisAlignment.end,
+    _ => CrossAxisAlignment.start,
+  };
 }
 
 class _FieldRow extends StatelessWidget {
@@ -117,7 +117,8 @@ class _FieldRow extends StatelessWidget {
     // back to `labelStyle` when only the label side has overrides so
     // editing either cell visibly affects the row.
     final cell = resolveCellTypography(
-      subMap: cellStyleMap(field, 'valueStyle') ??
+      subMap:
+          cellStyleMap(field, 'valueStyle') ??
           cellStyleMap(field, 'labelStyle'),
       field: field,
       blockFontSize: fontSize,
@@ -169,7 +170,8 @@ class InvoiceDetailsBlock extends StatelessWidget {
     final gap = parsePx(props['labelValueGap']) ?? 12;
     final rowSpacing = parsePx(props['rowSpacing']) ?? 0;
     final showLabels = props['showLabels'] as bool? ?? true;
-    final lineHeight = parsePx(props['lineHeight']) ??
+    final lineHeight =
+        parsePx(props['lineHeight']) ??
         double.tryParse((props['lineHeight'] as String?) ?? '') ??
         1.3;
 
@@ -192,7 +194,9 @@ class InvoiceDetailsBlock extends StatelessWidget {
               context.tr,
             );
 
-      final pad = EdgeInsets.only(bottom: i == fields.length - 1 ? 0 : rowSpacing);
+      final pad = EdgeInsets.only(
+        bottom: i == fields.length - 1 ? 0 : rowSpacing,
+      );
       // Per-row cascade — labelStyle on label cell, valueStyle on value
       // cell, with block-level fontSize / color as fallback. Mirrors
       // React's `BlockRenderer.tsx` invoice-details branch.

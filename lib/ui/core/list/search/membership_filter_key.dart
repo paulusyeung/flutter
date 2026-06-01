@@ -87,10 +87,8 @@ abstract class MembershipFilterKey extends FilterKey {
 
   /// Clear the whole membership set in one VM write.
   @override
-  Future<void> clear(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-  ) => writeSingleExtraFilter(vm, serverKey, null);
+  Future<void> clear(GenericListViewModel<dynamic> vm, BuildContext context) =>
+      writeSingleExtraFilter(vm, serverKey, null);
 }
 
 /// Union [value] into the existing set at `vm.extraFilters[serverKey]`.

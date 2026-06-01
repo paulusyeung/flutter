@@ -15,11 +15,7 @@ import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg
 /// `padding`, plus an **insert variable** affordance next to the content
 /// editor — mirroring React's `TextBlockProperties.tsx`.
 class TextBlockProperties extends StatefulWidget {
-  const TextBlockProperties({
-    super.key,
-    required this.vm,
-    required this.block,
-  });
+  const TextBlockProperties({super.key, required this.vm, required this.block});
 
   final WysiwygDesignViewModel vm;
   final DesignBlock block;
@@ -68,8 +64,7 @@ class _TextBlockPropertiesState extends State<TextBlockProperties> {
   void _write(String key, Object? value) {
     widget.vm.updateBlock(
       widget.block.copyWith(
-        properties:
-            mergePropertyOrOmit(widget.block.properties, key, value),
+        properties: mergePropertyOrOmit(widget.block.properties, key, value),
       ),
     );
   }

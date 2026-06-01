@@ -34,8 +34,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   final Set<String> _selected = <String>{};
 
   void _toggle(String id) => setState(() {
-        if (!_selected.remove(id)) _selected.add(id);
-      });
+    if (!_selected.remove(id)) _selected.add(id);
+  });
 
   void _clearSelection() => setState(_selected.clear);
 
@@ -56,17 +56,13 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           content: Text(ctx.tr('are_you_sure')),
           actions: [
             OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(64, 40),
-              ),
+              style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
               onPressed: () => Navigator.of(ctx).pop(false),
               child: Text(ctx.tr('cancel')),
             ),
             FilledButton(
               autofocus: true,
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(64, 44),
-              ),
+              style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
               onPressed: () => Navigator.of(ctx).pop(true),
               child: Text(ctx.tr('delete')),
             ),
@@ -355,8 +351,8 @@ class _UserRow extends StatelessWidget {
     final roleKey = user.companyUser.isOwner
         ? 'owner'
         : user.companyUser.isAdmin
-            ? 'administrator'
-            : 'user';
+        ? 'administrator'
+        : 'user';
     final subtitle = user.email.isNotEmpty ? user.email : user.phone;
 
     return ListTile(
@@ -390,7 +386,8 @@ class _UserRow extends StatelessWidget {
         spacing: 8,
         children: [
           _Badge(labelKey: roleKey),
-          if (user.isPending) _Badge(labelKey: 'pending_invite', tone: _BadgeTone.warning),
+          if (user.isPending)
+            _Badge(labelKey: 'pending_invite', tone: _BadgeTone.warning),
           if (isArchived) _Badge(labelKey: 'archived', tone: _BadgeTone.muted),
           if (!selectionActive) const Icon(Icons.chevron_right, size: 18),
         ],

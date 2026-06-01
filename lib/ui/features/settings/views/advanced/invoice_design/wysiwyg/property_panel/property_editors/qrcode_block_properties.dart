@@ -24,14 +24,22 @@ class QrcodeBlockProperties extends StatelessWidget {
   // QR preset types — the five React supports. Each entry maps the
   // user-facing label key to the template variable that ultimately
   // resolves into the QR's `data` payload.
-  static const List<({String type, String label, String variable})>
-      _kPresets = [
-    (type: 'payment_link', label: 'payment_link', variable: r'$payment_qrcode'),
-    (type: 'sepa', label: 'sepa_qr_code', variable: r'$sepa_qr_code'),
-    (type: 'swiss', label: 'swiss_qr_bill', variable: r'$swiss_qr'),
-    (type: 'spc', label: 'spc_qr_code', variable: r'$spc_qr_code'),
-    (type: 'verifactu', label: 'verifactu_qr_code', variable: r'$verifactu_qr_code'),
-  ];
+  static const List<({String type, String label, String variable})> _kPresets =
+      [
+        (
+          type: 'payment_link',
+          label: 'payment_link',
+          variable: r'$payment_qrcode',
+        ),
+        (type: 'sepa', label: 'sepa_qr_code', variable: r'$sepa_qr_code'),
+        (type: 'swiss', label: 'swiss_qr_bill', variable: r'$swiss_qr'),
+        (type: 'spc', label: 'spc_qr_code', variable: r'$spc_qr_code'),
+        (
+          type: 'verifactu',
+          label: 'verifactu_qr_code',
+          variable: r'$verifactu_qr_code',
+        ),
+      ];
 
   void _setPreset(({String type, String label, String variable}) preset) {
     final next = Map<String, dynamic>.from(block.properties);
@@ -50,7 +58,8 @@ class QrcodeBlockProperties extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentType = (block.properties['qrType'] as String?) ?? 'payment_link';
+    final currentType =
+        (block.properties['qrType'] as String?) ?? 'payment_link';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

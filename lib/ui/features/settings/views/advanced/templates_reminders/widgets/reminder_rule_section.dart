@@ -58,7 +58,8 @@ class _ScheduledRuleSection extends StatelessWidget {
   final String currencyId;
 
   bool get _isQuote => template.key == 'quote_reminder1';
-  String get _enableKey => _isQuote ? 'enable_quote_reminder1' : 'enable_${template.key}';
+  String get _enableKey =>
+      _isQuote ? 'enable_quote_reminder1' : 'enable_${template.key}';
   String get _daysKey =>
       _isQuote ? 'quote_num_days_reminder1' : 'num_days_${template.key}';
   String get _scheduleKey =>
@@ -75,7 +76,8 @@ class _ScheduledRuleSection extends StatelessWidget {
     return 'late_fee_percent$n';
   }
 
-  String get _defaultSchedule => _isQuote ? 'after_quote_date' : 'after_invoice_date';
+  String get _defaultSchedule =>
+      _isQuote ? 'after_quote_date' : 'after_invoice_date';
 
   List<DropdownMenuItem<String>> _scheduleItems(BuildContext context) {
     if (_isQuote) {
@@ -129,8 +131,7 @@ class _ScheduledRuleSection extends StatelessWidget {
           apiKey: _scheduleKey,
           value: schedule,
           items: _scheduleItems(context),
-          onChanged: (v) =>
-              host.updateSettings((s) => _writeSchedule(s, v)),
+          onChanged: (v) => host.updateSettings((s) => _writeSchedule(s, v)),
         ),
         OverridableCurrencyField(
           label: context.tr('late_fee_amount'),
@@ -218,8 +219,9 @@ class _EndlessRuleSection extends StatelessWidget {
                 child: Text(context.tr(entry.$2)),
               ),
           ],
-          onChanged: (v) =>
-              host.updateSettings((s) => s.copyWith(endlessReminderFrequencyId: v)),
+          onChanged: (v) => host.updateSettings(
+            (s) => s.copyWith(endlessReminderFrequencyId: v),
+          ),
         ),
       ],
     );

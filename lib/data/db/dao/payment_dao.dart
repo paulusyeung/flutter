@@ -118,7 +118,8 @@ class PaymentDao extends BaseEntityDao<$PaymentsTable, PaymentRow>
       // The two virtual statuses (`-1` / `-2`) translate to a balance
       // predicate on `applied < amount` since the server never persists
       // them. Strip them out of the IN clause and OR in the predicate.
-      final hasVirtual = statusIds.contains(kPaymentStatusUnapplied) ||
+      final hasVirtual =
+          statusIds.contains(kPaymentStatusUnapplied) ||
           statusIds.contains(kPaymentStatusPartiallyUnapplied);
       final persisted = statusIds
           .where(
@@ -138,9 +139,11 @@ class PaymentDao extends BaseEntityDao<$PaymentsTable, PaymentRow>
           // gate `Payment.calculatedStatusId` enforces. Without this filter,
           // pending / failed / cancelled rows with `applied < amount`
           // (which is just the normal pre-completion state) would leak in.
-          final completedish = p.statusId.equals(kPaymentStatusCompleted) |
+          final completedish =
+              p.statusId.equals(kPaymentStatusCompleted) |
               p.statusId.equals(kPaymentStatusPartiallyRefunded);
-          final unapplied = completedish &
+          final unapplied =
+              completedish &
               p.amount.cast<double>().isBiggerThan(p.applied.cast<double>());
           clause = clause == null ? unapplied : clause | unapplied;
         }
@@ -150,8 +153,7 @@ class PaymentDao extends BaseEntityDao<$PaymentsTable, PaymentRow>
 
     if (hasUnappliedFundsOnly) {
       q.where(
-        (p) =>
-            p.amount.cast<double>().isBiggerThan(p.applied.cast<double>()),
+        (p) => p.amount.cast<double>().isBiggerThan(p.applied.cast<double>()),
       );
     }
 

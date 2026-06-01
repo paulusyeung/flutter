@@ -33,7 +33,8 @@ class RecurringInvoiceDetailScreen extends StatefulWidget {
 }
 
 class _RecurringInvoiceDetailScreenState
-    extends State<RecurringInvoiceDetailScreen> with FormatterHostMixin {
+    extends State<RecurringInvoiceDetailScreen>
+    with FormatterHostMixin {
   late final RecurringInvoiceDetailViewModel _vm;
   late final Services _services;
   late final String _companyId;
@@ -63,18 +64,18 @@ class _RecurringInvoiceDetailScreenState
       emptyTitle: context.tr('recurring_invoice_not_found'),
       actionsForItem: (context, ri) =>
           EntityDetailActionsRow<RecurringInvoiceAction>(
-        items: RecurringInvoiceActions.itemsFor(
-          context,
-          ri,
-          (a) => RecurringInvoiceActions.dispatch(
-            context,
-            _services,
-            _companyId,
-            ri,
-            a,
+            items: RecurringInvoiceActions.itemsFor(
+              context,
+              ri,
+              (a) => RecurringInvoiceActions.dispatch(
+                context,
+                _services,
+                _companyId,
+                ri,
+                a,
+              ),
+            ),
           ),
-        ),
-      ),
       bodyBuilder: (context, ri) => _Body(
         recurringInvoice: ri,
         services: _services,
@@ -99,8 +100,8 @@ class _Body extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = Breakpoints.isWide(constraints) &&
-            constraints.maxWidth >= 900;
+        final wide =
+            Breakpoints.isWide(constraints) && constraints.maxWidth >= 900;
         final main = SingleChildScrollView(
           padding: EdgeInsets.all(InSpacing.lg(context)),
           child: Column(
@@ -182,8 +183,7 @@ class _Body extends StatelessWidget {
                       entityId: recurringInvoice.id,
                       invitations: recurringInvoice.invitations,
                       clientId: recurringInvoice.clientId,
-                      isHosted:
-                          services.auth.session.value?.isHosted ?? false,
+                      isHosted: services.auth.session.value?.isHosted ?? false,
                       onReactivate: (messageId) =>
                           services.recurringInvoices.reactivateInvitationEmail(
                             companyId: companyId,
@@ -268,10 +268,7 @@ class _Header extends StatelessWidget {
               if (recurringInvoice.frequencyId.isNotEmpty)
                 _LabelValue(
                   label: context.tr('frequency'),
-                  value: _frequencyLabel(
-                    context,
-                    recurringInvoice.frequencyId,
-                  ),
+                  value: _frequencyLabel(context, recurringInvoice.frequencyId),
                 ),
               if (recurringInvoice.nextSendDate != null)
                 _LabelValue(
@@ -348,12 +345,13 @@ class _PdfPane extends StatelessWidget {
       entityNumber: recurringInvoice.number,
       fetcher: ({String? designId, required bool deliveryNote}) =>
           services.recurringInvoices.api.downloadPdf(
-        entityJson: recurringInvoice.toApiJson(),
-        designId: designId ??
-            (recurringInvoice.designId.isEmpty
-                ? null
-                : recurringInvoice.designId),
-      ),
+            entityJson: recurringInvoice.toApiJson(),
+            designId:
+                designId ??
+                (recurringInvoice.designId.isEmpty
+                    ? null
+                    : recurringInvoice.designId),
+          ),
     );
   }
 }

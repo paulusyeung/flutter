@@ -72,8 +72,9 @@ void main() {
     // Loose RFC4122-v4 shape: 8-4-4-4-12 hex blocks after the prefix.
     final uuidPart = id.substring('logo-'.length);
     expect(
-      RegExp(r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$')
-          .hasMatch(uuidPart),
+      RegExp(
+        r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+      ).hasMatch(uuidPart),
       isTrue,
       reason: 'unexpected uuid shape: $uuidPart',
     );
@@ -100,7 +101,8 @@ void main() {
         reason: '$type missing rowBorders',
       );
       final sides =
-          (spec.defaultProperties['headerBorders'] as Map<String, dynamic>)['sides']
+          (spec.defaultProperties['headerBorders']
+                  as Map<String, dynamic>)['sides']
               as Map<String, dynamic>;
       expect(sides['top'], isTrue);
       expect(sides['right'], isTrue);
@@ -115,15 +117,22 @@ void main() {
     expect(items, hasLength(6));
     for (final raw in items) {
       final item = raw as Map<String, dynamic>;
-      expect(item['show'], isTrue, reason: 'item ${item['label']} missing show:true');
+      expect(
+        item['show'],
+        isTrue,
+        reason: 'item ${item['label']} missing show:true',
+      );
     }
   });
 
   group('blockSpecFor (Phase 15a const map)', () {
     test('every kBlockLibrary type resolves to its own spec', () {
       for (final spec in kBlockLibrary) {
-        expect(identical(blockSpecFor(spec.type), spec), isTrue,
-            reason: 'spec ${spec.type} should be looked up by id');
+        expect(
+          identical(blockSpecFor(spec.type), spec),
+          isTrue,
+          reason: 'spec ${spec.type} should be looked up by id',
+        );
       }
     });
 

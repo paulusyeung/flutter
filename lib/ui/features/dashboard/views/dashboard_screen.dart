@@ -173,8 +173,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   /// preset — sending a `date >=` lower bound then adds nothing.
   bool get _isAllTimeRange {
     final r = _vm.filter.range;
-    return r is DashboardPresetRange &&
-        r.preset == DashboardDatePreset.allTime;
+    return r is DashboardPresetRange && r.preset == DashboardDatePreset.allTime;
   }
 
   /// "Needs Your Attention" / pastDue → invoices with `overdue=true`,
@@ -189,10 +188,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   /// Upcoming invoices panel is a plain `GET /invoices` sorted by due date
   /// ascending — match the ordering, no status filter.
-  ListFilterIntent get _upcomingInvoicesIntent => ListFilterIntent(
-    sortField: _dueDateColumnId,
-    sortAscending: true,
-  );
+  ListFilterIntent get _upcomingInvoicesIntent =>
+      ListFilterIntent(sortField: _dueDateColumnId, sortAscending: true);
 
   /// Expired quotes → `client_status=expired` (server-backed, same param
   /// the panel uses).

@@ -160,7 +160,9 @@ class _ItemCard extends StatelessWidget {
         formatter?.money(d, zeroIsNull: false) ?? d.toString();
     final gross = item.gross;
     final identity = item.productKey.isEmpty
-        ? (item.notes.isEmpty ? context.tr('untitled') : item.notes.split('\n').first)
+        ? (item.notes.isEmpty
+              ? context.tr('untitled')
+              : item.notes.split('\n').first)
         : item.productKey;
     final detail = '${fmt(item.cost)} × ${item.quantity}';
     return Container(
@@ -182,11 +184,7 @@ class _ItemCard extends StatelessWidget {
             children: [
               ReorderableDragStartListener(
                 index: index,
-                child: Icon(
-                  Icons.drag_indicator,
-                  color: tokens.ink3,
-                  size: 20,
-                ),
+                child: Icon(Icons.drag_indicator, color: tokens.ink3, size: 20),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -232,4 +230,3 @@ class _ItemCard extends StatelessWidget {
     );
   }
 }
-

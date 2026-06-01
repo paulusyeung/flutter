@@ -84,10 +84,7 @@ class PaymentAllocationCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         '${context.tr('balance')} ${formatter == null ? target.balance.toString() : formatter!.money(target.balance)}',
-                        style: TextStyle(
-                          color: tokens.ink3,
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: tokens.ink3, fontSize: 12),
                       ),
                     ],
                   ],

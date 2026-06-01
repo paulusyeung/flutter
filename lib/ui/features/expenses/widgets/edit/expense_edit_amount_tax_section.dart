@@ -49,13 +49,14 @@ class _ExpenseEditAmountTaxSectionState
     return StreamBuilder<Company?>(
       stream: services.company.watchCompany(vm.companyId),
       builder: (context, snapshot) {
-        final companyEnabled =
-            (snapshot.data?.enabledExpenseTaxRates ?? 0).clamp(0, 3);
+        final companyEnabled = (snapshot.data?.enabledExpenseTaxRates ?? 0)
+            .clamp(0, 3);
         final draftPopulated = _draftPopulated(vm.draft);
         // Lock in the initial visible count on first build; user-added
         // rows survive subsequent rebuilds.
-        _visibleTaxRows ??=
-            companyEnabled > draftPopulated ? companyEnabled : draftPopulated;
+        _visibleTaxRows ??= companyEnabled > draftPopulated
+            ? companyEnabled
+            : draftPopulated;
         final visible = _visibleTaxRows!;
         final canAdd = visible < 3;
         return _build(context, vm, visible, canAdd);

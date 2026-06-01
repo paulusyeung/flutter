@@ -14,13 +14,8 @@ const kReportDefinitions = <ReportDefinition>[
     icon: EntityType.user,
     requiredPermission: 'view_reports',
     supportsPreview: false,
-    filterFields: [
-      ReportFilterField.dateRange,
-      ReportFilterField.activityType,
-    ],
-    defaultFilterValues: {
-      'date_range': 'all',
-    },
+    filterFields: [ReportFilterField.dateRange, ReportFilterField.activityType],
+    defaultFilterValues: {'date_range': 'all'},
   ),
   ReportDefinition(
     identifier: 'client',
@@ -60,10 +55,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.dateColumn,
       ReportFilterField.includeDeleted,
     ],
-    defaultFilterValues: {
-      'date_range': 'all',
-      'date_key': 'created_at',
-    },
+    defaultFilterValues: {'date_range': 'all', 'date_key': 'created_at'},
   ),
   ReportDefinition(
     identifier: 'credit',
@@ -78,10 +70,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.clientsMulti,
       ReportFilterField.includeDeleted,
     ],
-    defaultFilterValues: {
-      'date_range': 'all',
-      'date_key': 'created_at',
-    },
+    defaultFilterValues: {'date_range': 'all', 'date_key': 'created_at'},
   ),
   ReportDefinition(
     identifier: 'document',
@@ -93,9 +82,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.dateRange,
       ReportFilterField.includeDeleted,
     ],
-    defaultFilterValues: {
-      'date_range': 'all',
-    },
+    defaultFilterValues: {'date_range': 'all'},
   ),
   ReportDefinition(
     identifier: 'expense',
@@ -112,10 +99,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.projectsMulti,
       ReportFilterField.includeDeleted,
     ],
-    defaultFilterValues: {
-      'date_range': 'all',
-      'date_key': 'date',
-    },
+    defaultFilterValues: {'date_range': 'all', 'date_key': 'date'},
   ),
   ReportDefinition(
     identifier: 'invoice',
@@ -133,10 +117,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.documentEmailAttachment,
       ReportFilterField.includeDeleted,
     ],
-    defaultFilterValues: {
-      'date_range': 'all',
-      'date_key': 'date',
-    },
+    defaultFilterValues: {'date_range': 'all', 'date_key': 'date'},
   ),
   ReportDefinition(
     identifier: 'invoice_item',
@@ -151,9 +132,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.productKey,
       ReportFilterField.includeDeleted,
     ],
-    defaultFilterValues: {
-      'date_range': 'all',
-    },
+    defaultFilterValues: {'date_range': 'all'},
   ),
   ReportDefinition(
     identifier: 'purchase_order',
@@ -168,9 +147,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.vendorsMulti,
       ReportFilterField.includeDeleted,
     ],
-    defaultFilterValues: {
-      'date_range': 'all',
-    },
+    defaultFilterValues: {'date_range': 'all'},
   ),
   ReportDefinition(
     identifier: 'purchase_order_item',
@@ -184,9 +161,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.productKey,
       ReportFilterField.includeDeleted,
     ],
-    defaultFilterValues: {
-      'date_range': 'all',
-    },
+    defaultFilterValues: {'date_range': 'all'},
   ),
   ReportDefinition(
     identifier: 'quote',
@@ -201,9 +176,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.clientsMulti,
       ReportFilterField.includeDeleted,
     ],
-    defaultFilterValues: {
-      'date_range': 'all',
-    },
+    defaultFilterValues: {'date_range': 'all'},
   ),
   ReportDefinition(
     identifier: 'quote_item',
@@ -217,9 +190,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.productKey,
       ReportFilterField.includeDeleted,
     ],
-    defaultFilterValues: {
-      'date_range': 'all',
-    },
+    defaultFilterValues: {'date_range': 'all'},
   ),
   ReportDefinition(
     identifier: 'recurring_invoice',
@@ -234,9 +205,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.clientsMulti,
       ReportFilterField.includeDeleted,
     ],
-    defaultFilterValues: {
-      'date_range': 'all',
-    },
+    defaultFilterValues: {'date_range': 'all'},
   ),
   ReportDefinition(
     identifier: 'recurring_invoice_item',
@@ -250,9 +219,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.productKey,
       ReportFilterField.includeDeleted,
     ],
-    defaultFilterValues: {
-      'date_range': 'all',
-    },
+    defaultFilterValues: {'date_range': 'all'},
   ),
   ReportDefinition(
     identifier: 'payment',
@@ -267,10 +234,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.clientsMulti,
       ReportFilterField.includeDeleted,
     ],
-    defaultFilterValues: {
-      'date_range': 'all',
-      'date_key': 'date',
-    },
+    defaultFilterValues: {'date_range': 'all', 'date_key': 'date'},
   ),
   ReportDefinition(
     identifier: 'product',
@@ -282,9 +246,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.dateRange,
       ReportFilterField.includeDeleted,
     ],
-    defaultFilterValues: {
-      'date_range': 'all',
-    },
+    defaultFilterValues: {'date_range': 'all'},
   ),
   ReportDefinition(
     identifier: 'product_sales',
@@ -298,9 +260,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.clientSingle,
       ReportFilterField.productKey,
     ],
-    defaultFilterValues: {
-      'date_range': 'all',
-    },
+    defaultFilterValues: {'date_range': 'all'},
   ),
   ReportDefinition(
     identifier: 'task',
@@ -316,9 +276,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.projectsMulti,
       ReportFilterField.includeDeleted,
     ],
-    defaultFilterValues: {
-      'date_range': 'all',
-    },
+    defaultFilterValues: {'date_range': 'all'},
   ),
   ReportDefinition(
     identifier: 'vendor',
@@ -331,9 +289,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.dateColumn,
       ReportFilterField.includeDeleted,
     ],
-    defaultFilterValues: {
-      'date_range': 'all',
-    },
+    defaultFilterValues: {'date_range': 'all'},
   ),
   ReportDefinition(
     identifier: 'project',
@@ -347,9 +303,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.clientsMulti,
       ReportFilterField.includeDeleted,
     ],
-    defaultFilterValues: {
-      'date_range': 'all',
-    },
+    defaultFilterValues: {'date_range': 'all'},
   ),
   // ─── Financial / aggregate reports ───
   ReportDefinition(
@@ -365,9 +319,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.isIncomeBilled,
       ReportFilterField.includeTax,
     ],
-    defaultFilterValues: {
-      'date_range': 'all',
-    },
+    defaultFilterValues: {'date_range': 'all'},
   ),
   ReportDefinition(
     identifier: 'aged_receivable_detailed_report',
@@ -376,13 +328,8 @@ const kReportDefinitions = <ReportDefinition>[
     icon: EntityType.invoice,
     requiredPermission: 'view_reports',
     supportsPreview: false,
-    filterFields: [
-      ReportFilterField.dateRange,
-      ReportFilterField.clientsMulti,
-    ],
-    defaultFilterValues: {
-      'date_range': 'all',
-    },
+    filterFields: [ReportFilterField.dateRange, ReportFilterField.clientsMulti],
+    defaultFilterValues: {'date_range': 'all'},
   ),
   ReportDefinition(
     identifier: 'aged_receivable_summary_report',
@@ -391,13 +338,8 @@ const kReportDefinitions = <ReportDefinition>[
     icon: EntityType.invoice,
     requiredPermission: 'view_reports',
     supportsPreview: false,
-    filterFields: [
-      ReportFilterField.dateRange,
-      ReportFilterField.clientsMulti,
-    ],
-    defaultFilterValues: {
-      'date_range': 'all',
-    },
+    filterFields: [ReportFilterField.dateRange, ReportFilterField.clientsMulti],
+    defaultFilterValues: {'date_range': 'all'},
   ),
   ReportDefinition(
     identifier: 'client_balance_report',
@@ -406,13 +348,8 @@ const kReportDefinitions = <ReportDefinition>[
     icon: EntityType.client,
     requiredPermission: 'view_reports',
     supportsPreview: false,
-    filterFields: [
-      ReportFilterField.dateRange,
-      ReportFilterField.clientsMulti,
-    ],
-    defaultFilterValues: {
-      'date_range': 'all',
-    },
+    filterFields: [ReportFilterField.dateRange, ReportFilterField.clientsMulti],
+    defaultFilterValues: {'date_range': 'all'},
   ),
   ReportDefinition(
     identifier: 'client_sales_report',
@@ -421,13 +358,8 @@ const kReportDefinitions = <ReportDefinition>[
     icon: EntityType.client,
     requiredPermission: 'view_reports',
     supportsPreview: false,
-    filterFields: [
-      ReportFilterField.dateRange,
-      ReportFilterField.clientsMulti,
-    ],
-    defaultFilterValues: {
-      'date_range': 'all',
-    },
+    filterFields: [ReportFilterField.dateRange, ReportFilterField.clientsMulti],
+    defaultFilterValues: {'date_range': 'all'},
   ),
   ReportDefinition(
     identifier: 'tax_summary_report',
@@ -436,12 +368,8 @@ const kReportDefinitions = <ReportDefinition>[
     icon: EntityType.invoice,
     requiredPermission: 'view_reports',
     supportsPreview: false,
-    filterFields: [
-      ReportFilterField.dateRange,
-    ],
-    defaultFilterValues: {
-      'date_range': 'all',
-    },
+    filterFields: [ReportFilterField.dateRange],
+    defaultFilterValues: {'date_range': 'all'},
   ),
   ReportDefinition(
     identifier: 'tax_period_report',
@@ -450,12 +378,8 @@ const kReportDefinitions = <ReportDefinition>[
     icon: EntityType.invoice,
     requiredPermission: 'view_reports',
     supportsPreview: false,
-    filterFields: [
-      ReportFilterField.dateRange,
-    ],
-    defaultFilterValues: {
-      'date_range': 'all',
-    },
+    filterFields: [ReportFilterField.dateRange],
+    defaultFilterValues: {'date_range': 'all'},
   ),
   ReportDefinition(
     identifier: 'user_sales_report',
@@ -464,12 +388,8 @@ const kReportDefinitions = <ReportDefinition>[
     icon: EntityType.user,
     requiredPermission: 'view_reports',
     supportsPreview: false,
-    filterFields: [
-      ReportFilterField.dateRange,
-    ],
-    defaultFilterValues: {
-      'date_range': 'all',
-    },
+    filterFields: [ReportFilterField.dateRange],
+    defaultFilterValues: {'date_range': 'all'},
   ),
 ];
 

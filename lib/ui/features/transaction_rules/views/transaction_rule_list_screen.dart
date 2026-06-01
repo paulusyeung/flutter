@@ -73,11 +73,11 @@ class _TransactionRuleRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final displayName =
-        rule.name.trim().isEmpty ? context.tr('untitled') : rule.name;
+    final displayName = rule.name.trim().isEmpty
+        ? context.tr('untitled')
+        : rule.name;
 
-    final appliesToKey =
-        rule.isDebit ? 'withdrawal' : 'deposit';
+    final appliesToKey = rule.isDebit ? 'withdrawal' : 'deposit';
     final detailParts = <String>[
       context.tr(appliesToKey),
       if (rule.isDebit && rule.vendorName.isNotEmpty) rule.vendorName,

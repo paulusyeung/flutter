@@ -109,9 +109,11 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
     // assigned to any client). When a client is set, both client-blank and
     // client-matching rows show. See the local filter in
     // `_loadTasksAndExpenses` below.
-    final tasksOn = widget.showTasksAndExpenses &&
+    final tasksOn =
+        widget.showTasksAndExpenses &&
         isModuleEnabled(modules, EnabledModule.tasks);
-    final expensesOn = widget.showTasksAndExpenses &&
+    final expensesOn =
+        widget.showTasksAndExpenses &&
         isModuleEnabled(modules, EnabledModule.expenses);
     _tabs = [
       _TabKind.products,
@@ -130,15 +132,9 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
     final services = context.read<Services>();
     try {
       final results = await Future.wait<List<dynamic>>([
-        services.clients
-            .watchActiveNames(companyId: widget.companyId)
-            .first,
-        services.projects
-            .watchActiveNames(companyId: widget.companyId)
-            .first,
-        services.vendors
-            .watchActiveNames(companyId: widget.companyId)
-            .first,
+        services.clients.watchActiveNames(companyId: widget.companyId).first,
+        services.projects.watchActiveNames(companyId: widget.companyId).first,
+        services.vendors.watchActiveNames(companyId: widget.companyId).first,
         // ExpenseCategoryRepository exposes `watchActive` (full entities)
         // not `watchActiveNames` — see expense_category_repository.dart:71.
         // Slightly heavier than the id/name tuples, but the list is small
@@ -197,8 +193,7 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
   }
 
   Future<void> _loadTasksAndExpenses() async {
-    if (!_tabs.contains(_TabKind.tasks) &&
-        !_tabs.contains(_TabKind.expenses)) {
+    if (!_tabs.contains(_TabKind.tasks) && !_tabs.contains(_TabKind.expenses)) {
       if (!mounted) return;
       setState(() => _loadingTasksExpenses = false);
       return;
@@ -223,7 +218,8 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
         Set<EntityState> states,
         Map<String, Set<String>> extraFilters,
         bool ignoreCursor,
-      }) ensurePage,
+      })
+      ensurePage,
     ) async {
       const maxPages = 5;
       for (var page = 1; page <= maxPages; page++) {
@@ -252,32 +248,36 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
       const watchPages = 5;
       final tasks = _tabs.contains(_TabKind.tasks)
           ? (await services.tasks
-                  .watchPage(
-                    companyId: widget.companyId,
-                    loadedPages: watchPages,
-                    states: const {EntityState.active},
-                  )
-                  .first)
-              .where((t) =>
-                  !t.isInvoiced &&
-                  !widget.excludedTaskIds.contains(t.id) &&
-                  (t.clientId.isEmpty || t.clientId == widget.clientId))
-              .toList()
+                    .watchPage(
+                      companyId: widget.companyId,
+                      loadedPages: watchPages,
+                      states: const {EntityState.active},
+                    )
+                    .first)
+                .where(
+                  (t) =>
+                      !t.isInvoiced &&
+                      !widget.excludedTaskIds.contains(t.id) &&
+                      (t.clientId.isEmpty || t.clientId == widget.clientId),
+                )
+                .toList()
           : const <Task>[];
       final expenses = _tabs.contains(_TabKind.expenses)
           ? (await services.expenses
-                  .watchPage(
-                    companyId: widget.companyId,
-                    loadedPages: watchPages,
-                    states: const {EntityState.active},
-                  )
-                  .first)
-              .where((e) =>
-                  !e.isInvoiced &&
-                  !e.isDeleted &&
-                  !widget.excludedExpenseIds.contains(e.id) &&
-                  (e.clientId.isEmpty || e.clientId == widget.clientId))
-              .toList()
+                    .watchPage(
+                      companyId: widget.companyId,
+                      loadedPages: watchPages,
+                      states: const {EntityState.active},
+                    )
+                    .first)
+                .where(
+                  (e) =>
+                      !e.isInvoiced &&
+                      !e.isDeleted &&
+                      !widget.excludedExpenseIds.contains(e.id) &&
+                      (e.clientId.isEmpty || e.clientId == widget.clientId),
+                )
+                .toList()
           : const <Expense>[];
       if (!mounted) return;
       setState(() {
@@ -302,11 +302,15 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
     }
     // Best-effort server-side fetch — failures don't block; Drift's
     // existing rows (and the watch stream) keep working.
-    unawaited(services.products.ensurePageLoaded(
-      companyId: widget.companyId,
-      page: 1,
-      search: _productSearch.isEmpty ? null : _productSearch,
-    ).catchError((_) => false));
+    unawaited(
+      services.products
+          .ensurePageLoaded(
+            companyId: widget.companyId,
+            page: 1,
+            search: _productSearch.isEmpty ? null : _productSearch,
+          )
+          .catchError((_) => false),
+    );
     _productSub = services.products
         .watchPage(
           companyId: widget.companyId,
@@ -316,12 +320,12 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
           loadedPages: 4,
         )
         .listen((rows) {
-      if (!mounted) return;
-      setState(() {
-        _products = rows;
-        _loadingProducts = false;
-      });
-    });
+          if (!mounted) return;
+          setState(() {
+            _products = rows;
+            _loadingProducts = false;
+          });
+        });
   }
 
   void _onFilterChanged() {
@@ -345,14 +349,12 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
 
   bool _taskMatches(Task t, String f) {
     if (f.isEmpty) return true;
-    return _lower(t.description).contains(f) ||
-        _lower(t.number).contains(f);
+    return _lower(t.description).contains(f) || _lower(t.number).contains(f);
   }
 
   bool _expenseMatches(Expense e, String f) {
     if (f.isEmpty) return true;
-    return _lower(e.publicNotes).contains(f) ||
-        _lower(e.number).contains(f);
+    return _lower(e.publicNotes).contains(f) || _lower(e.number).contains(f);
   }
 
   List<Task> get _filteredTasks {
@@ -419,8 +421,7 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
   Map<String, String> _pickedTaskClientIds() {
     return {
       for (final t in _tasks)
-        if (_selTasks.contains(t.id) && t.clientId.isNotEmpty)
-          t.id: t.clientId,
+        if (_selTasks.contains(t.id) && t.clientId.isNotEmpty) t.id: t.clientId,
     };
   }
 
@@ -473,16 +474,18 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
     final count = selected.length;
     final total = selected.fold(Decimal.zero, (sum, li) => sum + li.gross);
 
-    final maxHeight = widget.maxHeight ??
-        MediaQuery.of(context).size.height * 0.85;
+    final maxHeight =
+        widget.maxHeight ?? MediaQuery.of(context).size.height * 0.85;
     // Chrome envelope: header 56 + filter+padding ~76 + tabBar 48 +
     // dividers 3 + footer 76 ≈ 259. The tab toolbar (Select All / Clear All)
     // sits inside the active tab body and contributes another ~40. The
     // remaining slot is the list's available room — cap the ListView there
     // so it scrolls when content overflows and shrink-wraps when it doesn't.
     const chromeHeight = 300.0;
-    final maxListHeight =
-        (maxHeight - chromeHeight).clamp(120.0, double.infinity);
+    final maxListHeight = (maxHeight - chromeHeight).clamp(
+      120.0,
+      double.infinity,
+    );
 
     final activeTab = _tabs[_tabCtl.index.clamp(0, _tabs.length - 1)];
 
@@ -491,10 +494,7 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _Header(
-            onClose: () => Navigator.of(context).pop(),
-            tokens: tokens,
-          ),
+          _Header(onClose: () => Navigator.of(context).pop(), tokens: tokens),
           Divider(height: 1, color: tokens.border),
           Padding(
             padding: EdgeInsets.fromLTRB(
@@ -559,14 +559,14 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
             onAdd: count == 0
                 ? null
                 : () => Navigator.of(context).pop(
-                      LineItemPickerResult(
-                        lineItems: selected,
-                        projectIdHint: _projectIdHint(),
-                        clientIdHint: _clientIdHint(),
-                        pickedTaskClientIds: _pickedTaskClientIds(),
-                        pickedExpenseClientIds: _pickedExpenseClientIds(),
-                      ),
+                    LineItemPickerResult(
+                      lineItems: selected,
+                      projectIdHint: _projectIdHint(),
+                      clientIdHint: _clientIdHint(),
+                      pickedTaskClientIds: _pickedTaskClientIds(),
+                      pickedExpenseClientIds: _pickedExpenseClientIds(),
                     ),
+                  ),
           ),
         ],
       ),
@@ -578,8 +578,9 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
     return {
       // Server-paged — total unknown without an extra count query.
       _TabKind.products: null,
-      _TabKind.tasks:
-          f.isEmpty ? _tasks.length : _tasks.where((t) => _taskMatches(t, f)).length,
+      _TabKind.tasks: f.isEmpty
+          ? _tasks.length
+          : _tasks.where((t) => _taskMatches(t, f)).length,
       _TabKind.expenses: f.isEmpty
           ? _expenses.length
           : _expenses.where((e) => _expenseMatches(e, f)).length,
@@ -587,10 +588,10 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
   }
 
   Map<_TabKind, bool> _tabSelectionDots() => {
-        _TabKind.products: _selProducts.isNotEmpty,
-        _TabKind.tasks: _selTasks.isNotEmpty,
-        _TabKind.expenses: _selExpenses.isNotEmpty,
-      };
+    _TabKind.products: _selProducts.isNotEmpty,
+    _TabKind.tasks: _selTasks.isNotEmpty,
+    _TabKind.expenses: _selExpenses.isNotEmpty,
+  };
 
   Widget _tabBody(_TabKind kind, double maxListHeight) {
     switch (kind) {
@@ -678,10 +679,7 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: onClose,
-          ),
+          IconButton(icon: const Icon(Icons.close), onPressed: onClose),
         ],
       ),
     );
@@ -848,17 +846,13 @@ class _Footer extends StatelessWidget {
             ),
           ),
           OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size(64, 40),
-            ),
+            style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
             onPressed: onCancel,
             child: Text(context.tr('cancel')),
           ),
           SizedBox(width: InSpacing.md(context)),
           FilledButton(
-            style: FilledButton.styleFrom(
-              minimumSize: const Size(64, 44),
-            ),
+            style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
             onPressed: onAdd,
             child: Text(context.tr('add')),
           ),
@@ -897,10 +891,7 @@ class _ProductsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     if (loading) return const _LoadingState();
     if (products.isEmpty) {
-      return _EmptyState(
-        filter: filter,
-        unfilteredEmpty: true,
-      );
+      return _EmptyState(filter: filter, unfilteredEmpty: true);
     }
     final f = formatter;
     return Column(
@@ -1011,8 +1002,7 @@ class _TasksTab extends StatelessWidget {
     final parts = <String>[
       if (t.clientId.isNotEmpty) clientNames[t.clientId] ?? '',
       if (t.projectId.isNotEmpty) projectNames[t.projectId] ?? '',
-      if (f != null && t.rate != Decimal.zero)
-        '$hours × ${f.money(t.rate)}',
+      if (f != null && t.rate != Decimal.zero) '$hours × ${f.money(t.rate)}',
     ].where((s) => s.isNotEmpty).toList();
     return parts.join(' · ');
   }
@@ -1022,10 +1012,7 @@ class _TasksTab extends StatelessWidget {
     if (loading) return const _LoadingState();
     if (failed) return _FailedState(onRetry: onRetry);
     if (tasks.isEmpty) {
-      return _EmptyState(
-        filter: filter,
-        unfilteredEmpty: totalUnfilteredEmpty,
-      );
+      return _EmptyState(filter: filter, unfilteredEmpty: totalUnfilteredEmpty);
     }
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -1054,8 +1041,7 @@ class _TasksTab extends StatelessWidget {
                   dense: true,
                   value: selected.contains(t.id),
                   onChanged: (_) => onToggle(t.id),
-                  title:
-                      _RowTitle(left: _title(context, t), right: _right(t)),
+                  title: _RowTitle(left: _title(context, t), right: _right(t)),
                   subtitle: subtitle.isEmpty
                       ? null
                       : Text(
@@ -1135,10 +1121,7 @@ class _ExpensesTab extends StatelessWidget {
     if (loading) return const _LoadingState();
     if (failed) return _FailedState(onRetry: onRetry);
     if (expenses.isEmpty) {
-      return _EmptyState(
-        filter: filter,
-        unfilteredEmpty: totalUnfilteredEmpty,
-      );
+      return _EmptyState(filter: filter, unfilteredEmpty: totalUnfilteredEmpty);
     }
     final f = formatter;
     return Column(
@@ -1230,9 +1213,9 @@ class _LoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 48),
-        child: Center(child: CircularProgressIndicator()),
-      );
+    padding: EdgeInsets.symmetric(vertical: 48),
+    child: Center(child: CircularProgressIndicator()),
+  );
 }
 
 class _FailedState extends StatelessWidget {
@@ -1271,10 +1254,7 @@ class _FailedState extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({
-    required this.filter,
-    required this.unfilteredEmpty,
-  });
+  const _EmptyState({required this.filter, required this.unfilteredEmpty});
 
   /// Current shared filter text (possibly empty).
   final String filter;

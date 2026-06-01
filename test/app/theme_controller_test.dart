@@ -140,31 +140,36 @@ void main() {
       const Color(0xFF010203),
     );
     final a = controller.lightTokens;
-    expect(identical(a, controller.lightTokens), isTrue,
-        reason: 'memoised across unrelated reads');
+    expect(
+      identical(a, controller.lightTokens),
+      isTrue,
+      reason: 'memoised across unrelated reads',
+    );
     expect(a, isNot(same(InTheme.lightSand)));
   });
 
-  test('clearCustomSide reverts the side to the bare preset singleton',
-      () async {
-    final controller = ThemeController(db: db);
-    await controller.setLightVariant(LightVariant.mist);
-    await controller.setCustomOverride(
-      Brightness.light,
-      CustomToken.ink,
-      const Color(0xFF445566),
-    );
-    expect(controller.customTheme.lightOverrides, isNotEmpty);
-    expect(controller.lightTokens, isNot(same(InTheme.lightMist)));
+  test(
+    'clearCustomSide reverts the side to the bare preset singleton',
+    () async {
+      final controller = ThemeController(db: db);
+      await controller.setLightVariant(LightVariant.mist);
+      await controller.setCustomOverride(
+        Brightness.light,
+        CustomToken.ink,
+        const Color(0xFF445566),
+      );
+      expect(controller.customTheme.lightOverrides, isNotEmpty);
+      expect(controller.lightTokens, isNot(same(InTheme.lightMist)));
 
-    await controller.clearCustomSide(Brightness.light);
-    expect(controller.customTheme.lightOverrides, isEmpty);
-    expect(controller.lightTokens, same(InTheme.lightMist));
+      await controller.clearCustomSide(Brightness.light);
+      expect(controller.customTheme.lightOverrides, isEmpty);
+      expect(controller.lightTokens, same(InTheme.lightMist));
 
-    final fresh = ThemeController(db: db);
-    await fresh.restore();
-    expect(fresh.customTheme.lightOverrides, isEmpty);
-  });
+      final fresh = ThemeController(db: db);
+      await fresh.restore();
+      expect(fresh.customTheme.lightOverrides, isEmpty);
+    },
+  );
 
   test('setters are no-ops when the value is unchanged', () async {
     final controller = ThemeController(

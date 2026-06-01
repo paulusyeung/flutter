@@ -133,31 +133,31 @@ class FontStyleInput extends StatelessWidget {
       children: [
         Expanded(
           child: OutlinedButton.icon(
-            icon: Icon(Icons.format_bold,
-                color: isBold ? context.inTheme.accent : null),
+            icon: Icon(
+              Icons.format_bold,
+              color: isBold ? context.inTheme.accent : null,
+            ),
             label: Text(context.tr('bold')),
             style: OutlinedButton.styleFrom(
               minimumSize: const Size(64, 40),
-              backgroundColor:
-                  isBold ? context.inTheme.accentSoft : null,
+              backgroundColor: isBold ? context.inTheme.accentSoft : null,
             ),
-            onPressed: () =>
-                onFontWeightChanged(isBold ? 'normal' : 'bold'),
+            onPressed: () => onFontWeightChanged(isBold ? 'normal' : 'bold'),
           ),
         ),
         SizedBox(width: InSpacing.sm),
         Expanded(
           child: OutlinedButton.icon(
-            icon: Icon(Icons.format_italic,
-                color: isItalic ? context.inTheme.accent : null),
+            icon: Icon(
+              Icons.format_italic,
+              color: isItalic ? context.inTheme.accent : null,
+            ),
             label: Text(context.tr('italic')),
             style: OutlinedButton.styleFrom(
               minimumSize: const Size(64, 40),
-              backgroundColor:
-                  isItalic ? context.inTheme.accentSoft : null,
+              backgroundColor: isItalic ? context.inTheme.accentSoft : null,
             ),
-            onPressed: () =>
-                onFontStyleChanged(isItalic ? 'normal' : 'italic'),
+            onPressed: () => onFontStyleChanged(isItalic ? 'normal' : 'italic'),
           ),
         ),
       ],
@@ -187,8 +187,9 @@ class ColorInput extends StatefulWidget {
 }
 
 class _ColorInputState extends State<ColorInput> {
-  late final TextEditingController _controller =
-      TextEditingController(text: widget.value ?? '');
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.value ?? '',
+  );
 
   @override
   void didUpdateWidget(covariant ColorInput old) {
@@ -275,11 +276,7 @@ class FontSizeInput extends StatelessWidget {
           ],
         ),
         SizedBox(height: InSpacing.sm),
-        PxInput(
-          labelKey: 'font_size',
-          value: value,
-          onChanged: onChanged,
-        ),
+        PxInput(labelKey: 'font_size', value: value, onChanged: onChanged),
       ],
     );
   }
@@ -406,7 +403,14 @@ class LineHeightInput extends StatelessWidget {
   final String? value;
   final ValueChanged<String?> onChanged;
 
-  static const List<String> _presets = ['1.0', '1.2', '1.3', '1.4', '1.6', '2.0'];
+  static const List<String> _presets = [
+    '1.0',
+    '1.2',
+    '1.3',
+    '1.4',
+    '1.6',
+    '2.0',
+  ];
 
   @override
   Widget build(BuildContext context) {

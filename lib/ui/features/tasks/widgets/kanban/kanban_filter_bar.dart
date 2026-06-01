@@ -29,10 +29,7 @@ class KanbanFilterBar extends StatelessWidget {
         color: tokens.surface,
         border: Border(bottom: BorderSide(color: tokens.border)),
       ),
-      padding: EdgeInsets.symmetric(
-        horizontal: 24,
-        vertical: InSpacing.sm,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: InSpacing.sm),
       child: Row(
         children: [
           Expanded(

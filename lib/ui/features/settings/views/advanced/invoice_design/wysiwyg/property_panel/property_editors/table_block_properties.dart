@@ -46,8 +46,7 @@ class _TableBlockPropertiesState extends State<TableBlockProperties> {
   void _writeProperty(String key, Object? value) {
     widget.vm.updateBlock(
       widget.block.copyWith(
-        properties:
-            mergePropertyOrOmit(widget.block.properties, key, value),
+        properties: mergePropertyOrOmit(widget.block.properties, key, value),
       ),
     );
   }
@@ -104,17 +103,83 @@ class _TableBlockPropertiesState extends State<TableBlockProperties> {
   /// React block-library defaults plus the most common extras (net cost,
   /// gross line total, discount, tax, custom values).
   static const List<Map<String, dynamic>> _kAvailableColumns = [
-    {'id': 'product_key', 'header': 'item', 'field': 'item.product_key', 'width': '25%', 'align': 'left'},
-    {'id': 'notes', 'header': 'description', 'field': 'item.notes', 'width': '30%', 'align': 'left'},
-    {'id': 'quantity', 'header': 'qty', 'field': 'item.quantity', 'width': '10%', 'align': 'center'},
-    {'id': 'cost', 'header': 'unit_cost', 'field': 'item.cost', 'width': '15%', 'align': 'right'},
-    {'id': 'line_total', 'header': 'line_total', 'field': 'item.line_total', 'width': '15%', 'align': 'right'},
-    {'id': 'net_cost', 'header': 'net_cost', 'field': 'item.net_cost', 'width': '15%', 'align': 'right'},
-    {'id': 'gross_line_total', 'header': 'gross_line_total', 'field': 'item.gross_line_total', 'width': '15%', 'align': 'right'},
-    {'id': 'discount', 'header': 'discount', 'field': 'item.discount', 'width': '10%', 'align': 'right'},
-    {'id': 'tax_rate1', 'header': 'tax', 'field': 'item.tax_rate1', 'width': '10%', 'align': 'right'},
-    {'id': 'custom_value1', 'header': 'custom1', 'field': 'item.custom_value1', 'width': '15%', 'align': 'left'},
-    {'id': 'custom_value2', 'header': 'custom2', 'field': 'item.custom_value2', 'width': '15%', 'align': 'left'},
+    {
+      'id': 'product_key',
+      'header': 'item',
+      'field': 'item.product_key',
+      'width': '25%',
+      'align': 'left',
+    },
+    {
+      'id': 'notes',
+      'header': 'description',
+      'field': 'item.notes',
+      'width': '30%',
+      'align': 'left',
+    },
+    {
+      'id': 'quantity',
+      'header': 'qty',
+      'field': 'item.quantity',
+      'width': '10%',
+      'align': 'center',
+    },
+    {
+      'id': 'cost',
+      'header': 'unit_cost',
+      'field': 'item.cost',
+      'width': '15%',
+      'align': 'right',
+    },
+    {
+      'id': 'line_total',
+      'header': 'line_total',
+      'field': 'item.line_total',
+      'width': '15%',
+      'align': 'right',
+    },
+    {
+      'id': 'net_cost',
+      'header': 'net_cost',
+      'field': 'item.net_cost',
+      'width': '15%',
+      'align': 'right',
+    },
+    {
+      'id': 'gross_line_total',
+      'header': 'gross_line_total',
+      'field': 'item.gross_line_total',
+      'width': '15%',
+      'align': 'right',
+    },
+    {
+      'id': 'discount',
+      'header': 'discount',
+      'field': 'item.discount',
+      'width': '10%',
+      'align': 'right',
+    },
+    {
+      'id': 'tax_rate1',
+      'header': 'tax',
+      'field': 'item.tax_rate1',
+      'width': '10%',
+      'align': 'right',
+    },
+    {
+      'id': 'custom_value1',
+      'header': 'custom1',
+      'field': 'item.custom_value1',
+      'width': '15%',
+      'align': 'left',
+    },
+    {
+      'id': 'custom_value2',
+      'header': 'custom2',
+      'field': 'item.custom_value2',
+      'width': '15%',
+      'align': 'left',
+    },
   ];
 
   Future<void> _addColumn() async {
@@ -239,8 +304,7 @@ class _TableBlockPropertiesState extends State<TableBlockProperties> {
         FontStyleInput(
           fontWeight: props['headerFontWeight'] as String?,
           fontStyle: null,
-          onFontWeightChanged: (v) =>
-              _writeProperty('headerFontWeight', v),
+          onFontWeightChanged: (v) => _writeProperty('headerFontWeight', v),
           onFontStyleChanged: (_) {},
         ),
         SizedBox(height: InSpacing.md(context)),

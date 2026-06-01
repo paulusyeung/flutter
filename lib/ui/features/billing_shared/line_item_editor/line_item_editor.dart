@@ -79,8 +79,8 @@ class LineItemEditor extends StatelessWidget {
     }
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = Breakpoints.isWide(constraints) &&
-            constraints.maxWidth >= 700;
+        final wide =
+            Breakpoints.isWide(constraints) && constraints.maxWidth >= 700;
         if (wide) {
           return LineItemTableDesktop(
             companyId: companyId,

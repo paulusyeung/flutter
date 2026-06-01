@@ -34,8 +34,9 @@ class ClientLocationsTab extends StatelessWidget {
         title: context.tr('save_to_add_locations'),
       );
     }
-    final locations =
-        client.locations.where((l) => !l.isDeleted).toList(growable: false);
+    final locations = client.locations
+        .where((l) => !l.isDeleted)
+        .toList(growable: false);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -87,7 +88,9 @@ class _LocationTile extends StatelessWidget {
     final tokens = context.inTheme;
     return ListTile(
       leading: Icon(Icons.place_outlined, color: tokens.ink2),
-      title: Text(location.name.isEmpty ? context.tr('location') : location.name),
+      title: Text(
+        location.name.isEmpty ? context.tr('location') : location.name,
+      ),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -336,16 +339,15 @@ class _LocationFormDialogState extends State<_LocationFormDialog> {
     BuildContext context,
     TextEditingController c,
     String labelKey,
-  ) =>
-      Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: TextField(
-          controller: c,
-          decoration: InputDecoration(
-            labelText: context.tr(labelKey),
-            border: const OutlineInputBorder(),
-            isDense: true,
-          ),
-        ),
-      );
+  ) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: TextField(
+      controller: c,
+      decoration: InputDecoration(
+        labelText: context.tr(labelKey),
+        border: const OutlineInputBorder(),
+        isDense: true,
+      ),
+    ),
+  );
 }

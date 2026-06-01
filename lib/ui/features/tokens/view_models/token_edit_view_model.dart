@@ -13,10 +13,10 @@ class TokenEditViewModel extends GenericEditViewModel<Token> {
     super.sync,
     super.connectivity,
   }) : super(
-          initialDraft: existing ?? _emptyToken(),
-          original: existing,
-          companyId: companyId,
-        );
+         initialDraft: existing ?? _emptyToken(),
+         original: existing,
+         companyId: companyId,
+       );
 
   final TokenRepository repo;
   final String companyId;

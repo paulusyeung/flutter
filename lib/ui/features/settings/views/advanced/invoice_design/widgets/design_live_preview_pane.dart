@@ -118,7 +118,8 @@ class _DesignLivePreviewPaneState extends State<DesignLivePreviewPane> {
     final m = widget.enabledModulesBitmask;
     final selected = widget.vm.draft.entities;
     final all = <({String value, String labelKey})>[
-      if (on(m, EnabledModule.invoices)) (value: 'invoice', labelKey: 'invoice'),
+      if (on(m, EnabledModule.invoices))
+        (value: 'invoice', labelKey: 'invoice'),
       if (on(m, EnabledModule.quotes)) (value: 'quote', labelKey: 'quote'),
       if (on(m, EnabledModule.credits)) (value: 'credit', labelKey: 'credit'),
       if (on(m, EnabledModule.purchaseOrders))
@@ -163,9 +164,7 @@ class _DesignLivePreviewPaneState extends State<DesignLivePreviewPane> {
       setState(() {
         // Keep the last good PDF visible; show a compact banner instead of
         // wiping the preview to a raw error.
-        _error = sections.isNotEmpty
-            ? sections.entries.first.value
-            : e.message;
+        _error = sections.isNotEmpty ? sections.entries.first.value : e.message;
         _loading = false;
       });
     } catch (e) {

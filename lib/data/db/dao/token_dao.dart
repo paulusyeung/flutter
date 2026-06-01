@@ -72,10 +72,7 @@ class TokenDao extends DatabaseAccessor<AppDatabase>
     }
   }
 
-  Stream<TokenRow?> watchById({
-    required String companyId,
-    required String id,
-  }) {
+  Stream<TokenRow?> watchById({required String companyId, required String id}) {
     return (select(tokens)
           ..where((t) => t.companyId.equals(companyId) & t.id.equals(id))
           ..limit(1))

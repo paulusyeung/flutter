@@ -20,10 +20,7 @@ import 'package:admin/ui/features/settings/widgets/settings_field_bindings.dart'
 /// When the saved list is empty / missing, the catalog's `defaultSelected`
 /// renders on first paint; the user's first edit replaces it.
 class OverridableReorderableFieldList extends StatelessWidget {
-  const OverridableReorderableFieldList({
-    super.key,
-    required this.catalog,
-  });
+  const OverridableReorderableFieldList({super.key, required this.catalog});
 
   final PdfVariableCatalog catalog;
 
@@ -65,9 +62,7 @@ class OverridableReorderableFieldList extends StatelessWidget {
     final selected = saved ?? catalog.defaultSelected;
 
     void write(List<String> list) {
-      host.updateSettings(
-        (s) => binding.write(s, list.join(',')),
-      );
+      host.updateSettings((s) => binding.write(s, list.join(',')));
     }
 
     final body = Column(
@@ -196,18 +191,11 @@ class _VariableRow extends StatelessWidget {
         children: [
           ReorderableDragStartListener(
             index: index,
-            child: Icon(
-              Icons.drag_indicator,
-              color: tokens.ink3,
-              size: 20,
-            ),
+            child: Icon(Icons.drag_indicator, color: tokens.ink3, size: 20),
           ),
           SizedBox(width: InSpacing.md(context)),
           Expanded(
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
           ),
           Tooltip(
             message: variable,

@@ -31,9 +31,7 @@ class SearchApi {
         out.add(
           SearchResult.fromApi(
             entry.key,
-            SearchResultApi.fromJson(
-              Map<String, dynamic>.from(item),
-            ),
+            SearchResultApi.fromJson(Map<String, dynamic>.from(item)),
           ),
         );
       }

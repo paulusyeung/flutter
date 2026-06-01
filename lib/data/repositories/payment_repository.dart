@@ -418,11 +418,12 @@ class PaymentRepository extends BaseEntityRepository<Payment, PaymentApi>
     final next = current.where((d) => d.id != documentId).toList();
     if (next.length == current.length) return;
     await (db.update(db.payments)
-          ..where((p) => p.companyId.equals(companyId) & p.id.equals(entityId))).write(
-      PaymentsCompanion(
-        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
-      ),
-    );
+          ..where((p) => p.companyId.equals(companyId) & p.id.equals(entityId)))
+        .write(
+          PaymentsCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   Future<void> applyDocumentChanged({
@@ -443,11 +444,12 @@ class PaymentRepository extends BaseEntityRepository<Payment, PaymentApi>
       next.add(document);
     }
     await (db.update(db.payments)
-          ..where((p) => p.companyId.equals(companyId) & p.id.equals(entityId))).write(
-      PaymentsCompanion(
-        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
-      ),
-    );
+          ..where((p) => p.companyId.equals(companyId) & p.id.equals(entityId)))
+        .write(
+          PaymentsCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   // -------------------- conversions --------------------

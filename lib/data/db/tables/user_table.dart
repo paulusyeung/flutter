@@ -35,8 +35,7 @@ class Users extends Table
 
   /// Comma-separated permission tokens (e.g. `view_client,edit_invoice`).
   /// Empty when `is_admin = true` (administrators implicitly have all perms).
-  TextColumn get permissions =>
-      text().withDefault(const Constant(''))();
+  TextColumn get permissions => text().withDefault(const Constant(''))();
 
   /// Server `company_user.is_owner`.
   BoolColumn get isOwner =>

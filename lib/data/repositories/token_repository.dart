@@ -109,10 +109,8 @@ class TokenRepository extends BaseEntityRepository<Token, TokenApi> {
     idOf: (a) => a.id,
     updatedAtOf: (a) => a.updatedAt,
     toCompanion: (a) => _apiToCompanion(a, companyId),
-    upsert: (byId) => db.tokenDao.upsertAllPreservingDirty(
-      companyId: companyId,
-      byId: byId,
-    ),
+    upsert: (byId) =>
+        db.tokenDao.upsertAllPreservingDirty(companyId: companyId, byId: byId),
   );
 
   Future<bool> ensurePageLoaded({
@@ -134,10 +132,8 @@ class TokenRepository extends BaseEntityRepository<Token, TokenApi> {
     itemsOf: (l) => l.data,
     idOf: (a) => a.id,
     toCompanion: (a) => _apiToCompanion(a, companyId),
-    upsert: (byId) => db.tokenDao.upsertAllPreservingDirty(
-      companyId: companyId,
-      byId: byId,
-    ),
+    upsert: (byId) =>
+        db.tokenDao.upsertAllPreservingDirty(companyId: companyId, byId: byId),
   );
 
   Future<void> refreshAll({
@@ -267,8 +263,9 @@ class TokenRepository extends BaseEntityRepository<Token, TokenApi> {
     required String companyId,
     required String id,
   }) async {
-    final existing =
-        await db.tokenDao.watchById(companyId: companyId, id: id).first;
+    final existing = await db.tokenDao
+        .watchById(companyId: companyId, id: id)
+        .first;
     if (existing == null) return;
     await db.tokenDao.upsert(
       existing

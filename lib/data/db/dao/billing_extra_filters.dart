@@ -24,10 +24,7 @@ Set<String> parseClientIdFilter(Map<String, Set<String>> extraFilters) =>
 /// `country_id`, `industry_id`, `size_id`, `classification`,
 /// `group_settings_id`, `assigned_user_id`, expense `project_ids`/`vendor_ids`.
 /// No decode — the column holds the same id form the FilterKey emits.
-Set<String> parseCsvFilter(
-  Map<String, Set<String>> extraFilters,
-  String key,
-) =>
+Set<String> parseCsvFilter(Map<String, Set<String>> extraFilters, String key) =>
     extraFilters[key] ?? const <String>{};
 
 /// Single value pulled from a single-value FilterKey slot: `vat_number`
@@ -163,7 +160,8 @@ Map<String, Set<String>> resolveRelativeFilterTokens(
         resolved.add(
           v.replaceAllMapped(
             _relTokenInValue,
-            (m) => resolveRelativeDateToken(m.group(0)!, now: now) ?? m.group(0)!,
+            (m) =>
+                resolveRelativeDateToken(m.group(0)!, now: now) ?? m.group(0)!,
           ),
         );
       } else {
@@ -184,8 +182,7 @@ Map<String, Set<String>> resolveRelativeFilterTokens(
 /// TEXT column lexicographically.
 ({String? start, String? end}) parseDateRangeFilter(
   Map<String, Set<String>> extraFilters,
-) =>
-    _parseWindowFilter(extraFilters, 'date_range');
+) => _parseWindowFilter(extraFilters, 'date_range');
 
 /// `due_date_range` — the symmetric closed `[start, end]` window on the
 /// `due_date` column (the `DateColumnFilterKey(id: 'due_date')`
@@ -193,8 +190,7 @@ Map<String, Set<String>> resolveRelativeFilterTokens(
 /// [parseDateRangeFilter].
 ({String? start, String? end}) parseDueDateRangeFilter(
   Map<String, Set<String>> extraFilters,
-) =>
-    _parseWindowFilter(extraFilters, 'due_date_range');
+) => _parseWindowFilter(extraFilters, 'due_date_range');
 
 ({String? start, String? end}) _parseWindowFilter(
   Map<String, Set<String>> extraFilters,

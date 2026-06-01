@@ -171,14 +171,10 @@ String formatRelativeTime(BuildContext context, Duration elapsed) {
     });
   }
   if (elapsed.inHours < 24) {
-    return context.tr('hours_ago_short', {
-      'count': elapsed.inHours.toString(),
-    });
+    return context.tr('hours_ago_short', {'count': elapsed.inHours.toString()});
   }
   if (elapsed.inDays < 7) {
-    return context.tr('days_ago_short', {
-      'count': elapsed.inDays.toString(),
-    });
+    return context.tr('days_ago_short', {'count': elapsed.inDays.toString()});
   }
   return context.tr('weeks_ago_short', {
     'count': (elapsed.inDays ~/ 7).toString(),

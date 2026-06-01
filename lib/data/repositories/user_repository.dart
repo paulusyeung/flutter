@@ -80,10 +80,11 @@ class UserRepository extends BaseEntityRepository<User, UserApi> {
   /// All users in the company, for the assignee filter picker. Small,
   /// local-only watch (users arrive via `/refresh`) — never paginated.
   Stream<List<User>> watchAllForPicker({required String companyId}) {
-    return db.userDao.watchAllForCompany(companyId: companyId).map(
-          (rows) => rows.map(_fromRow).whereType<User>().toList(
-                growable: false,
-              ),
+    return db.userDao
+        .watchAllForCompany(companyId: companyId)
+        .map(
+          (rows) =>
+              rows.map(_fromRow).whereType<User>().toList(growable: false),
         );
   }
 
@@ -115,7 +116,9 @@ class UserRepository extends BaseEntityRepository<User, UserApi> {
   }) async {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     await db.transaction(() async {
-      await db.userDao.upsert(_domainToCompanion(draft, companyId, isDirty: true));
+      await db.userDao.upsert(
+        _domainToCompanion(draft, companyId, isDirty: true),
+      );
       final existing = await db.outboxDao.findPendingByEntityId(
         companyId: companyId,
         entityType: entityTypeName,
@@ -175,8 +178,10 @@ class UserRepository extends BaseEntityRepository<User, UserApi> {
               ? const {}
               : <String>{excludeAuthUserId},
         )
-        .map((rows) =>
-            rows.map(_fromRow).whereType<User>().toList(growable: false));
+        .map(
+          (rows) =>
+              rows.map(_fromRow).whereType<User>().toList(growable: false),
+        );
   }
 
   /// Live count of non-deleted company users (excluding owner + auth user)
@@ -188,10 +193,9 @@ class UserRepository extends BaseEntityRepository<User, UserApi> {
   Stream<User?> watchByRealId({
     required String companyId,
     required String id,
-  }) =>
-      db.userDao
-          .watchByCompanyAndId(companyId: companyId, id: id)
-          .map(_fromRow);
+  }) => db.userDao
+      .watchByCompanyAndId(companyId: companyId, id: id)
+      .map(_fromRow);
 
   /// Fetch one page of `/api/v1/users` and upsert into Drift.
   Future<bool> ensurePageLoaded({
@@ -218,14 +222,15 @@ class UserRepository extends BaseEntityRepository<User, UserApi> {
       itemsOf: (l) => l.data,
       idOf: (a) => a.id,
       toCompanion: (a) => _apiToCompanion(a, companyId, isDirty: false),
-      upsert: (byId) => db.userDao.upsertAllPreservingDirty(
-        companyId: companyId,
-        byId: byId,
-      ),
+      upsert: (byId) =>
+          db.userDao.upsertAllPreservingDirty(companyId: companyId, byId: byId),
     );
   }
 
-  Future<void> refreshAll({required String companyId, bool full = false}) async {
+  Future<void> refreshAll({
+    required String companyId,
+    bool full = false,
+  }) async {
     if (full) {
       await db.syncStateDao.reset(
         companyId: companyId,
@@ -372,10 +377,9 @@ class UserRepository extends BaseEntityRepository<User, UserApi> {
         .first;
     if (existing == null) return;
     await db.userDao.upsert(
-      existing.toCompanion(true).copyWith(
-        isDeleted: const Value(true),
-        isDirty: const Value(false),
-      ),
+      existing
+          .toCompanion(true)
+          .copyWith(isDeleted: const Value(true), isDirty: const Value(false)),
     );
   }
 
@@ -408,9 +412,7 @@ class UserRepository extends BaseEntityRepository<User, UserApi> {
     required UserApi api,
     required bool isDirty,
   }) async {
-    await db.userDao.upsert(
-      _apiToCompanion(api, companyId, isDirty: isDirty),
-    );
+    await db.userDao.upsert(_apiToCompanion(api, companyId, isDirty: isDirty));
   }
 
   UsersCompanion _apiToCompanion(

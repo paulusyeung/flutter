@@ -39,11 +39,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   ReportsViewModel _buildVm() => ReportsViewModel(
-        repo: _services.reports,
-        statics: _services.statics,
-        navStateDao: _services.db.navStateDao,
-        companyId: _companyId,
-      );
+    repo: _services.reports,
+    statics: _services.statics,
+    navStateDao: _services.db.navStateDao,
+    companyId: _companyId,
+  );
 
   void _loadFormatter() {
     final loadingFor = _companyId;

@@ -28,9 +28,7 @@ class RecurringInvoiceListViewModel
   final String? clientId;
 
   @override
-  Set<String> get lockedFilterKeyIds => {
-    if (clientId != null) 'client',
-  };
+  Set<String> get lockedFilterKeyIds => {if (clientId != null) 'client'};
 
   @override
   EntityType get entityType => EntityType.recurringInvoice;
@@ -61,15 +59,15 @@ class RecurringInvoiceListViewModel
 
   @override
   Stream<List<RecurringInvoice>> watchPage() => repo.watchPage(
-        companyId: companyId,
-        loadedPages: loadedPages,
-        search: search.isEmpty ? null : search,
-        states: states,
-        sortField: sortField,
-        sortAscending: sortAscending,
-        clientId: clientId,
-        customFilters: customFilters,
-      );
+    companyId: companyId,
+    loadedPages: loadedPages,
+    search: search.isEmpty ? null : search,
+    states: states,
+    sortField: sortField,
+    sortAscending: sortAscending,
+    clientId: clientId,
+    customFilters: customFilters,
+  );
 
   @override
   Future<bool> fetchPage({
@@ -100,40 +98,40 @@ class RecurringInvoiceListViewModel
 
   @override
   Iterable<BulkAction<RecurringInvoice>> get bulkActions => [
-        ...standardCrudBulkActions(
-          isArchived: isArchived,
-          isDeleted: isDeleted,
-          archive: (id) => repo.archive(companyId: companyId, id: id),
-          restore: (id) => repo.restore(companyId: companyId, id: id),
-          delete: (id) => repo.delete(companyId: companyId, id: id),
-        ),
-        BulkAction<RecurringInvoice>(
-          id: 'send_now',
-          labelKey: 'send_now',
-          eligible: (r) => !isDeleted(r),
-          apply: (id) => repo.sendNow(companyId: companyId, id: id),
-        ),
-        BulkAction<RecurringInvoice>(
-          id: 'start',
-          labelKey: 'start',
-          eligible: (r) => !isDeleted(r),
-          apply: (id) => repo.start(companyId: companyId, id: id),
-        ),
-        BulkAction<RecurringInvoice>(
-          id: 'stop',
-          labelKey: 'stop',
-          eligible: (r) => !isDeleted(r),
-          apply: (id) => repo.stop(companyId: companyId, id: id),
-        ),
-        BulkAction<RecurringInvoice>(
-          id: 'run_template',
-          labelKey: 'run_template',
-          eligible: (r) => !isDeleted(r),
-          applyArg: (id, arg) => repo.runTemplate(
-            companyId: companyId,
-            id: id,
-            templateId: arg as String,
-          ),
-        ),
-      ];
+    ...standardCrudBulkActions(
+      isArchived: isArchived,
+      isDeleted: isDeleted,
+      archive: (id) => repo.archive(companyId: companyId, id: id),
+      restore: (id) => repo.restore(companyId: companyId, id: id),
+      delete: (id) => repo.delete(companyId: companyId, id: id),
+    ),
+    BulkAction<RecurringInvoice>(
+      id: 'send_now',
+      labelKey: 'send_now',
+      eligible: (r) => !isDeleted(r),
+      apply: (id) => repo.sendNow(companyId: companyId, id: id),
+    ),
+    BulkAction<RecurringInvoice>(
+      id: 'start',
+      labelKey: 'start',
+      eligible: (r) => !isDeleted(r),
+      apply: (id) => repo.start(companyId: companyId, id: id),
+    ),
+    BulkAction<RecurringInvoice>(
+      id: 'stop',
+      labelKey: 'stop',
+      eligible: (r) => !isDeleted(r),
+      apply: (id) => repo.stop(companyId: companyId, id: id),
+    ),
+    BulkAction<RecurringInvoice>(
+      id: 'run_template',
+      labelKey: 'run_template',
+      eligible: (r) => !isDeleted(r),
+      applyArg: (id, arg) => repo.runTemplate(
+        companyId: companyId,
+        id: id,
+        templateId: arg as String,
+      ),
+    ),
+  ];
 }

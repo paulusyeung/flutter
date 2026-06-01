@@ -97,8 +97,7 @@ class _LivePdfPreviewPaneState extends State<LivePdfPreviewPane> {
     // here (not in `build`) avoids a `setState`-during-build anti-pattern.
     if (widget.enabledModulesBitmask != old.enabledModulesBitmask) {
       final options = _entityOptions();
-      if (options.isNotEmpty &&
-          options.every((o) => o.value != _entityType)) {
+      if (options.isNotEmpty && options.every((o) => o.value != _entityType)) {
         setState(() => _entityType = options.first.value);
         _renderNow();
       }

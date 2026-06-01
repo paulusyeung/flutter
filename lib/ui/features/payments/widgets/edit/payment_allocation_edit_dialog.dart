@@ -25,8 +25,9 @@ Future<Paymentable?> showPaymentAllocationEditDialog(
     builder: (ctx) => _PaymentAllocationEditDialog(
       kind: kind,
       initial: initial,
-      targets:
-          targets.where((t) => !excludeIds.contains(t.id)).toList(growable: false),
+      targets: targets
+          .where((t) => !excludeIds.contains(t.id))
+          .toList(growable: false),
       paymentAmount: paymentAmount,
       allocatedExcludingThisRow: allocatedExcludingThisRow,
       formatter: formatter,
@@ -67,8 +68,8 @@ class _PaymentAllocationEditDialogState
     final initialId = widget.initial == null
         ? ''
         : (widget.kind == AllocationKind.invoice
-            ? widget.initial!.invoiceId
-            : widget.initial!.creditId);
+              ? widget.initial!.invoiceId
+              : widget.initial!.creditId);
     for (final t in widget.targets) {
       if (t.id == initialId) {
         _selected = t;
@@ -154,7 +155,9 @@ class _PaymentAllocationEditDialogState
                   widget.kind == AllocationKind.invoice ? 'amount' : 'applied',
                 ),
               ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               autofocus: widget.initial != null,
             ),
           ],
@@ -166,8 +169,7 @@ class _PaymentAllocationEditDialogState
           mainAxisSize: MainAxisSize.min,
           children: [
             OutlinedButton(
-              style:
-                  OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+              style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
               onPressed: () => Navigator.of(context).pop(),
               child: Text(context.tr('cancel')),
             ),
@@ -179,7 +181,7 @@ class _PaymentAllocationEditDialogState
                   : () {
                       final amount =
                           Decimal.tryParse(_amountController.text.trim()) ??
-                              Decimal.zero;
+                          Decimal.zero;
                       final result = Paymentable(
                         invoiceId: widget.kind == AllocationKind.invoice
                             ? _selected!.id

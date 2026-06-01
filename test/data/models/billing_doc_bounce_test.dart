@@ -5,14 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 /// Guards `hasBouncedInvitation` — the getter that drives the red bounce
 /// badge on billing-doc list/detail status pills. Defined identically on
 /// invoice/quote/credit/PO/recurring; Invoice is the representative case.
-Invoice _invoiceWith(List<Map<String, dynamic>> invitations) =>
-    Invoice.fromApi(
-      InvoiceApi.fromJson({
-        'id': 'inv1',
-        'status_id': '2',
-        'invitations': invitations,
-      }),
-    );
+Invoice _invoiceWith(List<Map<String, dynamic>> invitations) => Invoice.fromApi(
+  InvoiceApi.fromJson({
+    'id': 'inv1',
+    'status_id': '2',
+    'invitations': invitations,
+  }),
+);
 
 void main() {
   group('Invoice.hasBouncedInvitation', () {

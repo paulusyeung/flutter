@@ -39,8 +39,8 @@ class ExpenseDetailKpiStrip extends StatelessWidget {
     final grossText = e.taxAmountSum == Decimal.zero
         ? '—'
         : (f == null
-            ? e.grossAmount.toString()
-            : f.money(e.grossAmount, clientCurrencyId: e.currencyId));
+              ? e.grossAmount.toString()
+              : f.money(e.grossAmount, clientCurrencyId: e.currencyId));
     final dateText = e.date == null
         ? '—'
         : (f == null ? e.date!.toIso() : f.date(e.date!.toIso()));

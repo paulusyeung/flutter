@@ -55,25 +55,17 @@ void main() {
       // unchanged, so distinctRows must suppress the re-emission.
       await db.clientDao.upsert(client(id: 'x', companyId: 'other'));
       await settle();
-      expect(
-        emissions,
-        [
-          ['Acme'],
-        ],
-        reason: 'unrelated-company write must not re-emit',
-      );
+      expect(emissions, [
+        ['Acme'],
+      ], reason: 'unrelated-company write must not re-emit');
 
       // Change a rendered field on the in-page row — must emit.
       await db.clientDao.upsert(client(id: 'a', name: 'Acme Renamed'));
       await settle();
-      expect(
-        emissions,
-        [
-          ['Acme'],
-          ['Acme Renamed'],
-        ],
-        reason: 'in-page rendered-field change must emit',
-      );
+      expect(emissions, [
+        ['Acme'],
+        ['Acme Renamed'],
+      ], reason: 'in-page rendered-field change must emit');
 
       await sub.cancel();
     },

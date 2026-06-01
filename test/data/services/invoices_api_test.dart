@@ -10,46 +10,43 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 ApiClient _client(MockClient httpClient) => ApiClient(
-      credentials: ValueNotifier<ApiCredentials?>(
-        const ApiCredentials(baseUrl: 'https://test', token: 't'),
-      ),
-      passwordCache: PasswordCache(),
-      onUnauthorized: () async {},
-      httpClient: httpClient,
-    );
+  credentials: ValueNotifier<ApiCredentials?>(
+    const ApiCredentials(baseUrl: 'https://test', token: 't'),
+  ),
+  passwordCache: PasswordCache(),
+  onUnauthorized: () async {},
+  httpClient: httpClient,
+);
 
 http.Response _pdf() => http.Response.bytes(
-      const [0x25, 0x50, 0x44, 0x46], // "%PDF"
-      200,
-      headers: {'content-type': 'application/pdf'},
-    );
+  const [0x25, 0x50, 0x44, 0x46], // "%PDF"
+  200,
+  headers: {'content-type': 'application/pdf'},
+);
 
 void main() {
   group('InvoicesApi.downloadPdf', () {
-    test(
-      'saved invoice, no delivery note → POST /api/v1/live_preview with the '
-      'entity body, no delivery_note key on the wire',
-      () async {
-        http.BaseRequest? captured;
-        final fake = MockClient((req) async {
-          captured = req;
-          return _pdf();
-        });
-        final bytes = await InvoicesApi(_client(fake)).downloadPdf(
-          entityJson: {'id': 'inv_1', 'number': 'INV-001'},
-        );
-        expect(bytes, isNotEmpty);
-        expect(captured!.method, 'POST');
-        expect(captured!.url.path, '/api/v1/live_preview');
-        expect(captured!.url.queryParameters['entity'], 'invoice');
-        expect(captured!.url.queryParameters['entity_id'], 'inv_1');
-        final body = jsonDecode((captured! as http.Request).body)
-            as Map<String, dynamic>;
-        expect(body['id'], 'inv_1');
-        expect(body['number'], 'INV-001');
-        expect(body.containsKey('delivery_note'), isFalse);
-      },
-    );
+    test('saved invoice, no delivery note → POST /api/v1/live_preview with the '
+        'entity body, no delivery_note key on the wire', () async {
+      http.BaseRequest? captured;
+      final fake = MockClient((req) async {
+        captured = req;
+        return _pdf();
+      });
+      final bytes = await InvoicesApi(
+        _client(fake),
+      ).downloadPdf(entityJson: {'id': 'inv_1', 'number': 'INV-001'});
+      expect(bytes, isNotEmpty);
+      expect(captured!.method, 'POST');
+      expect(captured!.url.path, '/api/v1/live_preview');
+      expect(captured!.url.queryParameters['entity'], 'invoice');
+      expect(captured!.url.queryParameters['entity_id'], 'inv_1');
+      final body =
+          jsonDecode((captured! as http.Request).body) as Map<String, dynamic>;
+      expect(body['id'], 'inv_1');
+      expect(body['number'], 'INV-001');
+      expect(body.containsKey('delivery_note'), isFalse);
+    });
 
     test(
       'saved invoice + deliveryNote: true → GET dedicated delivery_note route, '
@@ -110,8 +107,9 @@ void main() {
         expect(captured!.method, 'POST');
         expect(captured!.url.path, '/api/v1/live_preview');
         expect(captured!.url.queryParameters.containsKey('entity_id'), isFalse);
-        final body = jsonDecode((captured! as http.Request).body)
-            as Map<String, dynamic>;
+        final body =
+            jsonDecode((captured! as http.Request).body)
+                as Map<String, dynamic>;
         expect(body.containsKey('delivery_note'), isFalse);
       },
     );
@@ -125,15 +123,15 @@ void main() {
           captured = req;
           return _pdf();
         });
-        await InvoicesApi(_client(fake)).downloadPdf(
-          entityJson: {'id': 'inv_1'},
-          designId: 'design_42',
-        );
+        await InvoicesApi(
+          _client(fake),
+        ).downloadPdf(entityJson: {'id': 'inv_1'}, designId: 'design_42');
         expect(captured!.method, 'POST');
         expect(captured!.url.path, '/api/v1/live_preview');
         expect(captured!.url.queryParameters.containsKey('design_id'), isFalse);
-        final body = jsonDecode((captured! as http.Request).body)
-            as Map<String, dynamic>;
+        final body =
+            jsonDecode((captured! as http.Request).body)
+                as Map<String, dynamic>;
         expect(body['design_id'], 'design_42');
       },
     );

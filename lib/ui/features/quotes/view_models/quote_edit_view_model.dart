@@ -26,10 +26,10 @@ class QuoteEditViewModel extends GenericBillingDocEditViewModel<Quote> {
     super.sync,
     super.connectivity,
   }) : super(
-          initialDraft: cloneFrom ?? existing ?? emptyQuote(),
-          original: existing,
-          companyId: companyId,
-        );
+         initialDraft: cloneFrom ?? existing ?? emptyQuote(),
+         original: existing,
+         companyId: companyId,
+       );
 
   final QuoteRepository repo;
   final String companyId;
@@ -116,25 +116,25 @@ class QuoteEditViewModel extends GenericBillingDocEditViewModel<Quote> {
 
   @override
   BillingTotalsInput totalsInputOf(Quote d) => BillingTotalsInput(
-        lineItems: d.lineItems,
-        discount: d.discount,
-        isAmountDiscount: d.isAmountDiscount,
-        usesInclusiveTaxes: d.usesInclusiveTaxes,
-        taxName1: d.taxName1,
-        taxRate1: d.taxRate1,
-        taxName2: d.taxName2,
-        taxRate2: d.taxRate2,
-        taxName3: d.taxName3,
-        taxRate3: d.taxRate3,
-        customSurcharge1: d.customSurcharge1,
-        customSurcharge2: d.customSurcharge2,
-        customSurcharge3: d.customSurcharge3,
-        customSurcharge4: d.customSurcharge4,
-        customTaxes1: d.customTaxes1,
-        customTaxes2: d.customTaxes2,
-        customTaxes3: d.customTaxes3,
-        customTaxes4: d.customTaxes4,
-      );
+    lineItems: d.lineItems,
+    discount: d.discount,
+    isAmountDiscount: d.isAmountDiscount,
+    usesInclusiveTaxes: d.usesInclusiveTaxes,
+    taxName1: d.taxName1,
+    taxRate1: d.taxRate1,
+    taxName2: d.taxName2,
+    taxRate2: d.taxRate2,
+    taxName3: d.taxName3,
+    taxRate3: d.taxRate3,
+    customSurcharge1: d.customSurcharge1,
+    customSurcharge2: d.customSurcharge2,
+    customSurcharge3: d.customSurcharge3,
+    customSurcharge4: d.customSurcharge4,
+    customTaxes1: d.customTaxes1,
+    customTaxes2: d.customTaxes2,
+    customTaxes3: d.customTaxes3,
+    customTaxes4: d.customTaxes4,
+  );
 
   // ── Setters ────────────────────────────────────────────────────────
 
@@ -149,16 +149,14 @@ class QuoteEditViewModel extends GenericBillingDocEditViewModel<Quote> {
   void setDueDate(Date? d) => updateDraft(draft.copyWith(dueDate: d));
   void setDesignId(String v) => updateDraft(draft.copyWith(designId: v));
   void setExchangeRate(String input) => updateDraft(
-        draft.copyWith(
-          exchangeRate: Decimal.tryParse(input.trim()) ?? Decimal.one,
-        ),
-      );
+    draft.copyWith(exchangeRate: Decimal.tryParse(input.trim()) ?? Decimal.one),
+  );
   void setDiscount(String input, {required bool isAmount}) => updateDraft(
-        draft.copyWith(
-          discount: Decimal.tryParse(input.trim()) ?? Decimal.zero,
-          isAmountDiscount: isAmount,
-        ),
-      );
+    draft.copyWith(
+      discount: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+      isAmountDiscount: isAmount,
+    ),
+  );
 
   void setUsesInclusiveTaxes(bool v) =>
       updateDraft(draft.copyWith(usesInclusiveTaxes: v));
@@ -166,35 +164,35 @@ class QuoteEditViewModel extends GenericBillingDocEditViewModel<Quote> {
   void setTaxName2(String v) => updateDraft(draft.copyWith(taxName2: v));
   void setTaxName3(String v) => updateDraft(draft.copyWith(taxName3: v));
   void setTaxRate1(String input) => updateDraft(
-        draft.copyWith(taxRate1: Decimal.tryParse(input.trim()) ?? Decimal.zero),
-      );
+    draft.copyWith(taxRate1: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+  );
   void setTaxRate2(String input) => updateDraft(
-        draft.copyWith(taxRate2: Decimal.tryParse(input.trim()) ?? Decimal.zero),
-      );
+    draft.copyWith(taxRate2: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+  );
   void setTaxRate3(String input) => updateDraft(
-        draft.copyWith(taxRate3: Decimal.tryParse(input.trim()) ?? Decimal.zero),
-      );
+    draft.copyWith(taxRate3: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+  );
 
   void setCustomSurcharge1(String input) => updateDraft(
-        draft.copyWith(
-          customSurcharge1: Decimal.tryParse(input.trim()) ?? Decimal.zero,
-        ),
-      );
+    draft.copyWith(
+      customSurcharge1: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+    ),
+  );
   void setCustomSurcharge2(String input) => updateDraft(
-        draft.copyWith(
-          customSurcharge2: Decimal.tryParse(input.trim()) ?? Decimal.zero,
-        ),
-      );
+    draft.copyWith(
+      customSurcharge2: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+    ),
+  );
   void setCustomSurcharge3(String input) => updateDraft(
-        draft.copyWith(
-          customSurcharge3: Decimal.tryParse(input.trim()) ?? Decimal.zero,
-        ),
-      );
+    draft.copyWith(
+      customSurcharge3: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+    ),
+  );
   void setCustomSurcharge4(String input) => updateDraft(
-        draft.copyWith(
-          customSurcharge4: Decimal.tryParse(input.trim()) ?? Decimal.zero,
-        ),
-      );
+    draft.copyWith(
+      customSurcharge4: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+    ),
+  );
   void setCustomTaxes1(bool v) => updateDraft(draft.copyWith(customTaxes1: v));
   void setCustomTaxes2(bool v) => updateDraft(draft.copyWith(customTaxes2: v));
   void setCustomTaxes3(bool v) => updateDraft(draft.copyWith(customTaxes3: v));

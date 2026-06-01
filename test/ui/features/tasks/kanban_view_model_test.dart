@@ -102,46 +102,52 @@ void main() {
     expect(vm.tasksFor('s1').map((t) => t.id), ['a', 'b']);
   });
 
-  test('filters by project / client / assignee (AND) before grouping',
-      () async {
-    final repo = _FakeTaskRepo({
-      's1': [
-        _t('a', projectId: 'p1', clientId: 'c1'),
-        _t('b', projectId: 'p1', clientId: 'c2'),
-        _t('c', projectId: 'p2', clientId: 'c1'),
-      ],
-    });
-    final vm = build(const {}, repo);
-    await Future<void>.delayed(Duration.zero);
+  test(
+    'filters by project / client / assignee (AND) before grouping',
+    () async {
+      final repo = _FakeTaskRepo({
+        's1': [
+          _t('a', projectId: 'p1', clientId: 'c1'),
+          _t('b', projectId: 'p1', clientId: 'c2'),
+          _t('c', projectId: 'p2', clientId: 'c1'),
+        ],
+      });
+      final vm = build(const {}, repo);
+      await Future<void>.delayed(Duration.zero);
 
-    vm.setProjectFilter('p1');
-    expect(vm.filtersActive, isTrue);
-    expect(vm.tasksFor('s1').map((t) => t.id), ['a', 'b']);
+      vm.setProjectFilter('p1');
+      expect(vm.filtersActive, isTrue);
+      expect(vm.tasksFor('s1').map((t) => t.id), ['a', 'b']);
 
-    vm.setClientFilter('c1'); // AND
-    expect(vm.tasksFor('s1').map((t) => t.id), ['a']);
+      vm.setClientFilter('c1'); // AND
+      expect(vm.tasksFor('s1').map((t) => t.id), ['a']);
 
-    vm.clearFilters();
-    expect(vm.filtersActive, isFalse);
-    expect(vm.tasksFor('s1').map((t) => t.id), ['a', 'b', 'c']);
-  });
+      vm.clearFilters();
+      expect(vm.filtersActive, isFalse);
+      expect(vm.tasksFor('s1').map((t) => t.id), ['a', 'b', 'c']);
+    },
+  );
 
-  test('commitReorder is a no-op while a filter is active (no data loss)',
-      () async {
-    final repo = _FakeTaskRepo({
-      's1': [_t('a', assignedUserId: 'u1'), _t('b')],
-    });
-    final vm = build(const {}, repo);
-    await Future<void>.delayed(Duration.zero);
+  test(
+    'commitReorder is a no-op while a filter is active (no data loss)',
+    () async {
+      final repo = _FakeTaskRepo({
+        's1': [_t('a', assignedUserId: 'u1'), _t('b')],
+      });
+      final vm = build(const {}, repo);
+      await Future<void>.delayed(Duration.zero);
 
-    vm.setAssigneeFilter('u1');
-    await vm.commitReorder(orderedByStatus: {
-      's1': [_t('a', assignedUserId: 'u1')],
-    });
-    expect(
-      repo.reorderCalled,
-      isFalse,
-      reason: 'a reorder from a filtered/partial set must not persist',
-    );
-  });
+      vm.setAssigneeFilter('u1');
+      await vm.commitReorder(
+        orderedByStatus: {
+          's1': [_t('a', assignedUserId: 'u1')],
+        },
+      );
+      expect(
+        repo.reorderCalled,
+        isFalse,
+        reason: 'a reorder from a filtered/partial set must not persist',
+      );
+    },
+  );
 }

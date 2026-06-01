@@ -79,7 +79,8 @@ class _RecurringExpenseEditScheduleSectionState
           if (!endless)
             EntityEditField(
               label: context.tr('remaining_cycles'),
-              initial: '${draft.remainingCycles < 0 ? 1 : draft.remainingCycles}',
+              initial:
+                  '${draft.remainingCycles < 0 ? 1 : draft.remainingCycles}',
               onChanged: (raw) {
                 final n = int.tryParse(raw.trim());
                 if (n != null && n >= 0) {

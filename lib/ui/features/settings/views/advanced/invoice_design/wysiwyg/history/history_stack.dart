@@ -12,7 +12,7 @@ import 'package:admin/data/models/domain/design.dart';
 /// a new mutation truncates the redo tail.
 class DesignerHistoryStack {
   DesignerHistoryStack({this.maxSize = 50})
-      : assert(maxSize > 0, 'maxSize must be positive');
+    : assert(maxSize > 0, 'maxSize must be positive');
 
   final int maxSize;
 

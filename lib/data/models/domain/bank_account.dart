@@ -107,6 +107,5 @@ abstract class BankAccount with _$BankAccount {
 
   /// True when the upstream provider connection is broken. Drives the
   /// "Reconnect" affordance on the list + detail screens.
-  bool get needsReconnect =>
-      disabledUpstream && integrationType.isNotEmpty;
+  bool get needsReconnect => disabledUpstream && integrationType.isNotEmpty;
 }
