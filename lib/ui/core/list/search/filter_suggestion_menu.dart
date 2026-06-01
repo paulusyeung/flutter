@@ -28,6 +28,26 @@ int compareFilterKeysByLabel(FilterKey a, FilterKey b, BuildContext context) {
       .compareTo(b.displayLabel(context).toLowerCase());
 }
 
+/// Keys eligible for the key-mode picker, in registry order: available, not
+/// locked, and — for single-value keys — not already applied. An applied
+/// single-value key has nothing more to add and is edited via its chip;
+/// multi-value keys stay so the user can union more values. Exposed (like
+/// [compareFilterKeysByLabel]) so the hide-applied rule is unit-testable
+/// without pumping the whole menu.
+List<FilterKey> availableKeyPickerKeys(
+  List<FilterKey> keys,
+  GenericListViewModel<dynamic> vm,
+) {
+  return keys
+      .where(
+        (k) =>
+            k.isAvailable(vm) &&
+            !vm.lockedFilterKeyIds.contains(k.id) &&
+            !(k.singleValue && !k.isAtDefault(vm)),
+      )
+      .toList();
+}
+
 /// Parsed view of the current input text.
 ///
 ///   ""               -> key mode, prefix=null, query=""
@@ -87,6 +107,7 @@ class FilterSuggestionMenu extends StatelessWidget {
     required this.onPickOp,
     required this.onCommitFreeText,
     this.maxHeight = 320,
+    this.floating = true,
     super.key,
   });
 
@@ -115,36 +136,54 @@ class FilterSuggestionMenu extends StatelessWidget {
   final ValueChanged<String> onCommitFreeText;
   final double maxHeight;
 
+  /// Whether the menu is a floating popup (wide mode) — gets the bordered,
+  /// elevated, clipped chrome. `false` for the full-bleed narrow-mode
+  /// [FilterEntrySheet] panel, which renders flat below a divider.
+  final bool floating;
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    final child = ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxHeight, maxWidth: 420),
+      child: parse.matchedKey == null
+          ? _KeyList(
+              vm: vm,
+              keys: keys,
+              query: parse.query.trim(),
+              controller: controller,
+              onSelectKey: onSelectKey,
+              onSelectValue: onSelectValue,
+              onCommitFreeText: onCommitFreeText,
+            )
+          : _ValueList(
+              vm: vm,
+              filterKey: parse.matchedKey!,
+              query: parse.query,
+              controller: controller,
+              onSelectValue: onSelectValue,
+              onToggleValue: onToggleValue,
+              onPickExclusive: onPickExclusive,
+              onPickOp: onPickOp,
+            ),
+    );
+    // Narrow mode (FilterEntrySheet) renders the menu full-bleed below a
+    // divider — a flat list, no border/elevation/radius. Wide mode is a
+    // floating popup that gets the bordered chrome (matches the company
+    // picker / MenuTheme).
+    if (!floating) {
+      return Material(color: tokens.surface, child: child);
+    }
     return Material(
-      elevation: 6,
-      borderRadius: BorderRadius.circular(InRadii.r2),
+      elevation: 4,
       color: tokens.surface,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: maxHeight, maxWidth: 420),
-        child: parse.matchedKey == null
-            ? _KeyList(
-                vm: vm,
-                keys: keys,
-                query: parse.query.trim(),
-                controller: controller,
-                onSelectKey: onSelectKey,
-                onSelectValue: onSelectValue,
-                onCommitFreeText: onCommitFreeText,
-              )
-            : _ValueList(
-                vm: vm,
-                filterKey: parse.matchedKey!,
-                query: parse.query,
-                controller: controller,
-                onSelectValue: onSelectValue,
-                onToggleValue: onToggleValue,
-                onPickExclusive: onPickExclusive,
-                onPickOp: onPickOp,
-              ),
+      // The clip keeps row highlights inside the rounded corners.
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: tokens.border),
+        borderRadius: BorderRadius.circular(InRadii.r2),
       ),
+      child: child,
     );
   }
 }
@@ -204,11 +243,7 @@ class _KeyList extends StatelessWidget {
     final tokens = context.inTheme;
     final theme = Theme.of(context);
     final q = query.toLowerCase();
-    final available = keys
-        .where(
-          (k) => k.isAvailable(vm) && !vm.lockedFilterKeyIds.contains(k.id),
-        )
-        .toList();
+    final available = availableKeyPickerKeys(keys, vm);
     final filtered = q.isEmpty
         ? available
         : available.where((k) {
@@ -385,6 +420,10 @@ class _ValueMatchRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             children: [
+              SizedBox(
+                width: 20,
+                child: Icon(filterKey.icon, size: 18, color: tokens.ink3),
+              ),
               Text(
                 filterKey.displayLabel(context),
                 style: theme.textTheme.bodyMedium?.copyWith(color: tokens.ink3),
@@ -490,19 +529,20 @@ class _KeyRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             children: [
+              // Leading icon replaces the old right-aligned type tag — the
+              // same 20px leading slot the value rows use, so the label
+              // columns line up.
+              SizedBox(
+                width: 20,
+                child: Icon(filterKey.icon, size: 18, color: tokens.ink3),
+              ),
               Expanded(
                 child: Text(
                   filterKey.displayLabel(context),
+                  overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: tokens.ink,
                   ),
-                ),
-              ),
-              Text(
-                _typeLabel(context, filterKey.valueType),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: tokens.ink3,
-                  letterSpacing: 0.4,
                 ),
               ),
             ],
@@ -511,13 +551,6 @@ class _KeyRow extends StatelessWidget {
       ),
     );
   }
-
-  String _typeLabel(BuildContext context, FilterValueType type) =>
-      switch (type) {
-        FilterValueType.enumeration => context.tr('filter_type_enum'),
-        FilterValueType.string => context.tr('filter_type_string'),
-        FilterValueType.date => context.tr('filter_type_date'),
-      };
 }
 
 class _ValueList extends StatelessWidget {

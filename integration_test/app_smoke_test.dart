@@ -12,7 +12,6 @@ library;
 import 'dart:convert';
 
 import 'package:drift/drift.dart' show Value;
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -80,6 +79,8 @@ import 'package:admin/ui/features/shell/widgets/in_sidebar.dart';
 import 'package:admin/ui/features/shell/widgets/sidebar_nav_item.dart';
 import 'package:admin/ui/features/sync/views/outbox_screen.dart';
 
+import 'support/in_memory_executor.dart';
+
 /// Always-cancels biometric stand-in so the integration-test driver never
 /// hangs waiting on a real platform prompt. The lock screen kicks off
 /// `unlock()` from `addPostFrameCallback`, so we just need the call to
@@ -140,7 +141,7 @@ Future<({AppDatabase db, InMemoryTokenStorage storage})> _seedSession({
   String companyName = 'Acme',
   String companySettingsJson = '{}',
 }) async {
-  final db = AppDatabase(NativeDatabase.memory());
+  final db = AppDatabase(await openInMemoryExecutor());
   final nowMs = DateTime.now().millisecondsSinceEpoch;
   await db.companiesDao.upsertAccount(
     AccountsCompanion.insert(
@@ -181,7 +182,7 @@ void main() {
   testWidgets('app boots into the login screen with no persisted creds', (
     tester,
   ) async {
-    final db = AppDatabase(NativeDatabase.memory());
+    final db = AppDatabase(await openInMemoryExecutor());
     addTearDown(db.close);
 
     final services = Services.build(
@@ -448,7 +449,7 @@ void main() {
   );
 
   testWidgets('login submit + refresh land on /dashboard', (tester) async {
-    final db = AppDatabase(NativeDatabase.memory());
+    final db = AppDatabase(await openInMemoryExecutor());
     addTearDown(db.close);
 
     // Smallest envelope that satisfies AuthRepository._persistAndActivate.
@@ -751,7 +752,7 @@ void main() {
   testWidgets('cold deep link to a locked invoice edit → dialog, then detail', (
     tester,
   ) async {
-    final db = AppDatabase(NativeDatabase.memory());
+    final db = AppDatabase(await openInMemoryExecutor());
     addTearDown(db.close);
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     await db.companiesDao.upsertAccount(
@@ -832,7 +833,7 @@ void main() {
 
 Future<({AppDatabase db, InMemoryTokenStorage storage})>
 _seedAdminSession() async {
-  final db = AppDatabase(NativeDatabase.memory());
+  final db = AppDatabase(await openInMemoryExecutor());
   final nowMs = DateTime.now().millisecondsSinceEpoch;
   await db.companiesDao.upsertAccount(
     AccountsCompanion.insert(

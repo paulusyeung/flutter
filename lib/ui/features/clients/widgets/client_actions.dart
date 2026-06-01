@@ -15,14 +15,17 @@ import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/notify_async.dart';
+import 'package:admin/ui/features/clients/widgets/client_portal.dart';
 import 'package:admin/ui/features/clients/widgets/detail/add_comment_dialog.dart';
 import 'package:admin/ui/features/clients/widgets/detail/assign_group_dialog.dart';
 import 'package:admin/ui/features/clients/widgets/detail/merge_client_dialog.dart';
 import 'package:admin/ui/features/clients/widgets/detail/purge_client_dialog.dart';
+import 'package:admin/ui/features/credits/view_models/credit_edit_view_model.dart';
 import 'package:admin/ui/features/expenses/view_models/expense_edit_view_model.dart';
 import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
 import 'package:admin/ui/features/payments/view_models/payment_edit_view_model.dart';
 import 'package:admin/ui/features/quotes/view_models/quote_edit_view_model.dart';
+import 'package:admin/ui/features/recurring_invoices/view_models/recurring_invoice_edit_view_model.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/tasks/view_models/task_edit_view_model.dart';
 
@@ -34,13 +37,16 @@ import 'package:admin/ui/features/tasks/view_models/task_edit_view_model.dart';
 enum ClientAction {
   edit,
   viewStatement,
+  clientPortal,
   settings,
   assignGroup,
   addComment,
   clone,
   newGroup,
   newInvoice,
+  newRecurringInvoice,
   newQuote,
+  newCredit,
   newPayment,
   newTask,
   newExpense,
@@ -83,116 +89,160 @@ class ClientActions {
   ) {
     final canArchive = client.archivedAt == null && !client.isDeleted;
     final canRestore = client.archivedAt != null || client.isDeleted;
-    // Purge is admin/owner-only — matches React's `isAdmin || isOwner`
-    // gate. Reading via `context.read` from inside the action builder
-    // keeps the gate centralized here instead of plumbing the flag
-    // through ClientListTile and EntityDetailActionsRow.
+    // Merge + Purge are admin/owner-only — matches React's `isAdmin ||
+    // isOwner` gate (admin-portal gates both on `isAdmin`). Reading via
+    // `context.read` from inside the action builder keeps the gate
+    // centralized here instead of plumbing the flag through ClientListTile
+    // and EntityDetailActionsRow.
     final me = context.read<Services>().auth.session.value?.currentCompany;
-    final canPurge = (me?.isAdmin ?? false) || (me?.isOwner ?? false);
+    final isAdminOrOwner = (me?.isAdmin ?? false) || (me?.isOwner ?? false);
+
+    // The primary contact (falling back to the first) carries the portal
+    // link. A `tmp_` client's contacts have no server link yet, so the
+    // action disables itself rather than opening a dead URL.
+    final portalContact = client.contacts.isEmpty
+        ? null
+        : client.contacts.firstWhere(
+            (c) => c.isPrimary,
+            orElse: () => client.contacts.first,
+          );
+    final hasPortalLink =
+        (portalContact?.link.isNotEmpty ?? false) &&
+        !client.id.startsWith('tmp_');
 
     return [
-      editActionItem(
-        context: context,
-        kind: ClientAction.edit,
-        onTap: () => onTap(ClientAction.edit),
-      ),
-      EntityActionItem(
-        kind: ClientAction.viewStatement,
-        icon: Icons.picture_as_pdf,
-        label: context.tr('view_statement'),
-        enabled: true,
-        onTap: () => onTap(ClientAction.viewStatement),
-      ),
-      EntityActionItem(
-        kind: ClientAction.settings,
-        icon: Icons.settings_outlined,
-        label: context.tr('settings'),
-        enabled: true,
-        onTap: () => onTap(ClientAction.settings),
-      ),
-      EntityActionItem(
-        kind: ClientAction.assignGroup,
-        icon: Icons.group_outlined,
-        label: context.tr('assign_group'),
-        enabled: true,
-        onTap: () => onTap(ClientAction.assignGroup),
-      ),
-      EntityActionItem(
-        kind: ClientAction.addComment,
-        icon: Icons.add_comment_outlined,
-        label: context.tr('add_comment'),
-        enabled: true,
-        onTap: () => onTap(ClientAction.addComment),
-      ),
-      EntityActionItem(
-        kind: ClientAction.clone,
-        icon: Icons.copy_outlined,
-        label: context.tr('clone'),
-        enabled: true,
-        onTap: () => onTap(ClientAction.clone),
-      ),
-      if ((me?.moduleEnabled(EntityType.invoice) ?? false) ||
-          (me?.moduleEnabled(EntityType.quote) ?? false) ||
-          (me?.moduleEnabled(EntityType.payment) ?? false) ||
-          (me?.moduleEnabled(EntityType.task) ?? false) ||
-          (me?.moduleEnabled(EntityType.expense) ?? false))
-        newGroupActionItem(
+      // Single-record view / create / clone actions. Hidden entirely on a
+      // soft-deleted client — only Restore + Purge remain, matching
+      // admin-portal's `!isDeleted` grouping and React.
+      if (!client.isDeleted) ...[
+        editActionItem(
           context: context,
-          kind: ClientAction.newGroup,
-          children: [
-            if (me?.moduleEnabled(EntityType.invoice) ?? false)
-              EntityActionItem(
-                kind: ClientAction.newInvoice,
-                icon: Icons.receipt_long_outlined,
-                label: context.tr('new_invoice'),
-                enabled: true,
-                onTap: () => onTap(ClientAction.newInvoice),
-              ),
-            if (me?.moduleEnabled(EntityType.quote) ?? false)
-              EntityActionItem(
-                kind: ClientAction.newQuote,
-                icon: Icons.request_quote_outlined,
-                label: context.tr('new_quote'),
-                enabled: true,
-                onTap: () => onTap(ClientAction.newQuote),
-              ),
-            if (me?.moduleEnabled(EntityType.payment) ?? false)
-              EntityActionItem(
-                kind: ClientAction.newPayment,
-                icon: Icons.payments_outlined,
-                label: context.tr('new_payment'),
-                enabled: true,
-                onTap: () => onTap(ClientAction.newPayment),
-              ),
-            if (me?.moduleEnabled(EntityType.task) ?? false)
-              EntityActionItem(
-                kind: ClientAction.newTask,
-                icon: Icons.check_circle_outline,
-                label: context.tr('new_task'),
-                enabled: true,
-                onTap: () => onTap(ClientAction.newTask),
-              ),
-            if (me?.moduleEnabled(EntityType.expense) ?? false)
-              EntityActionItem(
-                kind: ClientAction.newExpense,
-                icon: Icons.attach_money,
-                label: context.tr('new_expense'),
-                enabled: true,
-                onTap: () => onTap(ClientAction.newExpense),
-              ),
-          ],
+          kind: ClientAction.edit,
+          onTap: () => onTap(ClientAction.edit),
         ),
-      EntityActionItem(
-        kind: ClientAction.merge,
-        icon: Icons.merge_type,
-        label: context.tr('merge'),
-        // Destructive + server round-trip: only on a synced, active client.
-        enabled:
-            client.archivedAt == null &&
-            !client.isDeleted &&
-            !client.id.startsWith('tmp_'),
-        onTap: () => onTap(ClientAction.merge),
-      ),
+        EntityActionItem(
+          kind: ClientAction.viewStatement,
+          icon: Icons.picture_as_pdf,
+          label: context.tr('view_statement'),
+          enabled: true,
+          onTap: () => onTap(ClientAction.viewStatement),
+        ),
+        EntityActionItem(
+          kind: ClientAction.clientPortal,
+          icon: Icons.cloud_outlined,
+          label: context.tr('client_portal'),
+          // Opens the primary contact's portal with silent auto-login.
+          enabled: hasPortalLink,
+          onTap: () => onTap(ClientAction.clientPortal),
+        ),
+        EntityActionItem(
+          kind: ClientAction.settings,
+          icon: Icons.settings_outlined,
+          label: context.tr('settings'),
+          enabled: true,
+          onTap: () => onTap(ClientAction.settings),
+        ),
+        EntityActionItem(
+          kind: ClientAction.assignGroup,
+          icon: Icons.group_outlined,
+          label: context.tr('assign_group'),
+          enabled: true,
+          onTap: () => onTap(ClientAction.assignGroup),
+        ),
+        EntityActionItem(
+          kind: ClientAction.addComment,
+          icon: Icons.add_comment_outlined,
+          label: context.tr('add_comment'),
+          enabled: true,
+          onTap: () => onTap(ClientAction.addComment),
+        ),
+        EntityActionItem(
+          kind: ClientAction.clone,
+          icon: Icons.copy_outlined,
+          label: context.tr('clone'),
+          enabled: true,
+          onTap: () => onTap(ClientAction.clone),
+        ),
+        if ((me?.moduleEnabled(EntityType.invoice) ?? false) ||
+            (me?.moduleEnabled(EntityType.recurringInvoice) ?? false) ||
+            (me?.moduleEnabled(EntityType.quote) ?? false) ||
+            (me?.moduleEnabled(EntityType.credit) ?? false) ||
+            (me?.moduleEnabled(EntityType.payment) ?? false) ||
+            (me?.moduleEnabled(EntityType.task) ?? false) ||
+            (me?.moduleEnabled(EntityType.expense) ?? false))
+          newGroupActionItem(
+            context: context,
+            kind: ClientAction.newGroup,
+            children: [
+              if (me?.moduleEnabled(EntityType.invoice) ?? false)
+                EntityActionItem(
+                  kind: ClientAction.newInvoice,
+                  icon: Icons.receipt_long_outlined,
+                  label: context.tr('new_invoice'),
+                  enabled: true,
+                  onTap: () => onTap(ClientAction.newInvoice),
+                ),
+              if (me?.moduleEnabled(EntityType.recurringInvoice) ?? false)
+                EntityActionItem(
+                  kind: ClientAction.newRecurringInvoice,
+                  icon: Icons.autorenew,
+                  label: context.tr('new_recurring_invoice'),
+                  enabled: true,
+                  onTap: () => onTap(ClientAction.newRecurringInvoice),
+                ),
+              if (me?.moduleEnabled(EntityType.quote) ?? false)
+                EntityActionItem(
+                  kind: ClientAction.newQuote,
+                  icon: Icons.request_quote_outlined,
+                  label: context.tr('new_quote'),
+                  enabled: true,
+                  onTap: () => onTap(ClientAction.newQuote),
+                ),
+              if (me?.moduleEnabled(EntityType.credit) ?? false)
+                EntityActionItem(
+                  kind: ClientAction.newCredit,
+                  icon: Icons.account_balance_wallet_outlined,
+                  label: context.tr('new_credit'),
+                  enabled: true,
+                  onTap: () => onTap(ClientAction.newCredit),
+                ),
+              if (me?.moduleEnabled(EntityType.payment) ?? false)
+                EntityActionItem(
+                  kind: ClientAction.newPayment,
+                  icon: Icons.payments_outlined,
+                  label: context.tr('new_payment'),
+                  enabled: true,
+                  onTap: () => onTap(ClientAction.newPayment),
+                ),
+              if (me?.moduleEnabled(EntityType.task) ?? false)
+                EntityActionItem(
+                  kind: ClientAction.newTask,
+                  icon: Icons.check_circle_outline,
+                  label: context.tr('new_task'),
+                  enabled: true,
+                  onTap: () => onTap(ClientAction.newTask),
+                ),
+              if (me?.moduleEnabled(EntityType.expense) ?? false)
+                EntityActionItem(
+                  kind: ClientAction.newExpense,
+                  icon: Icons.attach_money,
+                  label: context.tr('new_expense'),
+                  enabled: true,
+                  onTap: () => onTap(ClientAction.newExpense),
+                ),
+            ],
+          ),
+      ],
+      // Merge is admin/owner-only and never offered on a deleted client.
+      if (isAdminOrOwner && !client.isDeleted)
+        EntityActionItem(
+          kind: ClientAction.merge,
+          icon: Icons.merge_type,
+          label: context.tr('merge'),
+          // Destructive + server round-trip: only on a synced, active client.
+          enabled: client.archivedAt == null && !client.id.startsWith('tmp_'),
+          onTap: () => onTap(ClientAction.merge),
+        ),
       ?archiveActionItem(
         context: context,
         kind: ClientAction.archive,
@@ -214,7 +264,7 @@ class ClientActions {
       ?purgeActionItem(
         context: context,
         kind: ClientAction.purge,
-        canPurge: canPurge,
+        canPurge: isAdminOrOwner,
         onTap: () => onTap(ClientAction.purge),
       ),
     ];
@@ -250,6 +300,29 @@ class ClientActions {
         // `payment_actions.dart` refund pattern. Offline is surfaced inside
         // the screen by `ClientStatementViewModel`.
         context.go('/clients/${client.id}/statement');
+      case ClientAction.clientPortal:
+        if (client.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        // Open the primary contact's portal (falling back to the first),
+        // with silent auto-login + client_hash — matches admin-portal /
+        // React. The item is disabled in itemsFor when no link exists, so
+        // the empty-url guard here is just defensive.
+        final portalContact = client.contacts.isEmpty
+            ? null
+            : client.contacts.firstWhere(
+                (c) => c.isPrimary,
+                orElse: () => client.contacts.first,
+              );
+        final portalUrl = portalContact == null
+            ? ''
+            : clientPortalUrl(
+                contactLink: portalContact.link,
+                clientHash: client.clientHash,
+              );
+        if (portalUrl.isEmpty) return;
+        await launchClientPortal(context, portalUrl);
       case ClientAction.archive:
         await StandardEntityActions.archive(
           context: context,
@@ -394,6 +467,16 @@ class ClientActions {
           '/invoices',
           extra: emptyInvoice().copyWith(clientId: client.id),
         );
+      case ClientAction.newRecurringInvoice:
+        if (client.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        goEntityCreateFullWidth(
+          context,
+          '/recurring_invoices',
+          extra: emptyRecurringInvoice().copyWith(clientId: client.id),
+        );
       case ClientAction.newQuote:
         if (client.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));
@@ -403,6 +486,16 @@ class ClientActions {
           context,
           '/quotes',
           extra: emptyQuote().copyWith(clientId: client.id),
+        );
+      case ClientAction.newCredit:
+        if (client.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        goEntityCreateFullWidth(
+          context,
+          '/credits',
+          extra: emptyCredit().copyWith(clientId: client.id),
         );
       case ClientAction.newPayment:
         if (client.id.startsWith('tmp_')) {

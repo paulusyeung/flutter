@@ -22,6 +22,10 @@ abstract class ClientApi with _$ClientApi {
     @Default('') String number,
     @JsonKey(name: 'id_number') @Default('') String idNumber,
     @JsonKey(name: 'vat_number') @Default('') String vatNumber,
+    // Server-assigned, read-only. Used to build the client-portal silent
+    // auto-login URL (`?silent=true&client_hash=…`). Always present on
+    // client GET/list responses.
+    @JsonKey(name: 'client_hash') @Default('') String clientHash,
     @Default('') String website,
     @JsonKey(name: 'phone') @Default('') String phone,
     @Default('') String address1,

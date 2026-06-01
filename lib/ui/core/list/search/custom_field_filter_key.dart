@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
@@ -43,6 +43,12 @@ class CustomFieldFilterKey extends FilterKey {
 
   @override
   FilterValueType get valueType => FilterValueType.string;
+
+  // Distinct icon so a configured custom-field label (shown verbatim, e.g.
+  // "CUSTOM CLIENT") reads as a custom field rather than a mislabeled
+  // standard one.
+  @override
+  IconData get icon => Icons.tune;
 
   // Server supports `custom_value1..4` as of the v5 filter PR; multi-value
   // selections still narrow locally. Show the key whenever the slot is

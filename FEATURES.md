@@ -142,13 +142,14 @@ the honest default.
 | Client — payment terms override | ✅ | ✅ | ✅ | ✅ | |
 | Client — currency override (cascade) | ✅ | ✅ | ✅ | ✅ | |
 | Client — portal-access toggle / portal password | ✅ | ✅ | ✅ | ✅ | |
+| Client — open client portal (primary contact, silent auto-login) | ✅ | ✅ | ✅ | | |
 | Client — archive | ✅ | ✅ | ✅ | ✅ | |
 | Client — restore | ✅ | ✅ | ✅ | ✅ | |
 | Client — delete | ✅ | ✅ | ✅ | ✅ | |
 | Client — purge (hard delete, admin only) | ✅ | ✅ | ✅ | ✅ | |
 | Client — bulk archive / restore / delete | ✅ | ✅ | ✅ | ✅ | |
 | Client — import (CSV / JSON) | ✅ | 🟡 | ✅ | ✅ | |
-| Client — cross-entity "New invoice / quote / task" | ✅ | ✅ | ✅ | ✅ | |
+| Client — cross-entity "New invoice / recurring / quote / credit / payment / task / expense" | ✅ | ✅ | ✅ | ✅ | |
 | Client — view client invoices / quotes / payments / credits / recurring / projects / tasks / expenses | ✅ | ✅ | ✅ | ✅ | |
 
 ---

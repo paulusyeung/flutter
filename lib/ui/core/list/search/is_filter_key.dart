@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/l10n/localization.dart';
@@ -37,6 +37,11 @@ class IsFilterKey extends FilterKey {
 
   @override
   FilterValueType get valueType => FilterValueType.enumeration;
+
+  // Lifecycle state (active / archived / deleted) — distinct icon from the
+  // generic enum default so it doesn't read like a per-entity Status key.
+  @override
+  IconData get icon => Icons.toggle_on_outlined;
 
   // `singleValue` keeps the base default (`false`): multi-valued so users
   // can filter to a union like `{archived, deleted}` — `vm.setStates`

@@ -23,6 +23,10 @@ abstract class Client with _$Client {
     required String number,
     required String idNumber,
     required String vatNumber,
+    // Server-assigned, read-only. Drives the client-portal silent
+    // auto-login URL. `@Default('')` (not `required`) so existing
+    // `Client(...)` fixtures don't all need updating.
+    @Default('') String clientHash,
     required String website,
     required String phone,
     required String address1,
@@ -76,6 +80,7 @@ abstract class Client with _$Client {
     number: a.number,
     idNumber: a.idNumber,
     vatNumber: a.vatNumber,
+    clientHash: a.clientHash,
     website: a.website,
     phone: a.phone,
     address1: a.address1,
@@ -144,6 +149,7 @@ extension ClientPayload on Client {
     'number': number,
     'id_number': idNumber,
     'vat_number': vatNumber,
+    'client_hash': clientHash,
     'website': website,
     'phone': phone,
     'address1': address1,

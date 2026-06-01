@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import 'package:admin/data/repositories/client_repository.dart';
 import 'package:admin/l10n/localization.dart';
@@ -41,6 +41,9 @@ class ClientFilterKey extends MembershipFilterKey {
 
   @override
   String displayLabel(BuildContext context) => context.tr('client');
+
+  @override
+  IconData get icon => Icons.account_circle_outlined;
 
   @override
   String displayValueFor(String rawValue) {

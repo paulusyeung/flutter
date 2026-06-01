@@ -312,6 +312,9 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
               onPickOp: _onPickOp,
               onCommitFreeText: _onCommitFreeText,
               maxHeight: double.infinity,
+              // Full-bleed panel below the divider — flat, not a floating
+              // popup, so skip the bordered/elevated chrome.
+              floating: false,
             ),
           ),
         ],

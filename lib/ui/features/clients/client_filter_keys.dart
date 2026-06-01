@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/company_custom_fields.dart';
@@ -193,6 +193,9 @@ class CountryFilterKey extends MembershipFilterKey {
   String displayLabel(BuildContext context) => context.tr('country');
 
   @override
+  IconData get icon => Icons.public;
+
+  @override
   String displayValueFor(String rawValue) =>
       statics.country(rawValue)?.name ?? rawValue;
 
@@ -317,6 +320,9 @@ class GroupFilterKey extends MembershipFilterKey {
   String displayLabel(BuildContext context) => context.tr('group');
 
   @override
+  IconData get icon => Icons.workspaces_outline;
+
+  @override
   String displayValueFor(String rawValue) {
     final resolved = nameForGroupId?.call(rawValue);
     return (resolved != null && resolved.isNotEmpty) ? resolved : rawValue;
@@ -362,6 +368,9 @@ class IndustryFilterKey extends MembershipFilterKey {
 
   @override
   String displayLabel(BuildContext context) => context.tr('industry');
+
+  @override
+  IconData get icon => Icons.business_outlined;
 
   @override
   String displayValueFor(String rawValue) =>
@@ -505,6 +514,9 @@ class AssignedFilterKey extends MembershipFilterKey {
   String displayLabel(BuildContext context) => context.tr('assigned_to');
 
   @override
+  IconData get icon => Icons.person_outline;
+
+  @override
   String displayValueFor(String rawValue) {
     final resolved = nameForAssignedId?.call(rawValue);
     return (resolved != null && resolved.isNotEmpty) ? resolved : rawValue;
@@ -557,6 +569,9 @@ class NameFilterKey extends FilterKey {
 
   @override
   String displayLabel(BuildContext context) => context.tr('name');
+
+  @override
+  IconData get icon => Icons.badge_outlined;
 
   @override
   FilterValueType get valueType => FilterValueType.string;
@@ -720,6 +735,9 @@ class NumberFilterKey extends FilterKey {
   String displayLabel(BuildContext context) => context.tr('number');
 
   @override
+  IconData get icon => Icons.tag;
+
+  @override
   FilterValueType get valueType => FilterValueType.string;
 
   @override
@@ -798,6 +816,9 @@ class BalanceFilterKey extends FilterKey with ComparableFilterKey {
 
   @override
   String displayLabel(BuildContext context) => context.tr('balance');
+
+  @override
+  IconData get icon => Icons.attach_money;
 
   @override
   FilterValueType get valueType => FilterValueType.string;
@@ -914,6 +935,9 @@ class VatFilterKey extends MembershipFilterKey {
   String displayLabel(BuildContext context) => context.tr('vat_number');
 
   @override
+  IconData get icon => Icons.receipt_long_outlined;
+
+  @override
   String? hintForValueMode(BuildContext context) =>
       context.tr('vat_filter_hint');
 
@@ -935,6 +959,9 @@ class IdNumberFilterKey extends MembershipFilterKey {
   String displayLabel(BuildContext context) => context.tr('id_number');
 
   @override
+  IconData get icon => Icons.pin_outlined;
+
+  @override
   String? hintForValueMode(BuildContext context) =>
       context.tr('id_number_filter_hint');
 }
@@ -950,6 +977,9 @@ class ClassificationFilterKey extends MembershipFilterKey {
 
   @override
   String displayLabel(BuildContext context) => context.tr('classification');
+
+  @override
+  IconData get icon => Icons.category_outlined;
 
   @override
   String? hintForValueMode(BuildContext context) =>

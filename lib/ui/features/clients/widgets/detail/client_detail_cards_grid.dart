@@ -57,7 +57,12 @@ class ClientDetailCardsGrid extends StatelessWidget {
       Expanded(child: ClientDetailAddressCard(client: c)),
       if (hasContacts) ...[
         SizedBox(width: InSpacing.md(context)),
-        Expanded(child: ClientDetailContactsCard(contacts: c.contacts)),
+        Expanded(
+          child: ClientDetailContactsCard(
+            contacts: c.contacts,
+            clientHash: c.clientHash,
+          ),
+        ),
       ],
     ];
     return Column(
@@ -83,7 +88,7 @@ class ClientDetailCardsGrid extends StatelessWidget {
       if (ClientDetailDetailsCard.hasContent(c))
         ClientDetailDetailsCard(client: c, compact: true),
       ClientDetailAddressCard(client: c),
-      ClientDetailContactsCard(contacts: c.contacts),
+      ClientDetailContactsCard(contacts: c.contacts, clientHash: c.clientHash),
       if (c.privateNotes.isNotEmpty || c.publicNotes.isNotEmpty)
         ClientDetailNotesCard(client: c),
     ];

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
@@ -64,12 +63,9 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   /// TapRegion's hit area matches.
   final GlobalKey _fieldKey = GlobalKey();
 
-  /// Key on the `IntrinsicWidth` wrapping the TextField. Two uses: (1) it's
-  /// the stable root `_findRenderEditable` walks down from to read the caret
-  /// (the focus node's context is too flaky); (2) its left edge anchors the
-  /// dropdown — under the caret while typing (via that walk), or at the input
-  /// start as a transient fallback. See the positioning block in
-  /// `overlayChildBuilder`.
+  /// Key on the `IntrinsicWidth` wrapping the TextField. Its left edge — the
+  /// start of the typed token, after the chips — anchors the dropdown while
+  /// typing. See the positioning block in `overlayChildBuilder`.
   final GlobalKey _inputKey = GlobalKey();
 
   // Overlay visibility is intentionally decoupled from focus. It opens
@@ -93,15 +89,6 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   /// logical region. Per-instance Object so two fields on the same screen
   /// don't cross-clobber.
   final Object _tapGroup = Object();
-
-  /// Last successfully-computed caret-based menu left, in GLOBAL coords (the
-  /// value before the overlay-origin subtraction). The dropdown re-anchors
-  /// under the caret on every build so it tracks what the user is typing;
-  /// this cache only covers the rare frame where the `RenderEditable` can't
-  /// be read mid-typing — we reuse the last good x instead of snapping to the
-  /// field's left edge (which would flicker left, then back). Reset to null in
-  /// `_hideOverlay` so a fresh open starts clean.
-  double? _lastCaretLeft;
 
   /// Global rect of the chip body that opened the main overlay via a
   /// plain-chip tap (checkbox / custom-field keys). When set, the overlay
@@ -466,7 +453,6 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   void _hideOverlay() {
     if (_overlay.isShowing) _overlay.hide();
     _chipAnchorRect = null;
-    _lastCaretLeft = null;
     _controller.clearPinnedValueKey();
     _clearDanglingPrefix();
   }
@@ -485,38 +471,6 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     if (parse.matchedKey != null && parse.query.trim().isEmpty) {
       _controller.text.clear();
     }
-  }
-
-  // ── Caret position lookup ────────────────────────────────────────────
-
-  /// Walks the render tree below `_inputKey` (the `IntrinsicWidth` wrapping
-  /// the TextField) to find the TextField's `RenderEditable`, so the overlay
-  /// can read the caret's pixel position. We deliberately start from
-  /// `_inputKey` rather than `_controller.focus.context`: the focus node's
-  /// context is null/detached on exactly the frames the overlay needs it
-  /// (first frame, focus handoff), which made the walk "come up empty" and
-  /// the dropdown silently anchor at the field's left edge. `_inputKey` is
-  /// always mounted while the wide field is built and always has the
-  /// `RenderEditable` as a descendant. TextField doesn't expose its internal
-  /// EditableText via a key, and `CompositedTransformFollower` produced
-  /// TapRegion-hit-test bugs (see `_fieldKey` doc), so a direct render-tree
-  /// walk is the cleanest way to read the caret. Returns null only before the
-  /// editable is laid out.
-  RenderEditable? _findRenderEditable() {
-    final start = _inputKey.currentContext?.findRenderObject();
-    if (start == null) return null;
-    RenderEditable? found;
-    void visit(RenderObject obj) {
-      if (found != null) return;
-      if (obj is RenderEditable) {
-        found = obj;
-        return;
-      }
-      obj.visitChildren(visit);
-    }
-
-    visit(start);
-    return found;
   }
 
   // ── Keyboard handling ────────────────────────────────────────────────
@@ -597,9 +551,10 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
       controller: _overlay,
       overlayChildBuilder: (overlayContext) {
         // Recompute the anchor on EVERY build (the subtree rebuilds per
-        // keystroke via the `ListenableBuilder` on `_controller.text`), so
-        // the menu's left edge follows the caret as the user types. See
-        // `_fieldKey` doc for why CompositedTransformFollower didn't work.
+        // keystroke via the `ListenableBuilder` on `_controller.text`) so the
+        // menu re-anchors as chips wrap / the field grows. The horizontal
+        // anchor is the token start, not the live caret. See `_fieldKey` doc
+        // for why CompositedTransformFollower didn't work.
         final fieldBox =
             _fieldKey.currentContext?.findRenderObject() as RenderBox?;
         if (fieldBox == null || !fieldBox.attached || !fieldBox.hasSize) {
@@ -608,13 +563,13 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
         final topLeft = fieldBox.localToGlobal(Offset.zero);
         // LEFT-edge anchor (global x, before the overlay-origin subtraction):
         //  • chip tap → under the tapped chip's rect;
-        //  • typing   → under the CARET, tracked live so suggestions line up
-        //    with the key/value being entered;
-        //  • empty / first frame → the FIELD's left edge. Anchoring an empty
-        //    key-list to the caret would float it far to the right after
-        //    existing chips (a previously reported bug), so the field-left
-        //    fallback stays for the no-typed-text case.
-        // `− kMenuRowInsetLeft` aligns the row's padded text with the anchor,
+        //  • typing   → under the START of the typed token (the input's left
+        //    edge, after the chips). Held stable — we deliberately don't chase
+        //    the caret horizontally per keystroke, which read as jumpy.
+        //  • empty    → the FIELD's left edge. Anchoring an empty key-list to
+        //    the token start would float it far right after existing chips (a
+        //    previously reported bug), so the field-left fallback stays.
+        // `− kMenuRowInsetLeft` aligns the row's leading icon with the anchor,
         // not the painted menu edge.
         final chipRect = _chipAnchorRect;
         double? menuLeft;
@@ -628,31 +583,9 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
           // Below the whole field (recomputed so a value long enough to wrap
           // the input to a new run keeps the menu under the grown field).
           anchorBottom = topLeft.dy + fieldBox.size.height;
-          final text = _controller.text.text;
-          final editable = _findRenderEditable();
-          if (text.isNotEmpty &&
-              editable != null &&
-              editable.attached &&
-              editable.hasSize) {
-            final sel = _controller.text.selection;
-            final offset = sel.isValid ? sel.extentOffset : 0;
-            final caretLocal = editable
-                .getLocalRectForCaret(TextPosition(offset: offset))
-                .topLeft;
-            menuLeft =
-                editable.localToGlobal(caretLocal).dx - kMenuRowInsetLeft;
-            _lastCaretLeft = menuLeft;
-          } else if (text.isNotEmpty && _lastCaretLeft != null) {
-            // Mid-typing but the editable wasn't readable this frame — reuse
-            // the last good caret x rather than snapping to the field's left
-            // edge (that would jump the menu left, then back).
-            menuLeft = _lastCaretLeft;
-          } else if (text.isNotEmpty) {
-            // Typing, but the editable isn't readable yet and there's no prior
-            // caret x (the very first frame after the overlay opens). Anchor
-            // at the input's own left edge — the start of the typed text,
-            // after the chips — which is far closer to the caret than the
-            // field's left edge.
+          // Anchor at the input's own left edge — the start of the typed
+          // token, after the chips. Stable as the user types the value.
+          if (_controller.text.text.isNotEmpty) {
             final inputBox =
                 _inputKey.currentContext?.findRenderObject() as RenderBox?;
             if (inputBox != null && inputBox.attached && inputBox.hasSize) {

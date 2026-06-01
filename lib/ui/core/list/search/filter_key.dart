@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import 'package:admin/data/db/dao/billing_extra_filters.dart'
     show resolveRelativeDateToken;
@@ -38,10 +38,20 @@ abstract class FilterKey {
   /// queries.
   Iterable<String> get aliases => const [];
 
-  /// Coarse value type — drives the chip rendering and the type label in
-  /// the suggestion list. v1 uses [FilterValueType.enumeration] for status
-  /// and [FilterValueType.string] for everything else.
+  /// Coarse value type — drives the chip rendering and the default [icon].
+  /// v1 uses [FilterValueType.enumeration] for status and
+  /// [FilterValueType.string] for everything else.
   FilterValueType get valueType;
+
+  /// Leading glyph shown in the suggestion menu's key row. Defaults to a
+  /// value-type-derived icon; semantic keys (balance, country, assigned, …)
+  /// override it so the list scans by shape, not just text. Replaces the
+  /// old right-aligned `string`/`date`/`enum` type tag.
+  IconData get icon => switch (valueType) {
+    FilterValueType.date => Icons.event_outlined,
+    FilterValueType.enumeration => Icons.adjust_outlined,
+    FilterValueType.string => Icons.short_text,
+  };
 
   /// When true, only one value may be applied at a time — selecting a new
   /// value replaces the old one rather than appending. Enums with a small

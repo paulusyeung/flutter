@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/contact.dart';
@@ -8,8 +7,8 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/detail_info_row.dart';
+import 'package:admin/ui/features/clients/widgets/client_portal.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
-import 'package:admin/utils/url_safety.dart';
 
 /// "Contacts" card on the client detail screen. Shows the first 3 contacts
 /// inline. Extra contacts surface via "+N more":
@@ -26,9 +25,17 @@ import 'package:admin/utils/url_safety.dart';
 /// real constraints first). `MediaQuery` is an inherited-widget lookup, so it
 /// answers fine during the intrinsic pass.
 class ClientDetailContactsCard extends StatefulWidget {
-  const ClientDetailContactsCard({super.key, required this.contacts});
+  const ClientDetailContactsCard({
+    super.key,
+    required this.contacts,
+    required this.clientHash,
+  });
 
   final List<Contact> contacts;
+
+  /// Client-level auth token appended to each contact's portal silent-login
+  /// URL (`?silent=true&client_hash=…`).
+  final String clientHash;
 
   @override
   State<ClientDetailContactsCard> createState() =>
@@ -55,7 +62,11 @@ class _ClientDetailContactsCardState extends State<ClientDetailContactsCard> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          DetailRowStack(children: visible.map(_ContactRow.new).toList()),
+          DetailRowStack(
+            children: visible
+                .map((c) => _ContactRow(c, widget.clientHash))
+                .toList(),
+          ),
           if (hiddenCount > 0)
             Align(
               alignment: AlignmentDirectional.centerStart,
@@ -110,7 +121,9 @@ class _ClientDetailContactsCardState extends State<ClientDetailContactsCard> {
                 Flexible(
                   child: SingleChildScrollView(
                     child: DetailRowStack(
-                      children: widget.contacts.map(_ContactRow.new).toList(),
+                      children: widget.contacts
+                          .map((c) => _ContactRow(c, widget.clientHash))
+                          .toList(),
                     ),
                   ),
                 ),
@@ -124,8 +137,9 @@ class _ClientDetailContactsCardState extends State<ClientDetailContactsCard> {
 }
 
 class _ContactRow extends StatelessWidget {
-  const _ContactRow(this.contact);
+  const _ContactRow(this.contact, this.clientHash);
   final Contact contact;
+  final String clientHash;
 
   @override
   Widget build(BuildContext context) {
@@ -177,13 +191,25 @@ class _ContactRow extends StatelessWidget {
                         style: _portalButtonStyle,
                         icon: const Icon(Icons.open_in_new, size: 14),
                         label: Text(context.tr('view_portal')),
-                        onPressed: () => _openPortal(context, contact.link),
+                        onPressed: () => launchClientPortal(
+                          context,
+                          clientPortalUrl(
+                            contactLink: contact.link,
+                            clientHash: clientHash,
+                          ),
+                        ),
                       ),
                       TextButton.icon(
                         style: _portalButtonStyle,
                         icon: const Icon(Icons.content_copy, size: 14),
                         label: Text(context.tr('copy_link')),
-                        onPressed: () => _copyPortal(context, contact.link),
+                        onPressed: () => _copyPortal(
+                          context,
+                          clientPortalUrl(
+                            contactLink: contact.link,
+                            clientHash: clientHash,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -223,29 +249,6 @@ final ButtonStyle _portalButtonStyle = TextButton.styleFrom(
   visualDensity: VisualDensity.compact,
   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
 );
-
-Future<void> _openPortal(BuildContext context, String url) async {
-  final messenger = ScaffoldMessenger.maybeOf(context);
-  final errorMessage =
-      Localization.of(context)?.lookup('failed_to_open_url') ??
-      'failed_to_open_url';
-  // Portal link is server-supplied — reject anything other than http/https
-  // (no javascript:, file:, intent:, mailto:, tel: …) before launching.
-  if (isSafeWebUrl(url)) {
-    final uri = Uri.parse(url);
-    try {
-      if (await canLaunchUrl(uri)) {
-        final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-        if (ok) return;
-      }
-    } catch (_) {
-      /* fall through to error toast */
-    }
-  }
-  if (messenger == null) return;
-  // ignore: use_build_context_synchronously
-  Notify.error(messenger.context, errorMessage, messenger: messenger);
-}
 
 Future<void> _copyPortal(BuildContext context, String url) async {
   await Clipboard.setData(ClipboardData(text: url));
