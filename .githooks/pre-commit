@@ -1,0 +1,17 @@
+#!/bin/sh
+# Pre-commit: block commits that stage unformatted Dart files.
+# Mirrors CI's "Verify formatting" step (dart format --set-exit-if-changed .).
+# Enable per clone:  git config core.hooksPath .githooks
+command -v dart >/dev/null 2>&1 || exit 0   # don't block if dart is unavailable
+
+files=$(git diff --cached --name-only --diff-filter=ACM -- '*.dart')
+[ -z "$files" ] && exit 0                    # nothing Dart staged
+
+printf '%s' "$files" | tr '\n' '\0' \
+  | xargs -0 dart format --output=none --set-exit-if-changed || {
+    echo
+    echo "✖ Commit blocked: staged Dart files are not formatted (see above)."
+    echo "  Fix:  dart format .   then   git add -u   and re-commit."
+    echo "  (mirrors the CI 'Verify formatting' step)"
+    exit 1
+  }

@@ -2,6 +2,16 @@
 
 Companion to CLAUDE.md (no longer carries a § Setup section — this doc is the canonical source).
 
+## Git hooks
+
+Enable the repo's pre-commit hook once per clone:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+`.githooks/pre-commit` runs `dart format --set-exit-if-changed` on the staged Dart files and blocks the commit if any are unformatted — mirroring CI's "Verify formatting" step so a formatting failure can't reach CI. It's a no-op when `dart` isn't on `PATH`.
+
 ## Platform targets
 
 - **Now**: iOS, macOS, **web**.
