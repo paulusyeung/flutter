@@ -3,6 +3,7 @@ import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/repositories/client_repository.dart';
 import 'package:admin/data/services/clients_api.dart';
+import 'package:admin/data/services/device_contacts_service.dart';
 import 'package:admin/domain/sync/mutation.dart';
 import 'package:admin/ui/features/clients/view_models/client_edit_view_model.dart';
 import 'package:drift/native.dart';
@@ -284,5 +285,263 @@ void main() {
         vm.dispose();
       },
     );
+  });
+
+  group('applyImportedContact', () {
+    test('fills the first all-blank contact row in place', () {
+      final vm = ClientEditViewModel(repo: repo, companyId: 'co');
+      vm.addContact(); // one blank primary row
+      final r = vm.applyImportedContact(
+        const DeviceContactImport(
+          firstName: 'Dana',
+          lastName: 'Lee',
+          email: 'dana@x.test',
+          phone: '555-1',
+        ),
+        countryId: '',
+      );
+      expect(r.contactAdded, isTrue);
+      expect(
+        vm.draft.contacts,
+        hasLength(1),
+        reason: 'filled in place, not appended',
+      );
+      expect(vm.draft.contacts.single.firstName, 'Dana');
+      expect(vm.draft.contacts.single.email, 'dana@x.test');
+      expect(vm.draft.contacts.single.isPrimary, isTrue);
+      vm.dispose();
+    });
+
+    test('appends a non-primary contact when others already have data', () {
+      final existing = Client.fromApi(
+        ClientApi.fromJson({
+          'id': 'c1',
+          'name': 'Acme',
+          'balance': '0',
+          'contacts': [
+            {'id': 'a', 'first_name': 'Alice', 'is_primary': true},
+          ],
+        }),
+      );
+      final vm = ClientEditViewModel(
+        repo: repo,
+        companyId: 'co',
+        existing: existing,
+      );
+      final r = vm.applyImportedContact(
+        const DeviceContactImport(firstName: 'Dana', email: 'dana@x.test'),
+        countryId: '',
+      );
+      expect(r.contactAdded, isTrue);
+      expect(vm.draft.contacts, hasLength(2));
+      expect(vm.draft.contacts[0].firstName, 'Alice');
+      expect(vm.draft.contacts[1].firstName, 'Dana');
+      expect(vm.draft.contacts[1].isPrimary, isFalse);
+      vm.dispose();
+    });
+
+    test('client name/address/website are blanks-only (never overwrite)', () {
+      final existing = Client.fromApi(
+        ClientApi.fromJson({
+          'id': 'c1',
+          'name': 'Acme',
+          'address1': 'Existing St',
+          'website': 'acme.test',
+          'balance': '0',
+        }),
+      );
+      final vm = ClientEditViewModel(
+        repo: repo,
+        companyId: 'co',
+        existing: existing,
+      );
+      final r = vm.applyImportedContact(
+        const DeviceContactImport(
+          organization: 'NewCo',
+          firstName: 'Dana',
+          address1: 'New St',
+          website: 'new.test',
+        ),
+        countryId: '840',
+      );
+      expect(vm.draft.name, 'Acme');
+      expect(vm.draft.address1, 'Existing St');
+      expect(vm.draft.website, 'acme.test');
+      expect(
+        vm.draft.countryId,
+        '840',
+        reason: 'countryId was blank, so it fills',
+      );
+      expect(r.filledClientFields, contains('address')); // countryId
+      expect(r.filledClientFields, isNot(contains('name')));
+      expect(r.filledClientFields, isNot(contains('website')));
+      vm.dispose();
+    });
+
+    test('individual fallback: client name = person full name when no company', () {
+      final vm = ClientEditViewModel(repo: repo, companyId: 'co');
+      final r = vm.applyImportedContact(
+        const DeviceContactImport(
+          firstName: 'Jane',
+          lastName: 'Doe',
+          email: 'jane@x.test',
+        ),
+        countryId: '',
+      );
+      expect(vm.draft.name, 'Jane Doe');
+      expect(vm.draft.displayName, 'Jane Doe');
+      expect(r.filledClientFields, contains('name'));
+      vm.dispose();
+    });
+
+    test('company-only card fills the client name and adds no contact', () {
+      final vm = ClientEditViewModel(repo: repo, companyId: 'co');
+      final r = vm.applyImportedContact(
+        const DeviceContactImport(organization: 'OrgOnly'),
+        countryId: '',
+      );
+      expect(vm.draft.name, 'OrgOnly');
+      expect(vm.draft.contacts, isEmpty);
+      expect(r.contactAdded, isFalse);
+      expect(r.filledClientFields, contains('name'));
+      expect(r.appliedChanges, isTrue);
+      vm.dispose();
+    });
+
+    test('duplicate by email is skipped, not appended', () {
+      final existing = Client.fromApi(
+        ClientApi.fromJson({
+          'id': 'c1',
+          'name': 'Acme',
+          'balance': '0',
+          'contacts': [
+            {
+              'id': 'a',
+              'first_name': 'Alice',
+              'email': 'dup@x.test',
+              'is_primary': true,
+            },
+          ],
+        }),
+      );
+      final vm = ClientEditViewModel(
+        repo: repo,
+        companyId: 'co',
+        existing: existing,
+      );
+      final r = vm.applyImportedContact(
+        const DeviceContactImport(firstName: 'Alicia', email: 'dup@x.test'),
+        countryId: '',
+      );
+      expect(r.contactWasDuplicate, isTrue);
+      expect(r.contactAdded, isFalse);
+      expect(
+        r.appliedChanges,
+        isFalse,
+        reason: 'client name already set; nothing filled',
+      );
+      expect(vm.draft.contacts, hasLength(1));
+      vm.dispose();
+    });
+
+    test('all-blank pick changes nothing', () {
+      final vm = ClientEditViewModel(repo: repo, companyId: 'co');
+      final r = vm.applyImportedContact(
+        const DeviceContactImport(),
+        countryId: '',
+      );
+      expect(r.changedNothing, isTrue);
+      expect(vm.draft.name, '');
+      expect(vm.draft.contacts, isEmpty);
+      vm.dispose();
+    });
+
+    test('display-name-only contact is split into first/last', () {
+      final vm = ClientEditViewModel(repo: repo, companyId: 'co');
+      vm.applyImportedContact(
+        const DeviceContactImport(
+          displayName: 'John Smith',
+          email: 'john@x.test',
+        ),
+        countryId: '',
+      );
+      expect(vm.draft.contacts.single.firstName, 'John');
+      expect(vm.draft.contacts.single.lastName, 'Smith');
+      vm.dispose();
+    });
+
+    test('restoreDraft round-trips the pre-import snapshot (Undo)', () {
+      final vm = ClientEditViewModel(repo: repo, companyId: 'co');
+      final before = vm.draft;
+      vm.applyImportedContact(
+        const DeviceContactImport(firstName: 'Jane', organization: 'NewCo'),
+        countryId: '',
+      );
+      expect(vm.draft.name, 'NewCo');
+      expect(vm.draft.contacts, hasLength(1));
+      vm.restoreDraft(before);
+      expect(vm.draft.name, '');
+      expect(vm.draft.contacts, isEmpty);
+      vm.dispose();
+    });
+
+    test('single-name import appends, does not skip a different person', () {
+      final existing = Client.fromApi(
+        ClientApi.fromJson({
+          'id': 'c1',
+          'name': 'Acme',
+          'balance': '0',
+          'contacts': [
+            {'id': 'a', 'first_name': 'Cher', 'is_primary': true},
+          ],
+        }),
+      );
+      final vm = ClientEditViewModel(
+        repo: repo,
+        companyId: 'co',
+        existing: existing,
+      );
+      // A different "Cher" with no surname/email/phone must NOT be treated as
+      // a duplicate of the existing single-name contact.
+      final r = vm.applyImportedContact(
+        const DeviceContactImport(firstName: 'Cher'),
+        countryId: '',
+      );
+      expect(r.contactWasDuplicate, isFalse);
+      expect(r.contactAdded, isTrue);
+      expect(vm.draft.contacts, hasLength(2));
+      vm.dispose();
+    });
+
+    test('phone-only re-import is deduped across formatting', () {
+      final existing = Client.fromApi(
+        ClientApi.fromJson({
+          'id': 'c1',
+          'name': 'Acme',
+          'balance': '0',
+          'contacts': [
+            {
+              'id': 'a',
+              'first_name': 'Pat',
+              'phone': '(555) 123-4567',
+              'is_primary': true,
+            },
+          ],
+        }),
+      );
+      final vm = ClientEditViewModel(
+        repo: repo,
+        companyId: 'co',
+        existing: existing,
+      );
+      final r = vm.applyImportedContact(
+        const DeviceContactImport(phone: '555-123-4567'), // same digits
+        countryId: '',
+      );
+      expect(r.contactWasDuplicate, isTrue);
+      expect(r.contactAdded, isFalse);
+      expect(vm.draft.contacts, hasLength(1));
+      vm.dispose();
+    });
   });
 }

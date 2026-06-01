@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/contact.dart';
+import 'package:admin/data/services/device_contacts_service.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/clients/view_models/client_edit_view_model.dart';
 import 'package:admin/ui/core/edit/entity_edit_field.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 
 /// "Contacts" card on the client edit screen. Renders every contact inline,
@@ -65,21 +69,110 @@ class ClientEditContactsSection extends StatelessWidget {
               ),
             ],
           SizedBox(height: InSpacing.md(context)),
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: FilledButton.tonalIcon(
-              onPressed: vm.addContact,
-              icon: const Icon(Icons.person_add_outlined, size: 18),
-              label: Text(context.tr('add_contact')),
-              style: FilledButton.styleFrom(
-                backgroundColor: tokens.accentSoft,
-                foregroundColor: tokens.accentInk,
-              ),
+          FilledButton.tonalIcon(
+            onPressed: vm.addContact,
+            icon: const Icon(Icons.person_add_outlined, size: 18),
+            label: Text(context.tr('add_contact')),
+            style: FilledButton.styleFrom(
+              backgroundColor: tokens.accentSoft,
+              foregroundColor: tokens.accentInk,
             ),
           ),
+          // Native address-book import (iOS). Hidden on web / non-iOS where the
+          // device contacts service reports unavailable.
+          if (context.read<Services>().deviceContacts.isAvailable) ...[
+            const SizedBox(height: InSpacing.sm),
+            OutlinedButton.icon(
+              onPressed: () => _importFromDevice(context),
+              icon: const Icon(Icons.perm_contact_calendar_outlined, size: 18),
+              label: Text(context.tr('add_from_contacts')),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  /// Launch the OS contact picker, merge the chosen contact into the draft
+  /// (non-destructively), and report the outcome. The whole import is one draft
+  /// mutation, so the toast's Undo restores everything at once.
+  Future<void> _importFromDevice(BuildContext context) async {
+    final services = context.read<Services>();
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final DeviceContactImport? picked;
+    try {
+      picked = await services.deviceContacts.pickContact();
+    } catch (e) {
+      if (context.mounted) {
+        Notify.error(
+          context,
+          context.tr('add_from_contacts'),
+          error: e,
+          messenger: messenger,
+        );
+      }
+      return;
+    }
+    if (picked == null) return; // user cancelled
+    if (!context.mounted) return;
+
+    final before = vm.draft;
+    final countryId = resolveCountryId(
+      services.statics.countries.values,
+      iso2: picked.countryIso,
+      name: picked.countryName,
+    );
+    final result = vm.applyImportedContact(picked, countryId: countryId);
+
+    if (result.changedNothing) {
+      Notify.warning(
+        context,
+        context.tr('no_contact_details_found'),
+        messenger: messenger,
+      );
+      return;
+    }
+
+    final summary = _importSummary(context, result);
+    final undo = NotifyAction(
+      context.tr('undo'),
+      () => vm.restoreDraft(before),
+    );
+
+    if (result.contactWasDuplicate) {
+      // The picked person already exists, so don't claim we imported them.
+      // Client fields may still have filled — offer Undo + a summary then.
+      Notify.info(
+        context,
+        context.tr('already_a_contact', {'name': picked.displayLabel}),
+        detail: result.appliedChanges ? summary : null,
+        action: result.appliedChanges ? undo : null,
+        messenger: messenger,
+      );
+      return;
+    }
+
+    // Not a duplicate → a person and/or client fields were imported.
+    final title = picked.displayLabel.isNotEmpty
+        ? context.tr('imported_contact', {'name': picked.displayLabel})
+        : context.tr('add_from_contacts');
+    Notify.success(
+      context,
+      title,
+      detail: summary,
+      action: undo,
+      messenger: messenger,
+    );
+  }
+
+  /// "Name · Address · Contact" — the fields the import filled, for the toast
+  /// detail line. Tokens map to existing localization keys.
+  String _importSummary(BuildContext context, ContactImportResult result) {
+    final parts = <String>[
+      for (final field in result.filledClientFields) context.tr(field),
+      if (result.contactAdded) context.tr('contact'),
+    ];
+    return parts.join('  ·  ');
   }
 
   /// Stable key per contact row so the editor's internal text controllers

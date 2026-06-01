@@ -1,0 +1,72 @@
+import 'package:admin/data/models/value/country.dart';
+import 'package:admin/data/services/device_contacts_service.dart';
+import 'package:admin/data/services/device_contacts_service_web.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  final countries = [
+    Country.fromMap({'id': '840', 'name': 'United States', 'iso_3166_2': 'US'}),
+    Country.fromMap({'id': '826', 'name': 'United Kingdom', 'iso_3166_2': 'GB'}),
+  ];
+
+  group('resolveCountryId', () {
+    test('matches the ISO alpha-2 code, case-insensitively', () {
+      expect(resolveCountryId(countries, iso2: 'US', name: ''), '840');
+      expect(resolveCountryId(countries, iso2: 'gb', name: ''), '826');
+    });
+
+    test('falls back to the country name when no ISO code is given', () {
+      expect(
+        resolveCountryId(countries, iso2: '', name: 'united states'),
+        '840',
+      );
+      expect(
+        resolveCountryId(countries, iso2: '', name: 'United Kingdom'),
+        '826',
+      );
+    });
+
+    test('prefers the ISO code over the name', () {
+      // ISO says GB, name says US → ISO wins.
+      expect(
+        resolveCountryId(countries, iso2: 'GB', name: 'United States'),
+        '826',
+      );
+    });
+
+    test('returns empty string on no match or empty inputs', () {
+      expect(resolveCountryId(countries, iso2: 'ZZ', name: 'Atlantis'), '');
+      expect(resolveCountryId(countries, iso2: '', name: ''), '');
+      expect(resolveCountryId(const [], iso2: 'US', name: 'United States'), '');
+    });
+
+    test('displayLabel prefers the full name, then displayName, org, email', () {
+      expect(
+        const DeviceContactImport(firstName: 'Ada', lastName: 'Lovelace')
+            .displayLabel,
+        'Ada Lovelace',
+      );
+      expect(
+        const DeviceContactImport(displayName: 'Ada L.').displayLabel,
+        'Ada L.',
+      );
+      expect(
+        const DeviceContactImport(organization: 'Analytical Engines')
+            .displayLabel,
+        'Analytical Engines',
+      );
+      expect(
+        const DeviceContactImport(email: 'ada@x.test').displayLabel,
+        'ada@x.test',
+      );
+    });
+  });
+
+  group('UnsupportedDeviceContactsService (web / non-iOS stub)', () {
+    test('reports unavailable and picks nothing', () async {
+      const svc = UnsupportedDeviceContactsService();
+      expect(svc.isAvailable, isFalse);
+      expect(await svc.pickContact(), isNull);
+    });
+  });
+}

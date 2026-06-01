@@ -136,6 +136,7 @@ the honest default.
 | Client — custom fields | ✅ | ✅ | ✅ | ✅ | |
 | Client — group assignment | ✅ | ✅ | ✅ | ✅ | |
 | Client — multiple contacts | ✅ | ✅ | ✅ | ✅ | |
+| Client — import contact from device address book (iOS) | ❌ | ✅ | ✅ | | |
 | Client/Vendor — contact CC-only | ✅ | ✅ | ✅ | — | — |
 | Client — multiple shipping / billing locations | ✅ | ✅ | ✅ | ✅ | |
 | Client — payment terms override | ✅ | ✅ | ✅ | ✅ | |

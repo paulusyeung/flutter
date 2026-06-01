@@ -4,6 +4,7 @@ import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/contact.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/client_repository.dart';
+import 'package:admin/data/services/device_contacts_service.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 
 /// Drives the Client edit + create screen.
@@ -154,6 +155,114 @@ class ClientEditViewModel extends GenericEditViewModel<Client> {
     updateDraft(draft.copyWith(contacts: contacts));
   }
 
+  // ─────────────────────── device contact import ────────────────────────
+
+  /// Replace the whole draft — used to restore the pre-import snapshot when the
+  /// user taps Undo on the import toast.
+  void restoreDraft(Client snapshot) => updateDraft(snapshot);
+
+  /// Apply an OS-picked device contact **non-destructively**:
+  ///  - Client identity (name / address / website) fills only blank fields.
+  ///  - The person fills the first all-blank contact row, else is appended —
+  ///    skipped when it duplicates an existing contact (email, then first+last).
+  ///
+  /// [countryId] is the already-resolved Invoice Ninja country id (the UI
+  /// resolves it from the device ISO/name via [resolveCountryId] + statics, so
+  /// the VM stays free of `Services`). Mutates the draft once (a single notify),
+  /// so one [restoreDraft] undoes everything. Returns a [ContactImportResult] so
+  /// the caller can pick the toast variant and summarize what changed.
+  ContactImportResult applyImportedContact(
+    DeviceContactImport c, {
+    required String countryId,
+  }) {
+    var next = draft;
+    final filled = <String>[];
+
+    // ── Client identity (blanks-only) ──
+    if (next.name.trim().isEmpty) {
+      final name = _clientNameFrom(c);
+      if (name.isNotEmpty) {
+        next = next.copyWith(name: name, displayName: name);
+        filled.add('name');
+      }
+    }
+    var addressChanged = false;
+    if (next.address1.trim().isEmpty && c.address1.trim().isNotEmpty) {
+      next = next.copyWith(address1: c.address1.trim());
+      addressChanged = true;
+    }
+    if (next.city.trim().isEmpty && c.city.trim().isNotEmpty) {
+      next = next.copyWith(city: c.city.trim());
+      addressChanged = true;
+    }
+    if (next.state.trim().isEmpty && c.state.trim().isNotEmpty) {
+      next = next.copyWith(state: c.state.trim());
+      addressChanged = true;
+    }
+    if (next.postalCode.trim().isEmpty && c.postalCode.trim().isNotEmpty) {
+      next = next.copyWith(postalCode: c.postalCode.trim());
+      addressChanged = true;
+    }
+    if (next.countryId.isEmpty && countryId.isNotEmpty) {
+      next = next.copyWith(countryId: countryId);
+      addressChanged = true;
+    }
+    if (addressChanged) filled.add('address');
+    if (next.website.trim().isEmpty && c.website.trim().isNotEmpty) {
+      next = next.copyWith(website: c.website.trim());
+      filled.add('website');
+    }
+
+    // ── Person ──
+    var first = c.firstName.trim();
+    var last = c.lastName.trim();
+    if (first.isEmpty && last.isEmpty) {
+      final split = _splitDisplayName(c.displayName);
+      first = split.$1;
+      last = split.$2;
+    }
+    final email = c.email.trim();
+    final phone = c.phone.trim();
+    final hasPerson =
+        first.isNotEmpty ||
+        last.isNotEmpty ||
+        email.isNotEmpty ||
+        phone.isNotEmpty;
+
+    var contactAdded = false;
+    var contactWasDuplicate = false;
+    if (hasPerson) {
+      final contacts = [...next.contacts];
+      if (_findDuplicateContact(contacts, email, phone, first, last) >= 0) {
+        contactWasDuplicate = true;
+      } else {
+        final blankIdx = contacts.indexWhere(_isBlankContact);
+        final filledContact = (blankIdx >= 0 ? contacts[blankIdx] : _emptyContact())
+            .copyWith(
+              firstName: first,
+              lastName: last,
+              email: email,
+              phone: phone,
+            );
+        if (blankIdx >= 0) {
+          contacts[blankIdx] = filledContact;
+        } else {
+          contacts.add(filledContact.copyWith(isPrimary: contacts.isEmpty));
+        }
+        next = next.copyWith(contacts: contacts);
+        contactAdded = true;
+      }
+    }
+
+    final result = ContactImportResult(
+      contactAdded: contactAdded,
+      contactWasDuplicate: contactWasDuplicate,
+      filledClientFields: filled,
+    );
+    if (result.appliedChanges) updateDraft(next);
+    return result;
+  }
+
   // ───────────────────────── primary contact (legacy) ───────────────────
 
   // Kept for backwards compatibility with `client_edit_view_model_test.dart`,
@@ -230,3 +339,91 @@ Contact _emptyContact() => Contact(
   updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
   isDeleted: false,
 );
+
+/// Outcome of [ClientEditViewModel.applyImportedContact], so the UI can choose
+/// the toast (success / "already a contact" / "nothing found") and summarize
+/// which fields filled — keeping all copy (and `tr`) out of the view model.
+class ContactImportResult {
+  const ContactImportResult({
+    required this.contactAdded,
+    required this.contactWasDuplicate,
+    required this.filledClientFields,
+  });
+
+  /// A person row was filled in place or appended.
+  final bool contactAdded;
+
+  /// The person matched an existing contact and was skipped.
+  final bool contactWasDuplicate;
+
+  /// Stable tokens for client fields that filled: `'name'`, `'address'`,
+  /// `'website'` (each maps to an existing localization key in the UI).
+  final List<String> filledClientFields;
+
+  /// Whether the draft actually changed (drives the success toast + Undo).
+  bool get appliedChanges => contactAdded || filledClientFields.isNotEmpty;
+
+  /// Nothing landed at all — not even a duplicate skip (drives the warning).
+  bool get changedNothing => !appliedChanges && !contactWasDuplicate;
+}
+
+/// Client name for an imported contact: the company, else the person's full
+/// name (so importing an individual doesn't leave the client nameless), else
+/// the OS display name, else the email.
+String _clientNameFrom(DeviceContactImport c) {
+  if (c.organization.trim().isNotEmpty) return c.organization.trim();
+  final full = '${c.firstName} ${c.lastName}'.trim();
+  if (full.isNotEmpty) return full;
+  if (c.displayName.trim().isNotEmpty) return c.displayName.trim();
+  return c.email.trim();
+}
+
+/// Split a single display name into (first, rest) on whitespace. Used only when
+/// the device gives a display name but no structured first/last.
+(String, String) _splitDisplayName(String displayName) {
+  final parts = displayName.trim().split(RegExp(r'\s+'))
+    ..removeWhere((p) => p.isEmpty);
+  if (parts.isEmpty) return ('', '');
+  if (parts.length == 1) return (parts.first, '');
+  return (parts.first, parts.sublist(1).join(' '));
+}
+
+bool _isBlankContact(Contact c) =>
+    c.firstName.trim().isEmpty &&
+    c.lastName.trim().isEmpty &&
+    c.email.trim().isEmpty &&
+    c.phone.trim().isEmpty;
+
+/// Index of an existing contact that duplicates the import — by email, then by
+/// phone (digits only), then by a **full** first+last match. Returns -1 when
+/// none matches. The name pass requires both parts so that re-importing a
+/// single-name card (e.g. "Cher") never silently skips a *different* person who
+/// happens to share that first name — it appends instead.
+int _findDuplicateContact(
+  List<Contact> contacts,
+  String email,
+  String phone,
+  String first,
+  String last,
+) {
+  final e = email.trim().toLowerCase();
+  if (e.isNotEmpty) {
+    final i = contacts.indexWhere((c) => c.email.trim().toLowerCase() == e);
+    if (i >= 0) return i;
+  }
+  final p = _digitsOnly(phone);
+  if (p.isNotEmpty) {
+    final i = contacts.indexWhere((c) => _digitsOnly(c.phone) == p);
+    if (i >= 0) return i;
+  }
+  final f = first.trim().toLowerCase();
+  final l = last.trim().toLowerCase();
+  if (f.isEmpty || l.isEmpty) return -1;
+  return contacts.indexWhere(
+    (c) =>
+        c.firstName.trim().toLowerCase() == f &&
+        c.lastName.trim().toLowerCase() == l,
+  );
+}
+
+String _digitsOnly(String s) => s.replaceAll(RegExp(r'\D'), '');

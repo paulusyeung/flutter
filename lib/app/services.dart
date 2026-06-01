@@ -62,6 +62,8 @@ import 'package:admin/data/services/auth_service.dart';
 import 'package:admin/data/services/biometric_service.dart';
 import 'package:admin/data/services/companies_api.dart';
 import 'package:admin/data/services/connectivity_watcher.dart';
+import 'package:admin/data/services/device_contacts_service.dart';
+import 'package:admin/data/services/device_contacts_service_factory.dart';
 import 'package:admin/data/services/documents_api.dart';
 import 'package:admin/data/services/emails_api.dart';
 import 'package:admin/data/services/dashboard_api.dart';
@@ -227,6 +229,7 @@ class Services implements SidebarBadgeContext {
     required this.passwordCache,
     required this.apiClient,
     required this.biometric,
+    required this.deviceContacts,
     required this.theme,
     required this.accentColor,
     required this.locale,
@@ -475,6 +478,10 @@ class Services implements SidebarBadgeContext {
   final PasswordCache passwordCache;
   final ApiClient apiClient;
   final BiometricService biometric;
+
+  /// Reads a single contact from the device address book (iOS); a no-op stub on
+  /// web / non-iOS so the client-edit "Add from contacts" button hides itself.
+  final DeviceContactsService deviceContacts;
   final ThemeController theme;
 
   /// Per-(company, user) accent color resolver. Emits the current user's
@@ -660,6 +667,7 @@ class Services implements SidebarBadgeContext {
     required AppDatabase db,
     TokenStorage? tokenStorage,
     BiometricService? biometricService,
+    DeviceContactsService? deviceContactsService,
     ConnectivityWatcher? connectivityWatcher,
     http.Client? httpClient,
     DiagnosticsLog? diagnosticsLog,
@@ -959,6 +967,7 @@ class Services implements SidebarBadgeContext {
       biometric:
           biometricService ??
           (kIsWeb ? const WebBiometricService() : LocalAuthBiometricService()),
+      deviceContacts: deviceContactsService ?? defaultDeviceContactsService(),
       theme: theme,
       accentColor: accentColor,
       locale: locale,
