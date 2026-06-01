@@ -10,7 +10,7 @@ import 'package:admin/data/repositories/user_repository.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/search/custom_field_filter_key.dart';
-import 'package:admin/ui/core/list/search/date_range_filter_key.dart';
+import 'package:admin/ui/core/list/search/date_column_filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_keys_common.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
@@ -89,12 +89,18 @@ export 'package:admin/ui/core/list/search/custom_field_filter_key.dart'
 //                            balance" regardless of value. Don't write it.
 //   `created_at`,          → honored as a PLAIN value (server applies
 //   `updated_at`             `>=`; an operator suffix like `:gt` is
-//                            swallowed). Plus `updated_between` (closed
-//                            window on `updated_at`) and the unified
-//                            3-part `date_range`. `Created`/`Updated`
-//                            FilterKeys available. Lifecycle is the
-//                            `status` param (handled by
-//                            `stateQueryParams`), not `client_status`.
+//                            swallowed). Both are exposed via the shared
+//                            `DateColumnFilterKey`, whose `between` operator
+//                            writes a window to `created_at_range` /
+//                            `updated_at_range` (3-part `<col>,<start>,<end>`
+//                            wire). Those window params' server support is
+//                            unverified — the local Drift mirror
+//                            (`parse{Created,Updated}AtRangeFilter` →
+//                            `created/updatedFrom/To`) narrows the list
+//                            regardless. The legacy 2-part `updated_between`
+//                            param is no longer emitted. Lifecycle is the
+//                            `status` param (handled by `stateQueryParams`),
+//                            not `client_status`.
 //
 // Still silently ignored — these FilterKeys opt out of the suggestion
 // menu via `isAvailable => false`:
@@ -157,9 +163,22 @@ List<FilterKey> buildClientFilterKeys({
     const ClassificationFilterKey(),
     const VatFilterKey(),
     const IdNumberFilterKey(),
-    const CreatedFilterKey(),
-    const UpdatedFilterKey(),
-    const UpdatedRangeFilterKey(),
+    // Created / Updated each expose the full operator menu — including
+    // `is between`, which opens the dual-calendar range popover and stores a
+    // window in `created_at_range` / `updated_at_range`. There is no separate
+    // "Updated between" dropdown entry: between is just one of the operators.
+    // Same `DateColumnFilterKey` the billing-doc lists use.
+    const DateColumnFilterKey(
+      id: 'created',
+      serverKey: 'created_at',
+      labelKey: 'created',
+    ),
+    const DateColumnFilterKey(
+      id: 'updated',
+      serverKey: 'updated_at',
+      labelKey: 'updated',
+      hintKey: 'updated_filter_hint',
+    ),
     GroupFilterKey(
       groups: groups,
       companyId: companyId,
@@ -840,75 +859,10 @@ class BalanceFilterKey extends FilterKey with ComparableFilterKey {
       context.tr('balance_filter_hint');
 }
 
-/// `created` → server `created_at=gte:2026-01-01` (canonical prefix;
-/// `whereDate` calendar-day semantics server-side). A bare/legacy plain
-/// `created_at=<date>` still means "on or after" ([defaultOp] = [gte]),
-/// preserving the historical server `>=`.
-class CreatedFilterKey extends FilterKey with ComparableFilterKey {
-  const CreatedFilterKey();
-
-  @override
-  String get id => 'created';
-
-  @override
-  String get serverKey => 'created_at';
-
-  @override
-  String displayLabel(BuildContext context) => context.tr('created');
-
-  @override
-  FilterValueType get valueType => FilterValueType.date;
-
-  @override
-  List<FilterOp> get supportedOps => const [
-    FilterOp.gt,
-    FilterOp.gte,
-    FilterOp.lt,
-    FilterOp.lte,
-    FilterOp.eq,
-  ];
-
-  @override
-  FilterOp get defaultOp => FilterOp.gte;
-
-  @override
-  String? hintForValueMode(BuildContext context) =>
-      context.tr('created_filter_hint');
-}
-
-/// `updated` → server `updated_at=gte:2026-01-01`. Same shape as
-/// [CreatedFilterKey].
-class UpdatedFilterKey extends FilterKey with ComparableFilterKey {
-  const UpdatedFilterKey();
-
-  @override
-  String get id => 'updated';
-
-  @override
-  String get serverKey => 'updated_at';
-
-  @override
-  String displayLabel(BuildContext context) => context.tr('updated');
-
-  @override
-  FilterValueType get valueType => FilterValueType.date;
-
-  @override
-  List<FilterOp> get supportedOps => const [
-    FilterOp.gt,
-    FilterOp.gte,
-    FilterOp.lt,
-    FilterOp.lte,
-    FilterOp.eq,
-  ];
-
-  @override
-  FilterOp get defaultOp => FilterOp.gte;
-
-  @override
-  String? hintForValueMode(BuildContext context) =>
-      context.tr('updated_filter_hint');
-}
+// Created / Updated date filters are the shared `DateColumnFilterKey`
+// (registered above in `buildClientFilterKeys`), not bespoke keys — the
+// generic key already carries the `>` / `>=` / `<` / `<=` / `=` / between
+// operator menu. No `CreatedFilterKey` / `UpdatedFilterKey` subclasses here.
 
 // ────────────────────────────────────────────────────────────────────
 // Flat-match membership keys. The server filter param name is the same

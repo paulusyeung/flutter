@@ -42,23 +42,6 @@ String? parseSubstringFilter(
   return v.isEmpty ? null : v;
 }
 
-/// `updated_between` — a closed `[start, end]` window on `updated_at`.
-/// Wire form is the base 2-part `"<start>,<end>"` (distinct from the 3-part
-/// canonical `date_range`; `updated_between` was not standardized). ISO
-/// `YYYY-MM-DD` strings.
-({String? start, String? end}) parseUpdatedBetweenFilter(
-  Map<String, Set<String>> extraFilters,
-) {
-  final raw = extraFilters['updated_between'] ?? const <String>{};
-  if (raw.isEmpty) return (start: null, end: null);
-  final parts = raw.first.split(',');
-  if (parts.length < 2) return (start: null, end: null);
-  final start = parts[0].trim();
-  final end = parts[1].trim();
-  if (start.isEmpty || end.isEmpty) return (start: null, end: null);
-  return (start: start, end: end);
-}
-
 /// Invoice `status_id` — already the persisted numeric wire ids `'1'..'6'`,
 /// so they map straight onto the `statusId` column.
 Set<String> parseInvoiceStatusFilter(Map<String, Set<String>> extraFilters) =>
@@ -191,6 +174,20 @@ Map<String, Set<String>> resolveRelativeFilterTokens(
 ({String? start, String? end}) parseDueDateRangeFilter(
   Map<String, Set<String>> extraFilters,
 ) => _parseWindowFilter(extraFilters, 'due_date_range');
+
+/// `updated_at_range` / `created_at_range` — the closed `[start, end]`
+/// windows on the clients list's `updated_at` / `created_at` columns (the
+/// `DateColumnFilterKey(id: 'updated' | 'created')` `between` comparator).
+/// Same arity-tolerant 3-part / 2-part wire as [parseDateRangeFilter]; ISO
+/// `YYYY-MM-DD` strings (`ClientRepository` converts them to the epoch-second
+/// day bounds its DAO compares against).
+({String? start, String? end}) parseUpdatedAtRangeFilter(
+  Map<String, Set<String>> extraFilters,
+) => _parseWindowFilter(extraFilters, 'updated_at_range');
+
+({String? start, String? end}) parseCreatedAtRangeFilter(
+  Map<String, Set<String>> extraFilters,
+) => _parseWindowFilter(extraFilters, 'created_at_range');
 
 ({String? start, String? end}) _parseWindowFilter(
   Map<String, Set<String>> extraFilters,

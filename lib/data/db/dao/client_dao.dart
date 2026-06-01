@@ -53,6 +53,8 @@ class ClientDao extends BaseEntityDao<$ClientsTable, ClientRow>
     String? numberExact,
     int? updatedFrom,
     int? updatedTo,
+    int? createdFrom,
+    int? createdTo,
   }) {
     final q = select(clients)..where((c) => c.companyId.equals(companyId));
 
@@ -151,12 +153,20 @@ class ClientDao extends BaseEntityDao<$ClientsTable, ClientRow>
     if (numberExact != null && numberExact.isNotEmpty) {
       q.where((c) => c.number.equals(numberExact));
     }
-    // `updated_between` — inclusive epoch-seconds window on updated_at.
+    // `updated_at_range` / `created_at_range` — inclusive epoch-seconds
+    // windows on the `updated_at` / `created_at` columns (the
+    // `DateColumnFilterKey` between comparator).
     if (updatedFrom != null) {
       q.where((c) => c.updatedAt.isBiggerOrEqualValue(updatedFrom));
     }
     if (updatedTo != null) {
       q.where((c) => c.updatedAt.isSmallerOrEqualValue(updatedTo));
+    }
+    if (createdFrom != null) {
+      q.where((c) => c.createdAt.isBiggerOrEqualValue(createdFrom));
+    }
+    if (createdTo != null) {
+      q.where((c) => c.createdAt.isSmallerOrEqualValue(createdTo));
     }
 
     final mode = sortAscending ? OrderingMode.asc : OrderingMode.desc;

@@ -17,6 +17,7 @@ import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
+import 'package:admin/ui/core/list/search/date_column_filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
 import 'package:admin/ui/core/list/search/token_search_controller.dart';
@@ -26,6 +27,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../_localization_helper.dart';
+
+// The clients list registers its `created` / `updated` date filters as the
+// shared `DateColumnFilterKey` (the operator menu includes `between`, which
+// writes a window to `created_at_range` / `updated_at_range`).
+const _createdKey = DateColumnFilterKey(
+  id: 'created',
+  serverKey: 'created_at',
+  labelKey: 'created',
+);
+const _updatedKey = DateColumnFilterKey(
+  id: 'updated',
+  serverKey: 'updated_at',
+  labelKey: 'updated',
+);
 
 /// Verifies the four built-in client filter keys round-trip values through
 /// the VM and produce the right chip/suggestion data. We bring up a real
@@ -866,11 +881,11 @@ void main() {
     );
   });
 
-  group('CreatedFilterKey', () {
+  group('created date key (DateColumnFilterKey)', () {
     test('addValue writes canonical `gte:<date>` for a bare date (default '
         'op preserves the historical server >=)', () async {
       final vm = await makeVm();
-      const key = CreatedFilterKey();
+      const key = _createdKey;
       await key.addValue(vm, '2026-01-01');
       expect(vm.extraFilters['created_at'], {'gte:2026-01-01'});
       // Explicit prefix is honored.
@@ -888,9 +903,9 @@ void main() {
   // `gte:2026-01-01`. Verify the whole typed-entry vector resolves to
   // canonical wire (the path the segmented-chip plan calls out).
   group('typed-entry vectors (post-FilterInputParse query)', () {
-    test('CreatedFilterKey: `gte:2026-01-01` → canonical', () async {
+    test('created date key: `gte:2026-01-01` → canonical', () async {
       final vm = await makeVm();
-      const key = CreatedFilterKey();
+      const key = _createdKey;
       await key.addValue(vm, 'gte:2026-01-01');
       expect(vm.extraFilters['created_at'], {'gte:2026-01-01'});
       vm.dispose();
@@ -916,10 +931,10 @@ void main() {
     );
   });
 
-  group('UpdatedFilterKey', () {
+  group('updated date key (DateColumnFilterKey)', () {
     test('addValue writes canonical `gte:<date>` for a bare date', () async {
       final vm = await makeVm();
-      const key = UpdatedFilterKey();
+      const key = _updatedKey;
       await key.addValue(vm, '2026-05-01');
       expect(vm.extraFilters['updated_at'], {'gte:2026-05-01'});
       vm.dispose();
@@ -1573,15 +1588,9 @@ void main() {
       expect(key.editableValueText('250:lt'), '<250');
     });
 
-    test('CreatedFilterKey / UpdatedFilterKey: strip the operator', () {
-      expect(
-        const CreatedFilterKey().editableValueText('2026-01-01:gt'),
-        '2026-01-01',
-      );
-      expect(
-        const UpdatedFilterKey().editableValueText('2026-05-01:gt'),
-        '2026-05-01',
-      );
+    test('created / updated date keys: strip the operator', () {
+      expect(_createdKey.editableValueText('2026-01-01:gt'), '2026-01-01');
+      expect(_updatedKey.editableValueText('2026-05-01:gt'), '2026-05-01');
     });
 
     test(
@@ -1650,11 +1659,13 @@ void main() {
       );
       // is, name, email, number, balance, custom1..4 (4), country,
       // industry, size, currency, language, classification, vat,
-      // id_number, created, updated, updated_between, group, assigned
-      // → 22 keys. (FilterFilterKey was removed — it duplicated the
-      // plain-text search path.) custom1 gets "Region", custom3 gets
-      // "Project"; others fall through to the generic label.
-      expect(displayLabels.length, 22);
+      // id_number, created, updated, group, assigned
+      // → 21 keys. (The standalone "updated between" entry was folded into
+      // the `updated` DateColumnFilterKey's `between` operator; FilterFilterKey
+      // was removed earlier — it duplicated the plain-text search path.)
+      // custom1 gets "Region", custom3 gets "Project"; others fall through to
+      // the generic label.
+      expect(displayLabels.length, 21);
       // Order: is(0), name(1), email(2), number(3), balance(4),
       // custom1(5)…custom4(8), …
       expect(
@@ -1670,17 +1681,17 @@ void main() {
     });
   });
 
-  group('CreatedFilterKey / UpdatedFilterKey', () {
+  group('created / updated date keys (DateColumnFilterKey)', () {
     test('are available', () async {
       final vm = await makeVm();
-      expect(const CreatedFilterKey().isAvailable(vm), isTrue);
-      expect(const UpdatedFilterKey().isAvailable(vm), isTrue);
+      expect(_createdKey.isAvailable(vm), isTrue);
+      expect(_updatedKey.isAvailable(vm), isTrue);
       vm.dispose();
     });
 
     test('removeValue clears the date filter', () async {
       final vm = await makeVm();
-      const key = CreatedFilterKey();
+      const key = _createdKey;
 
       await key.addValue(vm, '2026-01-01');
       expect(vm.extraFilters['created_at'], {'gte:2026-01-01'});
@@ -1706,7 +1717,7 @@ void main() {
       );
       await tester.runAsync(() async {
         final vm = await makeVm();
-        const key = CreatedFilterKey();
+        const key = _createdKey;
         await key.addValue(vm, '2026-01-01');
         final tokens = key.tokensFrom(vm, ctx).toList();
         expect(tokens.single.rawValue, 'gte:2026-01-01');
@@ -1717,6 +1728,86 @@ void main() {
         vm.dispose();
       });
     });
+  });
+
+  // The standalone "Updated between" dropdown entry was replaced by the
+  // `between` operator on the `created` / `updated` DateColumnFilterKeys. Its
+  // window lives in `created_at_range` / `updated_at_range` (canonical 3-part
+  // `<col>,<start>,<end>` wire) — the slots `ClientRepository.watchPage`
+  // mirrors locally. Mirrors the payments `DateColumnFilterKey` between group.
+  group('created / updated between windows (DateColumnFilterKey)', () {
+    for (final (label, key, rangeSlot, compSlot)
+        in <(String, DateColumnFilterKey, String, String)>[
+          ('created', _createdKey, 'created_at_range', 'created_at'),
+          ('updated', _updatedKey, 'updated_at_range', 'updated_at'),
+        ]) {
+      test('$label: exposes between alongside the single-date comparators', () {
+        expect(key.supportedOps, contains(FilterOp.between));
+        expect(key.rangeServerKey, rangeSlot);
+      });
+
+      test(
+        '$label: addValue routes a window to the range slot as the canonical '
+        '<col>,<start>,<end> wire and clears the comparable slot',
+        () async {
+          final vm = await makeVm();
+          // Seed a single-date comparable filter first.
+          await key.addValue(vm, 'gte:2026-01-01');
+          expect(vm.extraFilters[compSlot], {'gte:2026-01-01'});
+          // A legacy 2-part window normalizes to canonical 3-part in the
+          // range slot, and the comparable slot is cleared (mutually
+          // exclusive within the key).
+          await key.addValue(vm, '2026-05-01,2026-05-31');
+          expect(vm.extraFilters[rangeSlot], {
+            '$compSlot,2026-05-01,2026-05-31',
+          });
+          expect(vm.extraFilters[compSlot] ?? const <String>{}, isEmpty);
+          vm.dispose();
+        },
+      );
+
+      test('$label: switching back to a single-date op seeds from the window '
+          'start and clears the range slot', () async {
+        final vm = await makeVm();
+        await key.addValue(vm, '$compSlot,2026-05-01,2026-05-31');
+        await key.changeOp(vm, '$compSlot,2026-05-01,2026-05-31', FilterOp.gte);
+        expect(vm.extraFilters[rangeSlot] ?? const <String>{}, isEmpty);
+        expect(vm.extraFilters[compSlot], {'gte:2026-05-01'});
+        vm.dispose();
+      });
+
+      testWidgets(
+        '$label: the window renders as one chip; clear drops both slots',
+        (tester) async {
+          late BuildContext ctx;
+          await tester.pumpWidget(
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: Builder(
+                builder: (c) {
+                  ctx = c;
+                  return const SizedBox();
+                },
+              ),
+            ),
+          );
+          await tester.runAsync(() async {
+            final vm = await makeVm();
+            // A non-column prefix still normalizes to the canonical wire.
+            await key.addValue(vm, 'preset,2026-05-01,2026-05-31');
+            final tokens = key.tokensFrom(vm, ctx).toList();
+            expect(tokens, hasLength(1));
+            expect(tokens.single.displayValue, '2026-05-01 – 2026-05-31');
+            expect(tokens.single.rawValue, '$compSlot,2026-05-01,2026-05-31');
+
+            await key.clear(vm, ctx);
+            expect(vm.extraFilters[rangeSlot] ?? const <String>{}, isEmpty);
+            expect(vm.extraFilters[compSlot] ?? const <String>{}, isEmpty);
+            vm.dispose();
+          });
+        },
+      );
+    }
   });
 }
 

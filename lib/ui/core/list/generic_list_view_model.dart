@@ -529,8 +529,41 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
           if (values.isNotEmpty) next[key] = values;
         }
       });
+      _migrateLegacyUpdatedBetween(next);
       _extraFilters = next;
     }
+  }
+
+  /// One-time migration of a persisted legacy `updated_between` filter into
+  /// the `updated_at_range` window the `updated` [DateColumnFilterKey] now
+  /// uses. The clients list used to expose a standalone "Updated between"
+  /// dropdown entry whose 2-part `start,end` wire lived under
+  /// `updated_between`; it's now folded into the `updated` key's `between`
+  /// operator (3-part `updated_at,start,end` under `updated_at_range`).
+  ///
+  /// Without this rewrite an upgrading user's saved filter would become a
+  /// stuck, chip-less filter — no key reads `updated_between` anymore, so it
+  /// renders no chip yet still rides to the server fetch, with the global
+  /// "Clear filters" the only escape. Only the clients list ever persisted
+  /// this key, so the migration is a no-op everywhere else. Mutates [next]
+  /// in place; drops the legacy slot even when malformed (so it can't linger).
+  static void _migrateLegacyUpdatedBetween(Map<String, Set<String>> next) {
+    final legacy = next['updated_between'];
+    if (legacy == null || legacy.isEmpty) return;
+    if ((next['updated_at_range'] ?? const <String>{}).isNotEmpty) {
+      // A real new-style window already exists — don't clobber it.
+      next.remove('updated_between');
+      return;
+    }
+    final parts = legacy.first.split(',');
+    if (parts.length >= 2) {
+      final start = parts[parts.length - 2].trim();
+      final end = parts[parts.length - 1].trim();
+      if (start.isNotEmpty && end.isNotEmpty) {
+        next['updated_at_range'] = {'updated_at,$start,$end'};
+      }
+    }
+    next.remove('updated_between');
   }
 
   /// The filter+sort+search payload as it would be written to

@@ -1,10 +1,25 @@
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/theme.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
+import 'package:admin/ui/core/list/search/date_column_filter_key.dart';
 import 'package:admin/ui/core/list/search/segment_menu.dart';
 import 'package:admin/ui/features/clients/client_filter_keys.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+// The clients list's `created` / `updated` filters are the shared
+// `DateColumnFilterKey` (its operator menu includes `between`). These pin the
+// SegmentMenu behavior against that exact key type.
+const _created = DateColumnFilterKey(
+  id: 'created',
+  serverKey: 'created_at',
+  labelKey: 'created',
+);
+const _updated = DateColumnFilterKey(
+  id: 'updated',
+  serverKey: 'updated_at',
+  labelKey: 'updated',
+);
 
 /// Phase 6: the dedicated per-segment dropdown. It commits straight
 /// through the key (`changeOp` / `addValue`) and never owns or writes a
@@ -62,7 +77,7 @@ void main() {
     home: Scaffold(body: Center(child: child)),
   );
 
-  testWidgets('comparator: 5 rows, current op checked, tap rewrites the '
+  testWidgets('comparator: 6 rows, current op checked, tap rewrites the '
       'op only (value preserved) and closes', (tester) async {
     final vm = _FakeVm();
     var closed = false;
@@ -70,7 +85,7 @@ void main() {
       host(
         SegmentMenu(
           vm: vm,
-          filterKey: const CreatedFilterKey(),
+          filterKey: _created,
           kind: SegmentKind.comparator,
           currentWire: 'gte:2026-01-01',
           onClose: () => closed = true,
@@ -79,9 +94,9 @@ void main() {
     );
     await tester.pump();
 
-    // supportedOps == [gt, gte, lt, lte, eq] → 5 rows; gte (index 1,
+    // supportedOps == [gt, gte, lt, lte, eq, between] → 6 rows; gte (index 1,
     // the current op) is check-marked.
-    expect(find.byType(InkWell), findsNWidgets(5));
+    expect(find.byType(InkWell), findsNWidgets(6));
     expect(find.byIcon(Icons.check), findsOneWidget);
 
     await tester.tap(find.byType(InkWell).at(2)); // index 2 == lt
@@ -98,7 +113,7 @@ void main() {
       host(
         SegmentMenu(
           vm: vm,
-          filterKey: const CreatedFilterKey(),
+          filterKey: _created,
           kind: SegmentKind.value,
           currentWire: 'lt:2026-01-01',
           onClose: () {},
@@ -161,11 +176,11 @@ void main() {
       host(
         SegmentMenu(
           vm: vm,
-          filterKey: const CreatedFilterKey(),
+          filterKey: _created,
           kind: SegmentKind.field,
           currentWire: 'gte:2026-01-01',
           onClose: () => closed = true,
-          fieldChoices: const [CreatedFilterKey(), UpdatedFilterKey()],
+          fieldChoices: const [_created, _updated],
         ),
       ),
     );
@@ -194,11 +209,11 @@ void main() {
       host(
         SegmentMenu(
           vm: vm,
-          filterKey: const CreatedFilterKey(),
+          filterKey: _created,
           kind: SegmentKind.field,
           currentWire: 'gte:2026-01-01',
           onClose: () => closed = true,
-          fieldChoices: const [CreatedFilterKey(), UpdatedFilterKey()],
+          fieldChoices: const [_created, _updated],
         ),
       ),
     );

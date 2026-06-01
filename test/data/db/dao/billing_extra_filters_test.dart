@@ -118,6 +118,38 @@ void main() {
       );
       expect(parseDueDateRangeFilter(const {}), (start: null, end: null));
     });
+
+    test('updated_at_range / created_at_range: clients between windows', () {
+      // Canonical 3-part wire the `DateColumnFilterKey` between operator emits.
+      expect(
+        parseUpdatedAtRangeFilter({
+          'updated_at_range': {'updated_at,2026-04-01,2026-04-30'},
+        }),
+        (start: '2026-04-01', end: '2026-04-30'),
+      );
+      expect(
+        parseCreatedAtRangeFilter({
+          'created_at_range': {'created_at,2026-01-01,2026-01-31'},
+        }),
+        (start: '2026-01-01', end: '2026-01-31'),
+      );
+      // Legacy 2-part still parses (arity-tolerant — last two parts).
+      expect(
+        parseUpdatedAtRangeFilter({
+          'updated_at_range': {'2026-04-01,2026-04-30'},
+        }),
+        (start: '2026-04-01', end: '2026-04-30'),
+      );
+      // Each reads only its own slot — no cross-leak between the two windows.
+      expect(
+        parseCreatedAtRangeFilter({
+          'updated_at_range': {'updated_at,2026-04-01,2026-04-30'},
+        }),
+        (start: null, end: null),
+      );
+      expect(parseUpdatedAtRangeFilter(const {}), (start: null, end: null));
+      expect(parseCreatedAtRangeFilter(const {}), (start: null, end: null));
+    });
   });
 
   group('local DAO predicates', () {

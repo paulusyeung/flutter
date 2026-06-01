@@ -1420,7 +1420,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | List filter — client country/industry/size/classification/vat/group/assigned/custom + number/id_number (exact) | ✅ | ✅ | ✅ | ✅ | v5 filter PR (number/id_number exact-match) + denormalized cols |
 | List filter — expense project / vendor | ✅ | ✅ | ✅ | ✅ | v5 `project_ids`/`vendor_ids` |
 | List filter — canonical `date_range` (`column,start,end`) | — | — | ✅ | ✅ | legacy 2-part still parsed |
-| List filter — date "is between" comparator (date + due_date) | — | — | — | ✅ | unified into `DateColumnFilterKey`; dual-calendar popover; replaced bespoke payment date_range key; server `date_range`/`due_date_range` standardized 3-part in fork (BACKEND.md § E3) |
+| List filter — date "is between" comparator (date + due_date + client created/updated) | — | — | — | ✅ | unified into `DateColumnFilterKey`; dual-calendar popover; replaced bespoke payment date_range key; clients folded the standalone "updated between" entry into the operator (`created_at_range`/`updated_at_range`, mirrored locally); server `date_range`/`due_date_range` standardized 3-part in fork (BACKEND.md § E3) |
 | Saved views (filter + sort + columns) | ✅ | ✅ | ✅ | ✅ | |
 | Bulk-actions framework | ✅ | ✅ | ✅ | ✅ | |
 | PDF generation | ✅ | ✅ | ✅ | ✅ | |

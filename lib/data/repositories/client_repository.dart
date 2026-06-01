@@ -78,7 +78,10 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
         ? null
         : nameValues.first;
     final balance = _parseBalanceWire(extraFilters['balance']);
-    final updated = parseUpdatedBetweenFilter(extraFilters);
+    // `DateColumnFilterKey` between windows: `updated`/`created` store a
+    // closed `[start, end]` window in `updated_at_range` / `created_at_range`.
+    final updated = parseUpdatedAtRangeFilter(extraFilters);
+    final created = parseCreatedAtRangeFilter(extraFilters);
     return db.clientDao
         .watchPage(
           companyId: companyId,
@@ -106,6 +109,8 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
           numberExact: parseSubstringFilter(extraFilters, 'number'),
           updatedFrom: _isoDayStartEpoch(updated.start),
           updatedTo: _isoDayEndEpoch(updated.end),
+          createdFrom: _isoDayStartEpoch(created.start),
+          createdTo: _isoDayEndEpoch(created.end),
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }
@@ -710,10 +715,10 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
   }
 }
 
-/// Inclusive day-window bounds (epoch seconds, UTC) for the `updated_between`
-/// filter. `updated_at` is stored as epoch seconds; the filter value is an
-/// ISO `YYYY-MM-DD`, so the start is that day's 00:00:00 and the end is
-/// 23:59:59 so the whole end day is included.
+/// Inclusive day-window bounds (epoch seconds, UTC) for the `created_at` /
+/// `updated_at` between filters. Those columns are stored as epoch seconds;
+/// the filter value is an ISO `YYYY-MM-DD`, so the start is that day's
+/// 00:00:00 and the end is 23:59:59 so the whole end day is included.
 int? _isoDayStartEpoch(String? iso) {
   if (iso == null || iso.isEmpty) return null;
   final d = DateTime.tryParse(iso);

@@ -990,6 +990,98 @@ void main() {
     });
   });
 
+  group('watchPage extraFilters[updated_at_range / created_at_range]', () {
+    // Three clients on distinct created/updated calendar days (noon UTC so
+    // the day can't drift across timezones). The `updated`/`created`
+    // DateColumnFilterKey `between` operator stores a window under
+    // `<col>_range`; ClientRepository mirrors it onto the DAO's created/updated
+    // epoch-second predicates so the local watch narrows in lockstep.
+    Future<void> seedDates(ClientRepository repo) async {
+      for (final (id, name, createdAt, updatedAt) in const [
+        // created Jan 10 2023 / updated Mar 10 2023
+        ('c1', 'Alpha', 1673352000, 1678449600),
+        // created Jun 15 2023 / updated Aug 15 2023
+        ('c2', 'Beta', 1686830400, 1692100800),
+        // created Dec 20 2023 / updated Feb 20 2024
+        ('c3', 'Gamma', 1703073600, 1708430400),
+      ]) {
+        await repo.save(
+          companyId: 'co',
+          client: Client.fromApi(
+            ClientApi.fromJson({
+              'id': id,
+              'name': name,
+              'created_at': createdAt,
+              'updated_at': updatedAt,
+            }),
+          ),
+        );
+      }
+    }
+
+    test('updated_at_range narrows to rows updated within the window '
+        '(inclusive day bounds)', () async {
+      final (:repo, :api) = makeRepo();
+      await seedDates(repo);
+      final result = await repo
+          .watchPage(
+            companyId: 'co',
+            loadedPages: 1,
+            extraFilters: const {
+              'updated_at_range': {'updated_at,2023-03-01,2023-03-31'},
+            },
+          )
+          .first;
+      expect(result.map((c) => c.name), [
+        'Alpha',
+      ], reason: 'only Alpha was updated in March 2023');
+    });
+
+    test('created_at_range narrows on the created_at column, independently of '
+        'updated_at', () async {
+      final (:repo, :api) = makeRepo();
+      await seedDates(repo);
+      final result = await repo
+          .watchPage(
+            companyId: 'co',
+            loadedPages: 1,
+            extraFilters: const {
+              'created_at_range': {'created_at,2023-06-01,2023-06-30'},
+            },
+          )
+          .first;
+      expect(
+        result.map((c) => c.name),
+        ['Beta'],
+        reason: 'only Beta was created in June 2023 (its updated_at is August)',
+      );
+    });
+
+    test('legacy 2-part window wire still narrows', () async {
+      final (:repo, :api) = makeRepo();
+      await seedDates(repo);
+      final result = await repo
+          .watchPage(
+            companyId: 'co',
+            loadedPages: 1,
+            extraFilters: const {
+              'updated_at_range': {'2023-08-01,2023-08-31'},
+            },
+          )
+          .first;
+      expect(result.map((c) => c.name), ['Beta']);
+    });
+
+    test('no window → all rows visible', () async {
+      final (:repo, :api) = makeRepo();
+      await seedDates(repo);
+      final result = await repo
+          .watchPage(companyId: 'co', loadedPages: 1)
+          .first;
+      expect(result, hasLength(3));
+    });
+  });
+
   group('reactivateContactEmail', () {
     test('enqueues a reactivate_email row keyed to the client with the '
         'message_id payload — no local Drift write', () async {

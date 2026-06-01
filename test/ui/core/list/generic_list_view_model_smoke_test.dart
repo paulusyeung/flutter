@@ -382,6 +382,59 @@ void main() {
     },
   );
 
+  test('legacy updated_between filter migrates to updated_at_range on '
+      'hydrate', () async {
+    // A blob persisted by an older app version that exposed a standalone
+    // "Updated between" filter (2-part start,end wire under updated_between).
+    // It must rehydrate as the `updated` DateColumnFilterKey window so it
+    // renders a chip and narrows the watch — not a stuck, chip-less filter.
+    await db.navStateDao.saveFilters(
+      filtersJson:
+          '{"co":{"invoice":{"search":"","states":["active"],'
+          '"sortField":"number","sortAscending":true,"customFilters":{},'
+          '"extraFilters":{"updated_between":["2026-01-01,2026-03-31"]}}}}',
+      now: 0,
+    );
+    final vm = FakeInvoiceListViewModel(
+      companyId: 'co',
+      navStateDao: db.navStateDao,
+      userSettings: UserSettingsRepository(db: db),
+      searchDebounce: const Duration(milliseconds: 1),
+      persistDebounce: const Duration(milliseconds: 1),
+    );
+    await settle();
+    expect(vm.extraFilters.containsKey('updated_between'), isFalse);
+    expect(vm.extraFilters['updated_at_range'], {
+      'updated_at,2026-01-01,2026-03-31',
+    });
+    vm.dispose();
+  });
+
+  test('updated_between migration defers to an existing updated_at_range '
+      'window (no clobber)', () async {
+    await db.navStateDao.saveFilters(
+      filtersJson:
+          '{"co":{"invoice":{"search":"","states":["active"],'
+          '"sortField":"number","sortAscending":true,"customFilters":{},'
+          '"extraFilters":{"updated_between":["2020-01-01,2020-12-31"],'
+          '"updated_at_range":["updated_at,2026-05-01,2026-05-31"]}}}}',
+      now: 0,
+    );
+    final vm = FakeInvoiceListViewModel(
+      companyId: 'co',
+      navStateDao: db.navStateDao,
+      userSettings: UserSettingsRepository(db: db),
+      searchDebounce: const Duration(milliseconds: 1),
+      persistDebounce: const Duration(milliseconds: 1),
+    );
+    await settle();
+    expect(vm.extraFilters.containsKey('updated_between'), isFalse);
+    expect(vm.extraFilters['updated_at_range'], {
+      'updated_at,2026-05-01,2026-05-31',
+    });
+    vm.dispose();
+  });
+
   test('savedViewSnapshot omits columnIds on default, includes them once '
       'the user customizes', () async {
     final vm = FakeInvoiceListViewModel(

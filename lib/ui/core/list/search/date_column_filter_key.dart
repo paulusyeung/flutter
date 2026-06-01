@@ -28,7 +28,9 @@ class DateColumnFilterKey extends FilterKey with ComparableFilterKey {
     required this.id,
     required this.serverKey,
     required String labelKey,
-  }) : _labelKey = labelKey;
+    String hintKey = 'created_filter_hint',
+  }) : _labelKey = labelKey,
+       _hintKey = hintKey;
 
   @override
   final String id;
@@ -37,6 +39,12 @@ class DateColumnFilterKey extends FilterKey with ComparableFilterKey {
   final String serverKey;
 
   final String _labelKey;
+
+  /// Localization key for the value-entry hint. Defaults to the
+  /// clients-phrased `created_filter_hint` (kept for the billing call sites,
+  /// which all relied on that fixed copy); the clients `updated` key passes
+  /// `updated_filter_hint` so its hint reads "…updated after".
+  final String _hintKey;
 
   /// Window slot for [FilterOp.between]. `date` → `date_range`,
   /// `due_date` → `due_date_range` — both are the param names the
@@ -63,8 +71,7 @@ class DateColumnFilterKey extends FilterKey with ComparableFilterKey {
   FilterOp get defaultOp => FilterOp.gte;
 
   @override
-  String? hintForValueMode(BuildContext context) =>
-      context.tr('created_filter_hint');
+  String? hintForValueMode(BuildContext context) => context.tr(_hintKey);
 
   // ── Window-wire helpers ──────────────────────────────────────────────
 
