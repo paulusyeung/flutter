@@ -76,10 +76,9 @@ class LineItemCardListMobile extends StatelessWidget {
   }
 
   void _onReorder(int oldIndex, int newIndex) {
-    final adjusted = newIndex > oldIndex ? newIndex - 1 : newIndex;
     final next = List<LineItem>.from(items);
     final row = next.removeAt(oldIndex);
-    next.insert(adjusted, row);
+    next.insert(newIndex, row);
     onChanged(next);
   }
 
@@ -117,7 +116,7 @@ class LineItemCardListMobile extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       buildDefaultDragHandles: false,
       itemCount: items.length,
-      onReorder: _onReorder,
+      onReorderItem: _onReorder,
       itemBuilder: (context, index) {
         final item = items[index];
         return _ItemCard(

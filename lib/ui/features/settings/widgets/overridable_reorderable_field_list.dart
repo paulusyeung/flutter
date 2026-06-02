@@ -81,7 +81,6 @@ class OverridableReorderableFieldList extends StatelessWidget {
             keys: selected,
             onReorder: (oldIndex, newIndex) {
               final list = [...selected];
-              if (newIndex > oldIndex) newIndex -= 1;
               final item = list.removeAt(oldIndex);
               list.insert(newIndex, item);
               write(list);
@@ -155,7 +154,7 @@ class _ReorderableSelected extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       buildDefaultDragHandles: false,
       itemCount: keys.length,
-      onReorder: onReorder,
+      onReorderItem: onReorder,
       itemBuilder: (context, index) {
         final key = keys[index];
         return _VariableRow(

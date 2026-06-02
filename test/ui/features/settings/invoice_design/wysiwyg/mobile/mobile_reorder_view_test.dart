@@ -122,9 +122,8 @@ void main() {
       vm.addBlock(_spec('logo')); // h=4
       vm.addBlock(_spec('text')); // h=2
       vm.addBlock(_spec('terms')); // h=3
-      // ReorderableListView reports oldIndex=0, newIndex=3 when moving the
-      // first item to the end (newIndex is post-removal).
-      vm.reorderBlocks(0, 3);
+      // Pure mover: move the first block to the last index.
+      vm.reorderBlocks(0, 2);
       expect(vm.blocks.map((b) => b.type).toList(), ['text', 'terms', 'logo']);
       // All full width.
       for (final b in vm.blocks) {
@@ -137,13 +136,13 @@ void main() {
       expect(vm.blocks[2].gridPosition.y, 5); // after terms(h=3)
     });
 
-    test('no-op when oldIndex == effective newIndex', () {
+    test('no-op when oldIndex == newIndex', () {
       final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
       vm.addBlock(_spec('logo'));
       vm.addBlock(_spec('text'));
       final pre = vm.blocks.map((b) => b.id).toList();
       vm.reorderBlocks(0, 0);
-      vm.reorderBlocks(1, 2); // adjusts to 1 → same index
+      vm.reorderBlocks(1, 1); // same index → no-op
       expect(vm.blocks.map((b) => b.id).toList(), pre);
     });
 
@@ -152,7 +151,7 @@ void main() {
       vm.addBlock(_spec('logo'));
       vm.addBlock(_spec('text'));
       final pre = vm.blocks.map((b) => b.type).toList();
-      vm.reorderBlocks(0, 2);
+      vm.reorderBlocks(0, 1);
       expect(vm.blocks.map((b) => b.type).toList(), ['text', 'logo']);
       vm.undo();
       expect(vm.blocks.map((b) => b.type).toList(), pre);

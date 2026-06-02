@@ -17,7 +17,7 @@ Widget _wrap(Widget child) => MaterialApp(
   // need that — Flutter is happy to mount the listener standalone.
   home: Scaffold(
     body: ReorderableListView(
-      onReorder: (_, _) {},
+      onReorderItem: (_, _) {},
       children: [Container(key: const ValueKey('only-row'), child: child)],
     ),
   ),

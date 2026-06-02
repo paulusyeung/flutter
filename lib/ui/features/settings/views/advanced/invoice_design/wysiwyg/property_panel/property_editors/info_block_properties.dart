@@ -63,7 +63,8 @@ class _InfoBlockPropertiesState extends State<InfoBlockProperties> {
 
   void _onReorder(int oldIndex, int newIndex) {
     final fields = _fields();
-    final adjusted = newIndex > oldIndex ? newIndex - 1 : newIndex;
+    // onReorderItem already maps newIndex to the post-removal destination.
+    final adjusted = newIndex;
     if (adjusted == oldIndex) return;
     final item = fields.removeAt(oldIndex);
     fields.insert(adjusted, item);
@@ -180,7 +181,7 @@ class _InfoBlockPropertiesState extends State<InfoBlockProperties> {
             physics: const NeverScrollableScrollPhysics(),
             buildDefaultDragHandles: false,
             itemCount: fields.length,
-            onReorder: _onReorder,
+            onReorderItem: _onReorder,
             itemBuilder: (context, index) => _FieldRow(
               key: ValueKey('${fields[index]['id']}-$index'),
               index: index,
@@ -335,54 +336,60 @@ class _ExpandedFieldEditor extends StatelessWidget {
         borderRadius: BorderRadius.circular(InRadii.r2),
         border: Border.all(color: tokens.border, width: 1),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextFormField(
-            initialValue: (field['label'] as String?) ?? '',
-            decoration: InputDecoration(
-              labelText: context.tr('label'),
-              border: const OutlineInputBorder(),
+      // A transparent Material gives the descendant SwitchListTile a Material
+      // ancestor to paint ink on — without it, Flutter 3.44 asserts because
+      // this Container's background would hide the ink.
+      child: Material(
+        type: MaterialType.transparency,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextFormField(
+              initialValue: (field['label'] as String?) ?? '',
+              decoration: InputDecoration(
+                labelText: context.tr('label'),
+                border: const OutlineInputBorder(),
+              ),
+              onChanged: (v) => onFieldChanged('label', v),
             ),
-            onChanged: (v) => onFieldChanged('label', v),
-          ),
-          SizedBox(height: InSpacing.md(context)),
-          TextFormField(
-            initialValue: (field['prefix'] as String?) ?? '',
-            decoration: InputDecoration(
-              labelText: context.tr('prefix'),
-              border: const OutlineInputBorder(),
+            SizedBox(height: InSpacing.md(context)),
+            TextFormField(
+              initialValue: (field['prefix'] as String?) ?? '',
+              decoration: InputDecoration(
+                labelText: context.tr('prefix'),
+                border: const OutlineInputBorder(),
+              ),
+              onChanged: (v) => onFieldChanged('prefix', v),
             ),
-            onChanged: (v) => onFieldChanged('prefix', v),
-          ),
-          SizedBox(height: InSpacing.md(context)),
-          TextFormField(
-            initialValue: (field['suffix'] as String?) ?? '',
-            decoration: InputDecoration(
-              labelText: context.tr('suffix'),
-              border: const OutlineInputBorder(),
+            SizedBox(height: InSpacing.md(context)),
+            TextFormField(
+              initialValue: (field['suffix'] as String?) ?? '',
+              decoration: InputDecoration(
+                labelText: context.tr('suffix'),
+                border: const OutlineInputBorder(),
+              ),
+              onChanged: (v) => onFieldChanged('suffix', v),
             ),
-            onChanged: (v) => onFieldChanged('suffix', v),
-          ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(context.tr('hide_if_empty')),
-            value: hideIfEmpty,
-            onChanged: (v) => onFieldChanged('hideIfEmpty', v),
-          ),
-          SizedBox(height: InSpacing.sm),
-          CellTypographyEditor(
-            headingKey: 'label_style',
-            value: field['labelStyle'] as Map<String, dynamic>?,
-            onChanged: (v) => onFieldChanged('labelStyle', v),
-          ),
-          SizedBox(height: InSpacing.md(context)),
-          CellTypographyEditor(
-            headingKey: 'value_style',
-            value: field['valueStyle'] as Map<String, dynamic>?,
-            onChanged: (v) => onFieldChanged('valueStyle', v),
-          ),
-        ],
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(context.tr('hide_if_empty')),
+              value: hideIfEmpty,
+              onChanged: (v) => onFieldChanged('hideIfEmpty', v),
+            ),
+            SizedBox(height: InSpacing.sm),
+            CellTypographyEditor(
+              headingKey: 'label_style',
+              value: field['labelStyle'] as Map<String, dynamic>?,
+              onChanged: (v) => onFieldChanged('labelStyle', v),
+            ),
+            SizedBox(height: InSpacing.md(context)),
+            CellTypographyEditor(
+              headingKey: 'value_style',
+              value: field['valueStyle'] as Map<String, dynamic>?,
+              onChanged: (v) => onFieldChanged('valueStyle', v),
+            ),
+          ],
+        ),
       ),
     );
   }

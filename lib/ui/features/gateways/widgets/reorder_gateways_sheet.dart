@@ -121,7 +121,7 @@ class _ReorderGatewaysSheetState extends State<ReorderGatewaysSheet> {
                 shrinkWrap: true,
                 buildDefaultDragHandles: false,
                 itemCount: _items.length,
-                onReorder: _onReorder,
+                onReorderItem: _onReorder,
                 itemBuilder: (context, i) {
                   final g = _items[i];
                   final providerName = context
@@ -155,12 +155,8 @@ class _ReorderGatewaysSheetState extends State<ReorderGatewaysSheet> {
 
   void _onReorder(int oldIndex, int newIndex) {
     setState(() {
-      // ReorderableListView's idiom: when dragging down past the original
-      // index, newIndex is one past the destination — subtract one.
-      var to = newIndex;
-      if (to > oldIndex) to -= 1;
       final item = _items.removeAt(oldIndex);
-      _items.insert(to, item);
+      _items.insert(newIndex, item);
     });
   }
 

@@ -272,7 +272,7 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
   void _onReorder(int oldIndex, int newIndex) {
     // Skip reorders dragging the synthetic trailing row itself.
     if (oldIndex >= widget.items.length) return;
-    var adjusted = newIndex > oldIndex ? newIndex - 1 : newIndex;
+    var adjusted = newIndex;
     // Drops past the last real row land on the last real position
     // rather than no-op'ing — the visible animation otherwise snaps
     // back, which feels broken.
@@ -408,7 +408,7 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
                     physics: const NeverScrollableScrollPhysics(),
                     buildDefaultDragHandles: false,
                     itemCount: _rows.length,
-                    onReorder: _onReorder,
+                    onReorderItem: _onReorder,
                     onReorderStart: (_) {
                       // Close any open product/tax dropdown before the drag
                       // so it doesn't float over the proxy. This is the

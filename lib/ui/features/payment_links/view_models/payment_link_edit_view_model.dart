@@ -101,7 +101,6 @@ class PaymentLinkEditViewModel extends GenericEditViewModel<PaymentLink> {
 
   void reorderStep(int oldIndex, int newIndex) {
     final current = [...orderedStepIds];
-    if (newIndex > oldIndex) newIndex -= 1;
     if (oldIndex < 0 ||
         oldIndex >= current.length ||
         newIndex < 0 ||

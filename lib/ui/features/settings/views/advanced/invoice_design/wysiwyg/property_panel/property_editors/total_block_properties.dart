@@ -76,7 +76,8 @@ class _TotalBlockPropertiesState extends State<TotalBlockProperties> {
 
   void _reorder(int oldIndex, int newIndex) {
     final items = _items();
-    final adjusted = newIndex > oldIndex ? newIndex - 1 : newIndex;
+    // onReorderItem already maps newIndex to the post-removal destination.
+    final adjusted = newIndex;
     if (adjusted == oldIndex) return;
     final moved = items.removeAt(oldIndex);
     items.insert(adjusted, moved);
@@ -137,7 +138,7 @@ class _TotalBlockPropertiesState extends State<TotalBlockProperties> {
             physics: const NeverScrollableScrollPhysics(),
             buildDefaultDragHandles: false,
             itemCount: items.length,
-            onReorder: _reorder,
+            onReorderItem: _reorder,
             itemBuilder: (context, index) => _TotalItemRow(
               key: ValueKey('total-item-$index-${items[index]['field']}'),
               index: index,
@@ -370,55 +371,61 @@ class _ExpandedTotalEditor extends StatelessWidget {
         borderRadius: BorderRadius.circular(InRadii.r2),
         border: Border.all(color: tokens.border, width: 1),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextFormField(
-            initialValue: (item['label'] as String?) ?? '',
-            decoration: InputDecoration(
-              labelText: context.tr('label'),
-              border: const OutlineInputBorder(),
+      // A transparent Material gives the descendant SwitchListTiles a Material
+      // ancestor to paint ink on — without it, Flutter 3.44 asserts because
+      // this Container's background would hide the ink.
+      child: Material(
+        type: MaterialType.transparency,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextFormField(
+              initialValue: (item['label'] as String?) ?? '',
+              decoration: InputDecoration(
+                labelText: context.tr('label'),
+                border: const OutlineInputBorder(),
+              ),
+              onChanged: (v) => onItemChanged('label', v),
             ),
-            onChanged: (v) => onItemChanged('label', v),
-          ),
-          SizedBox(height: InSpacing.md(context)),
-          // Phase 8d: per-item typography editor — matches the
-          // Info/Table row expansions and restores the missing fontStyle
-          // (italic) toggle. The flat keys stay on the item (data shape
-          // unchanged); the editor is a typography sub-card view onto
-          // those keys.
-          CellTypographyEditor(
-            headingKey: 'typography',
-            value: _flatStyleView(item),
-            onChanged: (next) => onItemPatch({
-              'fontSize': next?['fontSize'],
-              'fontWeight': next?['fontWeight'],
-              'fontStyle': next?['fontStyle'],
-              'color': next?['color'],
-            }),
-          ),
-          SizedBox(height: InSpacing.md(context)),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(context.tr('is_total')),
-            value: isTotal,
-            onChanged: (v) => onItemChanged('isTotal', v),
-          ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(context.tr('is_balance')),
-            value: isBalance,
-            onChanged: (v) => onItemChanged('isBalance', v),
-          ),
-          if (isBalance) ...[
             SizedBox(height: InSpacing.md(context)),
-            ColorInput(
-              labelKey: 'balance_color',
-              value: item['balanceColor'] as String?,
-              onChanged: (v) => onItemChanged('balanceColor', v),
+            // Phase 8d: per-item typography editor — matches the
+            // Info/Table row expansions and restores the missing fontStyle
+            // (italic) toggle. The flat keys stay on the item (data shape
+            // unchanged); the editor is a typography sub-card view onto
+            // those keys.
+            CellTypographyEditor(
+              headingKey: 'typography',
+              value: _flatStyleView(item),
+              onChanged: (next) => onItemPatch({
+                'fontSize': next?['fontSize'],
+                'fontWeight': next?['fontWeight'],
+                'fontStyle': next?['fontStyle'],
+                'color': next?['color'],
+              }),
             ),
+            SizedBox(height: InSpacing.md(context)),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(context.tr('is_total')),
+              value: isTotal,
+              onChanged: (v) => onItemChanged('isTotal', v),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(context.tr('is_balance')),
+              value: isBalance,
+              onChanged: (v) => onItemChanged('isBalance', v),
+            ),
+            if (isBalance) ...[
+              SizedBox(height: InSpacing.md(context)),
+              ColorInput(
+                labelKey: 'balance_color',
+                value: item['balanceColor'] as String?,
+                onChanged: (v) => onItemChanged('balanceColor', v),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

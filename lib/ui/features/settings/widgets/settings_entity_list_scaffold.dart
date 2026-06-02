@@ -161,9 +161,8 @@ class _SettingsEntityListScaffoldState<T>
     int oldIndex,
     int newIndex,
   ) async {
-    // Flutter's ReorderableListView passes a newIndex that's already
-    // shifted when the item is dragged down — normalize before splicing.
-    final adjusted = newIndex > oldIndex ? newIndex - 1 : newIndex;
+    // onReorderItem already maps newIndex to the post-removal destination.
+    final adjusted = newIndex;
     final next = List<T>.from(rendered);
     final moved = next.removeAt(oldIndex);
     next.insert(adjusted, moved);
@@ -474,7 +473,7 @@ class _ReorderableRows<T> extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       buildDefaultDragHandles: false,
       itemCount: items.length,
-      onReorder: onReorder,
+      onReorderItem: onReorder,
       itemBuilder: (context, i) => rowBuilder(items[i], i),
     );
   }

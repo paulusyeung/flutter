@@ -33,12 +33,22 @@ UploadSource? uploadSourceFromParts({
   return null;
 }
 
-/// Converts a [FilePickerResult] (the click-to-select path) into upload
-/// sources, dropping any entry that has neither a path nor bytes.
-List<UploadSource> uploadSourcesFromPicked(FilePickerResult picked) => [
-  for (final f in picked.files)
-    uploadSourceFromParts(path: f.path, bytes: f.bytes, name: f.name),
-].whereType<UploadSource>().toList();
+/// Converts the picked [PlatformFile]s (the click-to-select path) into upload
+/// sources, dropping any entry that has neither a path nor bytes. Native picks
+/// carry a real path (streamed, never copied); web picks have no path, so their
+/// bytes are read on demand — `readAsBytes()` fetches the blob, replacing the
+/// removed `withData` eager-load.
+Future<List<UploadSource>> uploadSourcesFromPicked(
+  List<PlatformFile> files,
+) async {
+  final out = <UploadSource>[];
+  for (final f in files) {
+    final bytes = kIsWeb ? await f.readAsBytes() : null;
+    final src = uploadSourceFromParts(path: f.path, bytes: bytes, name: f.name);
+    if (src != null) out.add(src);
+  }
+  return out;
+}
 
 /// Converts an OS drag-drop ([DropDoneDetails]) into upload sources. On native
 /// each file has a real path; on web `XFile.path` is a blob URL, so we read the
@@ -104,15 +114,25 @@ class _FileDropZoneState extends State<FileDropZone> {
   bool _dragOver = false;
 
   Future<void> _pick() async {
-    final picked = await FilePicker.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: widget.allowedExtensions,
-      allowMultiple: widget.allowMultiple,
-      // Web only ever has bytes (no path); request them explicitly.
-      withData: kIsWeb,
-    );
-    if (picked == null) return;
-    final sources = uploadSourcesFromPicked(picked);
+    // `pickFile` is the single-select entry point; `pickFiles` implies multiple.
+    // Bytes are pulled on demand in uploadSourcesFromPicked (no eager withData).
+    final List<PlatformFile> files;
+    if (widget.allowMultiple) {
+      final picked = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: widget.allowedExtensions,
+      );
+      if (picked == null) return;
+      files = picked.files;
+    } else {
+      final picked = await FilePicker.pickFile(
+        type: FileType.custom,
+        allowedExtensions: widget.allowedExtensions,
+      );
+      if (picked == null) return;
+      files = [picked];
+    }
+    final sources = await uploadSourcesFromPicked(files);
     if (sources.isEmpty) return;
     await widget.onFiles(sources);
   }

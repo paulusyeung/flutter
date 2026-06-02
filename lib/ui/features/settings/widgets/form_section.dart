@@ -52,46 +52,52 @@ class FormSection extends StatelessWidget {
           border: Border.all(color: tokens.border),
           boxShadow: elevated ? tokens.shadow1 : null,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (title != null) ...[
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  InSpacing.lg(context),
-                  InSpacing.lg(context),
-                  InSpacing.lg(context),
-                  InSpacing.md(context),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title!,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: tokens.ink,
-                          fontWeight: FontWeight.w600,
+        // A transparent Material gives descendant ListTiles/InkWells a Material
+        // ancestor to paint ink on — without it, Flutter 3.44 asserts because
+        // this Container's background would hide the ink.
+        child: Material(
+          type: MaterialType.transparency,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (title != null) ...[
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    InSpacing.lg(context),
+                    InSpacing.lg(context),
+                    InSpacing.lg(context),
+                    InSpacing.md(context),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title!,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: tokens.ink,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                    ),
-                    if (trailing != null) trailing!,
-                  ],
+                      if (trailing != null) trailing!,
+                    ],
+                  ),
+                ),
+                Divider(height: 1, thickness: 1, color: tokens.border),
+              ],
+              Padding(
+                padding: EdgeInsets.all(InSpacing.lg(context)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: _interleave(
+                    children,
+                    spacing ?? InSpacing.lg(context),
+                  ),
                 ),
               ),
-              Divider(height: 1, thickness: 1, color: tokens.border),
             ],
-            Padding(
-              padding: EdgeInsets.all(InSpacing.lg(context)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: _interleave(
-                  children,
-                  spacing ?? InSpacing.lg(context),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

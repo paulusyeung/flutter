@@ -122,11 +122,9 @@ class _GatewayReorderScreenState extends State<GatewayReorderScreen> {
   void _onReorder(int oldIndex, int newIndex) {
     final ordered = _orderedGateways;
     if (ordered.isEmpty) return;
-    var to = newIndex;
-    if (to > oldIndex) to -= 1;
     final next = List<CompanyGateway>.from(ordered);
     final moved = next.removeAt(oldIndex);
-    next.insert(to, moved);
+    next.insert(newIndex, moved);
     setState(() {
       _pendingOrder = next.map((g) => g.id).toList();
       _hintDismissed = true;
@@ -244,7 +242,7 @@ class _GatewayReorderScreenState extends State<GatewayReorderScreen> {
                     padding: const EdgeInsets.symmetric(vertical: InSpacing.sm),
                     buildDefaultDragHandles: false,
                     itemCount: ordered.length,
-                    onReorder: _onReorder,
+                    onReorderItem: _onReorder,
                     itemBuilder: (context, i) {
                       final g = ordered[i];
                       return _ReorderRow(

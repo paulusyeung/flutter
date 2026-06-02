@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
@@ -89,8 +88,8 @@ class EntityActionsPopupButton<A> extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          // The pencil-in-circle glyph from the old admin-portal data table.
-          icon: Icon(MdiIcons.circleEditOutline),
+          // Edit affordance carried over from the old admin-portal data table.
+          icon: Icon(Icons.edit_outlined),
           tooltip: context.tr('edit'),
           padding: EdgeInsets.zero,
           visualDensity: VisualDensity.compact,

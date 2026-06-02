@@ -157,7 +157,7 @@ class _StepList extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       buildDefaultDragHandles: false,
       itemCount: ids.length,
-      onReorder: vm.reorderStep,
+      onReorderItem: vm.reorderStep,
       itemBuilder: (context, index) {
         final id = ids[index];
         final step = byId[id];

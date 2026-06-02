@@ -226,10 +226,8 @@ class DashboardViewModel extends ChangeNotifier {
   void reorderCards(int oldIndex, int newIndex) {
     if (oldIndex < 0 || oldIndex >= dashboardCards.length) return;
     final next = [...dashboardCards];
-    var to = newIndex;
-    if (to > oldIndex) to -= 1;
     final moved = next.removeAt(oldIndex);
-    next.insert(to.clamp(0, next.length), moved);
+    next.insert(newIndex.clamp(0, next.length), moved);
     dashboardCards = next;
     notifyListeners();
     _schedulePersist();

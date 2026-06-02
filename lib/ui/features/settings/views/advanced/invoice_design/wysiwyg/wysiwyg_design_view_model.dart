@@ -255,13 +255,10 @@ class WysiwygDesignViewModel extends GenericEditViewModel<Design> {
   /// freeform x/w can be re-edited there).
   void reorderBlocks(int oldIndex, int newIndex) {
     if (oldIndex < 0 || oldIndex >= blocks.length) return;
-    // ReorderableListView reports newIndex as the index AFTER the moved
-    // item is removed, so when moving down we have to decrement.
-    final adjusted = newIndex > oldIndex ? newIndex - 1 : newIndex;
-    if (adjusted == oldIndex) return;
+    if (newIndex == oldIndex) return;
     final reordered = List<DesignBlock>.of(blocks);
     final item = reordered.removeAt(oldIndex);
-    reordered.insert(adjusted, item);
+    reordered.insert(newIndex, item);
 
     // Lay them out top-to-bottom, full width, stacking by height.
     var y = 0;

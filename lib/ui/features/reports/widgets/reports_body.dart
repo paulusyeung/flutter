@@ -157,110 +157,112 @@ class _ReportSettingsPanel extends StatelessWidget {
     final hasPreview = vm.run.preview != null;
     return Container(
       color: tokens.surface,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              InSpacing.lg(context),
-              InSpacing.md(context),
-              InSpacing.sm,
-              InSpacing.sm,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    context.tr('report_settings'),
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  tooltip: context.tr('hide'),
-                  icon: const Icon(Icons.chevron_left, size: 20),
-                  onPressed: () => vm.setPanelCollapsed(true),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.symmetric(
-                horizontal: InSpacing.lg(context),
-                vertical: InSpacing.md(context),
+      child: Material(
+        type: MaterialType.transparency,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                InSpacing.lg(context),
+                InSpacing.md(context),
+                InSpacing.sm,
+                InSpacing.sm,
               ),
-              children: [
-                _PanelLabel(text: context.tr('report')),
-                _ReportPickerField(vm: vm),
-                SizedBox(height: InSpacing.lg(context)),
-                _PanelLabel(text: context.tr('date_range')),
-                _DateRangeField(vm: vm, formatter: formatter),
-                SizedBox(height: InSpacing.lg(context)),
-                _PanelLabel(text: context.tr('group_by')),
-                _GroupByField(vm: vm, enabled: hasPreview),
-                if (hasPreview && vm.group != null)
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    value: vm.chartVisible,
-                    onChanged: vm.setChartVisible,
-                    title: Text(context.tr('show_chart')),
-                  ),
-                SizedBox(height: InSpacing.lg(context)),
-                _ColumnsField(vm: vm, enabled: hasPreview),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  value: vm.columnFiltersVisible,
-                  onChanged: hasPreview
-                      ? (_) => vm.toggleColumnFiltersVisible()
-                      : null,
-                  title: Text(context.tr('filter')),
-                ),
-                if (!hasPreview)
-                  Padding(
-                    padding: EdgeInsets.only(top: InSpacing.sm),
+              child: Row(
+                children: [
+                  Expanded(
                     child: Text(
-                      context.tr('run_report_to_configure'),
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: context.inTheme.ink3,
+                      context.tr('report_settings'),
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                SizedBox(height: InSpacing.lg(context)),
-                _FiltersSection(vm: vm),
-                if (vm.run.error != null &&
-                    vm.run.error!.kind == ReportErrorKind.timeout)
-                  Padding(
-                    padding: EdgeInsets.only(top: InSpacing.md(context)),
-                    child: _InlinePanelNotice(
-                      message: context.tr('report_timed_out'),
-                      actionLabel: context.tr('keep_waiting'),
-                      onAction: vm.keepWaiting,
-                    ),
+                  IconButton(
+                    tooltip: context.tr('hide'),
+                    icon: const Icon(Icons.chevron_left, size: 20),
+                    onPressed: () => vm.setPanelCollapsed(true),
                   ),
-                if (vm.run.status == ReportRunStatus.error &&
-                    vm.run.error != null &&
-                    vm.run.error!.kind != ReportErrorKind.timeout &&
-                    vm.run.preview != null)
-                  Padding(
-                    padding: EdgeInsets.only(top: InSpacing.md(context)),
-                    child: _InlinePanelNotice(
-                      message: _errorMessage(context, vm.run.error!),
-                    ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const Divider(height: 1),
-          Padding(
-            padding: EdgeInsets.all(InSpacing.lg(context)),
-            child: _PanelFooterActions(vm: vm, formatter: formatter),
-          ),
-        ],
+            const Divider(height: 1),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: InSpacing.lg(context),
+                  vertical: InSpacing.md(context),
+                ),
+                children: [
+                  _PanelLabel(text: context.tr('report')),
+                  _ReportPickerField(vm: vm),
+                  SizedBox(height: InSpacing.lg(context)),
+                  _PanelLabel(text: context.tr('date_range')),
+                  _DateRangeField(vm: vm, formatter: formatter),
+                  SizedBox(height: InSpacing.lg(context)),
+                  _PanelLabel(text: context.tr('group_by')),
+                  _GroupByField(vm: vm, enabled: hasPreview),
+                  if (hasPreview && vm.group != null)
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      value: vm.chartVisible,
+                      onChanged: vm.setChartVisible,
+                      title: Text(context.tr('show_chart')),
+                    ),
+                  SizedBox(height: InSpacing.lg(context)),
+                  _ColumnsField(vm: vm, enabled: hasPreview),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    value: vm.columnFiltersVisible,
+                    onChanged: hasPreview
+                        ? (_) => vm.toggleColumnFiltersVisible()
+                        : null,
+                    title: Text(context.tr('filter')),
+                  ),
+                  if (!hasPreview)
+                    Padding(
+                      padding: EdgeInsets.only(top: InSpacing.sm),
+                      child: Text(
+                        context.tr('run_report_to_configure'),
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(color: context.inTheme.ink3),
+                      ),
+                    ),
+                  SizedBox(height: InSpacing.lg(context)),
+                  _FiltersSection(vm: vm),
+                  if (vm.run.error != null &&
+                      vm.run.error!.kind == ReportErrorKind.timeout)
+                    Padding(
+                      padding: EdgeInsets.only(top: InSpacing.md(context)),
+                      child: _InlinePanelNotice(
+                        message: context.tr('report_timed_out'),
+                        actionLabel: context.tr('keep_waiting'),
+                        onAction: vm.keepWaiting,
+                      ),
+                    ),
+                  if (vm.run.status == ReportRunStatus.error &&
+                      vm.run.error != null &&
+                      vm.run.error!.kind != ReportErrorKind.timeout &&
+                      vm.run.preview != null)
+                    Padding(
+                      padding: EdgeInsets.only(top: InSpacing.md(context)),
+                      child: _InlinePanelNotice(
+                        message: _errorMessage(context, vm.run.error!),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Padding(
+              padding: EdgeInsets.all(InSpacing.lg(context)),
+              child: _PanelFooterActions(vm: vm, formatter: formatter),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -655,8 +657,7 @@ Future<void> _openColumnPicker(
                         ? ListView(children: [for (final id in shown) tile(id)])
                         : ReorderableListView(
                             buildDefaultDragHandles: false,
-                            onReorder: (oldIndex, newIndex) => setState(() {
-                              if (newIndex > oldIndex) newIndex -= 1;
+                            onReorderItem: (oldIndex, newIndex) => setState(() {
                               final id = localOrder.removeAt(oldIndex);
                               localOrder.insert(newIndex, id);
                             }),

@@ -86,7 +86,7 @@ class _ReorderableList extends StatelessWidget {
     return ReorderableListView.builder(
       buildDefaultDragHandles: false,
       itemCount: blocks.length,
-      onReorder: vm.reorderBlocks,
+      onReorderItem: vm.reorderBlocks,
       // Add bottom padding so the FAB doesn't cover the last row.
       padding: EdgeInsets.only(
         top: InSpacing.md(context),

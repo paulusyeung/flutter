@@ -286,7 +286,7 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 10));
       expect(repo.refreshedCardKeys, contains(a.key));
 
-      vm.reorderCards(0, 2); // move a after b
+      vm.reorderCards(0, 1); // move a to index 1 (after b)
       expect(vm.dashboardCards.map((c) => c.key), [b.key, a.key]);
 
       vm.removeCard(a.key);

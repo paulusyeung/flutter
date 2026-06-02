@@ -33,48 +33,54 @@ class DashboardCardShell extends StatelessWidget {
         border: Border.all(color: tokens.border),
         boxShadow: tokens.shadow1,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (hasHeader) ...[
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                InSpacing.lg(context),
-                InSpacing.lg(context),
-                InSpacing.lg(context),
-                InSpacing.md(context),
-              ),
-              child: Row(
-                children: [
-                  if (title != null)
-                    Expanded(
-                      child: Text(
-                        title!,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: tokens.ink,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    )
-                  else
-                    const Spacer(),
-                  if (trailing != null) trailing!,
-                ],
-              ),
-            ),
-            Divider(height: 1, thickness: 1, color: tokens.border),
-          ],
-          Padding(
-            padding:
-                padding ??
-                EdgeInsets.symmetric(
-                  horizontal: InSpacing.lg(context),
-                  vertical: InSpacing.md(context),
+      // Transparent Material so descendant ListTiles/InkWells have a Material
+      // ancestor for ink — Flutter 3.44 asserts otherwise (the Container
+      // background would hide the ink).
+      child: Material(
+        type: MaterialType.transparency,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (hasHeader) ...[
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  InSpacing.lg(context),
+                  InSpacing.lg(context),
+                  InSpacing.lg(context),
+                  InSpacing.md(context),
                 ),
-            child: child,
-          ),
-        ],
+                child: Row(
+                  children: [
+                    if (title != null)
+                      Expanded(
+                        child: Text(
+                          title!,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: tokens.ink,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      )
+                    else
+                      const Spacer(),
+                    if (trailing != null) trailing!,
+                  ],
+                ),
+              ),
+              Divider(height: 1, thickness: 1, color: tokens.border),
+            ],
+            Padding(
+              padding:
+                  padding ??
+                  EdgeInsets.symmetric(
+                    horizontal: InSpacing.lg(context),
+                    vertical: InSpacing.md(context),
+                  ),
+              child: child,
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -71,7 +71,8 @@ class _TableBlockPropertiesState extends State<TableBlockProperties> {
 
   void _reorder(int oldIndex, int newIndex) {
     final cols = _columns();
-    final adjusted = newIndex > oldIndex ? newIndex - 1 : newIndex;
+    // onReorderItem already maps newIndex to the post-removal destination.
+    final adjusted = newIndex;
     if (adjusted == oldIndex) return;
     final item = cols.removeAt(oldIndex);
     cols.insert(adjusted, item);
@@ -251,7 +252,7 @@ class _TableBlockPropertiesState extends State<TableBlockProperties> {
             physics: const NeverScrollableScrollPhysics(),
             buildDefaultDragHandles: false,
             itemCount: cols.length,
-            onReorder: _reorder,
+            onReorderItem: _reorder,
             itemBuilder: (context, index) => _ColumnRow(
               key: ValueKey('${cols[index]['id']}-$index'),
               index: index,

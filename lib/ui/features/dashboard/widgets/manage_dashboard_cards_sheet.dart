@@ -398,7 +398,7 @@ class _ManageBodyState extends State<_ManageBody> {
                   ),
                   buildDefaultDragHandles: false,
                   itemCount: cards.length,
-                  onReorder: vm.reorderCards,
+                  onReorderItem: vm.reorderCards,
                   itemBuilder: (context, i) {
                     final c = cards[i];
                     final highlighted = c.key == _recentlyAddedKey;

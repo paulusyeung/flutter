@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/theme.dart';
@@ -72,10 +71,7 @@ void main() {
       onArchive: () => archived++,
     );
 
-    final editButton = find.widgetWithIcon(
-      IconButton,
-      MdiIcons.circleEditOutline,
-    );
+    final editButton = find.widgetWithIcon(IconButton, Icons.edit_outlined);
     expect(editButton, findsOneWidget);
 
     await tester.tap(editButton);
@@ -99,10 +95,7 @@ void main() {
       onArchive: () {},
     );
 
-    expect(
-      find.widgetWithIcon(IconButton, MdiIcons.circleEditOutline),
-      findsNothing,
-    );
+    expect(find.widgetWithIcon(IconButton, Icons.edit_outlined), findsNothing);
 
     await tester.tap(find.widgetWithIcon(IconButton, Icons.more_vert));
     await tester.pumpAndSettle();
@@ -123,7 +116,7 @@ void main() {
     expect(find.widgetWithIcon(IconButton, Icons.more_vert), findsOneWidget);
     expect(find.widgetWithIcon(IconButton, Icons.more_horiz), findsNothing);
     expect(
-      find.widgetWithIcon(IconButton, MdiIcons.circleEditOutline),
+      find.widgetWithIcon(IconButton, Icons.edit_outlined),
       findsOneWidget,
     );
   });
@@ -239,13 +232,11 @@ void main() {
     );
 
     final editButton = tester.widget<IconButton>(
-      find.widgetWithIcon(IconButton, MdiIcons.circleEditOutline),
+      find.widgetWithIcon(IconButton, Icons.edit_outlined),
     );
     expect(editButton.onPressed, isNull);
 
-    await tester.tap(
-      find.widgetWithIcon(IconButton, MdiIcons.circleEditOutline),
-    );
+    await tester.tap(find.widgetWithIcon(IconButton, Icons.edit_outlined));
     await tester.pumpAndSettle();
     expect(edited, 0);
   });

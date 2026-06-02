@@ -98,7 +98,7 @@ class _EntityColumnPickerSheetState<T>
                   ),
                   SliverReorderableList(
                     itemCount: _selected.length,
-                    onReorder: _onReorder,
+                    onReorderItem: _onReorder,
                     itemBuilder: (context, i) {
                       final id = _selected[i];
                       return _SelectedRow(
@@ -175,9 +175,8 @@ class _EntityColumnPickerSheetState<T>
 
   void _onReorder(int oldIndex, int newIndex) {
     setState(() {
-      final adjusted = newIndex > oldIndex ? newIndex - 1 : newIndex;
       final item = _selected.removeAt(oldIndex);
-      _selected.insert(adjusted, item);
+      _selected.insert(newIndex, item);
     });
   }
 

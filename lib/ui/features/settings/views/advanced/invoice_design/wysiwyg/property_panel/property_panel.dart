@@ -33,9 +33,15 @@ class PropertyPanel extends StatelessWidget {
     return Container(
       width: 280,
       color: context.inTheme.surface,
-      child: vm.panelMode == PropertyPanelMode.document
-          ? _DocumentSettingsForm(vm: vm)
-          : _BlockPropertiesForm(vm: vm),
+      // A transparent Material gives descendant SwitchListTiles a Material
+      // ancestor to paint ink on — without it, Flutter 3.44 asserts because
+      // this Container's background would hide the ink.
+      child: Material(
+        type: MaterialType.transparency,
+        child: vm.panelMode == PropertyPanelMode.document
+            ? _DocumentSettingsForm(vm: vm)
+            : _BlockPropertiesForm(vm: vm),
+      ),
     );
   }
 }

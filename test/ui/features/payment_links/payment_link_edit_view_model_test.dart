@@ -110,12 +110,10 @@ void main() {
       expect(vm.orderedStepIds, ['cart']);
     });
 
-    test('reorderStep moves an item — Flutter\'s ReorderableListView '
-        'oldIndex/newIndex convention is honored', () {
+    test('reorderStep moves a step to a destination index', () {
       final vm = makeVm();
-      // ReorderableListView semantics: dragging 0 → after 1 reports
-      // newIndex = 2; the VM normalizes by subtracting 1.
-      vm.reorderStep(0, 2);
+      // Pure mover: move the step at index 0 to index 1.
+      vm.reorderStep(0, 1);
       expect(vm.orderedStepIds, ['cart', 'auth.login']);
     });
   });
