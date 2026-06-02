@@ -130,6 +130,14 @@ Future<void> _pumpUntilFound(
   }
 }
 
+/// All entity modules switched on — mirrors the real `enabled_modules` mask
+/// the server sends (`/login` returns e.g. 32767). Seeded companies must set
+/// this: the column defaults to `0` ("every module off"), which makes every
+/// module-gated route (invoices, quotes, expenses, …) redirect to `/dashboard`
+/// (see `disabledEntityRoots` in router.dart) so its list screen never mounts
+/// and the route-mount tests find 0 widgets.
+const int _kAllModulesEnabled = 32767;
+
 /// Seed Drift + token storage so `AuthRepository.restore()` finds a complete
 /// session. `permissions` is a comma-separated string; with `isAdmin: false`
 /// and `isOwner: false` it's the only thing that gates `view_dashboard`.
@@ -162,6 +170,7 @@ Future<({AppDatabase db, InMemoryTokenStorage storage})> _seedSession({
       token: 'tok_a',
       isOwner: Value(isOwner),
       isAdmin: Value(isAdmin),
+      enabledModules: const Value(_kAllModulesEnabled),
       updatedAt: nowMs,
     ),
   ]);
@@ -778,6 +787,7 @@ void main() {
         token: 'tok_a',
         isOwner: const Value(true),
         isAdmin: const Value(true),
+        enabledModules: const Value(_kAllModulesEnabled),
         updatedAt: nowMs,
       ),
     ]);
@@ -858,6 +868,7 @@ _seedAdminSession() async {
       token: 'tok_a',
       isOwner: const Value(true),
       isAdmin: const Value(true),
+      enabledModules: const Value(_kAllModulesEnabled),
       updatedAt: nowMs,
     ),
   ]);
