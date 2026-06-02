@@ -105,14 +105,12 @@ class SettingsSectionDef {
   final List<EnabledModule>? enabledBy;
 
   /// True when this section should appear for a company with the given
-  /// [enabledModules] mask. An unhydrated mask (`0`, i.e. the company record
-  /// hasn't been populated from `/login` or `/refresh` yet — see
-  /// `isEntityModuleEnabledForCompany`) fails open so module-gated sections
-  /// aren't briefly hidden on cold start.
+  /// [enabledModules] mask. Sections without [enabledBy] are always visible.
+  /// A `0` mask means every module is off, so module-gated sections are hidden
+  /// — matching `isEntityModuleEnabledForCompany`.
   bool isVisibleFor(int enabledModules) {
     final gates = enabledBy;
     if (gates == null || gates.isEmpty) return true;
-    if (enabledModules == 0) return true;
     return gates.any((m) => isModuleEnabled(enabledModules, m));
   }
 }

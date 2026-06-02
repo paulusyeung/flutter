@@ -95,26 +95,18 @@ EnabledModule? moduleForEntityType(EntityType type) => switch (type) {
   _ => null,
 };
 
-/// A `0` mask means the company record hasn't been hydrated from `/login` or
-/// `/refresh` yet — `companies.enabled_modules` is a Drift column that
-/// defaults to `0`, so a cold-start `restore()` (and any install that
-/// authenticated before the column existed) sees `0` until the background
-/// refresh lands. Gating on that stale `0` would bounce users off
-/// legitimately-enabled modules and blank the sidebar. A genuine
-/// all-modules-off company is not a valid Invoice Ninja configuration
-/// (invoices default on; the server always sends a real mask), so treat `0`
-/// as "unknown → don't gate" (fail open) everywhere gating is decided.
-///
-/// This is deliberately *not* applied to the pure [isModuleEnabled] /
-/// [toggleModule] primitives — the Enabled Modules toggle screen relies on
-/// their exact-bit semantics.
-bool _modulesUnknown(int enabledModules) => enabledModules == 0;
-
 /// True when [type] is usable for a company with the given [enabledModules]
-/// mask. Always-on entities (mapping returns `null`) return true regardless;
-/// an unhydrated mask (`0`) fails open — see [_modulesUnknown].
+/// mask. Always-on entities (mapping returns `null`) are enabled regardless of
+/// the mask. A `0` mask means every module is switched off (Settings → Account
+/// Management → Enabled Modules), so every module-gated entity is gated — only
+/// always-on entities remain.
+///
+/// `0` is a real "all off" value, not "unhydrated": the server always sends a
+/// real mask (`/login` returns e.g. 32767), and a company that has
+/// authenticated since the `enabled_modules` column existed always has its mask
+/// persisted. The pure [isModuleEnabled] / [toggleModule] primitives keep
+/// exact-bit semantics for the Enabled Modules toggle screen.
 bool isEntityModuleEnabledForCompany(EntityType type, int enabledModules) {
-  if (_modulesUnknown(enabledModules)) return true;
   final module = moduleForEntityType(type);
   return module == null || isModuleEnabled(enabledModules, module);
 }
@@ -162,9 +154,9 @@ const Map<String, EnabledModule> _wireModuleByName = <String, EnabledModule>{
 EnabledModule? moduleForWireName(String name) => _wireModuleByName[name];
 
 /// True when the wire-string entity [name] is usable under [enabledModules].
-/// An unhydrated mask (`0`) fails open — see [_modulesUnknown].
+/// A `0` mask gates every module-bound wire name; always-on names (mapping →
+/// `null`) stay enabled.
 bool isWireModuleEnabledForCompany(String name, int enabledModules) {
-  if (_modulesUnknown(enabledModules)) return true;
   final module = moduleForWireName(name);
   return module == null || isModuleEnabled(enabledModules, module);
 }

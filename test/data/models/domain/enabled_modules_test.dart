@@ -129,9 +129,9 @@ void main() {
       expect(isEntityModuleEnabledForCompany(EntityType.invoice, 4), isFalse);
     });
 
-    test('unhydrated mask (0) fails open — every entity enabled', () {
-      // 0 = company record not yet populated from /login or /refresh; gating
-      // on it would bounce users off legitimately-enabled modules.
+    test('all-off mask (0) gates every module entity', () {
+      // 0 = every module switched off (Settings → Enabled Modules); gated
+      // entities are hidden, only always-on entities remain.
       for (final t in [
         EntityType.invoice,
         EntityType.payment,
@@ -142,10 +142,13 @@ void main() {
       ]) {
         expect(
           isEntityModuleEnabledForCompany(t, 0),
-          isTrue,
-          reason: '$t must fail open when mask is 0',
+          isFalse,
+          reason: '$t must be gated when every module is off (mask 0)',
         );
       }
+      // Always-on entities still show with everything off.
+      expect(isEntityModuleEnabledForCompany(EntityType.client, 0), isTrue);
+      expect(isEntityModuleEnabledForCompany(EntityType.product, 0), isTrue);
     });
   });
 
@@ -199,10 +202,12 @@ void main() {
       expect(isWireModuleEnabledForCompany('client', 0), isTrue);
     });
 
-    test('unhydrated mask (0) fails open for gated wire names too', () {
-      expect(isWireModuleEnabledForCompany('invoice', 0), isTrue);
-      expect(isWireModuleEnabledForCompany('quote', 0), isTrue);
-      expect(isWireModuleEnabledForCompany('task', 0), isTrue);
+    test('all-off mask (0) gates gated wire names', () {
+      expect(isWireModuleEnabledForCompany('invoice', 0), isFalse);
+      expect(isWireModuleEnabledForCompany('quote', 0), isFalse);
+      expect(isWireModuleEnabledForCompany('task', 0), isFalse);
+      // Always-on wire names still resolve as enabled.
+      expect(isWireModuleEnabledForCompany('client', 0), isTrue);
     });
   });
 }

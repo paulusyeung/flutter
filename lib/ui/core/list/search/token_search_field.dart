@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
@@ -15,7 +16,7 @@ import 'package:admin/ui/core/list/search/filter_chip_data.dart';
 import 'package:admin/ui/core/list/search/filter_entry_sheet.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_suggestion_menu.dart'
-    show FilterSuggestionMenu, kMenuRowInsetLeft;
+    show FilterSuggestionMenu, kMenuRowInsetLeft, kFilterMenuMaxWidth;
 import 'package:admin/ui/core/list/search/filter_token.dart';
 import 'package:admin/ui/core/list/search/filter_token_chip.dart';
 import 'package:admin/ui/core/list/search/segment_menu.dart';
@@ -98,6 +99,16 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   /// `tune` button, key-list picks, and typed queries (those correctly
   /// anchor under the field). Cleared in `_hideOverlay`.
   Rect? _chipAnchorRect;
+
+  /// Horizontal distance (px) from the field's left edge to the text caret,
+  /// captured once when the dropdown opens and HELD until it closes — so the
+  /// menu (the new-filter key list AND the value list while typing) opens
+  /// under the cursor, after any existing chips, and doesn't chase the caret
+  /// per keystroke or jump when the growing input wraps to a new run of the
+  /// `Wrap`. Field-relative (not an absolute screen x) so the menu stays put
+  /// if the field itself moves. Null = recompute on next open; reset only in
+  /// `_hideOverlay`.
+  double? _caretAnchorDx;
 
   // ── Per-segment dropdown (comparator / value) ───────────────────────
   // A SECOND, dedicated overlay anchored to the tapped chip segment. It
@@ -450,8 +461,19 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   void _hideOverlay() {
     if (_overlay.isShowing) _overlay.hide();
     _chipAnchorRect = null;
+    _caretAnchorDx = null;
     _controller.clearPinnedValueKey();
     _clearDanglingPrefix();
+  }
+
+  /// Walk the `TextField` subtree to its `RenderEditable` so the caret's
+  /// laid-out position can be read via `getLocalRectForCaret`. Returns null
+  /// if it isn't mounted yet — callers fall back to the input's left edge.
+  RenderEditable? _findRenderEditable(RenderObject? node) {
+    if (node is RenderEditable) return node;
+    RenderEditable? found;
+    node?.visitChildren((child) => found ??= _findRenderEditable(child));
+    return found;
   }
 
   /// Drop a dangling `<key>:` prefix when the overlay closes. Checkbox
@@ -559,17 +581,20 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
         }
         final topLeft = fieldBox.localToGlobal(Offset.zero);
         // LEFT-edge anchor (global x, before the overlay-origin subtraction):
-        //  • chip tap → under the tapped chip's rect;
-        //  • typing   → under the START of the typed token (the input's left
-        //    edge, after the chips). Held stable — we deliberately don't chase
-        //    the caret horizontally per keystroke, which read as jumpy.
-        //  • empty    → the FIELD's left edge. Anchoring an empty key-list to
-        //    the token start would float it far right after existing chips (a
-        //    previously reported bug), so the field-left fallback stays.
+        //  • chip tap   → under the tapped chip's rect;
+        //  • otherwise (new-filter key list OR typing a value) → under the text
+        //    CARET as it sat when the dropdown opened, then held there (see
+        //    `_caretAnchorDx`). For the empty key list the caret is at offset 0
+        //    = the input's content-left, i.e. after the chips. We capture once
+        //    and hold rather than re-anchoring per keystroke — chasing the
+        //    caret live read as jumpy, and the per-build recompute leapt the
+        //    menu across runs when the growing input wrapped. A far-right caret
+        //    is kept on-screen by the right-edge clamp below (the old
+        //    empty→field-left fallback over-corrected for that overflow).
         // `− kMenuRowInsetLeft` aligns the row's leading icon with the anchor,
         // not the painted menu edge.
         final chipRect = _chipAnchorRect;
-        double? menuLeft;
+        final double menuLeft;
         final double anchorBottom;
         if (chipRect != null) {
           menuLeft = chipRect.left - kMenuRowInsetLeft;
@@ -580,19 +605,45 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
           // Below the whole field (recomputed so a value long enough to wrap
           // the input to a new run keeps the menu under the grown field).
           anchorBottom = topLeft.dy + fieldBox.size.height;
-          // Anchor at the input's own left edge — the start of the typed
-          // token, after the chips. Stable as the user types the value.
-          if (_controller.text.text.isNotEmpty) {
-            final inputBox =
-                _inputKey.currentContext?.findRenderObject() as RenderBox?;
-            if (inputBox != null && inputBox.attached && inputBox.hasSize) {
-              menuLeft =
-                  inputBox.localToGlobal(Offset.zero).dx - kMenuRowInsetLeft;
+          // Anchor under the text caret as captured when the dropdown opened,
+          // then HOLD it: `_caretAnchorDx` is computed once (lazily, here) and
+          // reused on every later build. Covers BOTH the empty new-filter key
+          // list (caret offset 0 → the input's content-left, after the chips)
+          // and the value list while typing. The menu opens under the cursor
+          // and neither chases the caret per keystroke nor jumps when the
+          // growing input wraps to a new run. Stored field-relative and
+          // re-added to the live `topLeft.dx` so it tracks the field if the
+          // field itself moves, without tracking the caret.
+          if (_caretAnchorDx == null) {
+            final inputRO = _inputKey.currentContext?.findRenderObject();
+            final editable = _findRenderEditable(inputRO);
+            double caretGlobalX;
+            if (editable != null) {
+              // Real laid-out caret — accounts for glyph widths / scroll.
+              final sel = _controller.text.selection;
+              final len = _controller.text.text.length;
+              final offset = (sel.isValid ? sel.extentOffset : len)
+                  .clamp(0, len)
+                  .toInt();
+              final caretLocal = editable
+                  .getLocalRectForCaret(TextPosition(offset: offset))
+                  .topLeft;
+              caretGlobalX = editable.localToGlobal(caretLocal).dx;
+            } else {
+              // Defensive fallback: the input's left edge (token start).
+              final inputBox = inputRO as RenderBox?;
+              caretGlobalX =
+                  (inputBox != null && inputBox.attached && inputBox.hasSize)
+                  ? inputBox.localToGlobal(Offset.zero).dx
+                  : topLeft.dx;
             }
+            _caretAnchorDx = caretGlobalX - topLeft.dx;
           }
+          menuLeft = topLeft.dx + _caretAnchorDx! - kMenuRowInsetLeft;
         }
-        // Empty key-list / first frame: the field's left content edge.
-        final double globalLeft = menuLeft ?? (topLeft.dx - kMenuRowInsetLeft);
+        // `menuLeft` is always set above: the chip rect, the caret, or — when
+        // the caret can't be located — the field's left edge via the fallback.
+        final double globalLeft = menuLeft;
         // Convert from GLOBAL screen coords to the hosting Overlay's LOCAL
         // coords. `OverlayPortal` mounts the menu in the closest ancestor
         // Overlay — the branch Navigator's Overlay inside `StatefulShellRoute`,
@@ -602,11 +653,24 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
         // `Positioned` the raw global x lands the menu ~sidebar_width px too far
         // right. Both axes are converted so a future top-bar layout wouldn't
         // reintroduce the same bug for the vertical anchor.
-        final overlayOrigin = _overlayOrigin(overlayContext);
+        // Fetch the hosting Overlay's box once — its global origin (to convert
+        // the global x below) and its width (for the right-edge clamp).
+        final overlayBox =
+            Overlay.of(overlayContext).context.findRenderObject() as RenderBox?;
+        final overlayOrigin =
+            overlayBox?.localToGlobal(Offset.zero) ?? Offset.zero;
         // Clamped to 8 px so the menu can't escape the Overlay's left edge on
         // narrow windows.
         double localLeft = globalLeft - overlayOrigin.dx;
         if (localLeft < 8) localLeft = 8;
+        // Right-edge clamp: never let the painted menu run past the Overlay's
+        // right edge. This is what the old empty→field-left fallback was really
+        // guarding against — with the clamp we can anchor after the chips.
+        final overlayWidth = overlayBox?.size.width;
+        if (overlayWidth != null) {
+          final maxLeft = overlayWidth - kFilterMenuMaxWidth - 8;
+          if (maxLeft > 8 && localLeft > maxLeft) localLeft = maxLeft;
+        }
         final double localTop = anchorBottom + 4 - overlayOrigin.dy;
         return Positioned(
           top: localTop,

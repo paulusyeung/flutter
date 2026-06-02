@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/vendor.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/detail_scroll_scope.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
@@ -67,6 +68,8 @@ class _VendorDetailScreenState extends State<VendorDetailScreen>
         companyId: _companyId,
       ),
       bodyBuilder: (context, v) {
+        // Hide related-entity tabs whose module is disabled for this company.
+        final me = _services.auth.session.value?.currentCompany;
         return SingleChildScrollView(
           controller: DetailScrollScope.maybeOf(context),
           padding: EdgeInsets.all(InSpacing.lg(context)),
@@ -85,26 +88,31 @@ class _VendorDetailScreenState extends State<VendorDetailScreen>
               const SizedBox(height: InSpacing.xl),
               EntityDetailTabs(
                 tabs: [
-                  EntityDetailTab(
-                    label: context.tr('purchase_orders'),
-                    icon: Icons.shopping_bag_outlined,
-                    bodyBuilder: (_) =>
-                        PurchaseOrderListScreen(vendorId: v.id, embedded: true),
-                  ),
-                  EntityDetailTab(
-                    label: context.tr('expenses'),
-                    icon: Icons.account_balance_wallet_outlined,
-                    bodyBuilder: (_) =>
-                        ExpenseListScreen(vendorId: v.id, embedded: true),
-                  ),
-                  EntityDetailTab(
-                    label: context.tr('recurring_expenses'),
-                    icon: Icons.event_repeat_outlined,
-                    bodyBuilder: (_) => RecurringExpenseListScreen(
-                      vendorId: v.id,
-                      embedded: true,
+                  if (me?.moduleEnabled(EntityType.purchaseOrder) ?? false)
+                    EntityDetailTab(
+                      label: context.tr('purchase_orders'),
+                      icon: Icons.shopping_bag_outlined,
+                      bodyBuilder: (_) => PurchaseOrderListScreen(
+                        vendorId: v.id,
+                        embedded: true,
+                      ),
                     ),
-                  ),
+                  if (me?.moduleEnabled(EntityType.expense) ?? false)
+                    EntityDetailTab(
+                      label: context.tr('expenses'),
+                      icon: Icons.account_balance_wallet_outlined,
+                      bodyBuilder: (_) =>
+                          ExpenseListScreen(vendorId: v.id, embedded: true),
+                    ),
+                  if (me?.moduleEnabled(EntityType.recurringExpense) ?? false)
+                    EntityDetailTab(
+                      label: context.tr('recurring_expenses'),
+                      icon: Icons.event_repeat_outlined,
+                      bodyBuilder: (_) => RecurringExpenseListScreen(
+                        vendorId: v.id,
+                        embedded: true,
+                      ),
+                    ),
                   EntityDetailTab(
                     label: context.tr('ledger'),
                     icon: Icons.account_balance_outlined,

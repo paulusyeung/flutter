@@ -14,8 +14,10 @@ import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/data/models/domain/payment.dart';
 import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/domain/entity_state.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
+import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/transactions/widgets/multi_pick_sheet.dart';
@@ -41,6 +43,19 @@ class _TransactionMatchPanelState extends State<TransactionMatchPanel> {
   @override
   Widget build(BuildContext context) {
     final tx = widget.transaction;
+    // Hide the create/link flows when their target module is disabled. A
+    // deposit reconciles to a payment (invoices module), a withdrawal to an
+    // expense (expenses module). Gating both tabs out would hand
+    // EntityDetailTabs an empty list and crash its TabController, so fall back
+    // to an empty state instead.
+    final me = context.read<Services>().auth.session.value?.currentCompany;
+    final target = tx.isDeposit ? EntityType.payment : EntityType.expense;
+    if (!(me?.moduleEnabled(target) ?? false)) {
+      return EmptyState(
+        icon: Icons.toggle_off_outlined,
+        title: context.tr('disabled'),
+      );
+    }
     final createLabelKey = tx.isDeposit ? 'create_payment' : 'create_expense';
     final linkLabelKey = tx.isDeposit ? 'link_payment' : 'link_expense';
     return EntityDetailTabs(

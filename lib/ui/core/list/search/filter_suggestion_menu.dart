@@ -18,6 +18,11 @@ import 'package:admin/ui/features/dashboard/widgets/filters/date_range_picker_bu
 /// menu edge — under the typing column.
 const double kMenuRowInsetLeft = 12.0;
 
+/// Max width of the floating suggestion menu. Shared with the field's overlay
+/// positioning (`token_search_field.dart`) so the right-edge clamp keeps the
+/// painted menu fully on-screen.
+const double kFilterMenuMaxWidth = 420;
+
 /// Alphabetical sort comparator used by the key picker. Exposed so the
 /// `_KeyList` builder uses one place and tests can pin the order without
 /// pumping the whole menu widget.
@@ -144,7 +149,10 @@ class FilterSuggestionMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final child = ConstrainedBox(
-      constraints: BoxConstraints(maxHeight: maxHeight, maxWidth: 420),
+      constraints: BoxConstraints(
+        maxHeight: maxHeight,
+        maxWidth: kFilterMenuMaxWidth,
+      ),
       child: parse.matchedKey == null
           ? _KeyList(
               vm: vm,

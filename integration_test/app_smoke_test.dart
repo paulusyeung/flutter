@@ -466,6 +466,10 @@ void main() {
           'company': {
             'id': 'co_a',
             'name': 'Acme',
+            // All modules on (matches the live server's default of 32767) so
+            // the sidebar nav + route smoke assertions for module-gated
+            // entities (Invoices, etc.) pass — a 0 mask now gates them.
+            'enabled_modules': 32767,
             'settings': <String, dynamic>{},
           },
           'token': {'token': 'tok_a'},

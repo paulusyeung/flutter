@@ -259,10 +259,13 @@ void main() {
       expect(roots, containsAll(['/invoices', '/tasks']));
     });
 
-    test('unhydrated mask (0) fails open — nothing disabled', () {
-      // 0 = company record not yet populated from /login or /refresh;
-      // gating on it would bounce users off enabled modules on cold start.
-      expect(disabledEntityRoots(_registry(), 0), isEmpty);
+    test('all-off mask (0) disables every module root', () {
+      // 0 = every module switched off; all module-gated roots are disabled
+      // while always-on roots (clients) stay reachable.
+      final roots = disabledEntityRoots(_registry(), 0).toSet();
+      expect(roots, contains('/invoices'));
+      expect(roots, contains('/tasks'));
+      expect(roots, isNot(contains('/clients')));
     });
   });
 }

@@ -73,11 +73,11 @@ void main() {
       expect(section('localization').enabledBy, isNull);
     });
 
-    test('mask 0 fails open — gated sections stay visible', () {
-      // 0 = company record not yet hydrated; don't hide on cold start.
-      expect(section('task_settings').isVisibleFor(0), isTrue);
-      expect(section('expense_settings').isVisibleFor(0), isTrue);
-      expect(section('workflow_settings').isVisibleFor(0), isTrue);
+    test('all-off mask (0) hides gated sections', () {
+      // 0 = every module off; module-gated sections are hidden.
+      expect(section('task_settings').isVisibleFor(0), isFalse);
+      expect(section('expense_settings').isVisibleFor(0), isFalse);
+      expect(section('workflow_settings').isVisibleFor(0), isFalse);
     });
 
     test('task / expense settings track their single module', () {

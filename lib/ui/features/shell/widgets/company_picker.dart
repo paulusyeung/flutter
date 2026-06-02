@@ -58,43 +58,36 @@ class _CompanyPickerState extends State<CompanyPicker> {
       unawaited(Navigator.of(context).maybePop());
       return;
     }
-    final guard = context.read<Services>().unsavedChangesGuard;
-    if (!await guard.confirmIfDirty(context)) return;
+    final services = context.read<Services>();
+    // Confirm unsaved / unsynced changes while the picker is still up, so these
+    // dialogs resolve against its Services-bearing context and a cancel leaves
+    // the picker open.
+    if (!await services.unsavedChangesGuard.confirmIfDirty(context)) return;
     if (!mounted) return;
     final result = await confirmPendingOutboxIfAny(
       context,
       companyId: session.currentCompanyId,
     );
     if (result == OutboxConfirmResult.cancelled || !mounted) return;
-    // Capture the router + current location *before* the await so we navigate
-    // from the pre-switch location (and so we don't touch `context` after the
-    // async gap). `maybeOf` because widget tests pump the picker without a
-    // router. `companySafeLocation` strips an entity-id path back to its
-    // list root (`/clients/<old-id>/edit` → `/clients`) and passes every
-    // other route through unchanged, so the user stays on the same logical
-    // page in the new company. The shell's KeyedSubtree handles the
-    // same-route refresh.
+    // Capture the router + current location + route paths *before* dismissing,
+    // then hide the dropdown *immediately*: the switch (network + Drift wipe +
+    // refresh) runs after the picker is gone instead of holding it open until
+    // it completes. Nothing past the pop touches `context`, so it's safe once
+    // the route disposes (and avoids `use_build_context_synchronously`).
+    // `maybeOf` because widget tests pump the picker without a router;
+    // `companySafeLocation` strips an entity-id path back to its list root
+    // (`/clients/<old-id>/edit` → `/clients`) and passes every other route
+    // through unchanged, so the user stays on the same logical page in the new
+    // company. The shell's KeyedSubtree handles the same-route refresh.
     final router = GoRouter.maybeOf(context);
     final currentLocation =
         router?.routerDelegate.currentConfiguration.uri.toString() ??
         '/clients';
+    final routePaths = services.entityRegistry.uiRoutePaths;
     setState(() => _switching = true);
-    try {
-      await context.read<Services>().auth.switchCompany(c.id);
-      if (mounted) {
-        router?.go(
-          companySafeLocation(
-            currentLocation,
-            context.read<Services>().entityRegistry.uiRoutePaths,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _switching = false);
-        unawaited(Navigator.of(context).maybePop());
-      }
-    }
+    unawaited(Navigator.of(context).maybePop());
+    await services.auth.switchCompany(c.id);
+    router?.go(companySafeLocation(currentLocation, routePaths));
   }
 
   Future<void> _handleNewCompany(AuthSession session) async {

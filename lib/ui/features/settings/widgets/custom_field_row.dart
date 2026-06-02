@@ -12,10 +12,11 @@ import 'package:admin/ui/features/settings/view_models/settings_draft_view_model
 /// `lib/ui/features/settings/views/advanced/custom_fields/`.
 ///
 /// Storage is pipe-delimited: `"<label>|<type>"`. Type segment is one of
-/// `single_line_text` (empty), `multi_line_text`, `switch`, `date`, or the
-/// dropdown options list (comma-separated, no recognized keyword). A
-/// no-pipe legacy value (`"Color"`) hydrates as `multi_line_text` —
-/// see `useEffect` in React's `Field.tsx`.
+/// `single_line_text`, `multi_line_text`, `switch`, `date`, or the dropdown
+/// options list (comma-separated, no recognized keyword); an empty suffix
+/// (`"Color|"`) is a dropdown with no options yet. A no-pipe legacy value
+/// (`"Color"`) hydrates as `multi_line_text` — see `useEffect` in React's
+/// `Field.tsx`.
 ///
 /// **Surcharge slots are different**: the value is the raw label (no pipe),
 /// the type column is omitted entirely, and a "Charge taxes" Switch on a
@@ -47,7 +48,12 @@ class CustomFieldRow<V extends SettingsDraftHost> extends StatefulWidget {
 
 /// Recognized type segments — anything else after the pipe is treated as
 /// dropdown options (comma-separated values).
-const _kReservedTypes = <String>{'multi_line_text', 'switch', 'date'};
+const _kReservedTypes = <String>{
+  'single_line_text',
+  'multi_line_text',
+  'switch',
+  'date',
+};
 
 class _CustomFieldRowState<V extends SettingsDraftHost>
     extends State<CustomFieldRow<V>> {
@@ -84,9 +90,11 @@ class _CustomFieldRowState<V extends SettingsDraftHost>
     return idx < 0 ? raw : raw.substring(0, idx);
   }
 
-  /// Type code shown in the dropdown — empty string maps to `single_line_text`
-  /// (the default), `'<options>'` carrying a non-recognized suffix maps to
-  /// `'dropdown'` (the options live in [_parsedOptions]).
+  /// Type code shown in the dropdown. An explicit `single_line_text` suffix —
+  /// or an empty *slot* (no pipe) — surfaces as single-line text; an empty
+  /// *suffix* (`"Label|"`) is a dropdown with no options typed yet; any other
+  /// non-recognized suffix maps to `'dropdown'` (the options live in
+  /// [_parsedOptions]).
   String _parsedType(V vm) {
     if (_isSurcharge) return '';
     final raw = _rawValue(vm);
@@ -97,7 +105,10 @@ class _CustomFieldRowState<V extends SettingsDraftHost>
       return raw.isEmpty ? '' : 'multi_line_text';
     }
     final suffix = raw.substring(idx + 1);
-    if (suffix.isEmpty) return ''; // single_line_text default
+    // An empty suffix (`"Label|"`) is a dropdown with no options typed yet —
+    // the React / admin-portal encoding. (Single-line text now carries the
+    // explicit `single_line_text` keyword, so it no longer lands here.)
+    if (suffix.isEmpty) return 'dropdown';
     if (_kReservedTypes.contains(suffix)) return suffix;
     return 'dropdown';
   }
@@ -116,8 +127,8 @@ class _CustomFieldRowState<V extends SettingsDraftHost>
   /// Rewrite the slot. Override [label] / [type] / [options] to change one
   /// piece; the rest are read from the current draft.
   ///
-  /// Empty label + empty type segment → delete the slot entirely so the
-  /// server-side `custom_fields` map doesn't grow stale keys.
+  /// Empty label → delete the slot entirely so the server-side
+  /// `custom_fields` map doesn't grow stale keys.
   ///
   /// Note on legacy data: a stored `"Color"` (no pipe) parses as
   /// `multi_line_text`. The first edit through this method rewrites it as
@@ -150,14 +161,24 @@ class _CustomFieldRowState<V extends SettingsDraftHost>
       final newType = type ?? _parsedType(vm);
       final newOptions = options ?? _options.text;
       final suffix = switch (newType) {
-        '' => '',
+        // Single-line text persists with the explicit `single_line_text`
+        // keyword (the React / admin-portal canonical encoding). A bare
+        // label would re-parse as `multi_line_text` — see `_parsedType` and
+        // `handleChange` in React's `Field.tsx`.
+        '' => 'single_line_text',
         'dropdown' => newOptions,
         _ => newType,
       };
-      if (newLabel.isEmpty && suffix.isEmpty) {
+      // Empty label retires the slot, regardless of type/options — mirrors
+      // React's `useHandleCustomFieldChange` (`if (label === '') delete`).
+      if (newLabel.isEmpty) {
         next.remove(_key);
       } else {
-        next[_key] = suffix.isEmpty ? newLabel : '$newLabel|$suffix';
+        // Always keep the pipe. The only empty `suffix` here is a dropdown
+        // with no options yet → stored as `"Label|"`, which `_parsedType`
+        // reads back as a dropdown (so the options field stays visible). A
+        // bare label would re-parse as multi-line text.
+        next[_key] = '$newLabel|$suffix';
       }
     }
     vm.updateCompany((c) => c.copyWith(customFields: next));
@@ -201,6 +222,10 @@ class _CustomFieldRowState<V extends SettingsDraftHost>
       key: ValueKey('type-${widget.prefix}${widget.slot}-$selectedType'),
       decoration: InputDecoration(labelText: context.tr('field_type')),
       initialValue: selectedType,
+      // Fill the column and ellipsize a long selected label instead of
+      // overflowing — the dropdown sits in an `Expanded` in the wide
+      // three-column (label / type / options) layout.
+      isExpanded: true,
       // Literal-key calls keep `search_catalog_consistency_test` happy — its
       // regex scans for `context.tr('<key>')` at parse time.
       items: [

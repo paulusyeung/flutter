@@ -7,9 +7,9 @@ import 'package:admin/utils/url_safety.dart';
 /// stable colour derived from [seed]. Used wherever the design system shows
 /// a company "logo" — sidebar header, picker rows, mobile top bar.
 ///
-/// When [logoUrl] is non-null, the uploaded logo is drawn on top of the
-/// tinted square; the initials still render underneath so a transparent or
-/// slow-loading logo never leaves an empty box.
+/// When [logoUrl] is non-null the uploaded logo is drawn on its own (its
+/// transparent pixels composite over the surrounding surface, not the tint);
+/// the initials only stand in when there is no logo or the load fails.
 class CompanyAvatar extends StatelessWidget {
   const CompanyAvatar({
     required this.name,
@@ -27,8 +27,9 @@ class CompanyAvatar extends StatelessWidget {
 
   final double size;
 
-  /// Optional uploaded logo URL. When the image fails to load or is still
-  /// loading, the initials underneath remain visible.
+  /// Optional uploaded logo URL. The initials are shown when the image fails to
+  /// load or no logo is set; while a logo is (re)loading, `gaplessPlayback`
+  /// keeps the current frame painted, so the initials don't flash in.
   final String? logoUrl;
 
   @override
@@ -65,10 +66,20 @@ class CompanyAvatar extends StatelessWidget {
         height: size,
         child: Image.network(
           logoUrl!,
+          // Keyed by company id so switching companies tears the image down (no
+          // stale logo retained), while a same-company re-emit — e.g. the `?v=`
+          // cache-bust bump written by the 5-minute background refresh — reuses
+          // this element so `gaplessPlayback` keeps the current frame painted
+          // until the new (identical) bytes decode. That kills the
+          // logo->initials->logo flash without dropping to initials mid-reload
+          // (the old `loadingBuilder` is intentionally gone).
+          key: ValueKey(seed),
           fit: BoxFit.cover,
+          gaplessPlayback: true,
+          // Initials are the fallback for "no logo" / load failure only — never
+          // a layer *behind* the logo, so a transparent logo composites over the
+          // surrounding surface instead of the tinted avatar.
           errorBuilder: (_, _, _) => initialsBox(),
-          loadingBuilder: (_, child, progress) =>
-              progress == null ? child : initialsBox(),
         ),
       ),
     );

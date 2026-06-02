@@ -465,6 +465,201 @@ void main() {
     },
   );
 
+  // A `<label>|single_line_text` slot (the encoding React + admin-portal
+  // write for "Single-line text") must render AS single-line text — not as a
+  // dropdown whose options are the literal string `single_line_text`. The
+  // `single_line_text` keyword was missing from `_kReservedTypes`.
+  testWidgets(
+    'single_line_text slot renders as Single-line text, not Dropdown',
+    (tester) async {
+      final services = makeServices(
+        company: const Company(
+          id: 'co-A',
+          enabledModules: 0,
+          customFields: {'company1': 'Region|single_line_text'},
+        ),
+      );
+      await tester.pumpWidget(_host(services: services));
+      await settle(tester);
+
+      final row = find.byKey(const ValueKey('co-A:company1'));
+      expect(row, findsOneWidget);
+
+      // The Field Type selector shows the selected value "Single-line text",
+      // never "Dropdown".
+      expect(
+        find.descendant(of: row, matching: find.text('Single-line text')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: row, matching: find.text('Dropdown')),
+        findsNothing,
+      );
+      // Structural guard (independent of the dropdown's internals): a
+      // single-line row has only the label TextField. The buggy dropdown
+      // rendering adds a second (options) TextField seeded with the raw
+      // `single_line_text` string. The Field Type selector is a
+      // DropdownButtonFormField, not a TextField, so it isn't counted.
+      expect(
+        find.descendant(of: row, matching: find.byType(TextField)),
+        findsOneWidget,
+      );
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  // Round-trip: typing a label into an empty slot persists the canonical
+  // `Label|single_line_text` encoding — NOT a bare `Label`, which would
+  // re-parse as multi-line text on the next load.
+  testWidgets('typing a label persists Label|single_line_text', (tester) async {
+    final services = makeServices(
+      company: const Company(id: 'co-A', enabledModules: 0),
+    );
+    await tester.pumpWidget(_host(services: services));
+    await settle(tester);
+
+    final row = find.byKey(const ValueKey('co-A:company1'));
+    final labelField = find.descendant(
+      of: row,
+      matching: find.byType(TextField),
+    );
+    expect(labelField, findsOneWidget);
+
+    await tester.enterText(labelField, 'Region');
+    await tester.pump();
+
+    final bodyCtx = tester.element(find.text('Company Field'));
+    final vm = Provider.of<CustomFieldsViewModel>(bodyCtx, listen: false);
+    expect(vm.draft?.customFields['company1'], 'Region|single_line_text');
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  // Clearing the label retires the slot entirely (matches React's
+  // `useHandleCustomFieldChange`) — it must not leave a malformed
+  // `|single_line_text` entry behind.
+  testWidgets('clearing a single-line label removes the slot', (tester) async {
+    final services = makeServices(
+      company: const Company(
+        id: 'co-A',
+        enabledModules: 0,
+        customFields: {'company1': 'Region|single_line_text'},
+      ),
+    );
+    await tester.pumpWidget(_host(services: services));
+    await settle(tester);
+
+    final row = find.byKey(const ValueKey('co-A:company1'));
+    final labelField = find.descendant(
+      of: row,
+      matching: find.byType(TextField),
+    );
+    expect(labelField, findsOneWidget);
+
+    await tester.enterText(labelField, '');
+    await tester.pump();
+
+    final bodyCtx = tester.element(find.text('Company Field'));
+    final vm = Provider.of<CustomFieldsViewModel>(bodyCtx, listen: false);
+    expect(vm.draft?.customFields.containsKey('company1'), isFalse);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  // The reported follow-up: picking "Dropdown" must reveal the comma-separated
+  // options field. It used to store a bare label (no pipe), which re-parsed as
+  // multi-line — so the options field never appeared. An empty-options dropdown
+  // now persists as `"Label|"` (the React / admin-portal encoding).
+  testWidgets(
+    'selecting Dropdown reveals the options field and keeps the pipe',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1600, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final services = makeServices(
+        company: const Company(
+          id: 'co-A',
+          enabledModules: 0,
+          customFields: {'company1': 'Status|single_line_text'},
+        ),
+      );
+      await tester.pumpWidget(_host(services: services));
+      await settle(tester);
+
+      final row = find.byKey(const ValueKey('co-A:company1'));
+      // Single-line to start: only the label field.
+      expect(
+        find.descendant(of: row, matching: find.byType(TextField)),
+        findsOneWidget,
+      );
+
+      // Open this row's Field Type dropdown and pick "Dropdown".
+      await tester.tap(
+        find.descendant(
+          of: row,
+          matching: find.byType(DropdownButtonFormField<String>),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Dropdown').last);
+      await tester.pumpAndSettle();
+
+      final bodyCtx = tester.element(find.text('Company Field'));
+      final vm = Provider.of<CustomFieldsViewModel>(bodyCtx, listen: false);
+
+      // Options field now present (label + options) and the slot kept its pipe
+      // so it stays a dropdown on the next build.
+      expect(
+        find.descendant(of: row, matching: find.byType(TextField)),
+        findsNWidgets(2),
+      );
+      expect(vm.draft?.customFields['company1'], 'Status|');
+
+      // Typing options persists them.
+      await tester.enterText(
+        find.descendant(of: row, matching: find.byType(TextField)).last,
+        'Open,Closed',
+      );
+      await tester.pump();
+      expect(vm.draft?.customFields['company1'], 'Status|Open,Closed');
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  // A stored `"Label|"` (empty-options dropdown) must hydrate as a Dropdown,
+  // not single-line text.
+  testWidgets('a Label| slot hydrates as a Dropdown with an options field', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1600, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final services = makeServices(
+      company: const Company(
+        id: 'co-A',
+        enabledModules: 0,
+        customFields: {'company1': 'Status|'},
+      ),
+    );
+    await tester.pumpWidget(_host(services: services));
+    await settle(tester);
+
+    final row = find.byKey(const ValueKey('co-A:company1'));
+    // Field Type shows "Dropdown" and the (empty) options field is present.
+    expect(
+      find.descendant(of: row, matching: find.text('Dropdown')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: row, matching: find.byType(TextField)),
+      findsNWidgets(2),
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets(
     'Quotes / Credits tabs render their field sections and persist a slot',
     (tester) async {
@@ -496,7 +691,10 @@ void main() {
         'PO Ref',
       );
       await tester.pump();
-      expect(vm.draft?.customFields['quote1'], 'PO Ref');
+      // Default field type is single-line text, which persists with the
+      // explicit `single_line_text` keyword (canonical React / admin-portal
+      // encoding) — not a bare label.
+      expect(vm.draft?.customFields['quote1'], 'PO Ref|single_line_text');
 
       await tester.tap(
         find.descendant(of: find.byType(Tab), matching: find.text('Credits')),
