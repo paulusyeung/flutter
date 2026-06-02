@@ -942,7 +942,16 @@ class AuthRepository {
             token: uc.token.token,
             isAdmin: Value(uc.isAdmin),
             isOwner: Value(uc.isOwner),
-            updatedAt: nowMs,
+            // Mirror the server's `updated_at` (seconds), not local wall-clock
+            // ms, so the derived `cacheBustedLogoUrl` `?v=` only changes when
+            // the company actually changes. With `nowMs` every no-op /refresh
+            // re-minted the logo URL — re-emitting the session (sidebar rebuild)
+            // and re-fetching an identical logo every 5 min. Matches
+            // CompanyRepository's persist (server seconds, now-seconds fallback);
+            // `lastSyncAt` below is what tracks "last synced".
+            updatedAt: uc.company.updatedAt > 0
+                ? uc.company.updatedAt
+                : nowMs ~/ 1000,
             lastSyncAt: Value(syncMark),
           ),
       ]);

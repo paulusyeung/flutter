@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/utils/text_input_focus.dart';
@@ -292,8 +294,9 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
   /// (slide-over ⇄ full-screen) is handled separately by [_syncExpand].
   ///
   /// **Snap-or-forward only.** The user-initiated close animation
-  /// (X button, Esc) runs through [_closePaneAnimated] *before* the
-  /// URL changes — by the time this sync sees `shouldShow == false`,
+  /// (X button, Esc) runs through [_closePaneAnimated] — which confirms
+  /// any unsaved edits first — *before* the URL changes, so by the time
+  /// this sync sees `shouldShow == false`,
   /// the controller is already at 0. External closes (sidebar click,
   /// back button, URL bar) land here with the controller still at 1
   /// and the detail Element already torn down by go_router; snapping
@@ -353,13 +356,31 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
     }
   }
 
-  /// User-initiated close. Runs the slide-out animation while the
-  /// pane is still mounted (URL hasn't changed yet), then navigates.
-  /// If the user navigated away mid-animation (e.g. clicked another
-  /// row), skip the final `go(basePath)` so we don't clobber their
-  /// new destination.
+  /// User-initiated close. Confirms any unsaved edits *before* the
+  /// slide-out so the "Discard changes?" dialog appears over the
+  /// still-visible form — then runs the animation while the pane is
+  /// still mounted (URL hasn't changed yet) and navigates. If the user
+  /// navigated away mid-animation (e.g. clicked another row), skip the
+  /// final `go(basePath)` so we don't clobber their new destination.
   Future<void> _closePaneAnimated() async {
     final fromLoc = GoRouterState.of(context).matchedLocation;
+
+    // Only edit/create routes carry the `onExit` discard guard
+    // (`buildEntityRouteBlock` in router.dart — the app's only
+    // `GoRoute.onExit` guards). Run that same guard up-front so the
+    // dialog shows over the form instead of after it has slid away. On
+    // Discard `confirmIfDirty` resets the editor (its `onDiscard`), so
+    // the `go(basePath)` below re-enters `onExit` against a clean VM and
+    // doesn't double-prompt. Detail panes (`/:id`) have no guard, so we
+    // skip the check — closing them stays identical to today (no prompt,
+    // even when an unrelated editor in another branch is dirty).
+    final isGuarded = fromLoc.endsWith('/edit') || fromLoc.endsWith('/new');
+    if (isGuarded) {
+      final guard = context.read<Services>().unsavedChangesGuard;
+      if (!await guard.confirmIfDirty(context)) return; // user kept editing
+      if (!mounted) return;
+    }
+
     final reduceMotion = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
     if (!reduceMotion && _slide.status != AnimationStatus.dismissed) {
       await _slide.reverse();

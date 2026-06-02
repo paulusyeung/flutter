@@ -3,39 +3,28 @@ name: CI
 on:
   workflow_dispatch:
 
+# Least privilege: every job only checks out code and uploads an artifact —
+# neither needs write access to repo contents.
+permissions:
+  contents: read
+
+# Serialize manual dispatches on the same ref. cancel-in-progress is FALSE on
+# purpose: the macOS job's live demo suite creates/edits/deletes data on
+# demo.invoiceninja.com, and cancelling mid-run could abort between a create and
+# its cleanup-delete, orphaning records on the shared server. Queue instead.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  analyze-and-test:
-    runs-on: macos-15
+  # Dependency-free lint gates. No Flutter install, so a banned pattern or a
+  # committed credential reds the build in seconds — and gates the expensive
+  # macOS job below.
+  invariants:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
-
-      # Pinned to match local dev (3.44.1). Bumped deliberately from 3.41.9:
-      # 3.44 made IconData a final class, so material_design_icons_flutter
-      # (which subclassed it) was removed; super_editor / re_editor compile
-      # cleanly under 3.44 (the new TextInput members are all defaulted).
-      # Keep pinned — never let `channel: stable` drift the version on its own.
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          flutter-version: 3.44.1
-
-      - name: Select Xcode 26.3
-        run: sudo xcode-select -s /Applications/Xcode_26.3.app
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Verify formatting
-        run: dart format --set-exit-if-changed .
-
-      - name: Generate code
-        run: dart run build_runner build --delete-conflicting-outputs
-
-      - name: Analyze
-        run: flutter analyze
-
-      - name: Test
-        run: flutter test
 
       - name: Foundational invariants — forbid per_page=999999
         run: |
@@ -69,17 +58,160 @@ jobs:
             exit 1
           fi
 
-      # Web compile gate. The authoritative check for web-platform
-      # regressions: `flutter analyze` runs against the VM target and won't
-      # catch a native-only API leaking into the reachable web tree. Built
-      # with `--wasm` so it doubles as the WebAssembly gate — dart2wasm is
-      # stricter than dart2js (it rejects `dart:html`), so this fails fast if
-      # a dependency ever reintroduces a web-incompatible import. The `--wasm`
-      # build also emits the dart2js fallback, so it stays a full web gate.
-      # The native-assets hook (`hooks: user_defines: sqlite3: source:
-      # sqlite3mc`) targets native builds and is inert here.
+  # Static checks — formatting + analyze + the committed-codegen freshness gate.
+  # All sqlite-free (analyze is static; drift_dev codegen uses the pure-Dart
+  # sqlparser), so it runs on a cheap Linux runner.
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      # Pinned to match local dev (3.44.1). Bumped deliberately from 3.41.9:
+      # 3.44 made IconData a final class, so material_design_icons_flutter
+      # (which subclassed it) was removed; super_editor / re_editor compile
+      # cleanly under 3.44 (the new TextInput members are all defaulted).
+      # Keep pinned — never let `channel: stable` drift the version on its own.
+      # `cache: true` caches the Flutter SDK; `pub-cache` defaults to it, so
+      # ~/.pub-cache is cached too.
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.1
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --set-exit-if-changed .
+
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      # Generated code is committed, so a fresh regenerate must match what's in
+      # the tree — this catches "edited a model, forgot to run build_runner".
+      - name: Verify committed generated code is up to date
+        run: |
+          if ! git diff --exit-code -- '*.g.dart' '*.freezed.dart' \
+             || [ -n "$(git ls-files --others --exclude-standard '*.g.dart' '*.freezed.dart')" ]; then
+            echo "::error::Committed generated code is stale — run build_runner and commit the result." >&2
+            exit 1
+          fi
+
+      - name: Analyze
+        run: flutter analyze
+
+  # Unit / widget tests. These instantiate NativeDatabase.memory(), whose native
+  # sqlite comes from the sqlite3mc native-assets hook — historically only built
+  # on macOS. Building it for Linux here is very likely fine (C toolchain present,
+  # sqlite3.dart supports Linux) but is the one unverified step of this layout.
+  # If it ever fails on Linux, move this `flutter test` step onto the `apple` job.
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      # Pinned — keep in lockstep with the analyze job.
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.1
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Test
+        run: flutter test
+
+  # Web compile gate. The authoritative check for web-platform regressions:
+  # `flutter analyze` runs against the VM target and won't catch a native-only
+  # API leaking into the reachable web tree. Built with `--wasm` so it doubles
+  # as the WebAssembly gate — dart2wasm is stricter than dart2js (it rejects
+  # `dart:html`), so this fails fast if a dependency ever reintroduces a
+  # web-incompatible import. The `--wasm` build also emits the dart2js fallback,
+  # so it stays a full web gate. The native-assets hook (`hooks: user_defines:
+  # sqlite3: source: sqlite3mc`) targets native builds and is inert here (web
+  # uses the vendored web/sqlite3.wasm).
+  build-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      # Pinned — keep in lockstep with the analyze job.
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.1
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
       - name: Build web (compile gate, --wasm)
         run: flutter build web --wasm --release
+
+  # Android compile gate. `--debug` avoids needing a release signing config.
+  # ubuntu-latest ships the Android SDK, so this usually works out of the box;
+  # if Flutter reports a missing license, add `flutter doctor --android-licenses`
+  # (or the android-actions/setup-android action) here.
+  build-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      # Pinned — keep in lockstep with the analyze job.
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.1
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build Android APK (compile gate)
+        run: flutter build apk --debug
+
+  # The only macOS runner (10x billed) — reserved for the work that genuinely
+  # needs macOS: the Apple builds and the macOS-desktop integration suite. Gated
+  # behind the cheap Linux checks so a lint slip or failing test never burns 10x
+  # minutes here (a failing gate skips this job — and its Apple build signal).
+  apple:
+    runs-on: macos-15
+    needs: [invariants, analyze, unit-tests]
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v5
+
+      # Pinned — keep in lockstep with the analyze job.
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.1
+          cache: true
+
+      - name: Select Xcode 26.3
+        run: sudo xcode-select -s /Applications/Xcode_26.3.app
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Build iOS (no codesign)
         run: flutter build ios --no-codesign
@@ -106,16 +238,29 @@ jobs:
       - name: Enable macOS desktop
         run: flutter config --enable-macos-desktop
 
-      # Globs the whole integration_test/ dir so every file is auto-included:
-      # the mocked smoke suite (app_smoke_test.dart) AND the live suite
-      # (demo_api_test.dart), which boots the real app against
-      # demo.invoiceninja.com. Blocking: a real failure reds the build. The
-      # live suite self-skips (markTestSkipped) when the demo server is
-      # unreachable, so a demo outage does NOT cause a false red. The
-      # timeout bounds a network hang so it can't wedge the job for hours.
-      - name: Integration tests (macOS, incl. live demo API)
-        timeout-minutes: 25
-        run: flutter test integration_test/ -d macos
+      # Integration tests, ONE FILE PER `flutter test` invocation
+      # (tools/run_integration_local.sh) — the flutter/flutter#135673 workaround:
+      # the bare `flutter test integration_test/ -d macos` only survives one app
+      # launch on desktop, so files 2+ die with "Error waiting for a debug
+      # connection." --include-demo also runs the live demo/* CRUD suite; those
+      # self-skip when demo.invoiceninja.com is unreachable, otherwise
+      # create/edit/delete ZZ-CLAUDE-IT-marked rows (cleaned up in teardown).
+      # Blocking: the script exits non-zero on any file FAIL/TIMEOUT.
+      #
+      # Ad-hoc signing: the macOS Runner target uses automatic signing (team
+      # NPC44Y2C98) and can't fetch a provisioning profile for
+      # com.invoiceninja.admin on CI. App Sandbox needs a *valid* signature, so
+      # sign ad-hoc (-) rather than disabling signing. Flutter forwards
+      # FLUTTER_XCODE_* to xcodebuild (build_macos.dart) — no Xcode changes.
+      - name: Integration tests (macOS, per-file, incl. live demo API)
+        timeout-minutes: 50
+        env:
+          FLUTTER_XCODE_CODE_SIGN_STYLE: Manual
+          FLUTTER_XCODE_CODE_SIGN_IDENTITY: "-"
+          FLUTTER_XCODE_DEVELOPMENT_TEAM: ""
+          FLUTTER_XCODE_PROVISIONING_PROFILE_SPECIFIER: ""
+          INTEGRATION_FILE_TIMEOUT: "600"
+        run: bash tools/run_integration_local.sh --include-demo
 
       # Pixel screenshots of live-suite failures (the test writes them here
       # only when GITHUB_ACTIONS=true). Runs even when the step above failed
@@ -130,26 +275,27 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-  # Web integration smoke. Separate job (cheap Ubuntu runner, headless
-  # Chrome) so it runs in parallel with the macOS suite. Only the mocked
-  # app_smoke_test.dart runs here — it uses in-memory Drift +
-  # InMemoryTokenStorage + MockClient, all web-compatible. The live demo/*
-  # suite and filesystem/secure-storage unit tests are @TestOn('vm') /
-  # macOS-only and intentionally don't run on web. Non-blocking for now
-  # (continue-on-error) until the headless-Chrome path proves stable; flip
-  # to blocking once it has a green track record. See CLAUDE.md §
-  # Integration tests.
+  # Web integration smoke. Cheap Ubuntu runner, headless Chrome, runs in
+  # parallel with everything else. Only the mocked app_smoke_test.dart runs
+  # here — it uses in-memory Drift + InMemoryTokenStorage + MockClient, all
+  # web-compatible. The live demo/* suite and filesystem/secure-storage unit
+  # tests are @TestOn('vm') / macOS-only and intentionally don't run on web.
+  # Non-blocking for now (continue-on-error) until the headless-Chrome path
+  # proves stable; flip to blocking once it has a green track record. See
+  # CLAUDE.md § Integration tests.
   integration-web:
     runs-on: ubuntu-latest
     continue-on-error: true
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v5
 
-      # Keep in lockstep with the analyze-and-test job's pin above.
+      # Pinned — keep in lockstep with the analyze job.
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           flutter-version: 3.44.1
+          cache: true
 
       - name: Enable web
         run: flutter config --enable-web

@@ -122,6 +122,11 @@ abstract class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
     @JsonKey(name: 'display_name') @Default('') String displayName,
     @Default('') String name,
     @JsonKey(name: 'company_key') @Default('') String companyKey,
+    // Server-side last-modified timestamp (Unix seconds). Persisted to the
+    // companies table so the avatar's `cacheBustedLogoUrl` keys its `?v=` on a
+    // real company change, not local wall-clock — otherwise every no-op
+    // /refresh re-minted the logo URL and re-fetched an identical logo.
+    @JsonKey(name: 'updated_at') @Default(0) int updatedAt,
     // Top-level portal configuration. Edited by Settings → Client Portal;
     // the login envelope persists them straight into the `companies` Drift
     // table so the page reads correct values offline before the first refresh.

@@ -230,11 +230,19 @@ class _FooterAction extends StatelessWidget {
 /// The theme switcher action. Unlike [_FooterAction] it owns a [GlobalKey] to
 /// anchor the popup ([showThemeMenu]) and a dynamic icon that reflects the
 /// active [ThemeMode] (sun / moon / auto), so the current theme reads at a
-/// glance. Mirrors `CompanySwitcherButton`'s stateless-holds-GlobalKey pattern;
-/// only one footer is ever mounted (rail XOR drawer) so the key can't collide.
-class _ThemeFooterAction extends StatelessWidget {
-  _ThemeFooterAction();
+/// glance. The key lives in [State] so it stays stable across rebuilds — a
+/// fresh `GlobalKey` per build would fail `Material.canUpdate` (keys differ by
+/// identity) and needlessly remount the subtree, which can also drop the
+/// popup's anchor mid-rebuild. (Collision isn't the concern — only one footer
+/// is ever mounted, rail XOR drawer — instability across rebuilds is.)
+class _ThemeFooterAction extends StatefulWidget {
+  const _ThemeFooterAction();
 
+  @override
+  State<_ThemeFooterAction> createState() => _ThemeFooterActionState();
+}
+
+class _ThemeFooterActionState extends State<_ThemeFooterAction> {
   final GlobalKey _anchorKey = GlobalKey();
 
   @override

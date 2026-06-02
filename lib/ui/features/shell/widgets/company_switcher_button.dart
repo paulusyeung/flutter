@@ -10,8 +10,8 @@ import 'package:admin/ui/features/shell/widgets/show_company_picker.dart';
 /// on tap.
 ///
 /// Single-company case: chevron is hidden and the button is inert.
-class CompanySwitcherButton extends StatelessWidget {
-  CompanySwitcherButton({
+class CompanySwitcherButton extends StatefulWidget {
+  const CompanySwitcherButton({
     required this.session,
     this.onBeforeOpen,
     this.compact = false,
@@ -30,11 +30,24 @@ class CompanySwitcherButton extends StatelessWidget {
   /// anchored on the same key.
   final bool compact;
 
+  @override
+  State<CompanySwitcherButton> createState() => _CompanySwitcherButtonState();
+}
+
+class _CompanySwitcherButtonState extends State<CompanySwitcherButton> {
+  /// Anchors the picker popup to this button's render box. Held in State so it
+  /// stays stable across rebuilds: `InSidebar` reconstructs this button on
+  /// every session re-emit / collapse-pref change, and a fresh `GlobalKey` per
+  /// build would fail `Material.canUpdate` (keys differ by identity), tearing
+  /// down and remounting the whole subtree — including the logo `Image`, which
+  /// then has no prior frame for `gaplessPlayback` to bridge. That remount was
+  /// the intermittent sidebar-logo flash.
   final GlobalKey _anchorKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    final session = widget.session;
     final current = session.currentCompany;
     final multi = session.companies.length > 1;
     final name = current?.displayName ?? '—';
@@ -52,7 +65,7 @@ class CompanySwitcherButton extends StatelessWidget {
       child: InkWell(
         onTap: multi
             ? () {
-                onBeforeOpen?.call();
+                widget.onBeforeOpen?.call();
                 showCompanyPicker(context, anchorKey: _anchorKey);
               }
             : null,
@@ -62,8 +75,8 @@ class CompanySwitcherButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(InRadii.r2),
             border: Border.all(color: tokens.border),
           ),
-          padding: EdgeInsets.all(compact ? 4 : 8),
-          child: compact
+          padding: EdgeInsets.all(widget.compact ? 4 : 8),
+          child: widget.compact
               ? Align(alignment: Alignment.centerLeft, child: avatar)
               : Row(
                   children: [

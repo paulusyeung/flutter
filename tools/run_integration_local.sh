@@ -5,7 +5,7 @@ set -euo pipefail
 # each bounded by a per-file timeout.
 #
 # Why one file per invocation: `flutter test integration_test/ -d macos`
-# (the CI command) cannot run multiple integration files on desktop —
+# (the bare-glob form) cannot run multiple integration files on desktop —
 # flutter/flutter#135673. The tool reuses a debug-connection stream that
 # breaks on the second app launch, so only the FIRST file gets a working
 # app; every later file dies with "Error waiting for a debug connection:
@@ -21,11 +21,13 @@ set -euo pipefail
 # moves on, recording the file as TIMEOUT. No `timeout(1)` dependency
 # (macOS lacks it) — a background watcher does the kill.
 #
-# CI is green despite the bare glob command because its runner can't reach
-# demo.invoiceninja.com, so the integration_test/demo/* live files self-skip
-# (skipIfUnreachable, see integration_test/support/demo_harness.dart) and
-# only app_smoke_test.dart launches the app once — within #135673's
-# one-launch limit. Locally the demo server IS reachable, so it bites.
+# CI uses THIS script — the `apple` job in .github/workflows/ci.yaml runs
+# `run_integration_local.sh --include-demo` — so #135673 can't bite there
+# regardless of demo reachability: every file is its own invocation. The
+# integration_test/demo/* live files self-skip (skipIfUnreachable, see
+# integration_test/support/demo_harness.dart) when demo.invoiceninja.com is
+# unreachable, and otherwise run + write to the shared demo account on each
+# manual dispatch.
 #
 # WARNING: integration tests take over the foreground app — same rule as
 # CLAUDE.md § Integration tests. This is a deliberate, manual escape hatch
