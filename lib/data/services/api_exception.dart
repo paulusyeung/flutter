@@ -42,6 +42,17 @@ class ConflictException extends ApiException {
   const ConflictException([super.message = 'Conflict']);
 }
 
+/// 404 — the entity doesn't exist server-side. Subtype of [ConflictException]
+/// so the create/update drain path (which catches `ConflictException`) keeps
+/// treating it as a conflict ("the row was deleted under us — recreate /
+/// discard"). The delete/purge/archive drain paths catch this *specific* type
+/// and treat it as idempotent success: a destructive mutation whose target is
+/// already gone has achieved its goal, so parking it as a conflict (and
+/// offering "recreate") would be wrong.
+class NotFoundException extends ConflictException {
+  const NotFoundException([super.message = 'Not found']);
+}
+
 class ClientTooOldException extends ApiException {
   const ClientTooOldException({
     required this.minRequiredVersion,

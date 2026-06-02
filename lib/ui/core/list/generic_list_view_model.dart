@@ -198,6 +198,16 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   bool isLoadingPage = false;
   String? initialError;
 
+  /// Monotonic generation counter for page fetches. Every [_resetAndReload]
+  /// (and the initial load) bumps it; an in-flight [loadMore] — or an older
+  /// reset — whose `await fetchPage` returns *after* a newer reset started
+  /// sees the epoch advanced and discards its result. Without this a filter /
+  /// search / sort change during an in-flight `loadMore` (which guards on
+  /// `isLoadingPage`, but `_resetAndReload` does not) would let two fetches
+  /// race and clobber `loadedPages` / `hasMore` or leave a stuck spinner. The
+  /// repo-level keyset-cursor read-modify-write stays regress-only and safe.
+  int _fetchEpoch = 0;
+
   String _search = '';
   String get search => _search;
 
@@ -688,6 +698,7 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
 
   Future<void> loadMore() async {
     if (isLoadingPage || !hasMore) return;
+    final epoch = _fetchEpoch;
     isLoadingPage = true;
     notifyListeners();
     try {
@@ -698,13 +709,19 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
         extraFilters: _serverExtraFilters(),
         ignoreCursor: false,
       );
+      // A reset (filter/search/sort/saved-view change) started while this page
+      // was in flight — its result is authoritative, so discard ours.
+      if (_fetchEpoch != epoch) return;
       loadedPages += 1;
       hasMore = more;
     } catch (e) {
+      if (_fetchEpoch != epoch) return;
       _flashError("Couldn't load more: $e");
     } finally {
-      isLoadingPage = false;
-      notifyListeners();
+      if (_fetchEpoch == epoch) {
+        isLoadingPage = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -871,25 +888,32 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   }
 
   Future<void> _loadInitialPage() async {
+    final epoch = ++_fetchEpoch;
     isLoadingPage = true;
     notifyListeners();
     try {
-      hasMore = await fetchPage(
+      final more = await fetchPage(
         page: 1,
         search: _search.isEmpty ? null : _search,
         states: _states,
         extraFilters: _serverExtraFilters(),
         ignoreCursor: false,
       );
+      if (_fetchEpoch != epoch) return;
+      hasMore = more;
     } catch (e) {
+      if (_fetchEpoch != epoch) return;
       initialError = e.toString();
     } finally {
-      isLoadingPage = false;
-      notifyListeners();
+      if (_fetchEpoch == epoch) {
+        isLoadingPage = false;
+        notifyListeners();
+      }
     }
   }
 
   Future<void> _resetAndReload({required bool ignoreCursor}) async {
+    final epoch = ++_fetchEpoch;
     _selectedIds.clear();
     loadedPages = 1;
     hasMore = true;
@@ -899,20 +923,26 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     notifyListeners();
     _schedulePersist();
     try {
-      hasMore = await fetchPage(
+      final more = await fetchPage(
         page: 1,
         search: _search.isEmpty ? null : _search,
         states: _states,
         extraFilters: _serverExtraFilters(),
         ignoreCursor: ignoreCursor,
       );
+      // A newer reset superseded this one while the fetch was in flight.
+      if (_fetchEpoch != epoch) return;
+      hasMore = more;
     } catch (e) {
+      if (_fetchEpoch != epoch) return;
       // Store the raw error message; the UI prepends a localized
       // "Failed to load:" prefix when rendering.
       initialError = e.toString();
     } finally {
-      isLoadingPage = false;
-      notifyListeners();
+      if (_fetchEpoch == epoch) {
+        isLoadingPage = false;
+        notifyListeners();
+      }
     }
   }
 

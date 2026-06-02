@@ -5,6 +5,7 @@ import 'package:admin/data/models/api/user_api_model.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/data/repositories/user_repository.dart';
 import 'package:admin/data/repositories/user_settings_repository.dart';
+import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/users_api.dart';
 import 'package:admin/domain/sync/mutation.dart';
 import 'package:admin/domain/sync/sync_dispatcher.dart';
@@ -100,11 +101,16 @@ class UserSyncDispatcher implements SyncDispatcher {
         );
 
       case MutationKind.delete:
-        await api.delete(
-          id: row.entityId,
-          idempotencyKey: row.idempotencyKey,
-          requiresPassword: row.requiresPassword,
-        );
+        try {
+          await api.delete(
+            id: row.entityId,
+            idempotencyKey: row.idempotencyKey,
+            requiresPassword: row.requiresPassword,
+          );
+        } on NotFoundException {
+          // Already gone server-side — idempotent success (see the generic
+          // BaseEntitySyncDispatcher for the rationale).
+        }
         await repo.applyDeleteResponse(
           companyId: row.companyId,
           id: row.entityId,
@@ -137,12 +143,17 @@ class UserSyncDispatcher implements SyncDispatcher {
         }
 
       case MutationKind.purge:
-        await api.action(
-          id: row.entityId,
-          action: 'purge',
-          idempotencyKey: row.idempotencyKey,
-          requiresPassword: row.requiresPassword,
-        );
+        try {
+          await api.action(
+            id: row.entityId,
+            action: 'purge',
+            idempotencyKey: row.idempotencyKey,
+            requiresPassword: row.requiresPassword,
+          );
+        } on NotFoundException {
+          // Already gone server-side — idempotent success (see the generic
+          // BaseEntitySyncDispatcher for the rationale).
+        }
         await repo.applyPurgeResponse(
           companyId: row.companyId,
           id: row.entityId,

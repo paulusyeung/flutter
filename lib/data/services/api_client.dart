@@ -765,13 +765,16 @@ class ApiClient {
         // endpoint directly.
         throw const PasswordRequiredException();
       case 404:
-        // Treated as a conflict: the entity was deleted server-side while
-        // we held a pending mutation locally. The sync engine routes
-        // ConflictException to ConflictResolutionSheet (delete locally /
-        // recreate). Without this mapping a 404 falls into the default
-        // ServerException branch, gets retried five times, and is
-        // silently marked dead — the user never sees the resolution UI.
-        throw ConflictException(message);
+        // The entity doesn't exist server-side. For create/update this is a
+        // conflict (the row was deleted under us): NotFoundException is a
+        // ConflictException subtype, so the drain's ConflictException catch
+        // still routes those to ConflictResolutionSheet (delete locally /
+        // recreate). For delete/purge/archive the dispatcher catches this
+        // specific type and treats it as idempotent success — the target is
+        // already gone, which is the desired end state. Without any mapping a
+        // 404 would fall into ServerException, get retried five times, and be
+        // silently marked dead with no resolution UI.
+        throw NotFoundException(message);
       case 409:
         throw ConflictException(message);
       case 422:

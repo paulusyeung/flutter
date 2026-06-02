@@ -185,29 +185,21 @@ class _ImageBlockPropertiesState extends State<ImageBlockProperties> {
             border: const OutlineInputBorder(),
           ),
           initialValue: (props['objectFit'] as String?) ?? 'contain',
-          // CSS object-fit value labels — React renders these literal
-          // strings too; they're CSS keywords more than natural prose.
-          items: const [
+          // CSS object-fit values. The stored `value` stays the CSS keyword;
+          // the label routes through `context.tr` (keys in _app_pending.json,
+          // except `none` which already lives in en.json).
+          items: [
             DropdownMenuItem(
               value: 'contain',
-              child: Text('Contain'),
-            ), // i18n-exempt: CSS keyword
-            DropdownMenuItem(
-              value: 'cover',
-              child: Text('Cover'),
-            ), // i18n-exempt: CSS keyword
-            DropdownMenuItem(
-              value: 'fill',
-              child: Text('Fill'),
-            ), // i18n-exempt: CSS keyword
+              child: Text(context.tr('contain')),
+            ),
+            DropdownMenuItem(value: 'cover', child: Text(context.tr('cover'))),
+            DropdownMenuItem(value: 'fill', child: Text(context.tr('fill'))),
             DropdownMenuItem(
               value: 'scale-down',
-              child: Text('Scale down'),
-            ), // i18n-exempt: CSS keyword
-            DropdownMenuItem(
-              value: 'none',
-              child: Text('None'),
-            ), // i18n-exempt: CSS keyword
+              child: Text(context.tr('scale_down')),
+            ),
+            DropdownMenuItem(value: 'none', child: Text(context.tr('none'))),
           ],
           onChanged: (v) {
             if (v != null) _write('objectFit', v);

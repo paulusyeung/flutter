@@ -431,6 +431,7 @@ class _ValueMatchRow extends StatelessWidget {
                 width: 20,
                 child: Icon(filterKey.icon, size: 18, color: tokens.ink3),
               ),
+              const SizedBox(width: 6),
               Text(
                 filterKey.displayLabel(context),
                 style: theme.textTheme.bodyMedium?.copyWith(color: tokens.ink3),
@@ -543,6 +544,7 @@ class _KeyRow extends StatelessWidget {
                 width: 20,
                 child: Icon(filterKey.icon, size: 18, color: tokens.ink3),
               ),
+              const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   filterKey.displayLabel(context),

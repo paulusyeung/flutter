@@ -816,7 +816,16 @@ class AuthRepository {
         preserveActiveCompanyId.isNotEmpty &&
         tokens.containsKey(preserveActiveCompanyId)) {
       currentId = preserveActiveCompanyId;
-    } else if (isFullSync && firstAccount.defaultCompanyId.isNotEmpty) {
+    } else if (isFullSync &&
+        firstAccount.defaultCompanyId.isNotEmpty &&
+        tokens.containsKey(firstAccount.defaultCompanyId)) {
+      // Only honor the account's default company when we actually hold a token
+      // for it. The default can be stale (company deleted / user removed) or
+      // carry an empty token in the response (see the `missingTokenIds` warning
+      // above) — landing there would activate a company whose `tokens[currentId]`
+      // is null, so the `:1137` credential fallback would hand it
+      // `response.data.first`'s token (a *different* company) → wrong-company
+      // data / 401. The sibling delta branch below guards the same way.
       currentId = firstAccount.defaultCompanyId;
     } else if (isFullSync) {
       currentId = response.data.first.company.id;

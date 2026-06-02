@@ -133,11 +133,11 @@ class _DocumentSettingsForm extends StatelessWidget {
         DropdownButtonFormField<String>(
           decoration: InputDecoration(labelText: context.tr('page_size')),
           initialValue: _kPageSizes.contains(ds.pageSize) ? ds.pageSize : 'A4',
-          items: const [
+          items: [
             // Mirrors React's `PAGE_SIZE_OPTIONS` in `DocumentSettingsPanel.tsx`.
+            // A/B-series are ISO/JIS format codes (left literal); the named
+            // sizes route through `context.tr` (keys live in en.json).
             DropdownMenuItem(value: 'A5', child: Text('A5')),
-            // Paper-size labels are universal proper nouns — React
-            // doesn't translate them either. Marked i18n-exempt.
             DropdownMenuItem(value: 'A4', child: Text('A4')),
             DropdownMenuItem(value: 'A3', child: Text('A3')),
             DropdownMenuItem(value: 'B5', child: Text('B5')),
@@ -146,16 +146,13 @@ class _DocumentSettingsForm extends StatelessWidget {
             DropdownMenuItem(value: 'JIS-B4', child: Text('JIS-B4')),
             DropdownMenuItem(
               value: 'Letter',
-              child: Text('Letter'),
-            ), // i18n-exempt: paper size
-            DropdownMenuItem(
-              value: 'Legal',
-              child: Text('Legal'),
-            ), // i18n-exempt: paper size
+              child: Text(context.tr('letter')),
+            ),
+            DropdownMenuItem(value: 'Legal', child: Text(context.tr('legal'))),
             DropdownMenuItem(
               value: 'Ledger',
-              child: Text('Ledger'),
-            ), // i18n-exempt: paper size
+              child: Text(context.tr('ledger')),
+            ),
           ],
           onChanged: (v) {
             if (v != null) vm.setDocumentSettings(ds.copyWith(pageSize: v));

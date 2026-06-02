@@ -42,6 +42,7 @@ class FakeCompany {
     this.logoUrl,
     this.isOwner = true,
     this.isAdmin = true,
+    this.enabledModules = 32767,
   });
   final String id;
   final String name;
@@ -57,6 +58,12 @@ class FakeCompany {
   final bool isOwner;
 
   final bool isAdmin;
+
+  /// Company `enabled_modules` bitmask. Defaults to all standard modules on
+  /// (32767) to mirror the real `/login` mask — production never sends 0, and
+  /// the module-gated actions (e.g. the client "New" menu) need a non-zero
+  /// mask. Set to 0 to exercise the all-modules-off branch.
+  final int enabledModules;
 }
 
 class ShellFixture {
@@ -114,6 +121,7 @@ Future<ShellFixture> buildFixture({
         token: c.token,
         isOwner: Value(c.isOwner),
         isAdmin: Value(c.isAdmin),
+        enabledModules: Value(c.enabledModules),
         updatedAt: 0,
       ),
   ]);

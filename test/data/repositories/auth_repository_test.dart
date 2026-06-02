@@ -177,6 +177,49 @@ void main() {
       expect((await db.companiesDao.account())?.id, 'acct_1');
     });
 
+    test('stale default company (absent from response) does not mismatch the '
+        'activated company and its token', () async {
+      // The account's defaultCompanyId points at a company that is NOT in
+      // the full-sync response (deleted company / user removed / empty
+      // token). The activated company and the primed credential token must
+      // belong to the SAME company — otherwise we authenticate as one
+      // company while the session thinks it's on another → wrong data / 401.
+      authService.queueLogin(
+        _envelope(
+          companies: [
+            (
+              id: 'co_a',
+              name: 'Acme',
+              token: 'tok_a',
+              isAdmin: false,
+              isOwner: false,
+            ),
+            (
+              id: 'co_b',
+              name: 'Beta',
+              token: 'tok_b',
+              isAdmin: false,
+              isOwner: false,
+            ),
+          ],
+          defaultCompanyId: 'co_ghost',
+        ),
+      );
+
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a@b',
+        password: 'pw',
+      );
+
+      // Falls back to the first company we actually hold a token for...
+      expect(repo.session.value!.currentCompanyId, 'co_a');
+      // ...and the token belongs to THAT company (pre-fix this was 'tok_a'
+      // while currentCompanyId was the untokened 'co_ghost').
+      expect(repo.credentials.value!.token, 'tok_a');
+    });
+
     test('refuses an empty response (no companies)', () async {
       authService.queueLogin(const LoginResponseApi());
       await expectLater(

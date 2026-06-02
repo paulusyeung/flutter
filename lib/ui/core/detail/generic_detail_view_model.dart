@@ -34,6 +34,14 @@ class GenericDetailViewModel<T> extends ChangeNotifier {
 
   StreamSubscription<T?>? _sub;
 
+  /// Mirrors [GenericListViewModel]'s guard. `dispose()` cancels [_sub], but a
+  /// Drift watch event already dispatched before the cancel can still invoke
+  /// the listener — and `notifyListeners()` on a disposed `ChangeNotifier`
+  /// throws "was used after being disposed". Subclasses that add their own
+  /// async derived-state work should consult [isDisposed] before notifying.
+  bool _disposed = false;
+  bool get isDisposed => _disposed;
+
   /// Subscribe to [stream]. Replaces any prior subscription. Each emission
   /// updates [item] and clears [isResolving].
   @protected
@@ -48,7 +56,14 @@ class GenericDetailViewModel<T> extends ChangeNotifier {
   }
 
   @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
+  @override
   void dispose() {
+    _disposed = true;
     _sub?.cancel();
     super.dispose();
   }

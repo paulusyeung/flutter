@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
+import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/base_entity_api.dart';
 import 'package:admin/domain/sync/mutation.dart';
 import 'package:admin/domain/sync/sync_dispatcher.dart';
@@ -99,11 +100,19 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
           serverResponse: dataOf(response),
         );
       case MutationKind.delete:
-        await api.delete(
-          id: row.entityId,
-          idempotencyKey: row.idempotencyKey,
-          requiresPassword: row.requiresPassword,
-        );
+        try {
+          await api.delete(
+            id: row.entityId,
+            idempotencyKey: row.idempotencyKey,
+            requiresPassword: row.requiresPassword,
+          );
+        } on NotFoundException {
+          // Already gone server-side — a delete whose target no longer exists
+          // has achieved its goal. Fall through to applyDeleteResponse so the
+          // local row is marked deleted and the outbox row drains as success,
+          // instead of parking as a conflict that offers a nonsensical
+          // "recreate".
+        }
         await repo.applyDeleteResponse(
           companyId: row.companyId,
           id: row.entityId,
@@ -137,12 +146,18 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
         // outbox row's `requiresPassword` flag is honored. The server's
         // response (if any) is irrelevant: the entity is gone. We ignore
         // it and let `applyPurgeResponse` drop the local row.
-        await api.action(
-          id: row.entityId,
-          action: 'purge',
-          idempotencyKey: row.idempotencyKey,
-          requiresPassword: row.requiresPassword,
-        );
+        try {
+          await api.action(
+            id: row.entityId,
+            action: 'purge',
+            idempotencyKey: row.idempotencyKey,
+            requiresPassword: row.requiresPassword,
+          );
+        } on NotFoundException {
+          // Already gone server-side — purge's goal is "entity removed", which
+          // is already true. Fall through to applyPurgeResponse (idempotent
+          // success) rather than parking as a conflict.
+        }
         await repo.applyPurgeResponse(
           companyId: row.companyId,
           id: row.entityId,

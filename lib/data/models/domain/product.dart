@@ -129,6 +129,15 @@ extension ProductPayload on Product {
       'cost': cost.toString(),
       'price': price.toString(),
       'quantity': quantity.toString(),
+      // NOTE: these stay `.toDouble()` (not `.toString()` like cost/price/
+      // quantity above). ProductApi types tax_rate*/max_quantity/
+      // in_stock_quantity/stock_notification_threshold as `num` (cost/price/
+      // quantity are the permissive `Object`), so its generated `fromJson`
+      // hard-casts `as num` — and the repo round-trips this payload back
+      // through `ProductApi.fromJson` in `_fromRow`. Emitting strings here
+      // throws "String is not a subtype of num?" on read. Aligning with the
+      // other entities would mean retyping those DTO fields to `Object`, not a
+      // one-liner here.
       'max_quantity': maxQuantity.toDouble(),
       'product_image': productImage,
       'in_stock_quantity': inStockQuantity.toDouble(),
