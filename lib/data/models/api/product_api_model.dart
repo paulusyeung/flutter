@@ -28,7 +28,6 @@ abstract class ProductApi with _$ProductApi {
     @JsonKey(name: 'tax_name3') @Default('') String taxName3,
     @JsonKey(name: 'tax_rate3') @Default(0) num taxRate3,
     @JsonKey(name: 'tax_id') @Default('') String taxId,
-    @JsonKey(name: 'tax_category_id') @Default('') String taxCategoryId,
     @JsonKey(name: 'custom_value1') @Default('') String customValue1,
     @JsonKey(name: 'custom_value2') @Default('') String customValue2,
     @JsonKey(name: 'custom_value3') @Default('') String customValue3,

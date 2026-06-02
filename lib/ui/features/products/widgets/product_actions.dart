@@ -229,13 +229,13 @@ class ProductActions {
         }
         final categoryId = await showTaxCategoryDialog(
           context,
-          current: product.taxCategoryId,
+          current: product.taxId,
         );
         if (categoryId == null || !context.mounted) return;
-        if (categoryId == product.taxCategoryId) return;
+        if (categoryId == product.taxId) return;
         await services.products.save(
           companyId: companyId,
-          product: product.copyWith(taxCategoryId: categoryId),
+          product: product.copyWith(taxId: categoryId),
         );
         if (!context.mounted) return;
         Notify.success(context, context.tr('updated_product'));

@@ -1,0 +1,22 @@
+# Standalone, zero-dependency Dart CLI with its own pubspec, so that
+# `dart run bin/import.dart` doesn't have to compile the host Flutter project.
+# Because it doesn't depend on flutter_lints, it can't resolve the repo-root
+# analysis_options' `include: package:flutter_lints/flutter.yaml`. Without this
+# local file, `dart format .` / `dart analyze` run from the repo root walk up to
+# that root config and warn:
+#   Failed to resolve package URI "package:flutter_lints/flutter.yaml".
+# This self-contained config (no package include) silences that.
+# `avoid_print` is intentionally omitted — this CLI writes to stdout.
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+
+linter:
+  rules:
+    - always_declare_return_types
+    - prefer_single_quotes
+    - require_trailing_commas
+    - unawaited_futures
+    - use_super_parameters

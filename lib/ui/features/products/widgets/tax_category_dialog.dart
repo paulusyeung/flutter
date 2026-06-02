@@ -17,7 +17,7 @@ const Map<String, String> kProductTaxCategories = <String, String>{
 
 /// Pick a product tax category. Short fixed enum → a simple radio list
 /// (no search). Returns the chosen id, or null on cancel. [current] is the
-/// product's existing `taxCategoryId` (defaults the selection).
+/// product's existing `taxId` (defaults the selection).
 Future<String?> showTaxCategoryDialog(
   BuildContext context, {
   required String current,

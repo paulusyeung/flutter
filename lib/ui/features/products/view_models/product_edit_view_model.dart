@@ -107,7 +107,6 @@ Product _emptyProduct() => Product(
   taxName3: '',
   taxRate3: Decimal.zero,
   taxId: '',
-  taxCategoryId: '',
   customValue1: '',
   customValue2: '',
   customValue3: '',
