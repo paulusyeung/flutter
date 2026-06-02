@@ -19,6 +19,25 @@ git config core.hooksPath .githooks
 
 When adding back Android/Windows/Linux, regenerate with `flutter create --platforms=android,windows,linux`. Notes: Android needs `<uses-permission android:name="android.permission.INTERNET" />`; Linux requires `libsecret-1-dev` for `flutter_secure_storage`; Windows uses DPAPI per-user.
 
+## Dependency updates
+
+Routine bump: raise the `^` floors in `pubspec.yaml`, run `flutter pub upgrade`, regenerate codegen (`dart run build_runner build --delete-conflicting-outputs`), and — only if `drift` or `sqlite3` moved — the vendored web assets (§ Web setup notes). Gate the result with `flutter analyze` + `flutter test` + `flutter build web --wasm`.
+
+**Why `flutter pub outdated` still shows a stale tail.** ~22 transitive packages list a newer **"Latest"** that is *not resolvable*: `flutter pub upgrade --major-versions --dry-run` (the most aggressive solve — it even rewrites our own constraints) reports **"No dependencies would change."** Each is capped by an **already-latest upstream package** (not by our `pubspec.yaml`), so nothing here can move them; they clear only when the upstream widens its bound or Flutter ships a newer stable. Verified 2026-06-02 on Flutter 3.44.1 / Dart 3.12.1:
+
+| Stuck package(s) | Capped by (already the latest version) |
+|---|---|
+| `analyzer`, `_fe_analyzer_shared`, `dart_style`, `mockito` | `freezed 3.2.5` → `analyzer <11.0.0` |
+| `cli_util` | `drift_dev 2.33.0` → `cli_util ^0.4.0` |
+| `xml`, `image` (image 4.9 needs xml 7) | `pdf 3.12.0` (via `printing`) → `xml <7.0.0` |
+| `qr` | `qr_flutter 4.1.0` + `barcode` → `qr ^3` |
+| `in_app_purchase_android` | `in_app_purchase 3.2.3` → `^0.4.0` (no Android target anyway) |
+| `meta`, `vector_math`, `test`, `test_api`, `test_core`, `matcher` | Flutter SDK exact pins (`flutter` / `flutter_test`) — needs a Flutter bump |
+| `flutter_secure_storage_darwin`, `jni`, `path_provider_android` | federated plugin parents (`flutter_secure_storage`; `sentry_flutter` pins `jni 0.14.2`; `path_provider`) |
+| `dart_quill_delta`, `flutter_test_robots`, `flutter_test_runners` | the `super_editor` git pin in `pubspec.yaml` |
+
+Don't force these with `dependency_overrides` — `analyzer ≥11` breaks `freezed`, `xml 7` breaks `pdf`, and the SDK pins break the framework. Re-run `flutter pub upgrade --major-versions --dry-run` after any future `freezed` / `pdf` / `qr_flutter` / Flutter bump to see what has since opened up.
+
 ## Web setup notes
 
 See CLAUDE.md § Web for the runtime model (unencrypted IndexedDB via drift WASM, localStorage tokens, hash URLs, OAuth/biometric disabled, the `Idempotency-Key` CORS backend dependency in `BACKEND.md`). Operational notes for this repo:
