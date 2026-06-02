@@ -210,8 +210,9 @@ class _DocumentSettingsForm extends StatelessWidget {
               DropdownMenuItem(value: f, child: Text(f)),
           ],
           onChanged: (v) {
-            if (v != null)
+            if (v != null) {
               vm.setDocumentSettings(ds.copyWith(secondaryFont: v));
+            }
           },
         ),
         SizedBox(height: InSpacing.lg(context)),

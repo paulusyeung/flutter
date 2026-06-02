@@ -173,8 +173,9 @@ class _WysiwygCanvasState extends State<WysiwygCanvas> {
                       final payload = details.data;
                       if (box == null) {
                         // Safe fallback: append at next-free slot.
-                        if (payload is PalettePayload)
+                        if (payload is PalettePayload) {
                           vm.addBlock(payload.spec);
+                        }
                         return;
                       }
                       final local = box.globalToLocal(details.offset);

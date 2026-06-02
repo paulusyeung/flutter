@@ -471,8 +471,9 @@ class _DesignCompletionsBuilder implements CodeAutocompletePromptsBuilder {
     final input = ident;
     final prompts = <CodePrompt>[];
     for (final root in kTwigCatalog.entityGraph.keys) {
-      if (!isPublicTwigRoot(root))
+      if (!isPublicTwigRoot(root)) {
         continue; // skip helper schemas (e.g. _po_vendor)
+      }
       if (input.isEmpty || root.toLowerCase().contains(input.toLowerCase())) {
         prompts.add(
           _CompletionItem(
