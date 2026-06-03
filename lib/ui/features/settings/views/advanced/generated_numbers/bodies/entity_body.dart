@@ -12,6 +12,7 @@ import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/core/widgets/link_text.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
+import 'package:admin/ui/features/settings/views/advanced/generated_numbers/generated_number_preview.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_number_field.dart';
@@ -140,6 +141,28 @@ class _GeneratedNumbersEntityBodyState
     final level = context.watch<SettingsLevelController>().level;
     final patternEditable =
         level == SettingsLevel.company || host.isOverridden(widget.patternKey);
+    // Live, read-only example of the generated number. Reads the effective
+    // (merged) settings, so it's NOT gated by the override toggle like the
+    // chips — at client scope it shows the inherited-or-overridden result.
+    final counter =
+        int.tryParse(
+          settingsBindingOf(widget.counterKey).read(host.settings) ?? '',
+        ) ??
+        1;
+    final padding =
+        int.tryParse(
+          settingsBindingOf('counter_padding').read(host.settings) ?? '',
+        ) ??
+        4;
+    final preview = buildNumberPreview(
+      pattern: hostValue,
+      counter: counter,
+      padding: padding,
+      now: DateTime.now(),
+      showClient: widget.showClientTokens,
+      showVendor: widget.showVendorTokens,
+      company: widget.company,
+    );
     return SettingsFormShell(
       sections: [
         FormSection(
@@ -156,6 +179,7 @@ class _GeneratedNumbersEntityBodyState
               apiKey: widget.counterKey,
               integerOnly: true,
             ),
+            _PreviewRow(value: preview),
             IgnorePointer(
               ignoring: !patternEditable,
               child: Opacity(
@@ -364,4 +388,52 @@ class _TokenSpec {
 
   final String token;
   final String? customFieldKey;
+}
+
+/// Read-only example of the generated number, rendered below the inputs. The
+/// value is computed by [buildNumberPreview] and refreshes on every host change
+/// (counter / pattern / padding). Styled as inset "output" (alt surface, ink2,
+/// monospace) to read distinctly from the editable fields above.
+class _PreviewRow extends StatelessWidget {
+  const _PreviewRow({required this.value});
+
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final t = context.inTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          context.tr('preview'),
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: t.ink,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: InSpacing.sm),
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(
+            horizontal: InSpacing.md(context),
+            vertical: InSpacing.sm,
+          ),
+          decoration: BoxDecoration(
+            color: t.surfaceAlt,
+            border: Border.all(color: t.border),
+            borderRadius: BorderRadius.circular(InRadii.r2),
+          ),
+          child: SelectableText(
+            value,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: t.ink2,
+              fontFamily: 'monospace',
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }

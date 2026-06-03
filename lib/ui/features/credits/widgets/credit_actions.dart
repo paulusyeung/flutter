@@ -285,7 +285,7 @@ class CreditActions {
         if (tmpGate()) return;
         // Full-screen Send Email surface; bulk multi-select still uses the
         // showBillingDocEmailSheet bottom sheet.
-        context.go('/credits/${credit.id}/email');
+        context.go('/credits/${credit.id}/email?view=full');
 
       case CreditAction.markSent:
         if (tmpGate()) return;

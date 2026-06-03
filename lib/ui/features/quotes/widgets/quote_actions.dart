@@ -326,7 +326,7 @@ class QuoteActions {
         if (tmpGate()) return;
         // Full-screen Send Email surface; bulk multi-select still uses the
         // showBillingDocEmailSheet bottom sheet.
-        context.go('/quotes/${quote.id}/email');
+        context.go('/quotes/${quote.id}/email?view=full');
 
       case QuoteAction.markSent:
         if (tmpGate()) return;

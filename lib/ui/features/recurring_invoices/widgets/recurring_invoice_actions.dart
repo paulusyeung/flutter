@@ -312,7 +312,7 @@ class RecurringInvoiceActions {
         if (tmpGate()) return;
         // Full-screen Send Email surface; bulk multi-select still uses the
         // showBillingDocEmailSheet bottom sheet.
-        context.go('/recurring_invoices/${ri.id}/email');
+        context.go('/recurring_invoices/${ri.id}/email?view=full');
 
       case RecurringInvoiceAction.markSent:
         if (tmpGate()) return;

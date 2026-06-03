@@ -418,6 +418,30 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('shows a live number preview that reacts to chip taps', (
+    tester,
+  ) async {
+    await pumpOnTab(
+      tester,
+      company: const Company(id: 'co-A', enabledModules: 0),
+      tabLabel: 'Clients',
+    );
+
+    SelectableText previewBox() =>
+        tester.widget<SelectableText>(find.byType(SelectableText));
+
+    // Caption + initial value: empty pattern, counter null→1, padding null→4.
+    expect(find.text('Preview'), findsOneWidget);
+    expect(previewBox().data, '0001');
+
+    // Tapping a chip flows through the host and recomputes the preview.
+    await tester.tap(find.widgetWithText(ActionChip, '{\$year}'));
+    await tester.pumpAndSettle();
+    expect(previewBox().data, DateTime.now().year.toString());
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('user custom-field chip shows only when the field is active', (
     tester,
   ) async {

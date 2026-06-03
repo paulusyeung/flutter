@@ -67,6 +67,16 @@ ThemeData buildInTheme(InTheme baseTokens, {Color? accentOverride}) {
     textTheme: textTheme,
     primaryTextTheme: textTheme,
 
+    // Flat header app-wide: kill M3's "scrolled under" tint so an AppBar
+    // never changes color when content scrolls beneath it. `surfaceTint`
+    // transparent + zero scrolled-under/base elevation keeps the bar a
+    // constant, flat color. (Per-AppBar `style` can still override.)
+    appBarTheme: const AppBarTheme(
+      scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+    ),
+
     inputDecorationTheme: InputDecorationTheme(
       filled: false,
       isDense: true,

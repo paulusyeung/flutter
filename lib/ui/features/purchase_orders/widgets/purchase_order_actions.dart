@@ -302,7 +302,7 @@ class PurchaseOrderActions {
         if (tmpGate()) return;
         // Full-screen Send Email surface; bulk multi-select still uses the
         // showBillingDocEmailSheet bottom sheet.
-        context.go('/purchase_orders/${po.id}/email');
+        context.go('/purchase_orders/${po.id}/email?view=full');
 
       case PurchaseOrderAction.markSent:
         if (tmpGate()) return;

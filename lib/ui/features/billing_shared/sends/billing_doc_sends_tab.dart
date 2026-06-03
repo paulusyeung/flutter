@@ -72,9 +72,27 @@ class BillingDocSendsTab extends StatefulWidget {
 class _BillingDocSendsTabState extends State<BillingDocSendsTab> {
   Formatter? _formatter;
 
+  /// Stable watch subscriptions — created ONCE here, never inside `build()`.
+  /// A fresh stream per rebuild makes `StreamBuilder` re-subscribe and retain
+  /// the *previous* stream's last value during the gap; a rebuild burst (e.g.
+  /// the failure modal opening the instant a reactivate row fail-fasts to
+  /// `dead`) can then drop the dead-excluded `[]` emission and leave the
+  /// button stuck on its "syncing…" spinner. One stable instance keeps the
+  /// live subscription and reliably delivers every state change — same pattern
+  /// as `ClientEmailHistoryViewModel`.
+  late final Stream<List<OutboxRow>> _pendingReactivations;
+  late final Stream<Map<String, ({String label, String email})>> _contacts;
+
   @override
   void initState() {
     super.initState();
+    _pendingReactivations = widget.services.db.outboxDao.watchPendingForEntity(
+      companyId: widget.companyId,
+      entityType: widget.entityWireName,
+      entityId: widget.entityId,
+      kind: MutationKind.reactivateEmail,
+    );
+    _contacts = _contactsLookup();
     // Resolve the company formatter once (same pattern as
     // FormatterHostMixin) so timestamps honor the company date format;
     // until it lands, rows render raw ISO.
@@ -110,18 +128,13 @@ class _BillingDocSendsTabState extends State<BillingDocSendsTab> {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: InSpacing.lg(context)),
       child: StreamBuilder<Map<String, ({String label, String email})>>(
-        stream: _contactsLookup(),
+        stream: _contacts,
         builder: (context, contactsSnap) {
           final contacts =
               contactsSnap.data ??
               const <String, ({String label, String email})>{};
           return StreamBuilder<List<OutboxRow>>(
-            stream: widget.services.db.outboxDao.watchPendingForEntity(
-              companyId: widget.companyId,
-              entityType: widget.entityWireName,
-              entityId: widget.entityId,
-              kind: MutationKind.reactivateEmail,
-            ),
+            stream: _pendingReactivations,
             builder: (context, pendingSnap) {
               final pendingIds = _pendingMessageIds(
                 pendingSnap.data ?? const <OutboxRow>[],

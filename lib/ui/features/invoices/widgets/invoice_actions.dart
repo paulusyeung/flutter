@@ -484,7 +484,7 @@ class InvoiceActions {
         // Full-screen Send Email surface (form + live preview + PDF +
         // History). The screen owns both immediate-send and scheduled
         // dispatch; bulk multi-select still uses showBillingDocEmailSheet.
-        context.go('/invoices/${invoice.id}/email');
+        context.go('/invoices/${invoice.id}/email?view=full');
 
       case InvoiceAction.markSent:
         if (tmpGate()) return;

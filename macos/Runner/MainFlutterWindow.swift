@@ -63,8 +63,8 @@ extension NSColor {
 }
 
 class MainFlutterWindow: NSWindow {
-  private var titleLabel: NSTextField?
   private var themeChannel: FlutterMethodChannel?
+  private var windowControlChannel: FlutterMethodChannel?
   private var splashChannel: FlutterMethodChannel?
   private var splashView: NSView?
   private var splashLogoLayer: CALayer?
@@ -98,13 +98,14 @@ class MainFlutterWindow: NSWindow {
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)
 
+    configureHiddenTitleBar()
+
     setUpWindowStatePersistence()
 
     apply(initial)
 
     RegisterGeneratedPlugins(registry: flutterViewController)
 
-    installCenteredTitle(initial: initial)
     installSplash(
       initial: initial,
       messenger: flutterViewController.engine.binaryMessenger)
@@ -142,6 +143,36 @@ class MainFlutterWindow: NSWindow {
     }
     self.themeChannel = channel
 
+    let windowControlChannel = FlutterMethodChannel(
+      name: "invoice_ninja/native_window",
+      binaryMessenger: flutterViewController.engine.binaryMessenger)
+    windowControlChannel.setMethodCallHandler { [weak self] call, result in
+      guard let self = self else { result(nil); return }
+      switch call.method {
+      case "startDrag":
+        // NSApp.currentEvent during an active Flutter pan is the
+        // leftMouseDragged event; performDrag hands off to AppKit's native
+        // drag loop. Mirrors window_manager's startDragging.
+        if let event = NSApp.currentEvent { self.performDrag(with: event) }
+        result(nil)
+      case "doubleClick":
+        // Honor System Settings ▸ Desktop & Dock ▸ "double-click a window's
+        // title bar to" — Maximize (zoom) is the default; respect Minimize/None.
+        let action =
+          UserDefaults.standard.string(forKey: "AppleActionOnDoubleClick")
+          ?? "Maximize"
+        if action == "Minimize" {
+          self.miniaturize(nil)
+        } else if action != "None" {
+          self.zoom(nil)
+        }
+        result(nil)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+    self.windowControlChannel = windowControlChannel
+
     NSApp.addObserver(self,
                       forKeyPath: "effectiveAppearance",
                       options: [.new],
@@ -171,31 +202,24 @@ class MainFlutterWindow: NSWindow {
     // presents; keeps things legible when the user picks a cross-brightness
     // variant (e.g. Espresso while macOS is in Light Mode).
     self.appearance = NSAppearance(named: theme.isDark ? .darkAqua : .aqua)
-    titleLabel?.textColor = theme.titleColor
   }
 
-  // macOS defaults the titlebar text to be left-aligned (or centered between
-  // the traffic lights and the window's right edge, depending on the OS
-  // version). Replace it with a custom NSTextField pinned to the titlebar's
-  // horizontal center so the app name reads as truly centered.
-  private func installCenteredTitle(initial theme: NinjaWindowTheme) {
+  // Hidden title bar ("full-size content" look): the FlutterView fills the whole
+  // window and the real traffic-light buttons float over its top-left (the top
+  // of the sidebar). The window stays `.titled` so those system buttons still
+  // exist — keeping their automatic active/inactive graying — and `self.title`
+  // is retained for Mission Control and the Window menu.
+  private func configureHiddenTitleBar() {
     self.titleVisibility = .hidden
-
-    guard let titlebarView = self.standardWindowButton(.closeButton)?.superview
-    else { return }
-
-    let label = NSTextField(labelWithString: self.title)
-    label.font = NSFont.titleBarFont(ofSize: NSFont.systemFontSize(for: .regular))
-    label.textColor = theme.titleColor
-    label.alignment = .center
-    label.translatesAutoresizingMaskIntoConstraints = false
-    titlebarView.addSubview(label)
-
-    NSLayoutConstraint.activate([
-      label.centerXAnchor.constraint(equalTo: titlebarView.centerXAnchor),
-      label.centerYAnchor.constraint(equalTo: titlebarView.centerYAnchor),
-    ])
-    self.titleLabel = label
+    self.titlebarAppearsTransparent = true
+    // titlebarSeparatorStyle is macOS 11+; the deployment target is 10.15.
+    if #available(macOS 11.0, *) {
+      self.titlebarSeparatorStyle = .none
+    }
+    self.styleMask.insert(.fullSizeContentView)
+    // Window dragging is driven explicitly from the Flutter sidebar strip via
+    // `performDrag` (background dragging wouldn't work through the FlutterView).
+    self.isMovableByWindowBackground = false
   }
 
   // Native splash: cover the FlutterViewController with a themed view and the

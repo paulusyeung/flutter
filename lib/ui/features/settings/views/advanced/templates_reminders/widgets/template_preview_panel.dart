@@ -322,9 +322,12 @@ class _DesktopMarkdownPreviewState extends State<_DesktopMarkdownPreview> {
 
   @override
   Widget build(BuildContext context) {
-    final t = context.inTheme;
+    // Render the email body on white in both light and dark mode:
+    // super_editor's default stylesheet uses fixed dark text, and the real
+    // email (and the mobile WebView / PDF preview) is white — so painting it
+    // on the dark app surface would be dark-on-dark and unreadable.
     return Container(
-      color: t.surface,
+      color: Colors.white,
       padding: EdgeInsets.symmetric(horizontal: InSpacing.lg(context)),
       child: SuperReader(editor: _editor),
     );

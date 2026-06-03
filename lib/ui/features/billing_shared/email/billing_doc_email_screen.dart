@@ -614,14 +614,7 @@ class _BillingDocEmailScreenState extends State<BillingDocEmailScreen> {
               InSpacing.lg(context),
               InSpacing.lg(context),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _previewLabel(context),
-                const SizedBox(height: 8),
-                Expanded(child: TemplatePreviewPanel(controller: _preview)),
-              ],
-            ),
+            child: TemplatePreviewPanel(controller: _preview),
           ),
         ),
       ],
@@ -644,11 +637,6 @@ class _BillingDocEmailScreenState extends State<BillingDocEmailScreen> {
   Widget _previewTab(BuildContext context) => Padding(
     padding: EdgeInsets.all(InSpacing.lg(context)),
     child: TemplatePreviewPanel(controller: _preview),
-  );
-
-  Widget _previewLabel(BuildContext context) => Text(
-    context.tr('preview'),
-    style: TextStyle(fontSize: 12, color: context.inTheme.ink3),
   );
 
   Widget _form(BuildContext context) {
