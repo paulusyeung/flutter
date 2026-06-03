@@ -5,6 +5,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/recurring_invoice.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
+import 'package:admin/ui/core/edit/after_save_create_action.dart';
 import 'package:admin/ui/core/edit/edit_action_filter.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
@@ -73,6 +74,31 @@ class RecurringInvoiceEditScreen extends StatelessWidget {
           services.auth.session.value!.currentCompanyId,
           saved,
           a as RecurringInvoiceAction,
+        );
+      },
+      // Create-mode: resolve the tmp id to the real one so navigating actions
+      // (Send Email, View PDF) keep their navigation instead of the redirect.
+      onAfterSaveActionOnCreate: (ctx, saved, a) {
+        final services = ctx.read<Services>();
+        final companyId = services.auth.session.value!.currentCompanyId;
+        return dispatchAfterSaveOnCreate<
+          RecurringInvoice,
+          RecurringInvoiceAction
+        >(
+          ctx,
+          saved: saved,
+          idOf: (r) => r.id,
+          withId: (r, id) => r.copyWith(id: id),
+          resolveId: services.recurringInvoices.resolveId,
+          action: a as RecurringInvoiceAction,
+          navigatesOnCreate: RecurringInvoiceActions.navigatesOnCreate,
+          dispatch: (c, resolved, act) => RecurringInvoiceActions.dispatch(
+            c,
+            services,
+            companyId,
+            resolved,
+            act,
+          ),
         );
       },
       onSaved: (ctx, vm, saved) => goAfterEntitySave(

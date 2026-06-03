@@ -122,9 +122,24 @@ class _InvoiceActionsRow extends StatefulWidget {
 }
 
 class _InvoiceActionsRowState extends State<_InvoiceActionsRow> {
+  /// Stable subscription — created once here, never inside `build()`. A fresh
+  /// stream per build makes `StreamBuilder` retain its prior value across
+  /// rebuild-induced re-subscribes; a fail-fast `sendEInvoice` failure and its
+  /// shell modal are a rebuild burst that could otherwise drop the
+  /// dead-excluded emission and leave the "Send E-Invoice" action
+  /// stuck-suppressed. Mirrors the Sends-tab fix. `invoice.id` is stable for
+  /// this screen, so capturing it once is safe.
+  late final Stream<List<OutboxRow>> _sendEInvoicePending;
+
   @override
   void initState() {
     super.initState();
+    _sendEInvoicePending = widget.services.db.outboxDao.watchPendingForEntity(
+      companyId: widget.companyId,
+      entityType: 'invoice',
+      entityId: widget.invoice.id,
+      kind: MutationKind.sendEInvoice,
+    );
     _ensureClient();
   }
 
@@ -177,12 +192,7 @@ class _InvoiceActionsRowState extends State<_InvoiceActionsRow> {
     // transmission (React uses a send cooldown). Reuses the same
     // per-entity/kind pending seam as the Activity tab.
     return StreamBuilder<List<OutboxRow>>(
-      stream: widget.services.db.outboxDao.watchPendingForEntity(
-        companyId: widget.companyId,
-        entityType: 'invoice',
-        entityId: inv.id,
-        kind: MutationKind.sendEInvoice,
-      ),
+      stream: _sendEInvoicePending,
       builder: (context, pendingSnap) {
         final sendPending = (pendingSnap.data ?? const []).isNotEmpty;
         // Always resolve the company's e-invoice type (cheap local Drift

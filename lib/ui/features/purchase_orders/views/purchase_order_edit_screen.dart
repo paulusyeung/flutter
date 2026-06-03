@@ -8,6 +8,7 @@ import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/purchase_order.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
+import 'package:admin/ui/core/edit/after_save_create_action.dart';
 import 'package:admin/ui/core/edit/edit_action_filter.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
@@ -103,6 +104,28 @@ class PurchaseOrderEditScreen extends StatelessWidget {
           services.auth.session.value!.currentCompanyId,
           saved,
           a as PurchaseOrderAction,
+        );
+      },
+      // Create-mode: resolve the tmp id to the real one so navigating actions
+      // (Send Email, View PDF) keep their navigation instead of the redirect.
+      onAfterSaveActionOnCreate: (ctx, saved, a) {
+        final services = ctx.read<Services>();
+        final companyId = services.auth.session.value!.currentCompanyId;
+        return dispatchAfterSaveOnCreate<PurchaseOrder, PurchaseOrderAction>(
+          ctx,
+          saved: saved,
+          idOf: (p) => p.id,
+          withId: (p, id) => p.copyWith(id: id),
+          resolveId: services.purchaseOrders.resolveId,
+          action: a as PurchaseOrderAction,
+          navigatesOnCreate: PurchaseOrderActions.navigatesOnCreate,
+          dispatch: (c, resolved, act) => PurchaseOrderActions.dispatch(
+            c,
+            services,
+            companyId,
+            resolved,
+            act,
+          ),
         );
       },
       onSaved: (ctx, vm, saved) => goAfterEntitySave(

@@ -280,6 +280,36 @@ void main() {
       );
     });
 
+    final printingRasterStack = StackTrace.fromString(
+      '#0      List._setIndexed (dart:core-patch/growable_array.dart:281:49)\n'
+      '#1      List.[]= (dart:core-patch/growable_array.dart:276:5)\n'
+      '#2      PdfPreviewRaster._raster (package:printing/src/preview/raster.dart:185:16)',
+    );
+
+    test('true for the printing rasterizer range-empty signature', () {
+      expect(
+        isKnownBenignFrameworkNoise(
+          RangeError('Invalid value: Valid value range is empty: 0'),
+          printingRasterStack,
+        ),
+        isTrue,
+      );
+    });
+
+    test('false for a range-empty error from outside the rasterizer', () {
+      // A genuine zero-length-list range error elsewhere must still surface.
+      expect(
+        isKnownBenignFrameworkNoise(
+          RangeError('Invalid value: Valid value range is empty: 0'),
+          StackTrace.fromString(
+            '#1 List.[]= (dart:core-patch/growable_array.dart:276:5)\n'
+            '#2 MyChartPainter.paint (package:admin/ui/foo.dart:42)',
+          ),
+        ),
+        isFalse,
+      );
+    });
+
     test('false for an unrelated error', () {
       expect(
         isKnownBenignFrameworkNoise(RangeError('index out of range'), raStack),

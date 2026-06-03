@@ -5,6 +5,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/credit.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
+import 'package:admin/ui/core/edit/after_save_create_action.dart';
 import 'package:admin/ui/core/edit/edit_action_filter.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
@@ -65,6 +66,23 @@ class CreditEditScreen extends StatelessWidget {
           services.auth.session.value!.currentCompanyId,
           saved,
           a as CreditAction,
+        );
+      },
+      // Create-mode: resolve the tmp id to the real one so navigating actions
+      // (Send Email, View PDF, Apply to Invoice) keep their navigation.
+      onAfterSaveActionOnCreate: (ctx, saved, a) {
+        final services = ctx.read<Services>();
+        final companyId = services.auth.session.value!.currentCompanyId;
+        return dispatchAfterSaveOnCreate<Credit, CreditAction>(
+          ctx,
+          saved: saved,
+          idOf: (credit) => credit.id,
+          withId: (credit, id) => credit.copyWith(id: id),
+          resolveId: services.credits.resolveId,
+          action: a as CreditAction,
+          navigatesOnCreate: CreditActions.navigatesOnCreate,
+          dispatch: (c, resolved, act) =>
+              CreditActions.dispatch(c, services, companyId, resolved, act),
         );
       },
       onSaved: (ctx, vm, saved) => goAfterEntitySave(

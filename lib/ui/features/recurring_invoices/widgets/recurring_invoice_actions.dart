@@ -88,6 +88,20 @@ class RecurringInvoiceActions {
     }
   }
 
+  /// After-save actions whose [dispatch] navigates unconditionally; the
+  /// create-mode edit scaffold uses this to keep that navigation instead of
+  /// redirecting to the detail screen. See `InvoiceActions.navigatesOnCreate`.
+  static bool navigatesOnCreate(RecurringInvoiceAction action) {
+    switch (action) {
+      case RecurringInvoiceAction.sendEmail:
+      case RecurringInvoiceAction.scheduleEmail:
+      case RecurringInvoiceAction.viewPdf:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   static List<EntityActionItem<RecurringInvoiceAction>> itemsFor(
     BuildContext context,
     RecurringInvoice ri,

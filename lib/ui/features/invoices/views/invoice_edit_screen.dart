@@ -10,6 +10,7 @@ import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/domain/billing/invoice_lock.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
+import 'package:admin/ui/core/edit/after_save_create_action.dart';
 import 'package:admin/ui/core/edit/edit_action_filter.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
@@ -186,6 +187,24 @@ class InvoiceEditScreen extends StatelessWidget {
           services.auth.session.value!.currentCompanyId,
           saved,
           a as InvoiceAction,
+        );
+      },
+      // On create the save returns a tmp-id draft; resolve it to the real id
+      // so server-bound actions work, and let navigating ones (Send Email, …)
+      // own the post-save navigation instead of the detail redirect.
+      onAfterSaveActionOnCreate: (ctx, saved, a) {
+        final services = ctx.read<Services>();
+        final companyId = services.auth.session.value!.currentCompanyId;
+        return dispatchAfterSaveOnCreate<Invoice, InvoiceAction>(
+          ctx,
+          saved: saved,
+          idOf: (i) => i.id,
+          withId: (i, id) => i.copyWith(id: id),
+          resolveId: services.invoices.resolveId,
+          action: a as InvoiceAction,
+          navigatesOnCreate: InvoiceActions.navigatesOnCreate,
+          dispatch: (c, resolved, act) =>
+              InvoiceActions.dispatch(c, services, companyId, resolved, act),
         );
       },
       onSaved: (ctx, vm, saved) => goAfterEntitySave(

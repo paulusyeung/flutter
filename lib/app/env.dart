@@ -88,4 +88,21 @@ class Env {
         return 'unknown';
     }
   }
+
+  /// True on the three desktop platforms; never web or mobile. Single source of
+  /// truth for "is this desktop" — mirrors the `fileDropSupported` check in
+  /// `file_drop_zone.dart`. Web-safe (`kIsWeb` first, then `defaultTargetPlatform`).
+  static bool get isDesktop {
+    if (kIsWeb) return false;
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.macOS:
+      case TargetPlatform.windows:
+      case TargetPlatform.linux:
+        return true;
+      case TargetPlatform.iOS:
+      case TargetPlatform.android:
+      case TargetPlatform.fuchsia:
+        return false;
+    }
+  }
 }

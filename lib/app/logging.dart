@@ -18,14 +18,20 @@ final _bodyRedactPattern = RegExp(
 
 /// Logger-name prefixes whose sub-WARNING records we drop on the floor.
 ///
-/// super_editor + super_text_layout emit voluminous FINE-level traces on
-/// every keystroke / layout pass; with `Logger.root.level = Level.ALL` in
-/// debug, they swamp our own logs. Warnings/errors from these loggers still
-/// pass through.
+/// super_editor + super_text_layout + attributed_text emit voluminous
+/// FINE-level traces on every keystroke / layout pass / gesture; with
+/// `Logger.root.level = Level.ALL` in debug they swamp our own logs.
+/// Warnings/errors from these loggers still pass through (the `< WARNING`
+/// gate below). Entries are dotted prefixes except `attributions`, which is
+/// the bare logger name attributed_text uses (it is *not* `infrastructure.*`).
 const _verboseLoggerPrefixes = <String>{
-  'editor.',
-  'infrastructure.',
-  'super_text.',
+  'editor.', // super_editor edit-mode traces
+  'reader.', // super_editor preview traces — reader.gestures etc.
+  'textfield.', // super_editor text-field traces
+  'document.', // super_editor document.gestures
+  'infrastructure.', // super_editor infrastructure.* (incl. .attributions)
+  'super_text.', // super_text_layout
+  'attributions', // attributed_text package's bare 'attributions' logger
 };
 
 /// Initialize the root logger. Call once from `main()`.

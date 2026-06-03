@@ -230,6 +230,14 @@ Future<DiagnosticsLog?> _initDiagnostics() async {
       // widget" hints land in the on-disk log — otherwise it's framework-only
       // and can't name the culprit widget.
       diag.recordFlutterError(details);
+      // Known-benign framework/plugin noise (RawAutocomplete focus asserts,
+      // printing's transient raster RangeError) is already kept out of the
+      // on-disk log by recordFlutterError; swallow it from the debug console
+      // too so it can't bury real errors. Debug-only by construction —
+      // `_initDiagnostics` installs no handler in release.
+      if (isKnownBenignFrameworkNoise(details.exception, details.stack)) {
+        return;
+      }
       if (priorFlutterOnError != null) {
         priorFlutterOnError(details);
       } else {

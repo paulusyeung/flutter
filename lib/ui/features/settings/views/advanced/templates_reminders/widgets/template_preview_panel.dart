@@ -326,10 +326,20 @@ class _DesktopMarkdownPreviewState extends State<_DesktopMarkdownPreview> {
     // super_editor's default stylesheet uses fixed dark text, and the real
     // email (and the mobile WebView / PDF preview) is white — so painting it
     // on the dark app surface would be dark-on-dark and unreadable.
-    return Container(
+    // SuperReader resolves to a *sliver* when it finds a vertical Scrollable
+    // ancestor, so it must be hosted inside a CustomScrollView — feeding it
+    // straight into a RenderBox parent (Container/Padding) throws "RenderPadding
+    // expected a RenderBox child but received _RenderSliverHybridStack". The box
+    // wrappers (ColoredBox/Padding) wrap the scroll host; the reader stays a
+    // direct sliver child. Mirrors `_EditorHost` in markdown_text_field.dart.
+    // `_PreviewBody` always hands this a bounded height (Expanded / SizedBox),
+    // so the scroll view lays out fine.
+    return ColoredBox(
       color: Colors.white,
-      padding: EdgeInsets.symmetric(horizontal: InSpacing.lg(context)),
-      child: SuperReader(editor: _editor),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: InSpacing.lg(context)),
+        child: CustomScrollView(slivers: [SuperReader(editor: _editor)]),
+      ),
     );
   }
 }

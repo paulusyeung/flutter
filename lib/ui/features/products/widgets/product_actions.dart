@@ -52,6 +52,21 @@ class ProductActions {
     }
   }
 
+  /// After-save actions whose [dispatch] navigates unconditionally; the
+  /// create-mode edit scaffold uses this to keep that navigation instead of
+  /// redirecting to the detail screen. See `InvoiceActions.navigatesOnCreate`.
+  /// All three need the resolved (real) product id for their `?product=` query.
+  static bool navigatesOnCreate(ProductAction action) {
+    switch (action) {
+      case ProductAction.newInvoice:
+      case ProductAction.newQuote:
+      case ProductAction.newPurchaseOrder:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   static List<EntityActionItem<ProductAction>> itemsFor(
     BuildContext context,
     Product product,

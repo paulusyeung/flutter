@@ -128,6 +128,26 @@ class InvoiceActions {
     }
   }
 
+  /// After-save actions whose [dispatch] navigates *unconditionally* (an
+  /// immediate `context.go` after the tmp gate). The create-mode edit scaffold
+  /// uses this to skip its default detail redirect so the action's navigation
+  /// survives once the create has drained and the tmp id resolves. Only
+  /// unconditional navigators belong here — actions that may not navigate (e.g.
+  /// `refund`, which no-ops when there are no payments) would otherwise strand
+  /// the user on the saved form.
+  static bool navigatesOnCreate(InvoiceAction action) {
+    switch (action) {
+      case InvoiceAction.sendEmail:
+      case InvoiceAction.scheduleEmail:
+      case InvoiceAction.viewPdf:
+      case InvoiceAction.deliveryNote:
+      case InvoiceAction.enterPayment:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   static List<EntityActionItem<InvoiceAction>> itemsFor(
     BuildContext context,
     Invoice invoice,

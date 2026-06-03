@@ -85,6 +85,21 @@ class CreditActions {
     }
   }
 
+  /// After-save actions whose [dispatch] navigates unconditionally; the
+  /// create-mode edit scaffold uses this to keep that navigation instead of
+  /// redirecting to the detail screen. See `InvoiceActions.navigatesOnCreate`.
+  static bool navigatesOnCreate(CreditAction action) {
+    switch (action) {
+      case CreditAction.sendEmail:
+      case CreditAction.scheduleEmail:
+      case CreditAction.viewPdf:
+      case CreditAction.applyToInvoice:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   static List<EntityActionItem<CreditAction>> itemsFor(
     BuildContext context,
     Credit credit,

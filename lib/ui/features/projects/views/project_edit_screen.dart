@@ -6,6 +6,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
+import 'package:admin/ui/core/edit/after_save_create_action.dart';
 import 'package:admin/ui/core/edit/edit_action_filter.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
@@ -89,6 +90,23 @@ class ProjectEditScreen extends StatelessWidget {
           services.auth.session.value!.currentCompanyId,
           saved,
           a as ProjectAction,
+        );
+      },
+      // Create-mode: resolve the tmp id to the real one so New Task / Invoice /
+      // Quote / Expense navigate with the real project id seed.
+      onAfterSaveActionOnCreate: (ctx, saved, a) {
+        final services = ctx.read<Services>();
+        final companyId = services.auth.session.value!.currentCompanyId;
+        return dispatchAfterSaveOnCreate<Project, ProjectAction>(
+          ctx,
+          saved: saved,
+          idOf: (p) => p.id,
+          withId: (p, id) => p.copyWith(id: id),
+          resolveId: services.projects.resolveId,
+          action: a as ProjectAction,
+          navigatesOnCreate: ProjectActions.navigatesOnCreate,
+          dispatch: (c, resolved, act) =>
+              ProjectActions.dispatch(c, services, companyId, resolved, act),
         );
       },
       onSaved: (ctx, vm, saved) => goAfterEntitySave(

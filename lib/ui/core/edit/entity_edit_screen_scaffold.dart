@@ -50,6 +50,7 @@ class EntityEditScreenScaffold<T, VM extends GenericEditViewModel<T>>
     this.actionsBuilder,
     this.saveParamFor,
     this.onAfterSaveAction,
+    this.onAfterSaveActionOnCreate,
   });
 
   /// Existing entity id when editing; null for create.
@@ -133,6 +134,14 @@ class EntityEditScreenScaffold<T, VM extends GenericEditViewModel<T>>
   /// companyId, saved, a as InvoiceAction)`).
   final Future<void> Function(BuildContext context, T saved, Object action)?
   onAfterSaveAction;
+
+  /// Per-entity CREATE-mode AFTER-SAVE dispatcher (typically
+  /// `(ctx, saved, a) => dispatchAfterSaveOnCreate<E, EAction>(...)`). Forwarded
+  /// to [EntityEditScaffold.onAfterSaveActionOnCreate]; see that field for the
+  /// tmp-id-resolution + navigation-ownership contract. Null for entities with
+  /// no navigating after-save actions.
+  final Future<bool> Function(BuildContext context, T saved, Object action)?
+  onAfterSaveActionOnCreate;
 
   @override
   State<EntityEditScreenScaffold<T, VM>> createState() =>
@@ -290,6 +299,7 @@ class _EntityEditScreenScaffoldState<T, VM extends GenericEditViewModel<T>>
                 widget.actionsBuilder!(ctx, vm, onTap, saveButton),
       saveParamFor: widget.saveParamFor,
       onAfterSaveAction: widget.onAfterSaveAction,
+      onAfterSaveActionOnCreate: widget.onAfterSaveActionOnCreate,
       titleBuilder: (ctx) => widget.titleBuilder(ctx, vm),
       bodyBuilder: (ctx) => widget.bodyBuilder(ctx, vm),
       topBanner: SaveFailedBanner(

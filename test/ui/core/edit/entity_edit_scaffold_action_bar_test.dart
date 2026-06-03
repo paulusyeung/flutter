@@ -50,6 +50,9 @@ Future<void> _pump(
   required List<EntityActionItem<String>> Function(void Function(Object)) items,
   Map<String, String>? Function(Object)? saveParamFor,
   Future<void> Function(BuildContext, String, Object)? onAfterSaveAction,
+  Future<bool> Function(BuildContext, String, Object)?
+  onAfterSaveActionOnCreate,
+  void Function(BuildContext, String)? onSaved,
   Size surface = const Size(800, 600),
 }) async {
   tester.view.physicalSize = surface;
@@ -70,7 +73,7 @@ Future<void> _pump(
           titleBuilder: (_) => 'A Fairly Long Edit Screen Title Here',
           bodyBuilder: (_) => const SizedBox.shrink(),
           resetToEmpty: () {},
-          onSaved: (_, _) {},
+          onSaved: (ctx, saved) => onSaved?.call(ctx, saved),
           actionsBuilder: (context, onTap, saveButton) =>
               EntityOverflowActionBar<String>(
                 leading: saveButton,
@@ -78,6 +81,7 @@ Future<void> _pump(
               ),
           saveParamFor: saveParamFor,
           onAfterSaveAction: onAfterSaveAction,
+          onAfterSaveActionOnCreate: onAfterSaveActionOnCreate,
         ),
       ),
     ),
@@ -222,5 +226,110 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(vm.saveCalled, isFalse);
+  });
+
+  testWidgets('H3: create + after-save action that owns navigation ⇒ save '
+      'runs but onSaved (the detail redirect) is skipped', (tester) async {
+    final vm = _FakeVM(initialDraft: 'd'); // original null ⇒ create
+    expect(vm.isCreate, isTrue);
+    var onSavedCalled = false;
+    var dispatched = false;
+
+    await _pump(
+      tester,
+      vm: vm,
+      canSave: true,
+      items: (onTap) => [
+        EntityActionItem(
+          kind: 'send_email',
+          icon: Icons.mail_outlined,
+          label: 'Send Email',
+          enabled: true,
+          onTap: () => onTap('send_email'),
+        ),
+      ],
+      onSaved: (_, _) => onSavedCalled = true,
+      onAfterSaveActionOnCreate: (_, _, _) async {
+        dispatched = true;
+        return true; // the action navigated; scaffold must not override
+      },
+    );
+
+    await tester.tap(find.text('Send Email'));
+    await tester.pumpAndSettle();
+
+    expect(vm.saveCalled, isTrue); // saved first to mint the row
+    expect(dispatched, isTrue); // create handler ran
+    expect(onSavedCalled, isFalse); // detail redirect suppressed
+  });
+
+  testWidgets('H3: create + after-save action that did NOT navigate '
+      '(offline / tmp fallback) ⇒ onSaved still runs', (tester) async {
+    final vm = _FakeVM(initialDraft: 'd');
+    var onSavedCalled = false;
+
+    await _pump(
+      tester,
+      vm: vm,
+      canSave: true,
+      items: (onTap) => [
+        EntityActionItem(
+          kind: 'send_email',
+          icon: Icons.mail_outlined,
+          label: 'Send Email',
+          enabled: true,
+          onTap: () => onTap('send_email'),
+        ),
+      ],
+      onSaved: (_, _) => onSavedCalled = true,
+      onAfterSaveActionOnCreate: (_, _, _) async => false, // never navigated
+    );
+
+    await tester.tap(find.text('Send Email'));
+    await tester.pumpAndSettle();
+
+    expect(vm.saveCalled, isTrue);
+    expect(onSavedCalled, isTrue); // falls back to the detail screen
+  });
+
+  testWidgets('H3: edit mode ignores the create-only handler and never calls '
+      'onSaved (the action owns its own navigation)', (tester) async {
+    final vm = _FakeVM(initialDraft: 'd2', original: 'd'); // existing + dirty
+    expect(vm.isCreate, isFalse);
+    expect(vm.isDirty, isTrue);
+    var onSavedCalled = false;
+    var createHandlerCalled = false;
+    var editDispatched = false;
+
+    await _pump(
+      tester,
+      vm: vm,
+      canSave: true,
+      items: (onTap) => [
+        EntityActionItem(
+          kind: 'send_email',
+          icon: Icons.mail_outlined,
+          label: 'Send Email',
+          enabled: true,
+          onTap: () => onTap('send_email'),
+        ),
+      ],
+      onSaved: (_, _) => onSavedCalled = true,
+      onAfterSaveAction: (_, _, _) async {
+        editDispatched = true;
+      },
+      onAfterSaveActionOnCreate: (_, _, _) async {
+        createHandlerCalled = true;
+        return true;
+      },
+    );
+
+    await tester.tap(find.text('Send Email'));
+    await tester.pumpAndSettle();
+
+    expect(vm.saveCalled, isTrue);
+    expect(editDispatched, isTrue); // edit path uses onAfterSaveAction
+    expect(createHandlerCalled, isFalse); // create-only handler unused in edit
+    expect(onSavedCalled, isFalse); // edit path never auto-navigates
   });
 }

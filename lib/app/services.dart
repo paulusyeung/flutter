@@ -43,6 +43,7 @@ import 'package:admin/data/repositories/payment_link_repository.dart';
 import 'package:admin/data/repositories/sync_repository.dart';
 import 'package:admin/data/services/refresh_scheduler.dart';
 import 'package:admin/data/repositories/task_repository.dart';
+import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/repositories/design_repository.dart';
 import 'package:admin/data/repositories/task_status_repository.dart';
 import 'package:admin/data/repositories/tax_rate_repository.dart';
@@ -128,7 +129,21 @@ Future<void> _runSidebarPrefetch(
       () => prefetch(companyId).then<void>(
         (_) => null,
         onError: (Object e, StackTrace st) {
-          _servicesLog.warning('prefetch failed for ${spec.type.name}', e, st);
+          // Best-effort prefetch: the sidebar falls back to on-demand loading,
+          // so a transient network blip (timeout / offline) is harmless and
+          // shouldn't pollute the WARNING+ diagnostics log. Unexpected errors
+          // (parse failures, 5xx, …) stay at WARNING.
+          if (e is NetworkException) {
+            _servicesLog.fine(
+              'prefetch skipped for ${spec.type.name}: ${e.message}',
+            );
+          } else {
+            _servicesLog.warning(
+              'prefetch failed for ${spec.type.name}',
+              e,
+              st,
+            );
+          }
         },
       ),
     );

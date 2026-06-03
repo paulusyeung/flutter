@@ -40,6 +40,18 @@ class PaymentActions {
     }
   }
 
+  /// After-save actions whose [dispatch] navigates unconditionally; the
+  /// create-mode edit scaffold uses this to keep that navigation instead of
+  /// redirecting to the detail screen. See `InvoiceActions.navigatesOnCreate`.
+  static bool navigatesOnCreate(PaymentAction action) {
+    switch (action) {
+      case PaymentAction.refund:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   static List<EntityActionItem<PaymentAction>> itemsFor(
     BuildContext context,
     Payment payment,

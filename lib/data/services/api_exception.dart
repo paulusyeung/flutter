@@ -11,7 +11,21 @@ sealed class ApiException implements Exception {
 }
 
 class UnauthorizedException extends ApiException {
-  const UnauthorizedException([super.message = 'Unauthorized']);
+  const UnauthorizedException([super.message = 'Unauthorized'])
+    : isStaleCredential = false;
+
+  /// A 401 returned for a credential set that has since been replaced — a
+  /// background request racing a company-switch / logout. The live session is
+  /// still valid; `ApiClient._postFlight` deliberately swallows it rather than
+  /// logging the user out, so callers treat it as an expected no-op, not a
+  /// failure worth a WARNING in the diagnostics log.
+  const UnauthorizedException.staleCredential()
+    : isStaleCredential = true,
+      super('Unauthorized');
+
+  /// True when this 401 was discarded as stale-credential (see the named
+  /// constructor); false for a genuine "session expired" 401.
+  final bool isStaleCredential;
 }
 
 /// Server demands re-auth with the user's password (e.g. on delete / purge).

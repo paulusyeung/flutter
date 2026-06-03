@@ -89,6 +89,20 @@ class QuoteActions {
     }
   }
 
+  /// After-save actions whose [dispatch] navigates unconditionally; the
+  /// create-mode edit scaffold uses this to keep that navigation instead of
+  /// redirecting to the detail screen. See `InvoiceActions.navigatesOnCreate`.
+  static bool navigatesOnCreate(QuoteAction action) {
+    switch (action) {
+      case QuoteAction.sendEmail:
+      case QuoteAction.scheduleEmail:
+      case QuoteAction.viewPdf:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   static List<EntityActionItem<QuoteAction>> itemsFor(
     BuildContext context,
     Quote quote,

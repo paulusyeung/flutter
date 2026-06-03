@@ -669,14 +669,22 @@ class ApiClient {
       // is still valid, so swallow it instead of dropping the user back to
       // /login.
       final current = _credentialsListenable.value;
-      if (current == null || current.token == creds.token) {
-        await _handleUnauthorized();
-      } else {
-        _log.warning(
+      final isStaleCredential = current != null && current.token != creds.token;
+      if (isStaleCredential) {
+        // Expected race (company-switch / logout): the 401 says nothing about
+        // the live session, so swallow it rather than dropping to /login.
+        // Logged at `fine` (not `warning`) so it stays out of the WARNING+
+        // diagnostics log; the thrown exception carries the flag so callers
+        // can skip re-logging it too.
+        _log.fine(
           'Discarding stale-credential 401 (request token no longer active)',
         );
+      } else {
+        await _handleUnauthorized();
       }
-      throw const UnauthorizedException();
+      throw isStaleCredential
+          ? const UnauthorizedException.staleCredential()
+          : const UnauthorizedException();
     }
   }
 

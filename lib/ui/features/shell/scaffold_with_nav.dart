@@ -21,7 +21,7 @@ import 'package:admin/ui/features/settings/views/advanced/debug_panel_section.da
 import 'package:admin/ui/features/shell/widgets/in_sidebar.dart';
 import 'package:admin/ui/features/shell/widgets/command_palette.dart';
 import 'package:admin/ui/features/shell/widgets/keyboard_shortcuts_dialog.dart';
-import 'package:admin/ui/features/shell/widgets/mac_title_bar_drag_strip.dart';
+import 'package:admin/ui/features/shell/widgets/window_caption_strip.dart';
 import 'package:admin/ui/features/shell/widgets/show_company_picker.dart';
 import 'package:admin/ui/features/shell/widgets/sync_event_listener.dart';
 import 'package:admin/ui/features/tasks/widgets/running_timer_pill.dart';
@@ -421,10 +421,10 @@ class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
                   // it doesn't disappear behind the status bar / notch.
                   return Column(
                     children: [
-                      // macOS hidden-title-bar: top strip reserving space for
-                      // the floating traffic-light buttons (no sidebar here, so
-                      // they'd otherwise overlap each screen's AppBar).
-                      const MacTitleBarDragStrip(),
+                      // Desktop hidden-title-bar caption strip — macOS today. No
+                      // sidebar in the narrow layout, so this top strip keeps the
+                      // window controls from overlapping each screen's AppBar.
+                      const WindowCaptionStrip(),
                       const OfflineBanner(),
                       Expanded(
                         child: Stack(

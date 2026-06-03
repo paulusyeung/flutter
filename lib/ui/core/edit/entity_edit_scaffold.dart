@@ -48,6 +48,7 @@ class EntityEditScaffold<T> extends StatelessWidget {
     this.actionsBuilder,
     this.saveParamFor,
     this.onAfterSaveAction,
+    this.onAfterSaveActionOnCreate,
   });
 
   final GenericEditViewModel<T> vm;
@@ -109,6 +110,21 @@ class EntityEditScaffold<T> extends StatelessWidget {
   /// back to its enum.
   final Future<void> Function(BuildContext context, T saved, Object action)?
   onAfterSaveAction;
+
+  /// CREATE-mode-only variant of [onAfterSaveAction]. Dispatches the after-save
+  /// action against the freshly-created entity and returns whether the action
+  /// took over post-save navigation. When it returns `true` the create branch
+  /// skips its default `saved` toast + [onSaved] detail redirect so the
+  /// action's own navigation (e.g. billing-doc Send Email → the email screen,
+  /// once the create has drained and the tmp id resolves to a real id) isn't
+  /// immediately overridden. The per-entity closure typically delegates to
+  /// `dispatchAfterSaveOnCreate` (`after_save_create_action.dart`), which
+  /// resolves the tmp id first so server-bound actions act on the real entity.
+  /// Null (the default) ⇒ create mode falls back to [onAfterSaveAction] then
+  /// [onSaved], preserving today's behavior for every entity that doesn't opt
+  /// in. Ignored outside create mode (edit / skip-save use [onAfterSaveAction]).
+  final Future<bool> Function(BuildContext context, T saved, Object action)?
+  onAfterSaveActionOnCreate;
 
   Future<bool> _confirmDiscard(BuildContext context) async {
     if (!vm.isDirty) return true;
@@ -198,12 +214,23 @@ class EntityEditScaffold<T> extends StatelessWidget {
     final saved = await _runSave(context);
     if (saved == null || !context.mounted) return;
     if (wasCreate) {
-      // On create the entity only has a temp id; server-bound actions will
-      // toast `sync_first` and return. Run the action (informative), then
-      // leave create mode via the normal post-save navigation so a second
-      // Save can't create a duplicate.
-      await onAfterSaveAction?.call(context, saved, action);
+      // The just-saved entity still carries its `tmp_<uuid>` id (save() returns
+      // the draft even after a successful online drain). A create-mode handler,
+      // when supplied, resolves that to the real id and dispatches against it —
+      // and reports whether the action took over navigation (e.g. Send Email →
+      // the email screen). When it did, skip the default toast + detail
+      // redirect so that navigation isn't overridden. Otherwise (no handler, or
+      // the action didn't navigate — offline / non-navigating) leave create
+      // mode via the normal post-save navigation so a second Save can't create
+      // a duplicate.
+      bool navigated = false;
+      if (onAfterSaveActionOnCreate != null) {
+        navigated = await onAfterSaveActionOnCreate!(context, saved, action);
+      } else {
+        await onAfterSaveAction?.call(context, saved, action);
+      }
       if (!context.mounted) return;
+      if (navigated) return;
       Notify.success(context, context.tr('saved'));
       await onSaved(context, saved);
       return;

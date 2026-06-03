@@ -84,6 +84,20 @@ class PurchaseOrderActions {
     }
   }
 
+  /// After-save actions whose [dispatch] navigates unconditionally; the
+  /// create-mode edit scaffold uses this to keep that navigation instead of
+  /// redirecting to the detail screen. See `InvoiceActions.navigatesOnCreate`.
+  static bool navigatesOnCreate(PurchaseOrderAction action) {
+    switch (action) {
+      case PurchaseOrderAction.sendEmail:
+      case PurchaseOrderAction.scheduleEmail:
+      case PurchaseOrderAction.viewPdf:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   static List<EntityActionItem<PurchaseOrderAction>> itemsFor(
     BuildContext context,
     PurchaseOrder po,

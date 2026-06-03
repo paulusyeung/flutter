@@ -79,6 +79,20 @@ class ClientActions {
     }
   }
 
+  /// After-save actions whose [dispatch] navigates unconditionally; the
+  /// create-mode edit scaffold uses this to keep that navigation instead of
+  /// redirecting to the detail screen. See `InvoiceActions.navigatesOnCreate`.
+  /// `clientPortal` (empty-URL early return) and `settings` (a global
+  /// settings-scope jump, not entity navigation) are deliberately excluded.
+  static bool navigatesOnCreate(ClientAction action) {
+    switch (action) {
+      case ClientAction.viewStatement:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   /// Item list shown by both the detail header row and the list-row popup.
   /// [onTap] receives the action; the caller wires it to [dispatch] (or
   /// any other handler).

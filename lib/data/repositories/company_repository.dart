@@ -12,6 +12,7 @@ import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/auth/auth_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
+import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/companies_api.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/data/services/upload_source.dart';
@@ -466,6 +467,16 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
         companyId: companyId,
         serverResponse: response.data,
       );
+    } on UnauthorizedException catch (e, st) {
+      // A background refresh can race a company-switch / logout. A stale-
+      // credential 401 says nothing about the live session (ApiClient already
+      // discarded it) — keep it out of the WARNING+ diagnostics log. A genuine
+      // session-expired 401 still surfaces.
+      if (e.isStaleCredential) {
+        _log.fine('refresh($companyId) skipped: stale-credential 401');
+      } else {
+        _log.warning('refresh($companyId) failed', e, st);
+      }
     } catch (e, st) {
       _log.warning('refresh($companyId) failed', e, st);
     }

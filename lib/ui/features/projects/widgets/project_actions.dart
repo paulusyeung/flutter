@@ -55,6 +55,22 @@ class ProjectActions {
     }
   }
 
+  /// After-save actions whose [dispatch] navigates unconditionally; the
+  /// create-mode edit scaffold uses this to keep that navigation instead of
+  /// redirecting to the detail screen. See `InvoiceActions.navigatesOnCreate`.
+  /// `invoiceProject` is excluded — it no-ops when there are no billable tasks.
+  static bool navigatesOnCreate(ProjectAction action) {
+    switch (action) {
+      case ProjectAction.newTask:
+      case ProjectAction.newInvoice:
+      case ProjectAction.newQuote:
+      case ProjectAction.newExpense:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   static List<EntityActionItem<ProjectAction>> itemsFor(
     BuildContext context,
     Project project,

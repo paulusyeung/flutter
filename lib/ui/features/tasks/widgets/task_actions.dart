@@ -56,6 +56,20 @@ class TaskActions {
     }
   }
 
+  /// After-save actions whose [dispatch] navigates unconditionally; the
+  /// create-mode edit scaffold uses this to keep that navigation instead of
+  /// redirecting to the detail screen. See `InvoiceActions.navigatesOnCreate`.
+  /// `viewClient` (empty-client early return) and `addToInvoice` (dismissable
+  /// picker dialog) are excluded — they don't always navigate.
+  static bool navigatesOnCreate(TaskAction action) {
+    switch (action) {
+      case TaskAction.newInvoice:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   static List<EntityActionItem<TaskAction>> itemsFor(
     BuildContext context,
     Task task,

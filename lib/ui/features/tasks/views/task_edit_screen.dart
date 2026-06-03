@@ -7,6 +7,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
+import 'package:admin/ui/core/edit/after_save_create_action.dart';
 import 'package:admin/ui/core/edit/edit_action_filter.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
@@ -150,6 +151,23 @@ class _TaskEditScreenState extends State<TaskEditScreen>
           services.auth.session.value!.currentCompanyId,
           saved,
           a as TaskAction,
+        );
+      },
+      // Create-mode: resolve the tmp id to the real one so New Invoice keeps its
+      // navigation instead of the detail redirect.
+      onAfterSaveActionOnCreate: (ctx, saved, a) {
+        final services = ctx.read<Services>();
+        final companyId = services.auth.session.value!.currentCompanyId;
+        return dispatchAfterSaveOnCreate<Task, TaskAction>(
+          ctx,
+          saved: saved,
+          idOf: (t) => t.id,
+          withId: (t, id) => t.copyWith(id: id),
+          resolveId: services.tasks.resolveId,
+          action: a as TaskAction,
+          navigatesOnCreate: TaskActions.navigatesOnCreate,
+          dispatch: (c, resolved, act) =>
+              TaskActions.dispatch(c, services, companyId, resolved, act),
         );
       },
       onSaved: (ctx, vm, saved) => goAfterEntitySave(

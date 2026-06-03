@@ -17,11 +17,11 @@ import 'package:admin/ui/core/list/saved_view_dialogs.dart';
 import 'package:admin/ui/core/list/saved_view_icons.dart';
 import 'package:admin/ui/features/shell/widgets/command_palette.dart';
 import 'package:admin/ui/features/shell/widgets/company_switcher_button.dart';
-import 'package:admin/ui/features/shell/widgets/mac_title_bar_drag_strip.dart';
 import 'package:admin/ui/features/shell/widgets/sidebar_footer_actions.dart';
 import 'package:admin/ui/features/shell/widgets/sidebar_nav_item.dart';
 import 'package:admin/ui/features/shell/widgets/sidebar_section_header.dart';
 import 'package:admin/ui/features/shell/widgets/trial_footer.dart';
+import 'package:admin/ui/features/shell/widgets/window_caption_strip.dart';
 
 /// Width of the persistent sidebar used by `ScaffoldWithNav` on wide
 /// layouts. Exposed so overlay-based widgets (e.g. the date-range picker
@@ -204,11 +204,11 @@ class _InSidebarState extends State<InSidebar> {
                 : null;
             final column = Column(
               children: [
-                // macOS hidden-title-bar: reserve a draggable strip at the top
-                // for the floating traffic-light buttons. Persistent desktop
-                // sidebar only — the mobile drawer (width == null) sits below
-                // the narrow-layout strip, so it needs none.
-                if (widget.width != null) const MacTitleBarDragStrip(),
+                // Desktop hidden-title-bar caption strip — macOS today: reserves
+                // space for the floating traffic lights and drags the window.
+                // Persistent sidebar only — the mobile drawer (width == null)
+                // sits below the narrow-layout strip, so it needs none.
+                if (widget.width != null) const WindowCaptionStrip(),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
                   child: CompanySwitcherButton(
