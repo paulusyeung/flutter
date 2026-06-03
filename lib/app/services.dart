@@ -641,13 +641,23 @@ class Services implements SidebarBadgeContext {
   Future<Formatter> _buildFormatter(String companyId) async {
     await statics.ensureLoaded();
     final row = await db.companiesDao.byId(companyId);
-    final settings = row == null
+    var settings = row == null
         ? CompanyFormatSettings.fallback
         : CompanyFormatSettings.fromCompanyJson(
             row.settings.isEmpty
                 ? const {}
                 : jsonDecode(row.settings) as Map<String, dynamic>,
           );
+    if (row != null) {
+      // first_month_of_year / first_day_of_week are top-level company columns,
+      // not part of the `settings` JSON blob — overlay them from the row so the
+      // Formatter (and everything that reaches date_ranges.dart through it)
+      // sees the persisted fiscal-year / week-start values.
+      settings = settings.copyWith(
+        firstMonthOfYear: int.tryParse(row.firstMonthOfYear) ?? 1,
+        firstDayOfWeek: int.tryParse(row.firstDayOfWeek) ?? 0,
+      );
+    }
     return Formatter(
       settings: settings,
       currencies: statics.currencies,

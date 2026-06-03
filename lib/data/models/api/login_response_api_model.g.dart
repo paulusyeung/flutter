@@ -127,6 +127,7 @@ _CompanyEnvelopeApi _$CompanyEnvelopeApiFromJson(
   sizeId: json['size_id'] as String? ?? '',
   industryId: json['industry_id'] as String? ?? '',
   firstMonthOfYear: json['first_month_of_year'] as String? ?? '',
+  firstDayOfWeek: json['first_day_of_week'] as String? ?? '',
   legalEntityId: (json['legal_entity_id'] as num?)?.toInt() ?? 0,
   enabledModules: (json['enabled_modules'] as num?)?.toInt() ?? 0,
   settings:
@@ -255,6 +256,7 @@ Map<String, dynamic> _$CompanyEnvelopeApiToJson(
   'size_id': instance.sizeId,
   'industry_id': instance.industryId,
   'first_month_of_year': instance.firstMonthOfYear,
+  'first_day_of_week': instance.firstDayOfWeek,
   'legal_entity_id': instance.legalEntityId,
   'enabled_modules': instance.enabledModules,
   'settings': instance.settings,

@@ -13,6 +13,8 @@ class CompanyFormatSettings {
     required this.showCurrencyCode,
     required this.enableMilitaryTime,
     required this.locale,
+    this.firstMonthOfYear = 1,
+    this.firstDayOfWeek = 0,
   });
 
   final String currencyId;
@@ -26,6 +28,18 @@ class CompanyFormatSettings {
   /// to `en` when we can't derive one from the company.
   final String locale;
 
+  /// `first_month_of_year` (1=Jan..12=Dec) — a TOP-LEVEL company field, not
+  /// inside the `settings` blob. Drives the fiscal-year start for the dashboard
+  /// and report "this year" / "last year" ranges. Defaults to 1 (calendar
+  /// year). Authoritatively sourced from the company row's own column in
+  /// `Services._buildFormatter`; see `lib/utils/date_ranges.dart` for the math.
+  final int firstMonthOfYear;
+
+  /// `first_day_of_week` (0=Sun..6=Sat) — top-level company field. Drives the
+  /// start-of-week for dashboard charts, report week grouping, and the
+  /// date-range calendar grid. Defaults to 0 (Sunday).
+  final int firstDayOfWeek;
+
   /// Default fallback: USD, US, MM/DD/YYYY format id `5`. Matches
   /// `admin-portal/lib/constants.dart:kDefaultCurrencyId` /
   /// `kDefaultDateFormat`. Empty `locale` lets `DateFormat` use the system
@@ -38,6 +52,8 @@ class CompanyFormatSettings {
     showCurrencyCode: false,
     enableMilitaryTime: false,
     locale: '',
+    firstMonthOfYear: 1,
+    firstDayOfWeek: 0,
   );
 
   /// Parse from a company's stored settings JSON blob (the
@@ -58,6 +74,12 @@ class CompanyFormatSettings {
       showCurrencyCode: _bool(settings, 'show_currency_code'),
       enableMilitaryTime: _bool(settings, 'military_time'),
       locale: _localeFromLanguageId(_str(settings, 'language_id', '')),
+      // first_month_of_year / first_day_of_week are TOP-LEVEL company fields
+      // (not inside `settings`), so read them off the outer `json`. In the
+      // common path `Services._buildFormatter` overrides these from the
+      // company row's dedicated columns via copyWith.
+      firstMonthOfYear: _int(json, 'first_month_of_year', 1),
+      firstDayOfWeek: _int(json, 'first_day_of_week', 0),
     );
   }
 
@@ -69,6 +91,8 @@ class CompanyFormatSettings {
     bool? showCurrencyCode,
     bool? enableMilitaryTime,
     String? locale,
+    int? firstMonthOfYear,
+    int? firstDayOfWeek,
   }) => CompanyFormatSettings(
     currencyId: currencyId ?? this.currencyId,
     countryId: countryId ?? this.countryId,
@@ -78,6 +102,8 @@ class CompanyFormatSettings {
     showCurrencyCode: showCurrencyCode ?? this.showCurrencyCode,
     enableMilitaryTime: enableMilitaryTime ?? this.enableMilitaryTime,
     locale: locale ?? this.locale,
+    firstMonthOfYear: firstMonthOfYear ?? this.firstMonthOfYear,
+    firstDayOfWeek: firstDayOfWeek ?? this.firstDayOfWeek,
   );
 }
 
@@ -89,6 +115,15 @@ String _str(Map<String, dynamic> m, String key, String fallback) {
 }
 
 bool _bool(Map<String, dynamic> m, String key) => m[key] == true;
+
+/// Parse a wire value that may arrive as an int or a numeric string (the API
+/// sends `first_month_of_year` as a string). Empty / unparseable → [fallback].
+int _int(Map<String, dynamic> m, String key, int fallback) {
+  final v = m[key];
+  if (v is int) return v;
+  if (v == null) return fallback;
+  return int.tryParse(v.toString()) ?? fallback;
+}
 
 /// Map server language IDs to `intl` locale strings. Mirrors the subset of
 /// `admin-portal/lib/redux/company/company_selectors.dart:localeSelector`

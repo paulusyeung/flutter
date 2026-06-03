@@ -142,6 +142,7 @@ abstract class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
     @JsonKey(name: 'size_id') @Default('') String sizeId,
     @JsonKey(name: 'industry_id') @Default('') String industryId,
     @JsonKey(name: 'first_month_of_year') @Default('') String firstMonthOfYear,
+    @JsonKey(name: 'first_day_of_week') @Default('') String firstDayOfWeek,
     @JsonKey(name: 'legal_entity_id') @Default(0) int legalEntityId,
     @JsonKey(name: 'enabled_modules') @Default(0) int enabledModules,
     // `settings` stays as a raw map — every key the server sends is

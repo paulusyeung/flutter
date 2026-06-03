@@ -672,6 +672,13 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // blob — so it lands on the next login / company refresh.
     await m.addColumn(db.companies, db.companies.firstMonthOfYear);
   }
+  if (from < 58 && to >= 58) {
+    // first_day_of_week: top-level company field (Settings → Localization),
+    // same situation as first_month_of_year above — no column meant the
+    // server's value was dropped on every login/refresh. Additive `addColumn`
+    // with a '' default; the value lands on the next login / company refresh.
+    await m.addColumn(db.companies, db.companies.firstDayOfWeek);
+  }
 }
 
 /// Create the company-scoped list/sort/count indexes. Auto-discovers the

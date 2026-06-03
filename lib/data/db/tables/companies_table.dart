@@ -34,6 +34,13 @@ class Companies extends Table {
   // login/refresh and the dropdown renders blank.
   TextColumn get firstMonthOfYear =>
       text().named('first_month_of_year').withDefault(const Constant(''))();
+  // Settings → Localization "First Day of the Week" ('0'=Sun..'6'=Sat). Like
+  // first_month_of_year, a top-level company field (not inside `settings`), so
+  // it needs its own column or it's dropped on every login/refresh. Drives the
+  // week start for dashboard charts, report week grouping, and the date-range
+  // calendar grid via `lib/utils/date_ranges.dart`.
+  TextColumn get firstDayOfWeek =>
+      text().named('first_day_of_week').withDefault(const Constant(''))();
   IntColumn get legalEntityId =>
       integer().named('legal_entity_id').withDefault(const Constant(0))();
   // E-Invoice certificate state. Edited by Settings → E-Invoice's

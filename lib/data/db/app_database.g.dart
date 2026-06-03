@@ -5739,6 +5739,18 @@ class $CompaniesTable extends Companies
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _firstDayOfWeekMeta = const VerificationMeta(
+    'firstDayOfWeek',
+  );
+  @override
+  late final GeneratedColumn<String> firstDayOfWeek = GeneratedColumn<String>(
+    'first_day_of_week',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _legalEntityIdMeta = const VerificationMeta(
     'legalEntityId',
   );
@@ -6887,6 +6899,7 @@ class $CompaniesTable extends Companies
     sizeId,
     industryId,
     firstMonthOfYear,
+    firstDayOfWeek,
     legalEntityId,
     hasEInvoiceCertificate,
     eInvoiceCertificatePassphrase,
@@ -7073,6 +7086,15 @@ class $CompaniesTable extends Companies
         firstMonthOfYear.isAcceptableOrUnknown(
           data['first_month_of_year']!,
           _firstMonthOfYearMeta,
+        ),
+      );
+    }
+    if (data.containsKey('first_day_of_week')) {
+      context.handle(
+        _firstDayOfWeekMeta,
+        firstDayOfWeek.isAcceptableOrUnknown(
+          data['first_day_of_week']!,
+          _firstDayOfWeekMeta,
         ),
       );
     }
@@ -7846,6 +7868,10 @@ class $CompaniesTable extends Companies
         DriftSqlType.string,
         data['${effectivePrefix}first_month_of_year'],
       )!,
+      firstDayOfWeek: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}first_day_of_week'],
+      )!,
       legalEntityId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}legal_entity_id'],
@@ -8200,6 +8226,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
   final String sizeId;
   final String industryId;
   final String firstMonthOfYear;
+  final String firstDayOfWeek;
   final int legalEntityId;
   final bool hasEInvoiceCertificate;
   final String eInvoiceCertificatePassphrase;
@@ -8303,6 +8330,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     required this.sizeId,
     required this.industryId,
     required this.firstMonthOfYear,
+    required this.firstDayOfWeek,
     required this.legalEntityId,
     required this.hasEInvoiceCertificate,
     required this.eInvoiceCertificatePassphrase,
@@ -8406,6 +8434,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     map['size_id'] = Variable<String>(sizeId);
     map['industry_id'] = Variable<String>(industryId);
     map['first_month_of_year'] = Variable<String>(firstMonthOfYear);
+    map['first_day_of_week'] = Variable<String>(firstDayOfWeek);
     map['legal_entity_id'] = Variable<int>(legalEntityId);
     map['has_e_invoice_certificate'] = Variable<bool>(hasEInvoiceCertificate);
     map['e_invoice_certificate_passphrase'] = Variable<String>(
@@ -8544,6 +8573,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       sizeId: Value(sizeId),
       industryId: Value(industryId),
       firstMonthOfYear: Value(firstMonthOfYear),
+      firstDayOfWeek: Value(firstDayOfWeek),
       legalEntityId: Value(legalEntityId),
       hasEInvoiceCertificate: Value(hasEInvoiceCertificate),
       eInvoiceCertificatePassphrase: Value(eInvoiceCertificatePassphrase),
@@ -8654,6 +8684,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       sizeId: serializer.fromJson<String>(json['sizeId']),
       industryId: serializer.fromJson<String>(json['industryId']),
       firstMonthOfYear: serializer.fromJson<String>(json['firstMonthOfYear']),
+      firstDayOfWeek: serializer.fromJson<String>(json['firstDayOfWeek']),
       legalEntityId: serializer.fromJson<int>(json['legalEntityId']),
       hasEInvoiceCertificate: serializer.fromJson<bool>(
         json['hasEInvoiceCertificate'],
@@ -8831,6 +8862,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       'sizeId': serializer.toJson<String>(sizeId),
       'industryId': serializer.toJson<String>(industryId),
       'firstMonthOfYear': serializer.toJson<String>(firstMonthOfYear),
+      'firstDayOfWeek': serializer.toJson<String>(firstDayOfWeek),
       'legalEntityId': serializer.toJson<int>(legalEntityId),
       'hasEInvoiceCertificate': serializer.toJson<bool>(hasEInvoiceCertificate),
       'eInvoiceCertificatePassphrase': serializer.toJson<String>(
@@ -8962,6 +8994,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     String? sizeId,
     String? industryId,
     String? firstMonthOfYear,
+    String? firstDayOfWeek,
     int? legalEntityId,
     bool? hasEInvoiceCertificate,
     String? eInvoiceCertificatePassphrase,
@@ -9058,6 +9091,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     sizeId: sizeId ?? this.sizeId,
     industryId: industryId ?? this.industryId,
     firstMonthOfYear: firstMonthOfYear ?? this.firstMonthOfYear,
+    firstDayOfWeek: firstDayOfWeek ?? this.firstDayOfWeek,
     legalEntityId: legalEntityId ?? this.legalEntityId,
     hasEInvoiceCertificate:
         hasEInvoiceCertificate ?? this.hasEInvoiceCertificate,
@@ -9189,6 +9223,9 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       firstMonthOfYear: data.firstMonthOfYear.present
           ? data.firstMonthOfYear.value
           : this.firstMonthOfYear,
+      firstDayOfWeek: data.firstDayOfWeek.present
+          ? data.firstDayOfWeek.value
+          : this.firstDayOfWeek,
       legalEntityId: data.legalEntityId.present
           ? data.legalEntityId.value
           : this.legalEntityId,
@@ -9441,6 +9478,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           ..write('sizeId: $sizeId, ')
           ..write('industryId: $industryId, ')
           ..write('firstMonthOfYear: $firstMonthOfYear, ')
+          ..write('firstDayOfWeek: $firstDayOfWeek, ')
           ..write('legalEntityId: $legalEntityId, ')
           ..write('hasEInvoiceCertificate: $hasEInvoiceCertificate, ')
           ..write(
@@ -9550,6 +9588,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     sizeId,
     industryId,
     firstMonthOfYear,
+    firstDayOfWeek,
     legalEntityId,
     hasEInvoiceCertificate,
     eInvoiceCertificatePassphrase,
@@ -9650,6 +9689,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           other.sizeId == this.sizeId &&
           other.industryId == this.industryId &&
           other.firstMonthOfYear == this.firstMonthOfYear &&
+          other.firstDayOfWeek == this.firstDayOfWeek &&
           other.legalEntityId == this.legalEntityId &&
           other.hasEInvoiceCertificate == this.hasEInvoiceCertificate &&
           other.eInvoiceCertificatePassphrase ==
@@ -9753,6 +9793,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
   final Value<String> sizeId;
   final Value<String> industryId;
   final Value<String> firstMonthOfYear;
+  final Value<String> firstDayOfWeek;
   final Value<int> legalEntityId;
   final Value<bool> hasEInvoiceCertificate;
   final Value<String> eInvoiceCertificatePassphrase;
@@ -9850,6 +9891,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.sizeId = const Value.absent(),
     this.industryId = const Value.absent(),
     this.firstMonthOfYear = const Value.absent(),
+    this.firstDayOfWeek = const Value.absent(),
     this.legalEntityId = const Value.absent(),
     this.hasEInvoiceCertificate = const Value.absent(),
     this.eInvoiceCertificatePassphrase = const Value.absent(),
@@ -9948,6 +9990,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.sizeId = const Value.absent(),
     this.industryId = const Value.absent(),
     this.firstMonthOfYear = const Value.absent(),
+    this.firstDayOfWeek = const Value.absent(),
     this.legalEntityId = const Value.absent(),
     this.hasEInvoiceCertificate = const Value.absent(),
     this.eInvoiceCertificatePassphrase = const Value.absent(),
@@ -10052,6 +10095,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Expression<String>? sizeId,
     Expression<String>? industryId,
     Expression<String>? firstMonthOfYear,
+    Expression<String>? firstDayOfWeek,
     Expression<int>? legalEntityId,
     Expression<bool>? hasEInvoiceCertificate,
     Expression<String>? eInvoiceCertificatePassphrase,
@@ -10150,6 +10194,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       if (sizeId != null) 'size_id': sizeId,
       if (industryId != null) 'industry_id': industryId,
       if (firstMonthOfYear != null) 'first_month_of_year': firstMonthOfYear,
+      if (firstDayOfWeek != null) 'first_day_of_week': firstDayOfWeek,
       if (legalEntityId != null) 'legal_entity_id': legalEntityId,
       if (hasEInvoiceCertificate != null)
         'has_e_invoice_certificate': hasEInvoiceCertificate,
@@ -10293,6 +10338,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Value<String>? sizeId,
     Value<String>? industryId,
     Value<String>? firstMonthOfYear,
+    Value<String>? firstDayOfWeek,
     Value<int>? legalEntityId,
     Value<bool>? hasEInvoiceCertificate,
     Value<String>? eInvoiceCertificatePassphrase,
@@ -10391,6 +10437,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       sizeId: sizeId ?? this.sizeId,
       industryId: industryId ?? this.industryId,
       firstMonthOfYear: firstMonthOfYear ?? this.firstMonthOfYear,
+      firstDayOfWeek: firstDayOfWeek ?? this.firstDayOfWeek,
       legalEntityId: legalEntityId ?? this.legalEntityId,
       hasEInvoiceCertificate:
           hasEInvoiceCertificate ?? this.hasEInvoiceCertificate,
@@ -10547,6 +10594,9 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     }
     if (firstMonthOfYear.present) {
       map['first_month_of_year'] = Variable<String>(firstMonthOfYear.value);
+    }
+    if (firstDayOfWeek.present) {
+      map['first_day_of_week'] = Variable<String>(firstDayOfWeek.value);
     }
     if (legalEntityId.present) {
       map['legal_entity_id'] = Variable<int>(legalEntityId.value);
@@ -10886,6 +10936,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
           ..write('sizeId: $sizeId, ')
           ..write('industryId: $industryId, ')
           ..write('firstMonthOfYear: $firstMonthOfYear, ')
+          ..write('firstDayOfWeek: $firstDayOfWeek, ')
           ..write('legalEntityId: $legalEntityId, ')
           ..write('hasEInvoiceCertificate: $hasEInvoiceCertificate, ')
           ..write(
@@ -45619,6 +45670,7 @@ typedef $$CompaniesTableCreateCompanionBuilder =
       Value<String> sizeId,
       Value<String> industryId,
       Value<String> firstMonthOfYear,
+      Value<String> firstDayOfWeek,
       Value<int> legalEntityId,
       Value<bool> hasEInvoiceCertificate,
       Value<String> eInvoiceCertificatePassphrase,
@@ -45718,6 +45770,7 @@ typedef $$CompaniesTableUpdateCompanionBuilder =
       Value<String> sizeId,
       Value<String> industryId,
       Value<String> firstMonthOfYear,
+      Value<String> firstDayOfWeek,
       Value<int> legalEntityId,
       Value<bool> hasEInvoiceCertificate,
       Value<String> eInvoiceCertificatePassphrase,
@@ -45870,6 +45923,11 @@ class $$CompaniesTableFilterComposer
 
   ColumnFilters<String> get firstMonthOfYear => $composableBuilder(
     column: $table.firstMonthOfYear,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get firstDayOfWeek => $composableBuilder(
+    column: $table.firstDayOfWeek,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -46359,6 +46417,11 @@ class $$CompaniesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get firstDayOfWeek => $composableBuilder(
+    column: $table.firstDayOfWeek,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get legalEntityId => $composableBuilder(
     column: $table.legalEntityId,
     builder: (column) => ColumnOrderings(column),
@@ -46833,6 +46896,11 @@ class $$CompaniesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get firstDayOfWeek => $composableBuilder(
+    column: $table.firstDayOfWeek,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get legalEntityId => $composableBuilder(
     column: $table.legalEntityId,
     builder: (column) => column,
@@ -47277,6 +47345,7 @@ class $$CompaniesTableTableManager
                 Value<String> sizeId = const Value.absent(),
                 Value<String> industryId = const Value.absent(),
                 Value<String> firstMonthOfYear = const Value.absent(),
+                Value<String> firstDayOfWeek = const Value.absent(),
                 Value<int> legalEntityId = const Value.absent(),
                 Value<bool> hasEInvoiceCertificate = const Value.absent(),
                 Value<String> eInvoiceCertificatePassphrase =
@@ -47378,6 +47447,7 @@ class $$CompaniesTableTableManager
                 sizeId: sizeId,
                 industryId: industryId,
                 firstMonthOfYear: firstMonthOfYear,
+                firstDayOfWeek: firstDayOfWeek,
                 legalEntityId: legalEntityId,
                 hasEInvoiceCertificate: hasEInvoiceCertificate,
                 eInvoiceCertificatePassphrase: eInvoiceCertificatePassphrase,
@@ -47479,6 +47549,7 @@ class $$CompaniesTableTableManager
                 Value<String> sizeId = const Value.absent(),
                 Value<String> industryId = const Value.absent(),
                 Value<String> firstMonthOfYear = const Value.absent(),
+                Value<String> firstDayOfWeek = const Value.absent(),
                 Value<int> legalEntityId = const Value.absent(),
                 Value<bool> hasEInvoiceCertificate = const Value.absent(),
                 Value<String> eInvoiceCertificatePassphrase =
@@ -47580,6 +47651,7 @@ class $$CompaniesTableTableManager
                 sizeId: sizeId,
                 industryId: industryId,
                 firstMonthOfYear: firstMonthOfYear,
+                firstDayOfWeek: firstDayOfWeek,
                 legalEntityId: legalEntityId,
                 hasEInvoiceCertificate: hasEInvoiceCertificate,
                 eInvoiceCertificatePassphrase: eInvoiceCertificatePassphrase,

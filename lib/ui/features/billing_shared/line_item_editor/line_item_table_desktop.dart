@@ -1290,10 +1290,11 @@ class _ProductCellState extends State<_ProductCell> {
   // product row (key + first notes line).
   static const double _optionExtent = 48.0;
 
-  Timer? _searchDebounce;
-  String _query = '';
-  List<Product> _results = const [];
-  StreamSubscription<List<Product>>? _sub;
+  // Bumped on every keystroke; an in-flight async `optionsBuilder` aborts as
+  // soon as it sees a newer value (debounce + supersede guard).
+  int _searchSeq = 0;
+  // Length of the list the last `optionsBuilder` returned — gates Tab-to-select.
+  int _lastOptionsCount = 0;
   bool _searching = false;
   bool _searchFailed = false;
   final ScrollController _optionsScrollController = ScrollController();
@@ -1301,13 +1302,19 @@ class _ProductCellState extends State<_ProductCell> {
   @override
   void initState() {
     super.initState();
-    _runSearch('');
+    // Warm the local cache so the first keystroke's snapshot is already
+    // populated. Best-effort — failures fall back to whatever is cached.
+    unawaited(
+      context
+          .read<Services>()
+          .products
+          .ensurePageLoaded(companyId: widget.companyId, page: 1)
+          .catchError((_) => false),
+    );
   }
 
   @override
   void dispose() {
-    _searchDebounce?.cancel();
-    _sub?.cancel();
     _optionsScrollController.dispose();
     super.dispose();
   }
@@ -1340,52 +1347,11 @@ class _ProductCellState extends State<_ProductCell> {
     });
   }
 
-  /// Whether the options popover currently has something to accept — mirrors
-  /// the list `optionsBuilder` produces. Gates Tab-to-select so that, with
-  /// nothing to pick, Tab keeps doing normal cell-to-cell focus traversal.
-  bool get _hasSelectableOptions {
-    if (!widget.focusNode.hasFocus) return false;
-    // A non-empty result set, or any typed text (which yields a synthetic
-    // "Create '<query>'" option), means at least one selectable row.
-    return _results.isNotEmpty || widget.controller.text.trim().isNotEmpty;
-  }
-
-  void _runSearch(String query) {
-    _searchDebounce?.cancel();
-    setState(() {
-      _searching = true;
-      _searchFailed = false;
-    });
-    _searchDebounce = Timer(const Duration(milliseconds: 200), () async {
-      await _sub?.cancel();
-      if (!mounted) return;
-      final services = context.read<Services>();
-      _sub = services.products
-          .watchPage(
-            companyId: widget.companyId,
-            search: query.isEmpty ? null : query,
-            loadedPages: 1,
-          )
-          .listen(
-            (rows) {
-              if (!mounted) return;
-              setState(() {
-                _query = query;
-                _results = rows;
-                _searching = false;
-                _searchFailed = false;
-              });
-            },
-            onError: (_) {
-              if (!mounted) return;
-              setState(() {
-                _searching = false;
-                _searchFailed = true;
-              });
-            },
-          );
-    });
-  }
+  /// Whether the options popover currently has something to accept — gates
+  /// Tab-to-select so that, with nothing to pick, Tab keeps doing normal
+  /// cell-to-cell focus traversal.
+  bool get _hasSelectableOptions =>
+      widget.focusNode.hasFocus && _lastOptionsCount > 0;
 
   InputDecoration _decoration(BuildContext context) {
     final tokens = context.inTheme;
@@ -1418,19 +1384,75 @@ class _ProductCellState extends State<_ProductCell> {
       focusNode: widget.focusNode,
       displayStringForOption: (opt) =>
           opt is _ProductExisting ? opt.product.productKey : opt.label,
-      optionsBuilder: (value) {
+      // Async builder: RawAutocomplete awaits this and sets its visible options
+      // from the result (with its own call-id guard for out-of-order returns).
+      // A synchronous builder can't work here because results arrive after the
+      // keystroke — so a stale list would stick (e.g. clearing the field would
+      // keep showing the previous search's narrow results).
+      optionsBuilder: (TextEditingValue value) async {
+        // Capture before any await — the only BuildContext read in this async
+        // builder. `Services` is a long-lived singleton, so this is stable.
+        final services = context.read<Services>();
         final query = value.text.trim();
-        if (query != _query) _runSearch(query);
-        final list = <_ProductOption>[
-          for (final p in _results.take(20)) _ProductExisting(p),
+        // Debounce + supersede: a newer keystroke bumps `_searchSeq`, so this
+        // in-flight build bails out. A bailed-out return is harmless —
+        // RawAutocomplete discards it via its own call-id check.
+        final seq = ++_searchSeq;
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        if (!mounted || seq != _searchSeq) return const <_ProductOption>[];
+        setState(() {
+          _searching = true;
+          _searchFailed = false;
+        });
+        // Best-effort server fetch so search covers the full catalog, not just
+        // whatever is already cached. Offline/error falls through to the local
+        // snapshot below.
+        try {
+          await services.products.ensurePageLoaded(
+            companyId: widget.companyId,
+            page: 1,
+            search: query.isEmpty ? null : query,
+          );
+        } catch (_) {
+          // ignore — fall back to the local snapshot
+        }
+        if (!mounted || seq != _searchSeq) return const <_ProductOption>[];
+        final List<Product> rows;
+        try {
+          // One-shot snapshot of the local rows for THIS query, read after the
+          // fetch has upserted (a builder returns once — no live subscription).
+          rows = await services.products
+              .watchPage(
+                companyId: widget.companyId,
+                search: query.isEmpty ? null : query,
+                loadedPages: 1,
+              )
+              .first;
+        } catch (_) {
+          if (mounted && seq == _searchSeq) {
+            setState(() {
+              _searching = false;
+              _searchFailed = true;
+            });
+          }
+          return const <_ProductOption>[];
+        }
+        if (!mounted || seq != _searchSeq) return const <_ProductOption>[];
+        setState(() {
+          _searching = false;
+          _searchFailed = false;
+        });
+        final options = <_ProductOption>[
+          for (final p in rows.take(20)) _ProductExisting(p),
         ];
         if (query.isNotEmpty &&
-            !_results.any(
+            !rows.any(
               (p) => p.productKey.toLowerCase() == query.toLowerCase(),
             )) {
-          list.add(_ProductCreate(query));
+          options.add(_ProductCreate(query));
         }
-        return list;
+        _lastOptionsCount = options.length;
+        return options;
       },
       onSelected: (opt) {
         if (opt is _ProductExisting) {
