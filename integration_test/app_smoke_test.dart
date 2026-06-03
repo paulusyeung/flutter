@@ -21,6 +21,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/services/biometric_service.dart';
+import 'package:admin/data/services/connectivity_watcher.dart';
 import 'package:admin/data/services/token_storage.dart';
 import 'package:admin/main.dart';
 import 'package:admin/ui/features/auth/views/lock_screen.dart';
@@ -194,7 +195,7 @@ void main() {
     final db = AppDatabase(await openInMemoryExecutor());
     addTearDown(db.close);
 
-    final services = Services.build(
+    final services = _buildTestServices(
       db: db,
       tokenStorage: InMemoryTokenStorage(),
       httpClient: _silentNetwork(),
@@ -227,7 +228,7 @@ void main() {
       );
       addTearDown(seed.db.close);
 
-      final services = Services.build(
+      final services = _buildTestServices(
         db: seed.db,
         tokenStorage: seed.storage,
         biometricService: _AlwaysCancelBiometric(),
@@ -262,7 +263,7 @@ void main() {
     );
     addTearDown(seed.db.close);
 
-    final services = Services.build(
+    final services = _buildTestServices(
       db: seed.db,
       tokenStorage: seed.storage,
       biometricService: _AlwaysCancelBiometric(),
@@ -296,7 +297,7 @@ void main() {
       );
       addTearDown(seed.db.close);
 
-      final services = Services.build(
+      final services = _buildTestServices(
         db: seed.db,
         tokenStorage: seed.storage,
         httpClient: _silentNetwork(),
@@ -326,7 +327,7 @@ void main() {
       );
       addTearDown(seed.db.close);
 
-      final services = Services.build(
+      final services = _buildTestServices(
         db: seed.db,
         tokenStorage: seed.storage,
         httpClient: _silentNetwork(),
@@ -358,7 +359,7 @@ void main() {
       final seed = await _seedSession(permissions: 'view_client,edit_client');
       addTearDown(seed.db.close);
 
-      final services = Services.build(
+      final services = _buildTestServices(
         db: seed.db,
         tokenStorage: seed.storage,
         httpClient: _silentNetwork(),
@@ -398,7 +399,7 @@ void main() {
     );
     addTearDown(seed.db.close);
 
-    final services = Services.build(
+    final services = _buildTestServices(
       db: seed.db,
       tokenStorage: seed.storage,
       httpClient: _silentNetwork(),
@@ -437,7 +438,7 @@ void main() {
       );
       addTearDown(seed.db.close);
 
-      final services = Services.build(
+      final services = _buildTestServices(
         db: seed.db,
         tokenStorage: seed.storage,
         httpClient: _silentNetwork(),
@@ -512,7 +513,7 @@ void main() {
       return http.Response('not stubbed: ${req.url}', 500);
     });
 
-    final services = Services.build(
+    final services = _buildTestServices(
       db: db,
       tokenStorage: InMemoryTokenStorage(),
       httpClient: mockClient,
@@ -797,7 +798,7 @@ void main() {
     await storage.write('invoiceninja.is_hosted.v1', 'false');
     await storage.write('invoiceninja.current_company.v1', 'co_a');
 
-    final services = Services.build(
+    final services = _buildTestServices(
       db: db,
       tokenStorage: storage,
       httpClient: _silentNetwork(),
@@ -897,6 +898,30 @@ Future<void> _expectRouteMounts(
   );
 }
 
+/// Builds [Services] for these smoke tests with a deterministic connectivity
+/// watcher. Without it, [Services.build] falls back to
+/// `ConnectivityWatcher.live()`, whose real-network `onOnline` subscription
+/// outlives the test — the harness only closes the in-memory DB in
+/// `addTearDown`, never disposing `Services` — so a later connectivity event
+/// fires `sync.drainOnce` against the closed DB and throws a `StateError` the
+/// framework blames on whatever test is running. `.fixed`'s `onOnline` is an
+/// empty stream, so nothing leaks. Route every `Services.build` in this file
+/// through here so a new call site can't reintroduce the leak.
+Services _buildTestServices({
+  required AppDatabase db,
+  required TokenStorage tokenStorage,
+  required http.Client httpClient,
+  BiometricService? biometricService,
+}) {
+  return Services.build(
+    db: db,
+    tokenStorage: tokenStorage,
+    httpClient: httpClient,
+    biometricService: biometricService,
+    connectivityWatcher: ConnectivityWatcher.fixed(online: true),
+  );
+}
+
 /// Boots an admin/owner session at [initialLocation]. Returns nothing —
 /// `addTearDown(db.close)` handles cleanup.
 Future<void> _bootAdminApp(
@@ -906,7 +931,7 @@ Future<void> _bootAdminApp(
   final seed = await _seedAdminSession();
   addTearDown(seed.db.close);
 
-  final services = Services.build(
+  final services = _buildTestServices(
     db: seed.db,
     tokenStorage: seed.storage,
     httpClient: _silentNetwork(),
