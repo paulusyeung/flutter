@@ -31,6 +31,7 @@ const kLocalizationSettingsSearchKeys = <String>[
   'rappen_rounding',
   'decimal_comma',
   'first_month_of_the_year',
+  'first_day_of_the_week',
 ];
 
 /// Settings tab body. Mounted by `LocalizationShell` inside
@@ -64,6 +65,11 @@ class LocalizationSettingsBody extends StatelessWidget {
     // it off the company draft, mirroring Company Details' size / industry.
     final months = _monthOptions(context);
     final firstMonth = host.draft?.firstMonthOfYear ?? '';
+    // First Day of the Week is likewise a top-level company field ('0'=Sun..
+    // '6'=Sat), driving week starts for charts, report grouping, and the
+    // date-range calendar.
+    final days = _dayOptions(context);
+    final firstDay = host.draft?.firstDayOfWeek ?? '';
 
     final isCompanyScope = scope.isCompany;
     // Demo accounts can't change the UI language — would conflict with the
@@ -156,6 +162,21 @@ class LocalizationSettingsBody extends StatelessWidget {
                   (c) => c.copyWith(firstMonthOfYear: v ?? ''),
                 ),
               ),
+              // first_day_of_week — also a top-level company field, same plain
+              // dropdown bound to the company draft.
+              DropdownButtonFormField<String>(
+                isExpanded: true,
+                decoration: InputDecoration(
+                  labelText: context.tr('first_day_of_the_week'),
+                ),
+                initialValue: days.any((d) => d.value == firstDay)
+                    ? firstDay
+                    : null,
+                items: days,
+                onChanged: (v) => host.updateCompany(
+                  (c) => c.copyWith(firstDayOfWeek: v ?? ''),
+                ),
+              ),
             ],
           ],
         ),
@@ -237,6 +258,23 @@ class LocalizationSettingsBody extends StatelessWidget {
           value: '${i + 1}',
           child: Text(context.tr(months[i])),
         ),
+    ];
+  }
+
+  List<DropdownMenuItem<String>> _dayOptions(BuildContext context) {
+    // 0=Sunday..6=Saturday, matching the API + `kDaysOfTheWeek` convention.
+    const days = [
+      'sunday',
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+    ];
+    return [
+      for (var i = 0; i < days.length; i++)
+        DropdownMenuItem<String>(value: '$i', child: Text(context.tr(days[i]))),
     ];
   }
 }

@@ -742,4 +742,20 @@ void main() {
       );
     });
   });
+
+  group('formatTimeOfDay', () {
+    test('24-hour (military) pads the hour', () {
+      expect(formatTimeOfDay(9, 5, military: true), '09:05');
+      expect(formatTimeOfDay(0, 0, military: true), '00:00');
+      expect(formatTimeOfDay(23, 30, military: true), '23:30');
+    });
+
+    test('12-hour adds AM/PM and a 1..12 hour', () {
+      expect(formatTimeOfDay(9, 5, military: false), '9:05 AM');
+      expect(formatTimeOfDay(0, 0, military: false), '12:00 AM');
+      expect(formatTimeOfDay(12, 0, military: false), '12:00 PM');
+      expect(formatTimeOfDay(13, 30, military: false), '1:30 PM');
+      expect(formatTimeOfDay(23, 59, military: false), '11:59 PM');
+    });
+  });
 }

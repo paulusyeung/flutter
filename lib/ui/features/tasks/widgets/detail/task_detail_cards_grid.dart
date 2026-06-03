@@ -338,8 +338,13 @@ class _TimeEntrySummary extends StatelessWidget {
     );
   }
 
-  String _hhmm(DateTime d) =>
-      '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+  // [d] is already local (callers pass `.toLocal()`); honor military time
+  // without a further tz conversion.
+  String _hhmm(DateTime d) => formatTimeOfDay(
+    d.hour,
+    d.minute,
+    military: formatter?.settings.enableMilitaryTime ?? true,
+  );
 
   String _formatDate(DateTime d) {
     final iso =

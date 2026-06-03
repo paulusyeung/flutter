@@ -14,6 +14,7 @@ import 'package:admin/ui/core/detail/recent_visit_recorder.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/detail/entity_documents_tab.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
+import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/billing_shared/activity/billing_doc_activity_tab.dart';
 import 'package:admin/ui/features/billing_shared/sends/billing_doc_sends_tab.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
@@ -74,8 +75,12 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen>
               ),
             ),
           ),
-      bodyBuilder: (context, po) =>
-          _Body(purchaseOrder: po, services: _services, companyId: _companyId),
+      bodyBuilder: (context, po) => _Body(
+        purchaseOrder: po,
+        services: _services,
+        companyId: _companyId,
+        formatter: formatter,
+      ),
     );
   }
 }
@@ -85,11 +90,13 @@ class _Body extends StatelessWidget {
     required this.purchaseOrder,
     required this.services,
     required this.companyId,
+    this.formatter,
   });
 
   final PurchaseOrder purchaseOrder;
   final Services services;
   final String companyId;
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +115,10 @@ class _Body extends StatelessWidget {
                 label: purchaseOrder.number.isEmpty
                     ? context.tr('purchase_order')
                     : '#${purchaseOrder.number}',
-                child: _Header(purchaseOrder: purchaseOrder),
+                child: _Header(
+                  purchaseOrder: purchaseOrder,
+                  formatter: formatter,
+                ),
               ),
               SizedBox(height: InSpacing.lg(context)),
               EntityDetailTabs(
@@ -207,8 +217,12 @@ class _Body extends StatelessWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.purchaseOrder});
+  const _Header({required this.purchaseOrder, this.formatter});
   final PurchaseOrder purchaseOrder;
+
+  /// Company-scoped formatter for money/date. Null until it resolves; callers
+  /// fall back to the raw value so the row never renders blank.
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
@@ -253,16 +267,22 @@ class _Header extends StatelessWidget {
             children: [
               _LabelValue(
                 label: context.tr('amount'),
-                value: purchaseOrder.amount.toString(),
+                value:
+                    formatter?.money(purchaseOrder.amount) ??
+                    purchaseOrder.amount.toString(),
               ),
               _LabelValue(
                 label: context.tr('balance'),
-                value: purchaseOrder.balance.toString(),
+                value:
+                    formatter?.money(purchaseOrder.balance) ??
+                    purchaseOrder.balance.toString(),
               ),
               if (purchaseOrder.dueDate != null)
                 _LabelValue(
                   label: context.tr('due_date'),
-                  value: purchaseOrder.dueDate!.toIso(),
+                  value:
+                      formatter?.date(purchaseOrder.dueDate!.toIso()) ??
+                      purchaseOrder.dueDate!.toIso(),
                 ),
               if (purchaseOrder.expenseId.isNotEmpty)
                 _LabelValue(

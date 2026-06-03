@@ -5,6 +5,7 @@ import 'package:logging/logging.dart';
 import 'package:admin/data/models/domain/report_preview.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/domain/reports/report_column_types.dart';
+import 'package:admin/utils/date_ranges.dart';
 
 final _log = Logger('ReportEngine');
 
@@ -233,7 +234,16 @@ class ReportView {
 /// services, no globals — easy to unit-test and easy to micro-task off the
 /// main isolate when the row count gets big.
 class ReportEngine {
-  const ReportEngine();
+  const ReportEngine({this.firstMonthOfYear = 1, this.firstDayOfWeek = 0});
+
+  /// Company `first_month_of_year` (1=Jan..12=Dec) — shifts the `year` subgroup
+  /// bucket onto the fiscal year. Quarters and months stay calendar-aligned
+  /// (matches admin-portal / React).
+  final int firstMonthOfYear;
+
+  /// Company `first_day_of_week` (0=Sun..6=Sat) — the start-of-week for the
+  /// `week` subgroup bucket (was hardcoded to Monday).
+  final int firstDayOfWeek;
 
   /// Build a fresh [ReportView] from the loaded preview and the current
   /// UI state. Caller is expected to memoize on
@@ -591,19 +601,20 @@ class ReportEngine {
       case ReportSubgroup.day:
         return date.toIso();
       case ReportSubgroup.week:
-        final dt = date.toDateTime();
-        // ISO weekday: Monday=1. Subtract `(weekday-1)` days to the Monday
-        // of the same week.
-        final wd = dt.weekday;
-        final monday = dt.subtract(Duration(days: wd - 1));
-        return Date(monday.year, monday.month, monday.day).toIso();
+        // Week start honors the company first_day_of_week (0=Sun..6=Sat);
+        // with the default 0 this is the Sunday of the week.
+        return startOfWeek(date, firstDayOfWeek).toIso();
       case ReportSubgroup.month:
         return Date(date.year, date.month, 1).toIso();
       case ReportSubgroup.quarter:
+        // Calendar quarters — deliberately NOT fiscal-shifted (matches
+        // admin-portal / React).
         final qStartMonth = ((date.month - 1) ~/ 3) * 3 + 1;
         return Date(date.year, qStartMonth, 1).toIso();
       case ReportSubgroup.year:
-        return Date(date.year, 1, 1).toIso();
+        // Fiscal-year aware: the bucket starts on first_month_of_year (Jan 1
+        // when unset / 1).
+        return startOfFiscalYear(date, firstMonthOfYear).toIso();
     }
   }
 

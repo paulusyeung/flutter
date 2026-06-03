@@ -992,7 +992,7 @@ class _RowStateW extends State<_Row> {
                     child: _TaxCell(
                       companyId: companyId,
                       services: services,
-                      useComma: useComma,
+                      formatter: formatter,
                       initialName: currentItem.taxName1,
                       initialRate: currentItem.taxRate1,
                       onSelected: (taxRate) {
@@ -1647,7 +1647,7 @@ class _TaxCell extends StatefulWidget {
   const _TaxCell({
     required this.companyId,
     required this.services,
-    required this.useComma,
+    required this.formatter,
     required this.initialName,
     required this.initialRate,
     required this.onSelected,
@@ -1655,7 +1655,7 @@ class _TaxCell extends StatefulWidget {
 
   final String companyId;
   final Services services;
-  final bool useComma;
+  final Formatter? formatter;
   final String initialName;
   final Decimal initialRate;
   final ValueChanged<TaxRate?> onSelected;
@@ -1675,7 +1675,7 @@ class _TaxCellState extends State<_TaxCell> {
       text: _displayFor(
         widget.initialName,
         widget.initialRate,
-        widget.useComma,
+        widget.formatter,
       ),
     );
     _focusNode = FocusNode();
@@ -1687,20 +1687,19 @@ class _TaxCellState extends State<_TaxCell> {
     if (!_focusNode.hasFocus &&
         (widget.initialName != oldWidget.initialName ||
             widget.initialRate != oldWidget.initialRate ||
-            widget.useComma != oldWidget.useComma)) {
+            widget.formatter != oldWidget.formatter)) {
       _controller.text = _displayFor(
         widget.initialName,
         widget.initialRate,
-        widget.useComma,
+        widget.formatter,
       );
     }
   }
 
-  static String _displayFor(String name, Decimal rate, bool useComma) {
+  static String _displayFor(String name, Decimal rate, Formatter? formatter) {
     if (name.isEmpty) return '';
-    final raw = rate.toString();
-    final localized = useComma ? raw.replaceAll('.', ',') : raw;
-    return '$name $localized%';
+    final pct = formatter?.percent(rate.toDouble()) ?? '$rate%';
+    return '$name $pct';
   }
 
   @override
@@ -1798,9 +1797,9 @@ class _TaxCellState extends State<_TaxCell> {
                           vertical: 10,
                         ),
                         child: Text(
-                          opt.displayLocalized(widget.useComma).isEmpty
+                          opt.displayLocalized(widget.formatter).isEmpty
                               ? context.tr('none')
-                              : opt.displayLocalized(widget.useComma),
+                              : opt.displayLocalized(widget.formatter),
                           style: TextStyle(color: tokens.ink, fontSize: 13),
                         ),
                       ),
@@ -1824,10 +1823,9 @@ class _TaxOption {
 
   /// Display formatted with the company's decimal separator. EU users
   /// see `19,0%` instead of `19.0%`.
-  String displayLocalized(bool useComma) {
+  String displayLocalized(Formatter? formatter) {
     if (rate == null) return '';
-    final raw = rate!.rate.toString();
-    final localized = useComma ? raw.replaceAll('.', ',') : raw;
-    return '${rate!.name} $localized%';
+    final pct = formatter?.percent(rate!.rate.toDouble()) ?? '${rate!.rate}%';
+    return '${rate!.name} $pct';
   }
 }

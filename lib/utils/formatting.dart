@@ -158,6 +158,23 @@ DateTime convertTimeOfDayToDateTime(
 TimeOfDay convertDateTimeToTimeOfDay(DateTime? dateTime) =>
     TimeOfDay(hour: dateTime?.hour ?? 0, minute: dateTime?.minute ?? 0);
 
+/// Format an hour/minute pair as a clock time, honoring [military] (24-hour
+/// `HH:mm` vs 12-hour `h:mm AM/PM`).
+///
+/// Timezone-neutral by design: it renders the wall-clock fields exactly as
+/// given, with NO UTC→local conversion. Use this for values that are already
+/// local (a [TimeOfDay], or a local `DateTime`'s `.hour`/`.minute`). For a
+/// server-UTC timestamp string, use `Formatter.date(value, showTime: true)`
+/// instead — it does the UTC→local shift. Single source of truth for the
+/// military-time choice across `InTimeField` and the task time-of-day displays.
+String formatTimeOfDay(int hour, int minute, {required bool military}) {
+  final mm = minute.toString().padLeft(2, '0');
+  if (military) return '${hour.toString().padLeft(2, '0')}:$mm';
+  final isPm = hour >= 12;
+  final hour12 = hour % 12 == 0 ? 12 : hour % 12;
+  return '$hour12:$mm ${isPm ? 'PM' : 'AM'}';
+}
+
 /// "2m ago" / "3h ago" / "5d ago" / "2w ago" style label for a positive
 /// [Duration] elapsed since a past event. Wraps the same five translation
 /// keys the dashboard activity feed and System Logs both consume

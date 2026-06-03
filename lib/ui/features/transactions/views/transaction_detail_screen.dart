@@ -9,11 +9,13 @@ import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/generic_detail_view_model.dart';
 import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/widgets/bank_account_name_label.dart';
+import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/core/widgets/transaction_rule_matched_chip.dart';
 import 'package:admin/ui/features/transactions/widgets/transaction_actions.dart';
 import 'package:admin/ui/features/transactions/widgets/transaction_match_panel.dart';
 import 'package:admin/ui/features/transactions/widgets/transaction_matched_entities.dart';
 import 'package:admin/ui/features/transactions/widgets/transaction_status_pill.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Read-only detail screen for a bank transaction. Header surfaces the
 /// identity + status, then either the match panel (Unmatched/Matched) or
@@ -29,7 +31,8 @@ class TransactionDetailScreen extends StatefulWidget {
       _TransactionDetailScreenState();
 }
 
-class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
+class _TransactionDetailScreenState extends State<TransactionDetailScreen>
+    with FormatterHostMixin {
   late final GenericDetailViewModel<BankTransaction> _vm;
   late final Services _services;
   late final String _companyId;
@@ -42,6 +45,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     _vm = GenericDetailViewModel<BankTransaction>.bound(
       _services.bankTransactions.watch(companyId: _companyId, id: widget.id),
     );
+    loadFormatter(_services, _companyId);
   }
 
   @override
@@ -63,10 +67,10 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _Header(transaction: tx),
+              _Header(transaction: tx, formatter: formatter),
               SizedBox(height: InSpacing.lg(context)),
               if (tx.isUnmatched || tx.isMatched)
-                TransactionMatchPanel(transaction: tx),
+                TransactionMatchPanel(transaction: tx, formatter: formatter),
               if (tx.isMatched || tx.isConverted) ...[
                 SizedBox(height: InSpacing.lg(context)),
                 _Section(
@@ -83,16 +87,24 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.transaction});
+  const _Header({required this.transaction, this.formatter});
   final BankTransaction transaction;
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final tx = transaction;
-    final amountText = tx.amount.toStringAsFixed(2);
     final sign = tx.isWithdrawal ? '-' : '+';
     final amountColor = tx.isWithdrawal ? tokens.overdue : tokens.paid;
+    // Format through the central Formatter (symbol/code, separators,
+    // precision) when it has resolved; until then fall back to the raw
+    // fixed-2 with the bare currency code so the amount never renders blank.
+    final formatted = formatter?.money(tx.amount, currencyId: tx.currencyId);
+    final amountBody = (formatted != null && formatted.isNotEmpty)
+        ? formatted
+        : '${tx.currencyId.isEmpty ? '' : '${tx.currencyId} '}'
+              '${tx.amount.toStringAsFixed(2)}';
     return Container(
       padding: EdgeInsets.all(InSpacing.lg(context)),
       decoration: BoxDecoration(
@@ -109,7 +121,7 @@ class _Header extends StatelessWidget {
               TransactionStatusPill(statusId: tx.statusId, dotSize: 10),
               const Spacer(),
               Text(
-                '$sign${tx.currencyId.isEmpty ? '' : '${tx.currencyId} '}$amountText',
+                '$sign$amountBody',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
@@ -140,7 +152,12 @@ class _Header extends StatelessWidget {
           if (tx.description.isNotEmpty)
             Text(tx.description, style: TextStyle(color: tokens.ink2)),
           const SizedBox(height: 12),
-          _MetaRow(label: context.tr('date'), value: tx.date?.toIso() ?? '—'),
+          _MetaRow(
+            label: context.tr('date'),
+            value: tx.date == null
+                ? '—'
+                : (formatter?.date(tx.date!.toIso()) ?? tx.date!.toIso()),
+          ),
           if (tx.bankAccountId.isNotEmpty)
             _MetaRow(
               label: context.tr('bank_account'),

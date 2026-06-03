@@ -49,7 +49,8 @@ class ClientStatementViewModel extends ChangeNotifier {
     required this.connectivity,
     required this.companyId,
     required this.clientId,
-  }) {
+    int firstMonthOfYear = 1,
+  }) : _firstMonthOfYear = firstMonthOfYear {
     _subscribe();
     // Kick a first load as soon as the screen mounts; filter defaults are set
     // already so the request fires without waiting for a user interaction.
@@ -61,6 +62,12 @@ class ClientStatementViewModel extends ChangeNotifier {
   final ConnectivityWatcher connectivity;
   final String companyId;
   final String clientId;
+
+  /// Company `first_month_of_year`, used to resolve the `thisYear` / `lastYear`
+  /// presets onto the fiscal year — matching the picker preview and the
+  /// dashboard. Sourced from the screen's `Formatter`; see
+  /// [updateFiscalYearStart].
+  int _firstMonthOfYear;
 
   // ---- filter state ----
 
@@ -124,6 +131,21 @@ class ClientStatementViewModel extends ChangeNotifier {
     _scheduleLoad();
   }
 
+  /// Push the company's `first_month_of_year` in once the screen's `Formatter`
+  /// resolves. Reloads only when the active range is a fiscal-sensitive preset
+  /// (`thisYear` / `lastYear`) so the default rolling ranges don't refetch.
+  void updateFiscalYearStart(int firstMonthOfYear) {
+    if (_disposed || firstMonthOfYear == _firstMonthOfYear) return;
+    final wasFiscalSensitive =
+        _range is DashboardPresetRange &&
+        ((_range as DashboardPresetRange).preset ==
+                DashboardDatePreset.thisYear ||
+            (_range as DashboardPresetRange).preset ==
+                DashboardDatePreset.lastYear);
+    _firstMonthOfYear = firstMonthOfYear;
+    if (wasFiscalSensitive) _scheduleLoad();
+  }
+
   void setStatus(StatementStatus s) {
     if (_disposed || _status == s) return;
     _status = s;
@@ -179,7 +201,7 @@ class ClientStatementViewModel extends ChangeNotifier {
       return;
     }
 
-    final (start, end) = _range.resolve();
+    final (start, end) = _range.resolve(firstMonthOfYear: _firstMonthOfYear);
     try {
       final bytes = await api.getStatement(
         clientId: clientId,

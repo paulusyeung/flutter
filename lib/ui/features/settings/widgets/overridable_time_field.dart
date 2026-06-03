@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_field.dart';
 import 'package:admin/ui/features/settings/widgets/settings_field_bindings.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Time-of-day counterpart of [OverridableTextField]. Stores `"HH:MM"`
 /// in 24-hour wire form so the cascade is portable across the user's
@@ -40,7 +41,16 @@ class OverridableTimeField extends StatelessWidget {
     final host = context.watch<SettingsDraftHost>();
     final raw = readFn(host.settings) ?? '';
     final parsed = _parse(raw);
-    final display = parsed == null ? '' : parsed.format(context);
+    // Display honors the company `military_time` setting (12h vs 24h) rather
+    // than the device locale — matches the rest of the app. The stored wire
+    // value below stays 24-hour regardless.
+    final display = parsed == null
+        ? ''
+        : formatTimeOfDay(
+            parsed.hour,
+            parsed.minute,
+            military: host.settings.militaryTime ?? false,
+          );
     final errors = host.fieldErrors[apiKey];
     final errorText = (errors != null && errors.isNotEmpty)
         ? errors.first
@@ -56,6 +66,8 @@ class OverridableTimeField extends StatelessWidget {
                 initialTime: initial,
               );
               if (picked == null) return;
+              // Always 24-hour `HH:MM` wire form (portable across the user's
+              // 12/24h display preference) — see the class doc.
               final wire =
                   '${picked.hour.toString().padLeft(2, '0')}:'
                   '${picked.minute.toString().padLeft(2, '0')}';

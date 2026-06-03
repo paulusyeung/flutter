@@ -115,7 +115,9 @@ Future<String?> pickDateRangeWindow(
     current: current,
     formatter: formatter,
     onChange: (r) {
-      final (start, end) = r.resolve();
+      final (start, end) = r.resolve(
+        firstMonthOfYear: formatter?.settings.firstMonthOfYear ?? 1,
+      );
       wire = '$column,${start.toIso()},${end.toIso()}';
     },
   );
@@ -178,7 +180,9 @@ class _DashboardDateRangePopoverState extends State<DashboardDateRangePopover> {
   @override
   void initState() {
     super.initState();
-    final (start, end) = widget.current.resolve();
+    final (start, end) = widget.current.resolve(
+      firstMonthOfYear: widget.formatter?.settings.firstMonthOfYear ?? 1,
+    );
     _previewStart = start;
     _previewEnd = end;
     final anchor = _previewStart ?? Date.today();
@@ -310,6 +314,8 @@ class _DashboardDateRangePopoverState extends State<DashboardDateRangePopover> {
                         start: _previewStart,
                         end: _previewEnd,
                         onTap: _onCellTap,
+                        firstDayOfWeek:
+                            widget.formatter?.settings.firstDayOfWeek,
                       ),
                       SizedBox(height: InSpacing.md(context)),
                       _FromToDisplay(
@@ -518,7 +524,12 @@ class _TwoMonthCalendar extends StatelessWidget {
     required this.start,
     required this.end,
     required this.onTap,
+    this.firstDayOfWeek,
   });
+
+  /// Company `first_day_of_week` (0=Sun..6=Sat). Null → fall back to the device
+  /// locale's `firstDayOfWeekIndex`.
+  final int? firstDayOfWeek;
 
   final DateTime leftMonth;
   final DateTime rightMonth;
@@ -541,6 +552,7 @@ class _TwoMonthCalendar extends StatelessWidget {
             start: start,
             end: end,
             onTap: onTap,
+            firstDayOfWeek: firstDayOfWeek,
           ),
         ),
         SizedBox(width: InSpacing.md(context)),
@@ -552,6 +564,7 @@ class _TwoMonthCalendar extends StatelessWidget {
             start: start,
             end: end,
             onTap: onTap,
+            firstDayOfWeek: firstDayOfWeek,
           ),
         ),
       ],
@@ -567,6 +580,7 @@ class _MonthGrid extends StatelessWidget {
     required this.start,
     required this.end,
     required this.onTap,
+    this.firstDayOfWeek,
   });
 
   final DateTime month;
@@ -576,12 +590,16 @@ class _MonthGrid extends StatelessWidget {
   final Date? end;
   final ValueChanged<Date> onTap;
 
+  /// Company `first_day_of_week` (0=Sun..6=Sat); null → device locale default.
+  final int? firstDayOfWeek;
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final l = MaterialLocalizations.of(context);
-    final firstWeekday = l.firstDayOfWeekIndex;
-    // Reorder narrowWeekdays so column 0 matches the locale's first day.
+    // Company setting wins; fall back to the device locale's first day.
+    final firstWeekday = firstDayOfWeek ?? l.firstDayOfWeekIndex;
+    // Reorder narrowWeekdays so column 0 matches the first day of week.
     final headers = <String>[
       for (var i = 0; i < 7; i++) l.narrowWeekdays[(firstWeekday + i) % 7],
     ];

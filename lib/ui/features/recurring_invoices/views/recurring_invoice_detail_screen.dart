@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/recurring_invoice.dart';
+import 'package:admin/utils/formatting.dart';
 import 'package:admin/domain/recurring_frequency.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
@@ -80,6 +82,7 @@ class _RecurringInvoiceDetailScreenState
         recurringInvoice: ri,
         services: _services,
         companyId: _companyId,
+        formatter: formatter,
       ),
     );
   }
@@ -90,11 +93,13 @@ class _Body extends StatelessWidget {
     required this.recurringInvoice,
     required this.services,
     required this.companyId,
+    required this.formatter,
   });
 
   final RecurringInvoice recurringInvoice;
   final Services services;
   final String companyId;
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
@@ -113,7 +118,12 @@ class _Body extends StatelessWidget {
                 label: recurringInvoice.number.isEmpty
                     ? context.tr('recurring_invoice')
                     : '#${recurringInvoice.number}',
-                child: _Header(recurringInvoice: recurringInvoice),
+                child: _Header(
+                  recurringInvoice: recurringInvoice,
+                  services: services,
+                  companyId: companyId,
+                  formatter: formatter,
+                ),
               ),
               SizedBox(height: InSpacing.lg(context)),
               EntityDetailTabs(
@@ -215,8 +225,16 @@ class _Body extends StatelessWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.recurringInvoice});
+  const _Header({
+    required this.recurringInvoice,
+    required this.services,
+    required this.companyId,
+    required this.formatter,
+  });
   final RecurringInvoice recurringInvoice;
+  final Services services;
+  final String companyId;
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
@@ -261,9 +279,20 @@ class _Header extends StatelessWidget {
             spacing: 24,
             runSpacing: 12,
             children: [
-              _LabelValue(
-                label: context.tr('amount'),
-                value: recurringInvoice.amount.toString(),
+              StreamBuilder<Client?>(
+                stream: services.clients.watch(
+                  companyId: companyId,
+                  id: recurringInvoice.clientId,
+                ),
+                builder: (context, clientSnap) => _LabelValue(
+                  label: context.tr('amount'),
+                  value:
+                      formatter?.money(
+                        recurringInvoice.amount,
+                        clientCurrencyId: clientSnap.data?.currencyId,
+                      ) ??
+                      recurringInvoice.amount.toString(),
+                ),
               ),
               if (recurringInvoice.frequencyId.isNotEmpty)
                 _LabelValue(
@@ -273,7 +302,9 @@ class _Header extends StatelessWidget {
               if (recurringInvoice.nextSendDate != null)
                 _LabelValue(
                   label: context.tr('next_send_date'),
-                  value: recurringInvoice.nextSendDate!.toIso(),
+                  value:
+                      formatter?.date(recurringInvoice.nextSendDate!.toIso()) ??
+                      recurringInvoice.nextSendDate!.toIso(),
                 ),
               _LabelValue(
                 label: context.tr('remaining_cycles'),

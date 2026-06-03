@@ -12,8 +12,7 @@ class Companies extends Table {
   TextColumn get displayName => text().named('display_name').nullable()();
   // Logo URL persisted as its own column so the switcher doesn't depend on
   // the `settings` JSON round-tripping cleanly through codegen + SQLite +
-  // jsonDecode. Populated at login; older rows get healed by the v7
-  // migration via `json_extract(settings, '$.company_logo')`.
+  // jsonDecode. Populated at login from the API response.
   TextColumn get logoUrl => text().named('logo_url').nullable()();
   TextColumn get settings => text()();
   TextColumn get permissions => text()();
@@ -69,8 +68,7 @@ class Companies extends Table {
   BoolColumn get isOwner =>
       boolean().named('is_owner').withDefault(const Constant(false))();
   // JSON-encoded list of attachments returned on the company response.
-  // Nullable so the v12 migration can `addColumn` without a backfill — the
-  // next `applyUpdateResponse` (or `/auth/me`) repopulates it.
+  // Nullable; the next `applyUpdateResponse` (or `/auth/me`) repopulates it.
   TextColumn get documents => text().nullable()();
   // Top-level tax configuration. Mirrors `CompanyApi.enabledTaxRates` /
   // `enabledItemTaxRates` / `enabledExpenseTaxRates` / `calculateTaxes` /

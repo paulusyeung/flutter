@@ -47,6 +47,65 @@ void main() {
       expect(end, const Date(2025, 12, 31));
     });
 
+    test('thisYear is the calendar year when firstMonthOfYear == 1', () {
+      final today = const Date(2026, 5, 11);
+      final (start, end) = const DashboardPresetRange(
+        DashboardDatePreset.thisYear,
+      ).resolve(today: today, firstMonthOfYear: 1);
+      expect(start, const Date(2026, 1, 1));
+      expect(end, const Date(2026, 12, 31));
+    });
+
+    test('thisYear shifts onto the fiscal year (April), today after start', () {
+      final today = const Date(2026, 5, 11); // May ≥ April
+      final (start, end) = const DashboardPresetRange(
+        DashboardDatePreset.thisYear,
+      ).resolve(today: today, firstMonthOfYear: 4);
+      expect(start, const Date(2026, 4, 1));
+      expect(end, const Date(2027, 3, 31));
+    });
+
+    test('thisYear fiscal (April) with today BEFORE the fiscal start', () {
+      final today = const Date(2026, 2, 15); // Feb < April
+      final (start, end) = const DashboardPresetRange(
+        DashboardDatePreset.thisYear,
+      ).resolve(today: today, firstMonthOfYear: 4);
+      expect(start, const Date(2025, 4, 1));
+      expect(end, const Date(2026, 3, 31));
+    });
+
+    test('lastYear is the prior fiscal year (April)', () {
+      final today = const Date(2026, 5, 11);
+      final (start, end) = const DashboardPresetRange(
+        DashboardDatePreset.lastYear,
+      ).resolve(today: today, firstMonthOfYear: 4);
+      expect(start, const Date(2025, 4, 1));
+      expect(end, const Date(2026, 3, 31));
+    });
+
+    test('quarters stay calendar-aligned even with a fiscal year set', () {
+      final today = const Date(2026, 5, 11);
+      final (start, end) = const DashboardPresetRange(
+        DashboardDatePreset.thisQuarter,
+      ).resolve(today: today, firstMonthOfYear: 4);
+      // Unchanged from the calendar-quarter case above.
+      expect(start, const Date(2026, 4, 1));
+      expect(end, const Date(2026, 6, 30));
+    });
+
+    test('filterHash changes when firstMonthOfYear changes a yearly range', () {
+      final today = const Date(2026, 5, 11);
+      final calendar = const DashboardFilter(
+        range: DashboardPresetRange(DashboardDatePreset.thisYear),
+        firstMonthOfYear: 1,
+      );
+      final fiscal = calendar.copyWith(firstMonthOfYear: 4);
+      expect(
+        calendar.filterHash(today: today),
+        isNot(equals(fiscal.filterHash(today: today))),
+      );
+    });
+
     test('filterHash is stable across instances with the same fields', () {
       final today = const Date(2026, 5, 11);
       final a = DashboardFilter.defaults();

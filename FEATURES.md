@@ -720,7 +720,8 @@ Field-level breakdown of every option under each settings panel. Source of truth
 | Military / 24-hour time | ✅ | ✅ | ✅ | ✅ | |
 | Rappen Rounding (Swiss) | ✅ | ✅ | ✅ | ✅ | |
 | Decimal Comma | ✅ | ✅ | ✅ | ✅ | |
-| First Month of the Year (fiscal start) | ✅ | ✅ | ✅ | ✅ | |
+| First Month of the Year (fiscal start) | ✅ | ✅ | ✅ | ✅ | v2 now drives dashboard This/Last Year + report year grouping onto the fiscal year (was a stored-but-inert field); quarters stay calendar-aligned, matching React/v1 |
+| First Day of the Week (week start) | ❌ | 🟡 | ✅ | ✅ | v1 dropdown is commented out + the value is unused; React has no such setting. v2 adds the control and honors it in dashboard chart weeks, report week grouping, and the date-range calendar grid |
 
 #### Localization — Custom Labels tab
 

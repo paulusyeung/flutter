@@ -257,6 +257,65 @@ void main() {
       expect(view.groups.first.count, 2);
     });
 
+    test('subgroup=year buckets on the fiscal year (firstMonthOfYear=4)', () {
+      const fiscalEngine = ReportEngine(firstMonthOfYear: 4);
+      final preview = previewWith(
+        columns: [dateCol, amountCol],
+        rows: [
+          [
+            ReportDateCell(value: Date.tryParse('2026-02-10')!), // before April
+            ReportNumberCell(value: d('10'), isMoney: true, currencyId: '1'),
+          ],
+          [
+            ReportDateCell(
+              value: Date.tryParse('2026-05-02')!,
+            ), // on/after April
+            ReportNumberCell(value: d('20'), isMoney: true, currencyId: '1'),
+          ],
+        ],
+      );
+      final view = fiscalEngine.compute(
+        preview: preview,
+        ui: const ReportUiState(
+          group: 'invoice.date',
+          subgroup: ReportSubgroup.year,
+        ),
+        exchangeRates: const {},
+        companyCurrencyId: '1',
+      );
+      // Feb 2026 falls in the 2025-04 fiscal year; May 2026 in 2026-04.
+      expect(view.groups.map((g) => g.key), ['2025-04-01', '2026-04-01']);
+    });
+
+    test('subgroup=week buckets on first_day_of_week (Monday)', () {
+      const mondayEngine = ReportEngine(firstDayOfWeek: 1);
+      final preview = previewWith(
+        columns: [dateCol, amountCol],
+        rows: [
+          [
+            ReportDateCell(value: Date.tryParse('2026-06-01')!), // Monday
+            ReportNumberCell(value: d('10'), isMoney: true, currencyId: '1'),
+          ],
+          [
+            ReportDateCell(value: Date.tryParse('2026-06-03')!), // Wednesday
+            ReportNumberCell(value: d('20'), isMoney: true, currencyId: '1'),
+          ],
+        ],
+      );
+      final view = mondayEngine.compute(
+        preview: preview,
+        ui: const ReportUiState(
+          group: 'invoice.date',
+          subgroup: ReportSubgroup.week,
+        ),
+        exchangeRates: const {},
+        companyCurrencyId: '1',
+      );
+      // Both dates share the same Monday-started week → one bucket on Mon 6/1.
+      expect(view.groups.map((g) => g.key), ['2026-06-01']);
+      expect(view.groups.first.count, 2);
+    });
+
     test(
       'drill-down filters to selectedGroup and composes with column filters',
       () {

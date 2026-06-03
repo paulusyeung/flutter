@@ -44,8 +44,17 @@ class _ClientStatementScreenState extends State<ClientStatementScreen>
       connectivity: _services.connectivity,
       companyId: _companyId,
       clientId: widget.clientId,
+      firstMonthOfYear:
+          _services.formatterIfReady(_companyId)?.settings.firstMonthOfYear ??
+          1,
     );
     loadFormatter(_services, _companyId);
+    // Cold-start fallback: the sync source above misses if the formatter wasn't
+    // cached yet. Push the real fiscal year in once it resolves (cached future,
+    // so this is cheap) so This Year / Last Year statements match the picker.
+    _services.formatterFor(_companyId).then((f) {
+      if (mounted) _vm.updateFiscalYearStart(f.settings.firstMonthOfYear);
+    });
   }
 
   @override

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 
 import 'package:admin/data/models/value/date.dart';
+import 'package:admin/utils/date_ranges.dart';
 
 /// Date-range preset matching the React app's `GLOBAL_DATE_RANGES`. The
 /// resolution to concrete `(start, end)` dates happens at request time so a
@@ -54,18 +55,22 @@ sealed class DashboardDateRange {
 
   /// Resolve to concrete `(start, end)` dates. `today` is passed in so unit
   /// tests can fix the calendar without monkey-patching `DateTime.now`.
-  (Date start, Date end) resolve({Date? today}) {
+  /// [firstMonthOfYear] (1=Jan..12=Dec) shifts the `thisYear` / `lastYear`
+  /// presets onto the company's fiscal year; it's ignored by every other
+  /// preset (quarters and months stay calendar-aligned).
+  (Date start, Date end) resolve({Date? today, int firstMonthOfYear = 1}) {
     final t = today ?? Date.today();
-    return _resolve(t);
+    return _resolve(t, firstMonthOfYear);
   }
 
-  (Date start, Date end) _resolve(Date today);
+  (Date start, Date end) _resolve(Date today, int firstMonthOfYear);
 
   /// Canonical hash form — the kind plus the (final) resolved dates. Used by
   /// [DashboardFilter.filterHash] so a stale preset (e.g. "this month" cached
-  /// last month) doesn't collide with the current one.
-  String hashSeed(Date today) {
-    final (start, end) = _resolve(today);
+  /// last month) doesn't collide with the current one. The resolved dates fold
+  /// in [firstMonthOfYear], so a fiscal-year change re-keys the cache.
+  String hashSeed(Date today, int firstMonthOfYear) {
+    final (start, end) = _resolve(today, firstMonthOfYear);
     return '$kind|${start.toIso()}|${end.toIso()}';
   }
 
@@ -80,7 +85,7 @@ class DashboardPresetRange extends DashboardDateRange {
   String get kind => 'preset:${preset.name}';
 
   @override
-  (Date start, Date end) _resolve(Date today) {
+  (Date start, Date end) _resolve(Date today, int firstMonthOfYear) {
     final now = DateTime(today.year, today.month, today.day);
     switch (preset) {
       case DashboardDatePreset.last7:
@@ -112,11 +117,24 @@ class DashboardPresetRange extends DashboardDateRange {
         final end = DateTime(now.year + yearOffset, startMonth + 3, 0);
         return _range(start, end);
       case DashboardDatePreset.thisYear:
-        return _range(DateTime(now.year, 1, 1), DateTime(now.year, 12, 31));
+        // Fiscal-year aware: with firstMonthOfYear == 1 this is Jan 1 – Dec 31;
+        // with e.g. 4 (April) it's Apr 1 – Mar 31. Quarters/months above stay
+        // calendar-aligned (matches admin-portal + React).
+        return (
+          startOfFiscalYear(today, firstMonthOfYear),
+          endOfFiscalYear(today, firstMonthOfYear),
+        );
       case DashboardDatePreset.lastYear:
-        return _range(
-          DateTime(now.year - 1, 1, 1),
-          DateTime(now.year - 1, 12, 31),
+        // A day inside the previous fiscal year = this fiscal year's start − 1.
+        final thisStart = startOfFiscalYear(
+          today,
+          firstMonthOfYear,
+        ).toDateTime();
+        final prevDt = thisStart.subtract(const Duration(days: 1));
+        final prev = Date(prevDt.year, prevDt.month, prevDt.day);
+        return (
+          startOfFiscalYear(prev, firstMonthOfYear),
+          endOfFiscalYear(prev, firstMonthOfYear),
         );
       case DashboardDatePreset.allTime:
         // 50-year window. The server tolerates this; React uses the same idiom.
@@ -139,7 +157,8 @@ class DashboardCustomRange extends DashboardDateRange {
   String get kind => 'custom';
 
   @override
-  (Date start, Date end) _resolve(Date today) => (start, end);
+  (Date start, Date end) _resolve(Date today, int firstMonthOfYear) =>
+      (start, end);
 }
 
 /// Sentinel currency id for "All currencies" — matches the Invoice Ninja
@@ -153,6 +172,7 @@ class DashboardFilter {
     required this.range,
     this.currencyId = kDashboardCurrencyAll,
     this.includeDrafts = false,
+    this.firstMonthOfYear = 1,
   });
 
   factory DashboardFilter.defaults() => const DashboardFilter(
@@ -165,16 +185,25 @@ class DashboardFilter {
   final int currencyId;
   final bool includeDrafts;
 
+  /// Company `first_month_of_year` (1=Jan..12=Dec), stamped onto the filter by
+  /// the dashboard VM from the active `Formatter`. Drives the fiscal-year
+  /// shift of the `thisYear` / `lastYear` presets. NOT serialized (it's a
+  /// company setting, re-injected each session) — but it IS folded into
+  /// [filterHash] via the resolved dates, so changing the fiscal year re-keys
+  /// the dashboard cache.
+  final int firstMonthOfYear;
+
   /// Resolve the date range to concrete dates. The same `today` is used to
   /// derive [filterHash], so callers should pass the same value to both.
   (Date start, Date end) resolveDates({Date? today}) =>
-      range.resolve(today: today);
+      range.resolve(today: today, firstMonthOfYear: firstMonthOfYear);
 
   /// Stable, process-restart-safe hash. `v1|` prefix lets us evolve the
   /// filter schema without re-using cached entries.
   String filterHash({Date? today}) {
     final t = today ?? Date.today();
-    final seed = 'v1|${range.hashSeed(t)}|c=$currencyId|d=$includeDrafts';
+    final seed =
+        'v1|${range.hashSeed(t, firstMonthOfYear)}|c=$currencyId|d=$includeDrafts';
     return sha1.convert(utf8.encode(seed)).toString().substring(0, 12);
   }
 
@@ -182,11 +211,13 @@ class DashboardFilter {
     DashboardDateRange? range,
     int? currencyId,
     bool? includeDrafts,
+    int? firstMonthOfYear,
   }) {
     return DashboardFilter(
       range: range ?? this.range,
       currencyId: currencyId ?? this.currencyId,
       includeDrafts: includeDrafts ?? this.includeDrafts,
+      firstMonthOfYear: firstMonthOfYear ?? this.firstMonthOfYear,
     );
   }
 
@@ -251,12 +282,17 @@ class DashboardFilter {
     return other is DashboardFilter &&
         other.currencyId == currencyId &&
         other.includeDrafts == includeDrafts &&
+        other.firstMonthOfYear == firstMonthOfYear &&
         _rangesEqual(other.range, range);
   }
 
   @override
-  int get hashCode =>
-      Object.hash(currencyId, includeDrafts, _rangeHashCode(range));
+  int get hashCode => Object.hash(
+    currencyId,
+    includeDrafts,
+    firstMonthOfYear,
+    _rangeHashCode(range),
+  );
 
   static bool _rangesEqual(DashboardDateRange a, DashboardDateRange b) {
     if (a is DashboardPresetRange && b is DashboardPresetRange) {

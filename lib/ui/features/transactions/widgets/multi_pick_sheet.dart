@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Modal sheet with a search field + scrollable checkbox list. Returns
 /// the selected ids on Apply, `null` on Cancel. Used by the match panel
@@ -24,6 +25,7 @@ Future<List<String>?> showMultiPickSheet<T>({
   Decimal Function(T)? amountOf,
   String Function(T)? currencyOf,
   String? summaryFormatter,
+  Formatter? formatter,
   List<String> initialSelected = const <String>[],
   bool addSelectAllButton = false,
 }) {
@@ -39,6 +41,7 @@ Future<List<String>?> showMultiPickSheet<T>({
       subtitleOf: subtitleOf,
       amountOf: amountOf,
       currencyOf: currencyOf,
+      formatter: formatter,
       initialSelected: initialSelected.toSet(),
       addSelectAllButton: addSelectAllButton,
     ),
@@ -55,6 +58,7 @@ class _MultiPickSheet<T> extends StatefulWidget {
     this.subtitleOf,
     this.amountOf,
     this.currencyOf,
+    this.formatter,
     this.addSelectAllButton = false,
   });
 
@@ -65,6 +69,7 @@ class _MultiPickSheet<T> extends StatefulWidget {
   final String Function(T)? subtitleOf;
   final Decimal Function(T)? amountOf;
   final String Function(T)? currencyOf;
+  final Formatter? formatter;
   final Set<String> initialSelected;
   final bool addSelectAllButton;
 
@@ -119,6 +124,21 @@ class _MultiPickSheetState<T> extends State<_MultiPickSheet<T>> {
       }
     }
     return null;
+  }
+
+  /// Running-total label. Formats the summed amount through the central
+  /// [Formatter] (using the selected rows' currency when one is supplied,
+  /// else the company default). Falls back to the bare `CODE 0.00` shape
+  /// while the formatter is still resolving / not provided.
+  String get _selectedTotalText {
+    final currencyId = _selectedCurrency;
+    final formatted = widget.formatter?.money(
+      _selectedTotal,
+      currencyId: currencyId,
+    );
+    if (formatted != null && formatted.isNotEmpty) return formatted;
+    return '${currencyId == null ? '' : '$currencyId '}'
+        '${_selectedTotal.toStringAsFixed(2)}';
   }
 
   @override
@@ -242,9 +262,7 @@ class _MultiPickSheetState<T> extends State<_MultiPickSheet<T>> {
                     ),
                     const Spacer(),
                     Text(
-                      '${context.tr('total')}: '
-                      '${_selectedCurrency == null ? '' : '$_selectedCurrency '}'
-                      '${_selectedTotal.toStringAsFixed(2)}',
+                      '${context.tr('total')}: $_selectedTotalText',
                       style: TextStyle(
                         color: tokens.ink,
                         fontWeight: FontWeight.w600,

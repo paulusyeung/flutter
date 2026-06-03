@@ -4,128 +4,18 @@
 //
 import 'package:drift/drift.dart';
 import 'package:drift/internal/migrations.dart';
-import 'schema_v7.dart' as v7;
-import 'schema_v8.dart' as v8;
-import 'schema_v10.dart' as v10;
-import 'schema_v11.dart' as v11;
-import 'schema_v12.dart' as v12;
-import 'schema_v13.dart' as v13;
-import 'schema_v18.dart' as v18;
-import 'schema_v19.dart' as v19;
-import 'schema_v20.dart' as v20;
-import 'schema_v21.dart' as v21;
-import 'schema_v25.dart' as v25;
-import 'schema_v26.dart' as v26;
-import 'schema_v27.dart' as v27;
-import 'schema_v29.dart' as v29;
-import 'schema_v31.dart' as v31;
-import 'schema_v32.dart' as v32;
-import 'schema_v34.dart' as v34;
-import 'schema_v37.dart' as v37;
-import 'schema_v46.dart' as v46;
-import 'schema_v49.dart' as v49;
-import 'schema_v51.dart' as v51;
-import 'schema_v52.dart' as v52;
-import 'schema_v53.dart' as v53;
-import 'schema_v54.dart' as v54;
-import 'schema_v55.dart' as v55;
-import 'schema_v56.dart' as v56;
-import 'schema_v57.dart' as v57;
-import 'schema_v58.dart' as v58;
+import 'schema_v1.dart' as v1;
 
 class GeneratedHelper implements SchemaInstantiationHelper {
   @override
   GeneratedDatabase databaseForVersion(QueryExecutor db, int version) {
     switch (version) {
-      case 7:
-        return v7.DatabaseAtV7(db);
-      case 8:
-        return v8.DatabaseAtV8(db);
-      case 10:
-        return v10.DatabaseAtV10(db);
-      case 11:
-        return v11.DatabaseAtV11(db);
-      case 12:
-        return v12.DatabaseAtV12(db);
-      case 13:
-        return v13.DatabaseAtV13(db);
-      case 18:
-        return v18.DatabaseAtV18(db);
-      case 19:
-        return v19.DatabaseAtV19(db);
-      case 20:
-        return v20.DatabaseAtV20(db);
-      case 21:
-        return v21.DatabaseAtV21(db);
-      case 25:
-        return v25.DatabaseAtV25(db);
-      case 26:
-        return v26.DatabaseAtV26(db);
-      case 27:
-        return v27.DatabaseAtV27(db);
-      case 29:
-        return v29.DatabaseAtV29(db);
-      case 31:
-        return v31.DatabaseAtV31(db);
-      case 32:
-        return v32.DatabaseAtV32(db);
-      case 34:
-        return v34.DatabaseAtV34(db);
-      case 37:
-        return v37.DatabaseAtV37(db);
-      case 46:
-        return v46.DatabaseAtV46(db);
-      case 49:
-        return v49.DatabaseAtV49(db);
-      case 51:
-        return v51.DatabaseAtV51(db);
-      case 52:
-        return v52.DatabaseAtV52(db);
-      case 53:
-        return v53.DatabaseAtV53(db);
-      case 54:
-        return v54.DatabaseAtV54(db);
-      case 55:
-        return v55.DatabaseAtV55(db);
-      case 56:
-        return v56.DatabaseAtV56(db);
-      case 57:
-        return v57.DatabaseAtV57(db);
-      case 58:
-        return v58.DatabaseAtV58(db);
+      case 1:
+        return v1.DatabaseAtV1(db);
       default:
         throw MissingSchemaException(version, versions);
     }
   }
 
-  static const versions = const [
-    7,
-    8,
-    10,
-    11,
-    12,
-    13,
-    18,
-    19,
-    20,
-    21,
-    25,
-    26,
-    27,
-    29,
-    31,
-    32,
-    34,
-    37,
-    46,
-    49,
-    51,
-    52,
-    53,
-    54,
-    55,
-    56,
-    57,
-    58,
-  ];
+  static const versions = const [1];
 }

@@ -168,6 +168,70 @@ class Clients extends Table with TableInfo {
     requiredDuringInsert: true,
     $customConstraints: 'NOT NULL',
   );
+  late final GeneratedColumn<String> countryId = GeneratedColumn<String>(
+    'country_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<String> industryId = GeneratedColumn<String>(
+    'industry_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<String> sizeId = GeneratedColumn<String>(
+    'size_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<String> classification = GeneratedColumn<String>(
+    'classification',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<String> vatNumber = GeneratedColumn<String>(
+    'vat_number',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<String> groupSettingsId = GeneratedColumn<String>(
+    'group_settings_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<String> idNumber = GeneratedColumn<String>(
+    'id_number',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<String> assignedUserId = GeneratedColumn<String>(
+    'assigned_user_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
   late final GeneratedColumn<String> locations = GeneratedColumn<String>(
     'locations',
     aliasedName,
@@ -197,6 +261,14 @@ class Clients extends Table with TableInfo {
     email,
     displayName,
     balance,
+    countryId,
+    industryId,
+    sizeId,
+    classification,
+    vatNumber,
+    groupSettingsId,
+    idNumber,
+    assignedUserId,
     locations,
   ];
   @override
@@ -977,6 +1049,15 @@ class NavState extends Table with TableInfo {
     requiredDuringInsert: false,
     $customConstraints: 'NULL',
   );
+  late final GeneratedColumn<String> recentEntitiesJson =
+      GeneratedColumn<String>(
+        'recent_entities_json',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        $customConstraints: 'NULL',
+      );
   late final GeneratedColumn<int> sidebarCollapsed = GeneratedColumn<int>(
     'sidebar_collapsed',
     aliasedName,
@@ -1006,6 +1087,7 @@ class NavState extends Table with TableInfo {
     darkVariant,
     customThemeJson,
     filtersJson,
+    recentEntitiesJson,
     sidebarCollapsed,
     updatedAt,
   ];
@@ -1121,6 +1203,24 @@ class Companies extends Table with TableInfo {
   );
   late final GeneratedColumn<String> industryId = GeneratedColumn<String>(
     'industry_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'\'',
+    defaultValue: const CustomExpression('\'\''),
+  );
+  late final GeneratedColumn<String> firstMonthOfYear = GeneratedColumn<String>(
+    'first_month_of_year',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'\'',
+    defaultValue: const CustomExpression('\'\''),
+  );
+  late final GeneratedColumn<String> firstDayOfWeek = GeneratedColumn<String>(
+    'first_day_of_week',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -1940,6 +2040,8 @@ class Companies extends Table with TableInfo {
     customFields,
     sizeId,
     industryId,
+    firstMonthOfYear,
+    firstDayOfWeek,
     legalEntityId,
     hasEInvoiceCertificate,
     eInvoiceCertificatePassphrase,
@@ -8740,8 +8842,8 @@ class Tokens extends Table with TableInfo {
   bool get dontWriteConstraints => true;
 }
 
-class DatabaseAtV54 extends GeneratedDatabase {
-  DatabaseAtV54(QueryExecutor e) : super(e);
+class DatabaseAtV1 extends GeneratedDatabase {
+  DatabaseAtV1(QueryExecutor e) : super(e);
   late final Clients clients = Clients(this);
   late final Products products = Products(this);
   late final Outbox outbox = Outbox(this);
@@ -8831,5 +8933,5 @@ class DatabaseAtV54 extends GeneratedDatabase {
     tokens,
   ];
   @override
-  int get schemaVersion => 54;
+  int get schemaVersion => 1;
 }

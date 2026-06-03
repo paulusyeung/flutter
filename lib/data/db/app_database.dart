@@ -42,7 +42,6 @@ import 'package:admin/data/db/dao/webhook_dao.dart';
 import 'package:admin/data/db/dao/user_settings_dao.dart';
 import 'package:admin/data/db/dao/design_dao.dart';
 import 'package:admin/data/db/dao/vendor_dao.dart';
-import 'package:admin/data/db/migrations.dart';
 import 'package:admin/data/db/tables/bank_accounts_table.dart';
 import 'package:admin/data/db/tables/bank_transactions_table.dart';
 import 'package:admin/data/db/tables/clients_table.dart';
@@ -178,20 +177,24 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 58;
+  int get schemaVersion => 1;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+    // Single squashed schema — no migrations yet. This is a pre-launch app
+    // with no installed databases to upgrade, so the whole schema is built
+    // fresh by `createAll()` from the current Dart table definitions. The
+    // company-scoped performance indexes and the Client filter indexes are
+    // created imperatively (drift doesn't model them, so they're not part of
+    // `createAll()`), hence the explicit calls here; `CREATE INDEX IF NOT
+    // EXISTS` keeps this idempotent.
+    //
+    // When the first post-launch schema change lands, bump `schemaVersion` and
+    // add an `onUpgrade` step — see `docs/squashing-migrations.md`.
     onCreate: (m) async {
       await m.createAll();
-      // Fresh installs skip `onUpgrade`, so the performance indexes the
-      // v50 migration step adds for upgraders must also be created here.
-      // `CREATE INDEX IF NOT EXISTS` keeps both paths idempotent.
       await createPerformanceIndexes(this);
       await createClientFilterIndexes(this);
-    },
-    onUpgrade: (m, from, to) async {
-      await runMigrations(this, m, from, to);
     },
   );
 
@@ -319,4 +322,85 @@ Future<bool> isSchemaIntact(AppDatabase db) async {
     _log.severe('Drift schema validation failed', e, st);
     return false;
   }
+}
+
+/// Create the company-scoped list/sort/count indexes. Auto-discovers the
+/// per-entity tables (any Drift table carrying a `company_id` column) so a
+/// newly-added entity is covered without editing this list.
+///
+/// `(company_id, updated_at)` serves the company filter + the default
+/// `updated_at` ordering + the keyset pagination cursor; `(company_id,
+/// is_deleted)` serves the active/deleted state filter and the badge
+/// `COUNT(*)`. Not part of `createAll()` (drift doesn't model these indexes),
+/// so the migration strategy calls it explicitly; `IF NOT EXISTS` keeps it
+/// safe to call on `onCreate` and on every subsequent boot.
+Future<void> createPerformanceIndexes(AppDatabase db) async {
+  for (final table in db.allTables) {
+    final columns = table.$columns.map((c) => c.name).toSet();
+    if (!columns.contains('company_id')) continue;
+    final t = table.actualTableName;
+    if (columns.contains('updated_at')) {
+      await db.customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_${t}_company_updated '
+        'ON $t (company_id, updated_at)',
+      );
+    }
+    if (columns.contains('is_deleted')) {
+      await db.customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_${t}_company_deleted '
+        'ON $t (company_id, is_deleted)',
+      );
+    }
+  }
+}
+
+/// Targeted indexes for the high-cardinality Client filter columns
+/// (`country_id` / `group_settings_id`) that the generic
+/// [createPerformanceIndexes] loop doesn't cover (it only indexes
+/// `updated_at` / `is_deleted`). Called from the migration strategy on fresh
+/// installs; `IF NOT EXISTS` keeps it idempotent.
+Future<void> createClientFilterIndexes(AppDatabase db) async {
+  await db.customStatement(
+    'CREATE INDEX IF NOT EXISTS idx_clients_company_country '
+    'ON clients (company_id, country_id)',
+  );
+  await db.customStatement(
+    'CREATE INDEX IF NOT EXISTS idx_clients_company_group '
+    'ON clients (company_id, group_settings_id)',
+  );
+}
+
+/// Shared denormalized columns every entity table carries: id, company id,
+/// tmp id, timestamps, dirty/deleted flags, and the four optional
+/// `custom_value` columns Invoice Ninja exposes per entity. Entity tables
+/// (Invoice, Quote, Payment, …) declare their per-entity columns alongside
+/// these.
+///
+/// A column-contract reference, not a migration helper — concrete Drift table
+/// classes mirror these column names/types.
+class StandardEntityColumns {
+  const StandardEntityColumns._();
+
+  /// Documents the contract Invoice/Quote/Product/etc. tables follow. Concrete
+  /// table classes mirror this list of columns by name and type. The
+  /// `customFieldCount` parameter records the per-entity custom-field arity
+  /// in the class doc rather than at runtime.
+  static const List<String> requiredColumnNames = <String>[
+    'id',
+    'company_id',
+    'temp_id',
+    'updated_at',
+    'created_at',
+    'archived_at',
+    'is_dirty',
+    'is_deleted',
+    'payload',
+  ];
+
+  static const List<String> customFieldColumnNames = <String>[
+    'custom_value1',
+    'custom_value2',
+    'custom_value3',
+    'custom_value4',
+  ];
 }

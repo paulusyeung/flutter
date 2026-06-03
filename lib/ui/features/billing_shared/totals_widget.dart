@@ -121,7 +121,10 @@ class TotalsWidget extends StatelessWidget {
           context,
           label: context.tr('discount'),
           amount: discountIsAmount ? discount : null,
-          rawText: discountIsAmount ? null : '${discount.toString()}%',
+          rawText: discountIsAmount
+              ? null
+              : (formatter?.percent(discount.toDouble()) ??
+                    '${discount.toString()}%'),
           subtractive: true,
         ),
       for (final s in surcharges)

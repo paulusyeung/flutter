@@ -341,7 +341,7 @@ Decimal getTaxable(BillingTotalsInput input, int precision) {
           Decimal.fromInt(100),
           precision: 10,
         ),
-        2,
+        precision,
       );
     }
   }

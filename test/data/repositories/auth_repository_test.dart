@@ -862,9 +862,9 @@ void main() {
     });
 
     group('background /refresh heal', () {
-      // The v4 schema migration added `is_owner` / `is_admin` columns with
-      // DEFAULT false and didn't backfill — so an account owner who upgrades
-      // through that bump without re-logging in stays silently downgraded
+      // `is_owner` / `is_admin` are denormalized columns that default to false
+      // and aren't recomputed locally — so an account owner whose cached
+      // company row never received the real flags stays silently downgraded
       // (the company picker shows "Only the account owner can add companies"
       // even though they are). restore() now re-pulls /api/v1/refresh in the
       // background so these flags self-heal on next launch.

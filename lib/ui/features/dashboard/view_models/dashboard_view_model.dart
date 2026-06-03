@@ -33,12 +33,21 @@ class DashboardViewModel extends ChangeNotifier {
     required this.companyId,
     required this.navStateDao,
     required this.statics,
+    int firstMonthOfYear = 1,
     Duration persistDebounce = const Duration(milliseconds: 500),
     DateTime Function()? now,
-  }) : _persistDebounce = persistDebounce,
+  }) : _fiscalYearStart = firstMonthOfYear,
+       _persistDebounce = persistDebounce,
        _now = now ?? DateTime.now {
+    _filter = _filter.copyWith(firstMonthOfYear: _fiscalYearStart);
     unawaited(_init());
   }
+
+  /// Company `first_month_of_year`, stamped onto every [DashboardFilter] so the
+  /// `thisYear` / `lastYear` presets resolve onto the fiscal year. Not known
+  /// synchronously at construction (it rides the async `Formatter`); the screen
+  /// pushes it in via [setFiscalYearStart] once the formatter resolves.
+  int _fiscalYearStart;
 
   final DashboardRepository repo;
   final String companyId;
@@ -172,6 +181,23 @@ class DashboardViewModel extends ChangeNotifier {
 
   Future<void> setDateRange(DashboardDateRange range) =>
       setFilter(_filter.copyWith(range: range));
+
+  /// Push the company's `first_month_of_year` in once the async `Formatter`
+  /// resolves (it isn't known at construction). Re-stamps the filter and, only
+  /// when that actually changes the resolved range (i.e. the active preset is
+  /// `thisYear` / `lastYear`), refetches the filter-keyed sections.
+  Future<void> setFiscalYearStart(int firstMonthOfYear) async {
+    if (firstMonthOfYear == _fiscalYearStart) return;
+    _fiscalYearStart = firstMonthOfYear;
+    final next = _filter.copyWith(firstMonthOfYear: firstMonthOfYear);
+    final reranged = next.filterHash() != _filter.filterHash();
+    _filter = next;
+    notifyListeners();
+    if (reranged) {
+      _resubscribeFilterKeyed();
+      await _refreshFilterKeyed();
+    }
+  }
 
   void toggleChartSeries(ChartSeriesId id) {
     final next = Set<ChartSeriesId>.from(visibleChartSeries);
@@ -513,7 +539,11 @@ class DashboardViewModel extends ChangeNotifier {
       if (dash is! Map) return;
 
       final loadedFilter = DashboardFilter.tryFromJson(dash['filter']);
-      if (loadedFilter != null) _filter = loadedFilter;
+      // Re-stamp the fiscal year: it isn't persisted (it's a company setting),
+      // so a restored filter must inherit the current value.
+      if (loadedFilter != null) {
+        _filter = loadedFilter.copyWith(firstMonthOfYear: _fiscalYearStart);
+      }
 
       final series = dash['chartSeries'];
       if (series is List) {

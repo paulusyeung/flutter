@@ -1,3 +1,4 @@
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -7,6 +8,7 @@ import 'package:admin/data/models/domain/company_gateway.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
 import 'package:admin/domain/gateway_constants.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/gateways/view_models/company_gateway_edit_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
@@ -200,7 +202,7 @@ class _LimitsAndFeesEditor extends StatelessWidget {
                   vm.updateFees(typeId, fees.copyWith(adjustFeePercent: v)),
               contentPadding: EdgeInsets.zero,
             ),
-            _FeePreview(fees: fees),
+            _FeePreview(fees: fees, companyId: vm.companyId),
           ],
         ),
       ],
@@ -208,10 +210,13 @@ class _LimitsAndFeesEditor extends StatelessWidget {
   }
 }
 
-/// Live preview: "On a $100 payment: total $X, fee $Y".
+/// Live preview: "On a $100 payment: total $X, fee $Y" — rendered through
+/// the company `Formatter` so the currency symbol / locale match the rest
+/// of the app instead of a hardcoded `$`.
 class _FeePreview extends StatelessWidget {
-  const _FeePreview({required this.fees});
+  const _FeePreview({required this.fees, required this.companyId});
   final FeesAndLimits fees;
+  final String companyId;
 
   @override
   Widget build(BuildContext context) {
@@ -220,16 +225,34 @@ class _FeePreview extends StatelessWidget {
     if (fees.feeCap > 0 && fee > fees.feeCap) fee = fees.feeCap;
     final total = sample + fee;
     final tokens = context.inTheme;
-    return Padding(
-      padding: EdgeInsets.only(top: InSpacing.md(context)),
-      child: Text(
-        context.tr('fees_sample', {
-          'amount': '\$${sample.toStringAsFixed(0)}',
-          'total': '\$${total.toStringAsFixed(2)}',
-          'fee': '\$${fee.toStringAsFixed(2)}',
-        }),
-        style: TextStyle(color: tokens.ink2),
-      ),
+    final services = context.read<Services>();
+    return FutureBuilder<Formatter>(
+      future: services.formatterFor(companyId),
+      initialData: services.formatterIfReady(companyId),
+      builder: (context, snapshot) {
+        final formatter = snapshot.data;
+        // Money via the company `Formatter` (no currencyId → company
+        // default). Before it resolves (cold deep-link), fall back to a
+        // bare `$` so the preview still renders.
+        String money(double value, {int fractionDigits = 2}) {
+          if (formatter == null) {
+            return '\$${value.toStringAsFixed(fractionDigits)}';
+          }
+          return formatter.money(Decimal.parse(value.toStringAsFixed(2)));
+        }
+
+        return Padding(
+          padding: EdgeInsets.only(top: InSpacing.md(context)),
+          child: Text(
+            context.tr('fees_sample', {
+              'amount': money(sample, fractionDigits: 0),
+              'total': money(total),
+              'fee': money(fee),
+            }),
+            style: TextStyle(color: tokens.ink2),
+          ),
+        );
+      },
     );
   }
 }

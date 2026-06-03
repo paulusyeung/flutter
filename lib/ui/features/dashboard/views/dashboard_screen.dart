@@ -80,6 +80,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     companyId: _companyId,
     navStateDao: _services.db.navStateDao,
     statics: _services.statics,
+    // Sync best-effort: if the formatter is already cached (e.g. navigating
+    // back to the dashboard) we get the real fiscal year immediately;
+    // otherwise _loadFormatter pushes it in once it resolves.
+    firstMonthOfYear:
+        _services.formatterIfReady(_companyId)?.settings.firstMonthOfYear ?? 1,
   );
 
   void _loadFormatter() {
@@ -87,6 +92,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _services.formatterFor(loadingFor).then((f) {
       if (!mounted || loadingFor != _companyId) return;
       setState(() => _formatter = f);
+      _vm.setFiscalYearStart(f.settings.firstMonthOfYear);
     });
   }
 

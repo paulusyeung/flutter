@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:decimal/decimal.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -1406,11 +1407,14 @@ class _ExportButton extends StatelessWidget {
         bytes: result.bytes,
       );
       if (path != null) {
-        // Desktop returns a path without writing; mobile writes via `bytes`
-        // and may return null. Write defensively when we got a path.
-        final file = File(path);
-        if (!await file.exists() || await file.length() == 0) {
-          await file.writeAsBytes(result.bytes);
+        // Desktop returns a path without writing; web has no filesystem — the
+        // browser already downloaded via `saveFile`, and `File` would throw
+        // `UnsupportedError`. Write defensively only on native.
+        if (!kIsWeb) {
+          final file = File(path);
+          if (!await file.exists() || await file.length() == 0) {
+            await file.writeAsBytes(result.bytes);
+          }
         }
         messenger.showSnackBar(SnackBar(content: Text(tr('exported'))));
       }
@@ -1595,6 +1599,8 @@ class _ReportTableArea extends StatelessWidget {
     final vm = context.watch<ReportsViewModel>();
     final view = vm.buildView(
       companyCurrencyId: formatter?.settings.currencyId,
+      firstMonthOfYear: formatter?.settings.firstMonthOfYear ?? 1,
+      firstDayOfWeek: formatter?.settings.firstDayOfWeek ?? 0,
     );
     if (view.rows.isEmpty && view.groups.isEmpty) {
       return Column(
@@ -2189,10 +2195,14 @@ class _CellText extends StatelessWidget {
       return c.value!.toString();
     }
     if (cell is ReportDateCell) {
-      return (cell as ReportDateCell).value?.toIso() ?? '';
+      final iso = (cell as ReportDateCell).value?.toIso();
+      if (iso == null) return '';
+      return formatter?.date(iso) ?? iso;
     }
     if (cell is ReportDateTimeCell) {
-      return (cell as ReportDateTimeCell).value?.toIso8601String() ?? '';
+      final iso = (cell as ReportDateTimeCell).value?.toIso8601String();
+      if (iso == null) return '';
+      return formatter?.date(iso, showTime: true) ?? iso;
     }
     if (cell is ReportAgeCell) {
       final c = cell as ReportAgeCell;

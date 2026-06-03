@@ -115,8 +115,13 @@ class TimeEntryRow extends StatelessWidget {
     );
   }
 
-  String _hhmm(DateTime d) =>
-      '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+  // [d] is already local wall-clock (callers pass `.toLocal()`), so format the
+  // fields directly — honoring military time, no further tz conversion.
+  String _hhmm(DateTime d) => formatTimeOfDay(
+    d.hour,
+    d.minute,
+    military: formatter?.settings.enableMilitaryTime ?? true,
+  );
 
   String _formatDate(DateTime d) {
     final iso =

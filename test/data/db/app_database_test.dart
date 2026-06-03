@@ -424,20 +424,20 @@ void main() {
   group('isSchemaIntact', () {
     // The schema-drift backstop in `openAppDatabase` exists because at least
     // one user has been observed running a build whose `companies` table is
-    // missing the v7 `logo_url` column — every subsequent write throws
+    // missing the `logo_url` column — every subsequent write throws
     // `SqliteException: no such column: logo_url` deep inside login. The
-    // check below probes every table with a `SELECT col1, col2, ... LIMIT 0`,
-    // so a missing column raises at prepare time and the opener resets the
-    // file instead of letting the crash propagate.
+    // check below probes every table via `PRAGMA table_info`, so a missing
+    // column is detected and the opener resets the file instead of letting
+    // the crash propagate.
 
-    test('returns true on a freshly created v7 database', () async {
+    test('returns true on a freshly created database', () async {
       expect(await isSchemaIntact(db), isTrue);
     });
 
     test('returns false when a column the code expects is missing', () async {
-      // Simulate the partial-migration state: drop the `logo_url` column
-      // that v7 was supposed to add. SQLite 3.35+ supports DROP COLUMN,
-      // which the sqlite3 native bundle this project uses provides.
+      // Simulate a schema-drift state: drop a `logo_url` column the code
+      // expects. SQLite 3.35+ supports DROP COLUMN, which the sqlite3 native
+      // bundle this project uses provides.
       await db.customStatement('ALTER TABLE companies DROP COLUMN logo_url');
       expect(
         await isSchemaIntact(db),

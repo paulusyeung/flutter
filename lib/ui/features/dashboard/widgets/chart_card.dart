@@ -248,6 +248,7 @@ class ChartCard extends StatelessWidget {
       startDate: series?.startDate,
       endDate: series?.endDate,
       grouping: vm.chartGrouping,
+      firstDayOfWeek: formatter.settings.firstDayOfWeek,
     );
     if (axis.isEmpty) {
       return _disabledOverlay(tokens, context.tr('no_data_for_period'));

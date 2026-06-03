@@ -2,6 +2,7 @@ import 'package:admin/data/models/domain/dashboard/dashboard_chart_series.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/ui/features/dashboard/view_models/dashboard_view_model.dart'
     show ChartSeriesId, ChartGrouping;
+import 'package:admin/utils/date_ranges.dart';
 
 /// Continuous, zero-filled time axis built from the *sparse* per-date points
 /// `POST /api/v1/charts/chart_summary_v2` returns.
@@ -15,9 +16,9 @@ import 'package:admin/ui/features/dashboard/view_models/dashboard_view_model.dar
 /// then accumulates each sparse point into its bucket. This is a faithful Dart
 /// port of that algorithm.
 ///
-/// Week assumption: weeks are Sunday-started; the boundary is the Saturday
-/// week-end — matching dayjs's default `en` locale `endOf('week')`, which is
-/// what React uses.
+/// Week start follows the company `first_day_of_week` (0=Sun..6=Sat). With the
+/// default 0 (Sunday) the boundary is the Saturday week-end — matching dayjs's
+/// default `en` locale `endOf('week')`, which is what React uses.
 class ChartAxis {
   const ChartAxis({required this.buckets, required this.values});
 
@@ -46,6 +47,7 @@ ChartAxis buildContinuousAxis({
   required Date? startDate,
   required Date? endDate,
   required ChartGrouping grouping,
+  int firstDayOfWeek = 0,
 }) {
   Date? start = startDate;
   Date? end = endDate;
@@ -71,13 +73,13 @@ ChartAxis buildContinuousAxis({
 
   // Coarsen the *render* grouping until the boundary count is bounded.
   var effective = grouping;
-  var buckets = _buildBoundaries(start, end, effective);
+  var buckets = _buildBoundaries(start, end, effective, firstDayOfWeek);
   while (buckets.length > _maxRenderBuckets &&
       effective != ChartGrouping.month) {
     effective = effective == ChartGrouping.day
         ? ChartGrouping.week
         : ChartGrouping.month;
-    buckets = _buildBoundaries(start, end, effective);
+    buckets = _buildBoundaries(start, end, effective, firstDayOfWeek);
   }
 
   final values = <ChartSeriesId, List<double>>{
@@ -101,12 +103,17 @@ ChartAxis buildContinuousAxis({
 
 // ─── Boundary generation (ports of the React helpers) ───────────────────────
 
-List<Date> _buildBoundaries(Date start, Date end, ChartGrouping grouping) {
+List<Date> _buildBoundaries(
+  Date start,
+  Date end,
+  ChartGrouping grouping,
+  int firstDayOfWeek,
+) {
   switch (grouping) {
     case ChartGrouping.day:
       return _ensureUnique(_dailyBoundaries(start, end), end);
     case ChartGrouping.week:
-      return _ensureUnique(_weeklyBoundaries(start, end), end);
+      return _ensureUnique(_weeklyBoundaries(start, end, firstDayOfWeek), end);
     case ChartGrouping.month:
       return _ensureUnique(_monthlyBoundaries(start, end), end);
   }
@@ -125,8 +132,8 @@ List<Date> _dailyBoundaries(Date start, Date end) {
 
 /// Port of `useGenerateWeekDateRange`: push `start` once, then each
 /// `endOf('week')`, stepping a week at a time; clamp/append so the final
-/// boundary lands on `end`.
-List<Date> _weeklyBoundaries(Date start, Date end) {
+/// boundary lands on `end`. The week-end honors [firstDayOfWeek].
+List<Date> _weeklyBoundaries(Date start, Date end, int firstDayOfWeek) {
   final out = <Date>[];
   var cursor = start.toDateTime();
   final last = end.toDateTime();
@@ -136,7 +143,9 @@ List<Date> _weeklyBoundaries(Date start, Date end) {
       out.add(start);
       first = false;
     }
-    out.add(_weekEnd(Date(cursor.year, cursor.month, cursor.day)));
+    out.add(
+      endOfWeek(Date(cursor.year, cursor.month, cursor.day), firstDayOfWeek),
+    );
     cursor = cursor.add(const Duration(days: 7));
   }
   if (out.isEmpty) return out;
@@ -235,12 +244,3 @@ Date _monthEnd(Date d) {
 bool _isFirstOfMonth(Date d) => d.day == 1;
 
 bool _isLastOfMonth(Date d) => d.day == _monthEnd(d).day;
-
-/// Saturday of [d]'s Sunday-started week (dayjs default `en` `endOf('week')`).
-Date _weekEnd(Date d) {
-  final dt = d.toDateTime();
-  // DateTime.weekday: Mon=1..Sun=7 → Sunday-based index Sun=0..Sat=6.
-  final sundayBased = dt.weekday % 7;
-  final end = dt.add(Duration(days: 6 - sundayBased));
-  return Date(end.year, end.month, end.day);
-}

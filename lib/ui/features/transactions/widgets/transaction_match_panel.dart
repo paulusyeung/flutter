@@ -21,6 +21,7 @@ import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/transactions/widgets/multi_pick_sheet.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Match panel for an unmatched/matched bank transaction. Two tabs:
 ///   * **Create** — turn the transaction into a new payment (CREDIT) /
@@ -31,9 +32,17 @@ import 'package:admin/ui/features/transactions/widgets/multi_pick_sheet.dart';
 /// `BankTransactionRepository.matchTo* / linkTo*` helpers — which enqueue
 /// the correct outbox rows with the right wire payloads.
 class TransactionMatchPanel extends StatefulWidget {
-  const TransactionMatchPanel({super.key, required this.transaction});
+  const TransactionMatchPanel({
+    super.key,
+    required this.transaction,
+    this.formatter,
+  });
 
   final BankTransaction transaction;
+
+  /// Active-company [Formatter] for rendering amounts; null while it is
+  /// still resolving on a cold start (amounts fall back to raw fixed-2).
+  final Formatter? formatter;
 
   @override
   State<TransactionMatchPanel> createState() => _TransactionMatchPanelState();
@@ -66,7 +75,7 @@ class _TransactionMatchPanelState extends State<TransactionMatchPanel> {
           bodyBuilder: (ctx) => Padding(
             padding: const EdgeInsets.all(16),
             child: tx.isDeposit
-                ? _CreditCreateTab(transaction: tx)
+                ? _CreditCreateTab(transaction: tx, formatter: widget.formatter)
                 : _DebitCreateTab(transaction: tx),
           ),
         ),
@@ -76,8 +85,8 @@ class _TransactionMatchPanelState extends State<TransactionMatchPanel> {
           bodyBuilder: (ctx) => Padding(
             padding: const EdgeInsets.all(16),
             child: tx.isDeposit
-                ? _CreditLinkTab(transaction: tx)
-                : _DebitLinkTab(transaction: tx),
+                ? _CreditLinkTab(transaction: tx, formatter: widget.formatter)
+                : _DebitLinkTab(transaction: tx, formatter: widget.formatter),
           ),
         ),
       ],
@@ -90,8 +99,9 @@ class _TransactionMatchPanelState extends State<TransactionMatchPanel> {
 // ──────────────────────────────────────────────────────────────────────
 
 class _CreditCreateTab extends StatefulWidget {
-  const _CreditCreateTab({required this.transaction});
+  const _CreditCreateTab({required this.transaction, this.formatter});
   final BankTransaction transaction;
+  final Formatter? formatter;
 
   @override
   State<_CreditCreateTab> createState() => _CreditCreateTabState();
@@ -152,6 +162,16 @@ class _CreditCreateTabState extends State<_CreditCreateTab> {
     return total;
   }
 
+  /// Format an invoice-side amount through the central [Formatter] (company
+  /// default currency — invoices carry no row currency), falling back to a
+  /// raw fixed-2 string while the formatter is still resolving.
+  String _money(Decimal value) {
+    final formatted = widget.formatter?.money(value);
+    return (formatted != null && formatted.isNotEmpty)
+        ? formatted
+        : value.toStringAsFixed(2);
+  }
+
   Future<void> _pickInvoices(BuildContext context) async {
     final picked = await showMultiPickSheet<Invoice>(
       context: context,
@@ -159,8 +179,11 @@ class _CreditCreateTabState extends State<_CreditCreateTab> {
       items: _selectableInvoices,
       idOf: (i) => i.id,
       displayString: (i) => i.number.isEmpty ? i.id : '#${i.number}',
-      subtitleOf: (i) => i.balance.toStringAsFixed(2),
+      // Invoices carry no row currency (only clientId), so format with the
+      // company default — matching the invoice list tile's `cellMoney`.
+      subtitleOf: (i) => _money(i.balance),
       amountOf: (i) => i.balance,
+      formatter: widget.formatter,
       initialSelected: _selectedInvoiceIds.toList(),
     );
     if (picked != null) {
@@ -244,7 +267,7 @@ class _CreditCreateTabState extends State<_CreditCreateTab> {
               ),
               const Spacer(),
               Text(
-                _selectedTotal.toStringAsFixed(2),
+                _money(_selectedTotal),
                 style: TextStyle(
                   color: tokens.ink,
                   fontWeight: FontWeight.w600,
@@ -278,8 +301,9 @@ class _CreditCreateTabState extends State<_CreditCreateTab> {
 // ──────────────────────────────────────────────────────────────────────
 
 class _CreditLinkTab extends StatefulWidget {
-  const _CreditLinkTab({required this.transaction});
+  const _CreditLinkTab({required this.transaction, this.formatter});
   final BankTransaction transaction;
+  final Formatter? formatter;
 
   @override
   State<_CreditLinkTab> createState() => _CreditLinkTabState();
@@ -335,7 +359,15 @@ class _CreditLinkTabState extends State<_CreditLinkTab> {
               idOf: (p) => p.id,
               displayString: (p) {
                 final num = p.number.isEmpty ? p.id : '#${p.number}';
-                return '$num · ${p.amount.toStringAsFixed(2)}';
+                // Payments carry their own currency_id.
+                final formatted = widget.formatter?.money(
+                  p.amount,
+                  currencyId: p.currencyId,
+                );
+                final amount = (formatted != null && formatted.isNotEmpty)
+                    ? formatted
+                    : p.amount.toStringAsFixed(2);
+                return '$num · $amount';
               },
               onChanged: (p) => setState(() => _selectedPayment = p),
             );
@@ -502,8 +534,9 @@ class _DebitCreateTabState extends State<_DebitCreateTab> {
 // ──────────────────────────────────────────────────────────────────────
 
 class _DebitLinkTab extends StatefulWidget {
-  const _DebitLinkTab({required this.transaction});
+  const _DebitLinkTab({required this.transaction, this.formatter});
   final BankTransaction transaction;
+  final Formatter? formatter;
 
   @override
   State<_DebitLinkTab> createState() => _DebitLinkTabState();
@@ -536,10 +569,21 @@ class _DebitLinkTabState extends State<_DebitLinkTab> {
       items: candidates,
       idOf: (e) => e.id,
       displayString: (e) => e.number.isEmpty ? e.id : '#${e.number}',
-      subtitleOf: (e) =>
-          '${e.amount.toStringAsFixed(2)} ${e.currencyId.isEmpty ? '' : '(${e.currencyId})'}',
+      // Expenses carry their own currency_id — format through it. Fall back
+      // to the raw `amount (CODE)` shape while the formatter is resolving.
+      subtitleOf: (e) {
+        final formatted = widget.formatter?.money(
+          e.amount,
+          currencyId: e.currencyId,
+        );
+        return (formatted != null && formatted.isNotEmpty)
+            ? formatted
+            : '${e.amount.toStringAsFixed(2)} '
+                  '${e.currencyId.isEmpty ? '' : '(${e.currencyId})'}';
+      },
       amountOf: (e) => e.amount,
       currencyOf: (e) => e.currencyId,
+      formatter: widget.formatter,
       initialSelected: _selectedExpenseIds.toList(),
       addSelectAllButton: true,
     );

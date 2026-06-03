@@ -109,13 +109,7 @@ class _InTimeFieldState extends State<InTimeField> {
 
   String _format(TimeOfDay? value) {
     if (value == null) return '';
-    if (_military) {
-      return '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
-    }
-    final h = value.hour;
-    final isPm = h >= 12;
-    final hour12 = h % 12 == 0 ? 12 : h % 12;
-    return '$hour12:${value.minute.toString().padLeft(2, '0')} ${isPm ? 'PM' : 'AM'}';
+    return formatTimeOfDay(value.hour, value.minute, military: _military);
   }
 
   String _hint() {

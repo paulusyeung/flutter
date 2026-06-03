@@ -259,7 +259,10 @@ class ReportsViewModel extends ChangeNotifier {
       () => _disposed || _runEpoch != epoch;
 
   // ─── Engine memoization ───
-  final _engine = const ReportEngine();
+  // Non-final: rebuilt in [buildView] when the company fiscal-year / week-start
+  // settings change (the engine carries them so date subgroups bucket on the
+  // fiscal year + configured week start).
+  ReportEngine _engine = const ReportEngine();
   // Memo key: (preview identity, ui-state hash, exchange-rates epoch).
   // statics.currencies is rebuilt on company switch / refresh; we use its
   // identityHashCode as a cheap epoch proxy.
@@ -277,6 +280,8 @@ class ReportsViewModel extends ChangeNotifier {
   ReportView buildView({
     String? companyCurrencyId,
     bool convertCurrency = false,
+    int firstMonthOfYear = 1,
+    int firstDayOfWeek = 0,
     Map<String, Decimal>? exchangeRatesOverride,
   }) {
     final preview = _run.preview ?? ReportPreview.empty;
@@ -304,8 +309,19 @@ class ReportsViewModel extends ChangeNotifier {
       ratesEpoch,
       companyCurrencyId,
       convertCurrency,
+      firstMonthOfYear,
+      firstDayOfWeek,
     );
     if (_memoKey == key && _memoView != null) return _memoView!;
+    // The engine holds the fiscal-year / week-start settings; rebuild it when
+    // they change so date subgroups bucket correctly.
+    if (_engine.firstMonthOfYear != firstMonthOfYear ||
+        _engine.firstDayOfWeek != firstDayOfWeek) {
+      _engine = ReportEngine(
+        firstMonthOfYear: firstMonthOfYear,
+        firstDayOfWeek: firstDayOfWeek,
+      );
+    }
     _memoView = _engine.compute(
       preview: preview,
       ui: ui,

@@ -25,6 +25,7 @@ Plus two non-negotiables carried from admin-portal:
 | Sync / outbox / 401-403-404-409-412-422 behavior | § Sync — non-obvious rules |
 | Bundled vs per-entity data loading | § Data loading — bundled vs per-entity |
 | Architecture, write pipeline, project layout | § Architecture — at a glance + `docs/architecture.md` |
+| Squashing Drift migrations (pre-launch) | `docs/squashing-migrations.md` |
 | Localization / Transifex import | § Localization |
 | Cross-checking against legacy admin-portal / React / API docs | § Reference points |
 | macOS entitlement, dev login pre-fill, platform targets | `docs/setup.md` |
