@@ -527,19 +527,25 @@ class _BillingDocEmailScreenState extends State<BillingDocEmailScreen> {
 
   Widget _buildNarrow(BuildContext context) {
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         appBar: _appBar(
           context,
           wide: false,
           bottom: _tabBar(context, [
             context.tr('email'),
+            context.tr('preview'),
             context.tr('pdf'),
             context.tr('history'),
           ]),
         ),
         body: TabBarView(
-          children: [_composeScroll(context), _pdfView(), _historyView()],
+          children: [
+            _composeScroll(context),
+            _previewTab(context),
+            _pdfView(),
+            _historyView(),
+          ],
         ),
       ),
     );
@@ -623,29 +629,22 @@ class _BillingDocEmailScreenState extends State<BillingDocEmailScreen> {
   }
 
   Widget _composeScroll(BuildContext context) {
-    // Scale the inline preview to the viewport so it doesn't swamp a short
-    // phone screen, while staying readable (and capped) on tall ones.
-    final previewHeight = (MediaQuery.sizeOf(context).height * 0.5).clamp(
-      320.0,
-      480.0,
-    );
     return SingleChildScrollView(
       padding: EdgeInsets.all(InSpacing.lg(context)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _form(context),
-          SizedBox(height: InSpacing.lg(context)),
-          _previewLabel(context),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: previewHeight,
-            child: TemplatePreviewPanel(controller: _preview),
-          ),
-        ],
-      ),
+      child: _form(context),
     );
   }
+
+  /// Standalone preview tab (mobile). Deliberately kept OUT of the compose
+  /// scroll: on desktop/web the preview is `SuperReader`, which integrates
+  /// with a *vertical* ancestor scrollable and then renders as a sliver —
+  /// inside the compose `SingleChildScrollView` that crashes (a sliver in a
+  /// box context). A tab body's only scrollable ancestor is the horizontal
+  /// `TabBarView`, which super_editor ignores, so the panel renders as a box.
+  Widget _previewTab(BuildContext context) => Padding(
+    padding: EdgeInsets.all(InSpacing.lg(context)),
+    child: TemplatePreviewPanel(controller: _preview),
+  );
 
   Widget _previewLabel(BuildContext context) => Text(
     context.tr('preview'),
