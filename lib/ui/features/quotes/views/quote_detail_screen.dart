@@ -22,6 +22,12 @@ import 'package:admin/ui/features/billing_shared/pdf/billing_doc_pdf_view.dart';
 import 'package:admin/ui/features/quotes/view_models/quote_detail_view_model.dart';
 import 'package:admin/ui/features/quotes/widgets/quote_actions.dart';
 import 'package:admin/ui/features/quotes/widgets/quote_status_pill.dart';
+import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/value/date.dart';
+import 'package:admin/domain/billing/totals_calculator.dart';
+import 'package:admin/ui/core/widgets/formatter_scope.dart';
+import 'package:admin/ui/features/billing_shared/billing_doc_kpi_strip.dart';
+import 'package:admin/ui/features/billing_shared/billing_doc_overview.dart';
 
 class QuoteDetailScreen extends StatefulWidget {
   const QuoteDetailScreen({required this.id, super.key});
@@ -68,8 +74,15 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen>
               QuoteActions.dispatch(context, _services, _companyId, quote, a),
         ),
       ),
-      bodyBuilder: (context, quote) =>
-          _Body(quote: quote, services: _services, companyId: _companyId),
+      bodyBuilder: (context, quote) {
+        final body = _Body(
+          quote: quote,
+          services: _services,
+          companyId: _companyId,
+        );
+        final f = formatter;
+        return f != null ? FormatterScope(formatter: f, child: body) : body;
+      },
     );
   }
 }
@@ -207,6 +220,9 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    final formatter = FormatterScope.maybeOf(context);
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value!.currentCompanyId;
     return Container(
       padding: EdgeInsets.all(InSpacing.lg(context)),
       decoration: BoxDecoration(
@@ -240,36 +256,57 @@ class _Header extends StatelessWidget {
             link: true,
             style: TextStyle(color: tokens.ink3),
           ),
+          const SizedBox(height: 12),
+          BillingDatesCaption(
+            formatter: formatter,
+            issuedLabel: context.tr('date'),
+            issued: quote.date,
+            secondaryLabel: context.tr('valid_until'),
+            secondary: quote.dueDate,
+            overduePrefix: context.tr('expired'),
+            overdueDays: quote.isExpired && quote.dueDate != null
+                ? Date.today().differenceInDays(quote.dueDate!)
+                : null,
+          ),
           const SizedBox(height: 16),
-          Wrap(
-            spacing: 24,
-            runSpacing: 12,
-            children: [
-              _LabelValue(
-                label: context.tr('amount'),
-                value: quote.amount.toString(),
-              ),
-              if (quote.dueDate != null)
-                _LabelValue(
-                  label: context.tr('valid_until'),
-                  value: quote.dueDate!.toIso(),
-                  strong: quote.isExpired,
+          StreamBuilder<Client?>(
+            stream: services.clients.watch(
+              companyId: companyId,
+              id: quote.clientId,
+            ),
+            builder: (context, clientSnap) => BillingDocKpiStrip(
+              formatter: formatter,
+              currencyId: clientSnap.data?.currencyId,
+              metrics: [
+                BillingMetric(
+                  label: context.tr('amount'),
+                  amount: quote.amount,
                 ),
-              if (quote.invoiceId.isNotEmpty)
-                _LabelValue(
-                  label: context.tr('converted_to'),
-                  valueChild: InvoiceNameLabel(
+              ],
+            ),
+          ),
+          if (quote.invoiceId.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Text(
+                  '${context.tr('converted_to')} ',
+                  style: TextStyle(fontSize: 12.5, color: tokens.ink3),
+                ),
+                Flexible(
+                  child: InvoiceNameLabel(
                     invoiceId: quote.invoiceId,
                     link: true,
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 12.5,
                       fontWeight: FontWeight.w600,
-                      color: context.inTheme.ink,
+                      color: tokens.ink,
                     ),
                   ),
                 ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -282,41 +319,48 @@ class _Overview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          context.tr('public_notes'),
-          style: TextStyle(
-            fontSize: 12,
-            color: tokens.ink3,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          quote.publicNotes.isEmpty ? '—' : quote.publicNotes,
-          style: TextStyle(color: tokens.ink),
-        ),
-        SizedBox(height: InSpacing.md(context)),
-        Text(
-          context.tr('terms'),
-          style: TextStyle(
-            fontSize: 12,
-            color: tokens.ink3,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          quote.terms.isEmpty ? '—' : quote.terms,
-          style: TextStyle(color: tokens.ink),
-        ),
-      ],
+    final formatter = FormatterScope.maybeOf(context);
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value!.currentCompanyId;
+    return StreamBuilder<Client?>(
+      stream: services.clients.watch(companyId: companyId, id: quote.clientId),
+      builder: (context, clientSnap) {
+        final currencyId = clientSnap.data?.currencyId;
+        final precision =
+            formatter?.precisionFor(clientCurrencyId: currencyId) ?? 2;
+        return BillingDocOverview(
+          totalsInput: _quoteTotalsInput(quote),
+          precision: precision,
+          publicNotes: quote.publicNotes,
+          terms: quote.terms,
+          formatter: formatter,
+          currencyId: currencyId,
+        );
+      },
     );
   }
 }
+
+BillingTotalsInput _quoteTotalsInput(Quote d) => BillingTotalsInput(
+  lineItems: d.lineItems,
+  discount: d.discount,
+  isAmountDiscount: d.isAmountDiscount,
+  usesInclusiveTaxes: d.usesInclusiveTaxes,
+  taxName1: d.taxName1,
+  taxRate1: d.taxRate1,
+  taxName2: d.taxName2,
+  taxRate2: d.taxRate2,
+  taxName3: d.taxName3,
+  taxRate3: d.taxRate3,
+  customSurcharge1: d.customSurcharge1,
+  customSurcharge2: d.customSurcharge2,
+  customSurcharge3: d.customSurcharge3,
+  customSurcharge4: d.customSurcharge4,
+  customTaxes1: d.customTaxes1,
+  customTaxes2: d.customTaxes2,
+  customTaxes3: d.customTaxes3,
+  customTaxes4: d.customTaxes4,
+);
 
 class _PdfPane extends StatelessWidget {
   const _PdfPane({required this.quote});
@@ -334,45 +378,6 @@ class _PdfPane extends StatelessWidget {
             designId:
                 designId ?? (quote.designId.isEmpty ? null : quote.designId),
           ),
-    );
-  }
-}
-
-class _LabelValue extends StatelessWidget {
-  const _LabelValue({
-    required this.label,
-    this.value = '',
-    this.valueChild,
-    this.strong = false,
-  });
-  final String label;
-  final String value;
-
-  /// When provided, rendered instead of the [value] string (used for
-  /// reference rows that resolve a name via a `*NameLabel`).
-  final Widget? valueChild;
-  final bool strong;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(label, style: TextStyle(fontSize: 11, color: tokens.ink3)),
-        const SizedBox(height: 2),
-        valueChild ??
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: strong ? tokens.overdue : tokens.ink,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-      ],
     );
   }
 }

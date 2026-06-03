@@ -285,7 +285,7 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
   /// Clears the Postmark bounce/spam suppression for an invitation's
   /// `messageId` via `customActions[reactivateEmail]`. No local update — the
   /// Sends tab refreshes on the next credit sync.
-  Future<void> reactivateInvitationEmail({
+  Future<int> reactivateInvitationEmail({
     required String companyId,
     required String id,
     required String messageId,
@@ -323,6 +323,7 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
     required String sendAt,
     String? subject,
     String? body,
+    String? ccEmail,
   }) => enqueueMutation(
     companyId: companyId,
     entityId: id,
@@ -333,6 +334,7 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
       'send_at': sendAt,
       if (subject != null) 'subject': subject,
       if (body != null) 'body': body,
+      if (ccEmail != null) 'cc_email': ccEmail,
     },
   );
 

@@ -56,12 +56,32 @@ class _SyncEventListenerState extends State<SyncEventListener> {
   Future<void> _onEvent(SyncEvent event) async {
     if (!mounted) return;
 
-    // Non-modal failures (permanent 422 / dead row). Surfaced *before* the
-    // `_dialogOpen` guard: they don't contend for modal exclusivity, and
-    // gating them behind an open password/conflict sheet would silently
-    // drop a rejection the user never sees otherwise.
-    if (event is ValidationFailedEvent || event is DeadEvent) {
+    // 422 always surfaces as a toast that routes to the edit form ("shown in
+    // the form"). Surfaced *before* the `_dialogOpen` guard so an open
+    // password/conflict sheet can't silently swallow the rejection.
+    if (event is ValidationFailedEvent) {
       _showFailureToast(event);
+      return;
+    }
+
+    // A dead row whose caller is already surfacing the failure (an open edit
+    // form, or a confirm-after-server action) keeps the toast — no duplicate
+    // modal. An *unhandled* death is a silent background failure: while the
+    // user is online, escalate to a modal so they can't miss it; offline (or
+    // when a modal is already up) fall back to the toast so it's never dropped.
+    if (event is DeadEvent) {
+      if (event.handledByCaller) {
+        _showFailureToast(event);
+        return;
+      }
+      final services = context.read<Services>();
+      final online = await services.connectivity.isOnline;
+      if (!mounted) return;
+      if (online && !_dialogOpen) {
+        await _showFailureModal(event);
+      } else {
+        _showFailureToast(event);
+      }
       return;
     }
 
@@ -77,7 +97,7 @@ class _SyncEventListenerState extends State<SyncEventListener> {
         await _handleConflict(event);
       case ValidationFailedEvent():
       case DeadEvent():
-        break; // handled above, before the _dialogOpen guard
+        break; // handled above
     }
   }
 
@@ -117,6 +137,41 @@ class _SyncEventListenerState extends State<SyncEventListener> {
         }
       }),
     );
+  }
+
+  /// Modal escalation for a silent background failure — a dead outbox row the
+  /// user isn't otherwise watching (e.g. a reactivate-email that 400'd, or a
+  /// save that failed after the form popped on its online-save timeout), while
+  /// online. Mirrors [_handlePasswordRequired]'s `showDialog` + `_dialogOpen`
+  /// guarding. "View" routes to the Outbox screen (the row, its status, and
+  /// retry/discard live there); "Dismiss" closes.
+  Future<void> _showFailureModal(DeadEvent event) async {
+    _dialogOpen = true;
+    try {
+      final view = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(ctx.tr('could_not_save')),
+          content: event.message.isEmpty ? null : Text(event.message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(ctx.tr('dismiss')),
+            ),
+            FilledButton(
+              autofocus: true,
+              style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(ctx.tr('view')),
+            ),
+          ],
+        ),
+      );
+      if (!mounted) return;
+      if (view == true) context.go('/sync/outbox');
+    } finally {
+      _dialogOpen = false;
+    }
   }
 
   Future<void> _handlePasswordRequired() async {

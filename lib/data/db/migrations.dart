@@ -662,6 +662,16 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // No backfill: the list rebuilds as the user navigates post-upgrade.
     await m.addColumn(db.navState, db.navState.recentEntitiesJson);
   }
+  if (from < 57 && to >= 57) {
+    // first_month_of_year: top-level company field (Settings → Localization)
+    // that was never persisted — no column meant the server's value was
+    // dropped on every login/refresh and the dropdown rendered blank.
+    // Additive `addColumn` with a '' default (same pattern as the size_id /
+    // industry_id columns). No JSON backfill is possible: the value lives at
+    // the top level of the API company object, not in the stored `settings`
+    // blob — so it lands on the next login / company refresh.
+    await m.addColumn(db.companies, db.companies.firstMonthOfYear);
+  }
 }
 
 /// Create the company-scoped list/sort/count indexes. Auto-discovers the

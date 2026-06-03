@@ -66,9 +66,11 @@ class _ClientEmailHistoryTabState extends State<ClientEmailHistoryTab> {
   }
 
   Future<void> _reactivate(String messageId) async {
-    await runMutationWithNotify(
+    await runQueuedActionWithNotify(
       context,
-      () => _services.clients.reactivateContactEmail(
+      services: _services,
+      companyId: _companyId,
+      enqueue: () => _services.clients.reactivateContactEmail(
         companyId: _companyId,
         clientId: widget.client.id,
         messageId: messageId,

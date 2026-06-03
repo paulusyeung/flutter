@@ -595,6 +595,24 @@ class Formatter {
     return settings.countryId;
   }
 
+  /// Decimal precision of the resolved currency (client → vendor → group →
+  /// company cascade), defaulting to 2 when the currency is unknown. Feed to
+  /// `computeTotals` so its rounding matches what `money()` renders.
+  int precisionFor({
+    String? currencyId,
+    String? clientCurrencyId,
+    String? vendorCurrencyId,
+    String? groupCurrencyId,
+  }) {
+    final id = _resolveCurrencyId(
+      currencyId: currencyId,
+      clientCurrencyId: clientCurrencyId,
+      vendorCurrencyId: vendorCurrencyId,
+      groupCurrencyId: groupCurrencyId,
+    );
+    return currencies[id]?.precision ?? 2;
+  }
+
   // -------------------------------------------------------------------------
   // Money / numbers.
   // -------------------------------------------------------------------------

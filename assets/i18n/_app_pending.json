@@ -992,5 +992,7 @@
   "built_in": "Built-in",
   "entities": "Entities",
   "plan_expired_renew": "Your plan has expired — renew to restore the advanced settings",
-  "custom_designs_help": "Browse built-in designs and create your own custom PDF templates."
+  "custom_designs_help": "Browse built-in designs and create your own custom PDF templates.",
+  "email_scheduled": "Email scheduled",
+  "no_email_on_file": "No email address on file for the recipient"
 }

@@ -53,6 +53,31 @@ class GeneratedNumbersShell extends StatelessWidget {
     final modules = company.enabledModules;
     bool isOn(EnabledModule m) => isModuleEnabled(modules, m);
 
+    // Every per-entity tab shares slug == labelKey == titleKey and threads the
+    // active `company` (for the custom-field chip gating) plus a stable
+    // ValueKey so a tab-list change can't alias the body's pattern controller.
+    TabbedSettingsTab entityTab({
+      required String slug,
+      required String patternKey,
+      required String counterKey,
+      bool showClientTokens = false,
+      bool showVendorTokens = false,
+    }) {
+      return TabbedSettingsTab(
+        slug: slug,
+        labelKey: slug,
+        body: GeneratedNumbersEntityBody(
+          key: ValueKey(patternKey),
+          company: company,
+          patternKey: patternKey,
+          counterKey: counterKey,
+          titleKey: slug,
+          showClientTokens: showClientTokens,
+          showVendorTokens: showVendorTokens,
+        ),
+      );
+    }
+
     final tabs = <TabbedSettingsTab>[
       TabbedSettingsTab(
         slug: '',
@@ -64,148 +89,85 @@ class GeneratedNumbersShell extends StatelessWidget {
           showSharedCreditCounter: isOn(EnabledModule.credits),
         ),
       ),
-      const TabbedSettingsTab(
+      entityTab(
         slug: 'clients',
-        labelKey: 'clients',
-        body: GeneratedNumbersEntityBody(
-          patternKey: 'client_number_pattern',
-          counterKey: 'client_number_counter',
-          titleKey: 'clients',
-          showClientTokens: false,
-          showVendorTokens: false,
-        ),
+        patternKey: 'client_number_pattern',
+        counterKey: 'client_number_counter',
       ),
       if (isOn(EnabledModule.invoices))
-        const TabbedSettingsTab(
+        entityTab(
           slug: 'invoices',
-          labelKey: 'invoices',
-          body: GeneratedNumbersEntityBody(
-            patternKey: 'invoice_number_pattern',
-            counterKey: 'invoice_number_counter',
-            titleKey: 'invoices',
-            showClientTokens: true,
-            showVendorTokens: false,
-          ),
+          patternKey: 'invoice_number_pattern',
+          counterKey: 'invoice_number_counter',
+          showClientTokens: true,
         ),
       if (isOn(EnabledModule.recurringInvoices))
-        const TabbedSettingsTab(
+        entityTab(
           slug: 'recurring_invoices',
-          labelKey: 'recurring_invoices',
-          body: GeneratedNumbersEntityBody(
-            patternKey: 'recurring_invoice_number_pattern',
-            counterKey: 'recurring_invoice_number_counter',
-            titleKey: 'recurring_invoices',
-            showClientTokens: true,
-            showVendorTokens: false,
-          ),
+          patternKey: 'recurring_invoice_number_pattern',
+          counterKey: 'recurring_invoice_number_counter',
+          showClientTokens: true,
         ),
       if (isOn(EnabledModule.invoices))
-        const TabbedSettingsTab(
+        entityTab(
           slug: 'payments',
-          labelKey: 'payments',
-          body: GeneratedNumbersEntityBody(
-            patternKey: 'payment_number_pattern',
-            counterKey: 'payment_number_counter',
-            titleKey: 'payments',
-            showClientTokens: true,
-            showVendorTokens: false,
-          ),
+          patternKey: 'payment_number_pattern',
+          counterKey: 'payment_number_counter',
+          showClientTokens: true,
         ),
       if (isOn(EnabledModule.quotes))
-        const TabbedSettingsTab(
+        entityTab(
           slug: 'quotes',
-          labelKey: 'quotes',
-          body: GeneratedNumbersEntityBody(
-            patternKey: 'quote_number_pattern',
-            counterKey: 'quote_number_counter',
-            titleKey: 'quotes',
-            showClientTokens: true,
-            showVendorTokens: false,
-          ),
+          patternKey: 'quote_number_pattern',
+          counterKey: 'quote_number_counter',
+          showClientTokens: true,
         ),
       if (isOn(EnabledModule.credits))
-        const TabbedSettingsTab(
+        entityTab(
           slug: 'credits',
-          labelKey: 'credits',
-          body: GeneratedNumbersEntityBody(
-            patternKey: 'credit_number_pattern',
-            counterKey: 'credit_number_counter',
-            titleKey: 'credits',
-            showClientTokens: true,
-            showVendorTokens: false,
-          ),
+          patternKey: 'credit_number_pattern',
+          counterKey: 'credit_number_counter',
+          showClientTokens: true,
         ),
       if (isOn(EnabledModule.projects))
-        const TabbedSettingsTab(
+        entityTab(
           slug: 'projects',
-          labelKey: 'projects',
-          body: GeneratedNumbersEntityBody(
-            patternKey: 'project_number_pattern',
-            counterKey: 'project_number_counter',
-            titleKey: 'projects',
-            showClientTokens: true,
-            showVendorTokens: false,
-          ),
+          patternKey: 'project_number_pattern',
+          counterKey: 'project_number_counter',
+          showClientTokens: true,
         ),
       if (isOn(EnabledModule.tasks))
-        const TabbedSettingsTab(
+        entityTab(
           slug: 'tasks',
-          labelKey: 'tasks',
-          body: GeneratedNumbersEntityBody(
-            patternKey: 'task_number_pattern',
-            counterKey: 'task_number_counter',
-            titleKey: 'tasks',
-            showClientTokens: false,
-            showVendorTokens: false,
-          ),
+          patternKey: 'task_number_pattern',
+          counterKey: 'task_number_counter',
         ),
       if (isOn(EnabledModule.vendors))
-        const TabbedSettingsTab(
+        entityTab(
           slug: 'vendors',
-          labelKey: 'vendors',
-          body: GeneratedNumbersEntityBody(
-            patternKey: 'vendor_number_pattern',
-            counterKey: 'vendor_number_counter',
-            titleKey: 'vendors',
-            showClientTokens: false,
-            showVendorTokens: false,
-          ),
+          patternKey: 'vendor_number_pattern',
+          counterKey: 'vendor_number_counter',
         ),
       if (isOn(EnabledModule.purchaseOrders))
-        const TabbedSettingsTab(
+        entityTab(
           slug: 'purchase_orders',
-          labelKey: 'purchase_orders',
-          body: GeneratedNumbersEntityBody(
-            patternKey: 'purchase_order_number_pattern',
-            counterKey: 'purchase_order_number_counter',
-            titleKey: 'purchase_orders',
-            showClientTokens: false,
-            showVendorTokens: true,
-          ),
+          patternKey: 'purchase_order_number_pattern',
+          counterKey: 'purchase_order_number_counter',
+          showVendorTokens: true,
         ),
       if (isOn(EnabledModule.expenses))
-        const TabbedSettingsTab(
+        entityTab(
           slug: 'expenses',
-          labelKey: 'expenses',
-          body: GeneratedNumbersEntityBody(
-            patternKey: 'expense_number_pattern',
-            counterKey: 'expense_number_counter',
-            titleKey: 'expenses',
-            showClientTokens: false,
-            showVendorTokens: true,
-          ),
+          patternKey: 'expense_number_pattern',
+          counterKey: 'expense_number_counter',
+          showVendorTokens: true,
         ),
       if (isOn(EnabledModule.recurringExpenses))
-        const TabbedSettingsTab(
+        entityTab(
           slug: 'recurring_expenses',
-          labelKey: 'recurring_expenses',
-          body: GeneratedNumbersEntityBody(
-            patternKey: 'recurring_expense_number_pattern',
-            counterKey: 'recurring_expense_number_counter',
-            titleKey: 'recurring_expenses',
-            showClientTokens: false,
-            showVendorTokens: true,
-          ),
+          patternKey: 'recurring_expense_number_pattern',
+          counterKey: 'recurring_expense_number_counter',
+          showVendorTokens: true,
         ),
     ];
 

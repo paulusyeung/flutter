@@ -110,6 +110,7 @@ class InvoicesApi extends BaseEntityApi<InvoiceListApi, InvoiceItemApi> {
     required String sendAt,
     String? subject,
     String? body,
+    String? ccEmail,
     required String idempotencyKey,
   }) => action(
     id: id,
@@ -120,6 +121,7 @@ class InvoicesApi extends BaseEntityApi<InvoiceListApi, InvoiceItemApi> {
       'send_at': sendAt,
       if (subject != null) 'subject': subject,
       if (body != null) 'body': body,
+      if (ccEmail != null) 'cc_email': ccEmail,
     },
   );
 

@@ -280,7 +280,7 @@ class QuoteRepository extends BaseEntityRepository<Quote, QuoteApi> {
   /// Clears the Postmark bounce/spam suppression for an invitation's
   /// `messageId` via `customActions[reactivateEmail]`. No local update — the
   /// Sends tab refreshes on the next quote sync.
-  Future<void> reactivateInvitationEmail({
+  Future<int> reactivateInvitationEmail({
     required String companyId,
     required String id,
     required String messageId,
@@ -346,6 +346,7 @@ class QuoteRepository extends BaseEntityRepository<Quote, QuoteApi> {
     required String sendAt,
     String? subject,
     String? body,
+    String? ccEmail,
   }) => enqueueMutation(
     companyId: companyId,
     entityId: id,
@@ -356,6 +357,7 @@ class QuoteRepository extends BaseEntityRepository<Quote, QuoteApi> {
       'send_at': sendAt,
       if (subject != null) 'subject': subject,
       if (body != null) 'body': body,
+      if (ccEmail != null) 'cc_email': ccEmail,
     },
   );
 

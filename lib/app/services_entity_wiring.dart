@@ -855,6 +855,7 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
           sendAt: payload['send_at'] as String,
           subject: payload['subject'] as String?,
           body: payload['body'] as String?,
+          ccEmail: payload['cc_email'] as String?,
           idempotencyKey: row.idempotencyKey,
         );
         return response?.data;
@@ -1011,6 +1012,7 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
           sendAt: payload['send_at'] as String,
           subject: payload['subject'] as String?,
           body: payload['body'] as String?,
+          ccEmail: payload['cc_email'] as String?,
           idempotencyKey: row.idempotencyKey,
         );
         return response?.data;
@@ -1274,6 +1276,7 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
           sendAt: payload['send_at'] as String,
           subject: payload['subject'] as String?,
           body: payload['body'] as String?,
+          ccEmail: payload['cc_email'] as String?,
           idempotencyKey: row.idempotencyKey,
         );
         return response?.data;
@@ -1408,6 +1411,7 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
           sendAt: payload['send_at'] as String,
           subject: payload['subject'] as String?,
           body: payload['body'] as String?,
+          ccEmail: payload['cc_email'] as String?,
           idempotencyKey: row.idempotencyKey,
         );
         return response?.data;
@@ -1534,6 +1538,7 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
           sendAt: payload['send_at'] as String,
           subject: payload['subject'] as String?,
           body: payload['body'] as String?,
+          ccEmail: payload['cc_email'] as String?,
           idempotencyKey: row.idempotencyKey,
         );
         return response?.data;

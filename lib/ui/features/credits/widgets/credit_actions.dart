@@ -17,8 +17,6 @@ import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/billing_shared/actions/add_comment_prompt.dart';
-import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
-import 'package:admin/ui/features/billing_shared/email/billing_doc_email_sheet.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
 import 'package:admin/ui/features/payments/view_models/payment_edit_view_model.dart';
 
@@ -285,36 +283,9 @@ class CreditActions {
       case CreditAction.sendEmail:
       case CreditAction.scheduleEmail:
         if (tmpGate()) return;
-        final result = await showBillingDocEmailSheet(
-          context,
-          entity: BillingDocType.credit,
-          entityNumber: credit.number,
-          formatter: null,
-        );
-        if (result == null) return;
-        if (result.scheduledFor != null) {
-          await services.credits.scheduleEmail(
-            companyId: companyId,
-            id: credit.id,
-            template: result.template,
-            sendAt: result.scheduledFor!.toUtc().toIso8601String(),
-            subject: result.subject.isEmpty ? null : result.subject,
-            body: result.body.isEmpty ? null : result.body,
-          );
-          if (!context.mounted) return;
-          Notify.success(context, context.tr('email_queued'));
-        } else {
-          await services.credits.email(
-            companyId: companyId,
-            id: credit.id,
-            template: result.template,
-            subject: result.subject.isEmpty ? null : result.subject,
-            body: result.body.isEmpty ? null : result.body,
-            ccEmail: result.ccEmail.isEmpty ? null : result.ccEmail,
-          );
-          if (!context.mounted) return;
-          Notify.success(context, context.tr('email_queued'));
-        }
+        // Full-screen Send Email surface; bulk multi-select still uses the
+        // showBillingDocEmailSheet bottom sheet.
+        context.go('/credits/${credit.id}/email');
 
       case CreditAction.markSent:
         if (tmpGate()) return;

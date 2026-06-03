@@ -58,8 +58,9 @@ class BillingDocSendsTab extends StatefulWidget {
   final bool isHosted;
 
   /// Enqueues the reactivate mutation for a message id (the owning repo's
-  /// `reactivateInvitationEmail`).
-  final Future<void> Function(String messageId) onReactivate;
+  /// `reactivateInvitationEmail`) and returns the outbox row id, so the tab can
+  /// confirm the result against the server when online.
+  final Future<int> Function(String messageId) onReactivate;
 
   final String clientId;
   final String vendorId;
@@ -96,9 +97,11 @@ class _BillingDocSendsTabState extends State<BillingDocSendsTab> {
     }
   }
 
-  Future<void> _reactivate(String messageId) => runMutationWithNotify(
+  Future<void> _reactivate(String messageId) => runQueuedActionWithNotify(
     context,
-    () => widget.onReactivate(messageId),
+    services: widget.services,
+    companyId: widget.companyId,
+    enqueue: () => widget.onReactivate(messageId),
     successMsg: context.tr('email_reactivated'),
   );
 

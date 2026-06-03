@@ -85,7 +85,7 @@ class DashboardInvoiceTable extends StatelessWidget {
             row.dueDate != null &&
             row.dueDate!.compareTo(today) < 0);
     final daysOverdue = (overdue && row.dueDate != null)
-        ? _daysBetween(row.dueDate!, today)
+        ? today.differenceInDays(row.dueDate!)
         : null;
 
     final tone = StatusBadge.toneForInvoiceStatus(
@@ -177,11 +177,5 @@ class DashboardInvoiceTable extends StatelessWidget {
         Icon(Icons.more_vert, size: 16, color: tokens.ink3),
       ],
     );
-  }
-
-  int _daysBetween(Date a, Date b) {
-    final aDt = DateTime(a.year, a.month, a.day);
-    final bDt = DateTime(b.year, b.month, b.day);
-    return bDt.difference(aDt).inDays;
   }
 }

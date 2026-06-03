@@ -54,6 +54,8 @@ import 'package:admin/ui/features/recurring_invoices/views/recurring_invoice_det
 import 'package:admin/ui/features/recurring_invoices/views/recurring_invoice_edit_screen.dart';
 import 'package:admin/ui/features/recurring_invoices/views/recurring_invoice_list_screen.dart';
 import 'package:admin/ui/features/recurring_invoices/views/recurring_invoice_pdf_route_screen.dart';
+import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
+import 'package:admin/ui/features/billing_shared/email/billing_doc_email_route_screen.dart';
 import 'package:admin/ui/features/products/views/product_detail_screen.dart';
 import 'package:admin/ui/features/products/views/product_edit_screen.dart';
 import 'package:admin/ui/features/products/views/product_list_screen.dart';
@@ -530,6 +532,13 @@ final kWiredEntityModules = <EntityModuleSpec>[
               state.uri.queryParameters['delivery_note'] == 'true',
         ),
       ),
+      GoRoute(
+        path: 'email',
+        builder: (context, state) => BillingDocEmailRouteScreen(
+          type: BillingDocType.invoice,
+          id: state.pathParameters['id']!,
+        ),
+      ),
     ],
     badgeStream: (ctx, companyId) =>
         ctx.watchEntityCount(EntityType.invoice, companyId),
@@ -579,6 +588,13 @@ final kWiredEntityModules = <EntityModuleSpec>[
         builder: (context, state) =>
             QuotePdfRouteScreen(id: state.pathParameters['id']!),
       ),
+      GoRoute(
+        path: 'email',
+        builder: (context, state) => BillingDocEmailRouteScreen(
+          type: BillingDocType.quote,
+          id: state.pathParameters['id']!,
+        ),
+      ),
     ],
     badgeStream: (ctx, companyId) =>
         ctx.watchEntityCount(EntityType.quote, companyId),
@@ -621,6 +637,13 @@ final kWiredEntityModules = <EntityModuleSpec>[
         path: 'pdf',
         builder: (context, state) =>
             CreditPdfRouteScreen(id: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: 'email',
+        builder: (context, state) => BillingDocEmailRouteScreen(
+          type: BillingDocType.credit,
+          id: state.pathParameters['id']!,
+        ),
       ),
     ],
     badgeStream: (ctx, companyId) =>
@@ -670,6 +693,13 @@ final kWiredEntityModules = <EntityModuleSpec>[
         builder: (context, state) =>
             PurchaseOrderPdfRouteScreen(id: state.pathParameters['id']!),
       ),
+      GoRoute(
+        path: 'email',
+        builder: (context, state) => BillingDocEmailRouteScreen(
+          type: BillingDocType.purchaseOrder,
+          id: state.pathParameters['id']!,
+        ),
+      ),
     ],
     badgeStream: (ctx, companyId) =>
         ctx.watchEntityCount(EntityType.purchaseOrder, companyId),
@@ -714,6 +744,13 @@ final kWiredEntityModules = <EntityModuleSpec>[
         path: 'pdf',
         builder: (context, state) =>
             RecurringInvoicePdfRouteScreen(id: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: 'email',
+        builder: (context, state) => BillingDocEmailRouteScreen(
+          type: BillingDocType.recurringInvoice,
+          id: state.pathParameters['id']!,
+        ),
       ),
     ],
     badgeStream: (ctx, companyId) =>

@@ -783,6 +783,126 @@ void main() {
       blocker.complete();
     });
   });
+
+  group('fail-fast 4xx + orphan recovery + caller-handled deaths', () {
+    test('a 4xx client error is marked dead on the FIRST attempt (no backoff) '
+        'and emits a DeadEvent the shell can surface', () async {
+      final disp = _ProgrammableDispatcher()
+        ..queueThrow(const ServerException(400, 'Bounce ID not found'));
+      final engine = makeEngine(disp);
+      final events = <SyncEvent>[];
+      engine.events.listen(events.add);
+      final id = await enqueueClient(entityId: 'c1', attempts: 0);
+
+      await engine.drainOnce(companyId: 'co');
+      await Future<void>.delayed(Duration.zero); // flush broadcast
+
+      final row = await (db.select(
+        db.outbox,
+      )..where((o) => o.id.equals(id))).getSingle();
+      expect(row.state, 'dead', reason: '400 is permanent — fail fast');
+      expect(row.lastStatusCode, 400);
+      expect(
+        row.attempts,
+        0,
+        reason: 'died on the first attempt, never walked the backoff schedule',
+      );
+      expect(disp.dispatches, 1);
+      final dead = events.single as DeadEvent;
+      expect(dead.statusCode, 400);
+      expect(dead.message, 'Bounce ID not found');
+      expect(
+        dead.handledByCaller,
+        isFalse,
+        reason: 'no awaitRow caller — the shell escalates to a modal online',
+      );
+    });
+
+    test('a 5xx server error still walks the backoff schedule (stays pending '
+        'on the first attempt), unlike a 4xx', () async {
+      final disp = _ProgrammableDispatcher()
+        ..queueThrow(const ServerException(503, 'Unavailable'));
+      final engine = makeEngine(disp, nowMs: 1000);
+      final id = await enqueueClient(entityId: 'c1', attempts: 0);
+
+      await engine.drainOnce(companyId: 'co');
+
+      final row = await (db.select(
+        db.outbox,
+      )..where((o) => o.id.equals(id))).getSingle();
+      expect(row.state, 'pending', reason: '5xx is transient — retried');
+      expect(row.nextAttemptAt - 1000, kBackoffSchedule[0].inMilliseconds);
+    });
+
+    test('a row orphaned in in_flight (interrupted drain) is re-armed to '
+        'pending and dispatched on the next drain', () async {
+      final disp = _ProgrammableDispatcher()..queueSuccess();
+      final engine = makeEngine(disp);
+      final id = await enqueueClient(entityId: 'c1');
+      // Simulate a prior pass that marked the row in_flight then died (process
+      // death) before its catch handler could reschedule / kill it.
+      await db.outboxDao.markInFlight(id);
+
+      final successes = await engine.drainOnce(companyId: 'co');
+
+      expect(
+        successes,
+        1,
+        reason: 'reset in_flight → pending, then dispatched to success',
+      );
+      expect(disp.dispatches, 1);
+      final remaining = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 1 << 60,
+      );
+      expect(remaining, isEmpty, reason: 'drained and removed');
+    });
+
+    test('awaitRow (default callerWillDisplayFailure) tags the dead row\'s '
+        'DeadEvent handledByCaller=true so the shell suppresses the modal and '
+        'lets the form/tap-site show it inline', () async {
+      final disp = _ProgrammableDispatcher()
+        ..queueThrow(const ServerException(400, 'Bounce ID not found'));
+      final engine = makeEngine(disp);
+      final events = <SyncEvent>[];
+      engine.events.listen(events.add);
+      final rowId = await enqueueClient(entityId: 'c1');
+
+      final result = await engine.awaitRow(
+        rowId: rowId,
+        companyId: 'co',
+        pollInterval: const Duration(milliseconds: 5),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(result.outcome, SyncRowOutcome.serverError);
+      expect(result.statusCode, 400);
+      final dead = events.whereType<DeadEvent>().single;
+      expect(dead.handledByCaller, isTrue);
+    });
+
+    test('awaitRow(callerWillDisplayFailure: false) leaves the DeadEvent '
+        'unhandled so the shell escalates to a modal', () async {
+      final disp = _ProgrammableDispatcher()
+        ..queueThrow(const ServerException(400, 'Bounce ID not found'));
+      final engine = makeEngine(disp);
+      final events = <SyncEvent>[];
+      engine.events.listen(events.add);
+      final rowId = await enqueueClient(entityId: 'c1');
+
+      final result = await engine.awaitRow(
+        rowId: rowId,
+        companyId: 'co',
+        pollInterval: const Duration(milliseconds: 5),
+        callerWillDisplayFailure: false,
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(result.outcome, SyncRowOutcome.serverError);
+      final dead = events.whereType<DeadEvent>().single;
+      expect(dead.handledByCaller, isFalse);
+    });
+  });
 }
 
 class _GatedDispatcher implements SyncDispatcher {

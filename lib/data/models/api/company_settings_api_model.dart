@@ -52,7 +52,9 @@ abstract class CompanySettingsApi with _$CompanySettingsApi {
     @JsonKey(name: 'military_time') bool? militaryTime,
     @JsonKey(name: 'show_currency_code') bool? showCurrencyCode,
     @JsonKey(name: 'use_comma_as_decimal_place') bool? useCommaAsDecimalPlace,
-    @JsonKey(name: 'first_month_of_year') String? firstMonthOfYear,
+    // NOTE: first_month_of_year is intentionally NOT here — it's a top-level
+    // company field (see CompanyApi.firstMonthOfYear), not a cascade setting.
+    // The server returns it on `company`, never on `company.settings`.
 
     // ── Defaults: terms & footers ───────────────────────────────────────
     @JsonKey(name: 'invoice_terms') String? invoiceTerms,

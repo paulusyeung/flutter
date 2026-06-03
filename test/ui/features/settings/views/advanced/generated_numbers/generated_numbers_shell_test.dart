@@ -210,6 +210,23 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  // Open a chip-bearing entity tab by tapping it. Loads the bare URL first
+  // (Settings tab, index 0 — matches the controller's initial index, so the
+  // shell's post-frame `animateTo` is a no-op), then taps the target tab once
+  // the scrollable TabBar is laid out, avoiding the un-laid-out-viewport crash
+  // that a non-zero deep link triggers (see the `_host` doc). Callers keep the
+  // tab list short so the target stays on-screen.
+  Future<void> pumpOnTab(
+    WidgetTester tester, {
+    required Company company,
+    required String tabLabel,
+  }) async {
+    await tester.pumpWidget(_host(services: makeServices(company: company)));
+    await settle(tester);
+    await tester.tap(find.widgetWithText(Tab, tabLabel));
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('all entity modules enabled → 13 tabs visible', (tester) async {
     final services = makeServices(
       company: Company(id: 'co-A', enabledModules: _allEntityModules()),
@@ -337,6 +354,127 @@ void main() {
     expect(
       find.descendant(of: find.byType(Tab), matching: find.text('Tasks')),
       findsNothing,
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  // The Clients tab (modules off → only Settings + Clients tabs, and Settings
+  // has no chips) isolates the Clients body's chips, so a token assertion can't
+  // collide with another entity tab.
+  testWidgets(
+    'variable chips use {\$token} format and tapping one inserts it',
+    (tester) async {
+      await pumpOnTab(
+        tester,
+        company: const Company(id: 'co-A', enabledModules: 0),
+        tabLabel: 'Clients',
+      );
+
+      // Brace-dollar (matches the legacy apps + the inserted token), not the
+      // old dollar-brace label.
+      expect(find.widgetWithText(ActionChip, '{\$counter}'), findsOneWidget);
+      expect(find.widgetWithText(ActionChip, '\${counter}'), findsNothing);
+
+      // Tapping splices the token into the pattern field. Read the controller
+      // directly: after insertion the label `{$counter}` also appears in the
+      // field, so a bare find.text would match both the chip and the field.
+      await tester.tap(find.widgetWithText(ActionChip, '{\$counter}'));
+      await tester.pumpAndSettle();
+
+      final patternField = tester.widget<TextField>(
+        find.widgetWithText(TextField, 'Number Pattern'),
+      );
+      expect(patternField.controller!.text, contains('{\$counter}'));
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets('tapping multiple chips appends rather than replacing', (
+    tester,
+  ) async {
+    // Guards the splice/append logic (each chip inserts at the caret left by
+    // the previous one). The macOS IME select-all echo that this protects
+    // against in production isn't emitted by the headless test env, so the
+    // echo fix itself is verified manually — but this still catches a
+    // regression to "replace" semantics.
+    await pumpOnTab(
+      tester,
+      company: const Company(id: 'co-A', enabledModules: 0),
+      tabLabel: 'Clients',
+    );
+
+    await tester.tap(find.widgetWithText(ActionChip, '{\$counter}'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ActionChip, '{\$year}'));
+    await tester.pumpAndSettle();
+
+    final patternField = tester.widget<TextField>(
+      find.widgetWithText(TextField, 'Number Pattern'),
+    );
+    expect(patternField.controller!.text, '{\$counter}{\$year}');
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('user custom-field chip shows only when the field is active', (
+    tester,
+  ) async {
+    // Inactive: no `user1` label configured → chip hidden.
+    await pumpOnTab(
+      tester,
+      company: const Company(id: 'co-A', enabledModules: 0),
+      tabLabel: 'Clients',
+    );
+    expect(find.widgetWithText(ActionChip, '{\$user_custom1}'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+
+    // Active: `user1` has a label → chip shown, with the label as its tooltip.
+    await pumpOnTab(
+      tester,
+      company: const Company(
+        id: 'co-A',
+        enabledModules: 0,
+        customFields: {'user1': 'Badge'},
+      ),
+      tabLabel: 'Clients',
+    );
+    final chip = find.widgetWithText(ActionChip, '{\$user_custom1}');
+    expect(chip, findsOneWidget);
+    expect(tester.widget<ActionChip>(chip).tooltip, 'Badge');
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('client custom-field chip shows only when the field is active', (
+    tester,
+  ) async {
+    // Quotes tab carries client tokens; it's the last tab and its only
+    // neighbor (Clients) has no client_custom chip, so no token collision.
+    await pumpOnTab(
+      tester,
+      company: Company(
+        id: 'co-A',
+        enabledModules: EnabledModule.quotes.bitmask,
+      ),
+      tabLabel: 'Quotes',
+    );
+    expect(find.widgetWithText(ActionChip, '{\$client_custom1}'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+
+    await pumpOnTab(
+      tester,
+      company: Company(
+        id: 'co-A',
+        enabledModules: EnabledModule.quotes.bitmask,
+        customFields: const {'client1': 'Region'},
+      ),
+      tabLabel: 'Quotes',
+    );
+    expect(
+      find.widgetWithText(ActionChip, '{\$client_custom1}'),
+      findsOneWidget,
     );
 
     await tester.pumpWidget(const SizedBox.shrink());

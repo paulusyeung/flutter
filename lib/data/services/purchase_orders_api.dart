@@ -69,6 +69,7 @@ class PurchaseOrdersApi
     required String sendAt,
     String? subject,
     String? body,
+    String? ccEmail,
     required String idempotencyKey,
   }) => action(
     id: id,
@@ -79,6 +80,7 @@ class PurchaseOrdersApi
       'send_at': sendAt,
       if (subject != null) 'subject': subject,
       if (body != null) 'body': body,
+      if (ccEmail != null) 'cc_email': ccEmail,
     },
   );
 

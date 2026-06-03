@@ -98,6 +98,16 @@ class SyncRepository {
   /// clears it on entry so the next drain starts fresh.
   bool _cancelRequested = false;
 
+  /// Outbox rows whose caller is synchronously surfacing the failure itself
+  /// (an open edit form via [awaitRow], or any `awaitRow(callerWillDisplayFailure:
+  /// true)` caller). [_markDead] tags such rows' [DeadEvent] with
+  /// `handledByCaller: true` so the shell shows the error inline rather than
+  /// popping a duplicate modal. A row drops out of the set the moment its
+  /// `awaitRow` returns, so a *later* background death (e.g. after the form's
+  /// online-save timeout popped the screen) is correctly treated as unhandled
+  /// and does surface a modal.
+  final Set<int> _callerDisplayedRows = {};
+
   Future<void> dispose() => _events.close();
 
   /// Stop a running [drainOnce] (between rows — an in-flight HTTP request is
@@ -215,6 +225,7 @@ class SyncRepository {
     required String companyId,
     Duration timeout = const Duration(seconds: 30),
     Duration pollInterval = const Duration(milliseconds: 200),
+    bool callerWillDisplayFailure = true,
   }) async {
     // Use a real wall-clock Stopwatch for the deadline — the injected `_now`
     // is fixed in unit tests (deterministic backoff math) so checking it
@@ -222,52 +233,62 @@ class SyncRepository {
     // is already real-wall-time, so this just matches what the user actually
     // experiences.
     final stopwatch = Stopwatch()..start();
+    // Claim the row so a death observed while we're actively polling is shown
+    // by *this* caller (inline on the form / at the tap site) rather than also
+    // by a duplicate shell modal. Released in the `finally` the instant we
+    // return, so a *later* background death (e.g. after the online-save timeout
+    // popped the screen) is treated as unhandled and does surface a modal.
+    if (callerWillDisplayFailure) _callerDisplayedRows.add(rowId);
     // Kick the drain right away so an idle company starts processing without
     // waiting for the first poll. Subsequent kicks happen inside the loop.
     unawaited(drainOnce(companyId: companyId));
-    while (true) {
-      final row = await db.outboxDao.byId(rowId);
-      if (row == null) {
-        return const SyncRowResult(outcome: SyncRowOutcome.success);
-      }
-      if (row.state == 'dead') {
-        if (row.lastStatusCode == 422) {
+    try {
+      while (true) {
+        final row = await db.outboxDao.byId(rowId);
+        if (row == null) {
+          return const SyncRowResult(outcome: SyncRowOutcome.success);
+        }
+        if (row.state == 'dead') {
+          if (row.lastStatusCode == 422) {
+            return SyncRowResult(
+              outcome: SyncRowOutcome.validationFailed,
+              fieldErrors: _decodeFieldErrors(row.fieldErrorsJson),
+              message: row.lastError,
+              statusCode: row.lastStatusCode,
+            );
+          }
           return SyncRowResult(
-            outcome: SyncRowOutcome.validationFailed,
-            fieldErrors: _decodeFieldErrors(row.fieldErrorsJson),
-            message: row.lastError,
+            outcome: SyncRowOutcome.serverError,
+            message: row.lastError ?? 'Save failed',
             statusCode: row.lastStatusCode,
           );
         }
-        return SyncRowResult(
-          outcome: SyncRowOutcome.serverError,
-          message: row.lastError ?? 'Save failed',
-          statusCode: row.lastStatusCode,
-        );
+        final nowMs = _now().millisecondsSinceEpoch;
+        if (row.state == 'pending' && row.nextAttemptAt > nowMs) {
+          // A retry has been scheduled into the future — this is a transient
+          // server/network failure. Surface inline; the outbox will keep
+          // retrying in the background per its backoff if the user navigates
+          // away, but for now the form stays open with the error.
+          return SyncRowResult(
+            outcome: SyncRowOutcome.serverError,
+            message: row.lastError ?? 'Connection lost',
+            statusCode: row.lastStatusCode,
+          );
+        }
+        if (stopwatch.elapsed >= timeout) {
+          return const SyncRowResult(outcome: SyncRowOutcome.timeout);
+        }
+        // Pending and due, or in_flight. Re-kick drainOnce — if a prior drain
+        // missed this row (it snapshotted nextReady before our enqueue), the
+        // next pass picks it up. If a drain is already running, single-flight
+        // makes this a no-op.
+        if (row.state == 'pending') {
+          unawaited(drainOnce(companyId: companyId));
+        }
+        await Future<void>.delayed(pollInterval);
       }
-      final nowMs = _now().millisecondsSinceEpoch;
-      if (row.state == 'pending' && row.nextAttemptAt > nowMs) {
-        // A retry has been scheduled into the future — this is a transient
-        // server/network failure. Surface inline; the outbox will keep
-        // retrying in the background per its backoff if the user navigates
-        // away, but for now the form stays open with the error.
-        return SyncRowResult(
-          outcome: SyncRowOutcome.serverError,
-          message: row.lastError ?? 'Connection lost',
-          statusCode: row.lastStatusCode,
-        );
-      }
-      if (stopwatch.elapsed >= timeout) {
-        return const SyncRowResult(outcome: SyncRowOutcome.timeout);
-      }
-      // Pending and due, or in_flight. Re-kick drainOnce — if a prior drain
-      // missed this row (it snapshotted nextReady before our enqueue), the
-      // next pass picks it up. If a drain is already running, single-flight
-      // makes this a no-op.
-      if (row.state == 'pending') {
-        unawaited(drainOnce(companyId: companyId));
-      }
-      await Future<void>.delayed(pollInterval);
+    } finally {
+      _callerDisplayedRows.remove(rowId);
     }
   }
 
@@ -312,6 +333,14 @@ class SyncRepository {
   }
 
   Future<int> _drainOnceImpl(String companyId) async {
+    // Re-arm rows orphaned in `in_flight` by a prior interrupted pass (app
+    // killed / process death between `markInFlight` and the catch handler).
+    // `nextReady` only selects `pending`, so without this an orphaned row is
+    // invisible forever. Safe here: `drainOnce` is single-flight per company
+    // and rows are processed sequentially, so at drain-start no `in_flight`
+    // row for this company is a live request — and the idempotency key makes a
+    // re-send harmless regardless.
+    await db.outboxDao.resetInFlightForCompany(companyId);
     final nowMs = _now().millisecondsSinceEpoch;
     final rows = await db.outboxDao.nextReady(companyId: companyId, now: nowMs);
     var successes = 0;
@@ -446,7 +475,18 @@ class SyncRepository {
       await _retryWithBackoff(row, e.message, null);
       return false;
     } on ServerException catch (e) {
-      await _retryWithBackoff(row, e.message, e.statusCode);
+      // 4xx client errors are permanent: the identical request will keep
+      // failing, so don't burn the full retry budget (≈13 min of backoff)
+      // before the user hears about it — mark dead immediately so a `DeadEvent`
+      // fires on the first attempt. 5xx (and anything else) stays on transient
+      // backoff. The retry-worthy 4xx (401/403/412/404/409/422/429/402) are all
+      // caught above; only genuinely-permanent codes (400, 405, 410, 415, …)
+      // reach here.
+      if (e.statusCode >= 400 && e.statusCode < 500) {
+        await _markDead(row, e.message, e.statusCode);
+      } else {
+        await _retryWithBackoff(row, e.message, e.statusCode);
+      }
       return false;
     } on ClientTooOldException catch (e) {
       // The UI surfaces a "please update" screen elsewhere; sync stops.
@@ -509,6 +549,7 @@ class SyncRepository {
           entityId: row.entityId,
           message: error,
           statusCode: code,
+          handledByCaller: _callerDisplayedRows.contains(row.id),
         ),
       );
     }

@@ -877,6 +877,7 @@ class AuthRepository {
             customFields: Value(jsonEncode(uc.company.customFields)),
             sizeId: Value(uc.company.sizeId),
             industryId: Value(uc.company.industryId),
+            firstMonthOfYear: Value(uc.company.firstMonthOfYear),
             legalEntityId: Value(uc.company.legalEntityId),
             enabledModules: Value(uc.company.enabledModules),
             googleAnalyticsKey: Value(uc.company.googleAnalyticsKey),

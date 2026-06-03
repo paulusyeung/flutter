@@ -273,6 +273,32 @@ void main() {
       expect(row.updatedAt, 1900000000);
     });
 
+    test('persists first_month_of_year and surfaces it through _fromRow — '
+        'regression: this top-level company field was dropped (no column), '
+        'leaving the Localization dropdown blank', () async {
+      const companyId = 'co';
+      await seedCompany(companyId);
+      final repo = makeRepo();
+
+      await repo.applyUpdateResponse(
+        companyId: companyId,
+        serverResponse: CompanyApi(
+          id: companyId,
+          name: 'Acme',
+          // Top-level on the company object (not inside `settings`), exactly
+          // as the live API returns it. '1' == January.
+          firstMonthOfYear: '1',
+        ),
+      );
+
+      // Written to the dedicated column…
+      final row = await db.companiesDao.byId(companyId);
+      expect(row!.firstMonthOfYear, '1');
+      // …and surfaced on the domain model the Localization screen binds to.
+      final company = await repo.get(companyId);
+      expect(company!.firstMonthOfYear, '1');
+    });
+
     test('refreshes the logo_url column from settings.company_logo', () async {
       // Regression: the dedicated logo_url column must follow the applied
       // settings. `_onCompaniesChanged` / `restore` prefer the column, so a

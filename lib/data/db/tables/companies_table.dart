@@ -28,6 +28,12 @@ class Companies extends Table {
       text().named('size_id').withDefault(const Constant(''))();
   TextColumn get industryId =>
       text().named('industry_id').withDefault(const Constant(''))();
+  // Settings → Localization "First Month of the Year" ('1'..'12'). Top-level
+  // company field in the API (not inside `settings`), so — like size_id /
+  // industry_id — it needs its own column or it's dropped on every
+  // login/refresh and the dropdown renders blank.
+  TextColumn get firstMonthOfYear =>
+      text().named('first_month_of_year').withDefault(const Constant(''))();
   IntColumn get legalEntityId =>
       integer().named('legal_entity_id').withDefault(const Constant(0))();
   // E-Invoice certificate state. Edited by Settings → E-Invoice's

@@ -5727,6 +5727,18 @@ class $CompaniesTable extends Companies
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _firstMonthOfYearMeta = const VerificationMeta(
+    'firstMonthOfYear',
+  );
+  @override
+  late final GeneratedColumn<String> firstMonthOfYear = GeneratedColumn<String>(
+    'first_month_of_year',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _legalEntityIdMeta = const VerificationMeta(
     'legalEntityId',
   );
@@ -6874,6 +6886,7 @@ class $CompaniesTable extends Companies
     customFields,
     sizeId,
     industryId,
+    firstMonthOfYear,
     legalEntityId,
     hasEInvoiceCertificate,
     eInvoiceCertificatePassphrase,
@@ -7052,6 +7065,15 @@ class $CompaniesTable extends Companies
       context.handle(
         _industryIdMeta,
         industryId.isAcceptableOrUnknown(data['industry_id']!, _industryIdMeta),
+      );
+    }
+    if (data.containsKey('first_month_of_year')) {
+      context.handle(
+        _firstMonthOfYearMeta,
+        firstMonthOfYear.isAcceptableOrUnknown(
+          data['first_month_of_year']!,
+          _firstMonthOfYearMeta,
+        ),
       );
     }
     if (data.containsKey('legal_entity_id')) {
@@ -7820,6 +7842,10 @@ class $CompaniesTable extends Companies
         DriftSqlType.string,
         data['${effectivePrefix}industry_id'],
       )!,
+      firstMonthOfYear: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}first_month_of_year'],
+      )!,
       legalEntityId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}legal_entity_id'],
@@ -8173,6 +8199,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
   final String customFields;
   final String sizeId;
   final String industryId;
+  final String firstMonthOfYear;
   final int legalEntityId;
   final bool hasEInvoiceCertificate;
   final String eInvoiceCertificatePassphrase;
@@ -8275,6 +8302,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     required this.customFields,
     required this.sizeId,
     required this.industryId,
+    required this.firstMonthOfYear,
     required this.legalEntityId,
     required this.hasEInvoiceCertificate,
     required this.eInvoiceCertificatePassphrase,
@@ -8377,6 +8405,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     map['custom_fields'] = Variable<String>(customFields);
     map['size_id'] = Variable<String>(sizeId);
     map['industry_id'] = Variable<String>(industryId);
+    map['first_month_of_year'] = Variable<String>(firstMonthOfYear);
     map['legal_entity_id'] = Variable<int>(legalEntityId);
     map['has_e_invoice_certificate'] = Variable<bool>(hasEInvoiceCertificate);
     map['e_invoice_certificate_passphrase'] = Variable<String>(
@@ -8514,6 +8543,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       customFields: Value(customFields),
       sizeId: Value(sizeId),
       industryId: Value(industryId),
+      firstMonthOfYear: Value(firstMonthOfYear),
       legalEntityId: Value(legalEntityId),
       hasEInvoiceCertificate: Value(hasEInvoiceCertificate),
       eInvoiceCertificatePassphrase: Value(eInvoiceCertificatePassphrase),
@@ -8623,6 +8653,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       customFields: serializer.fromJson<String>(json['customFields']),
       sizeId: serializer.fromJson<String>(json['sizeId']),
       industryId: serializer.fromJson<String>(json['industryId']),
+      firstMonthOfYear: serializer.fromJson<String>(json['firstMonthOfYear']),
       legalEntityId: serializer.fromJson<int>(json['legalEntityId']),
       hasEInvoiceCertificate: serializer.fromJson<bool>(
         json['hasEInvoiceCertificate'],
@@ -8799,6 +8830,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       'customFields': serializer.toJson<String>(customFields),
       'sizeId': serializer.toJson<String>(sizeId),
       'industryId': serializer.toJson<String>(industryId),
+      'firstMonthOfYear': serializer.toJson<String>(firstMonthOfYear),
       'legalEntityId': serializer.toJson<int>(legalEntityId),
       'hasEInvoiceCertificate': serializer.toJson<bool>(hasEInvoiceCertificate),
       'eInvoiceCertificatePassphrase': serializer.toJson<String>(
@@ -8929,6 +8961,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     String? customFields,
     String? sizeId,
     String? industryId,
+    String? firstMonthOfYear,
     int? legalEntityId,
     bool? hasEInvoiceCertificate,
     String? eInvoiceCertificatePassphrase,
@@ -9024,6 +9057,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     customFields: customFields ?? this.customFields,
     sizeId: sizeId ?? this.sizeId,
     industryId: industryId ?? this.industryId,
+    firstMonthOfYear: firstMonthOfYear ?? this.firstMonthOfYear,
     legalEntityId: legalEntityId ?? this.legalEntityId,
     hasEInvoiceCertificate:
         hasEInvoiceCertificate ?? this.hasEInvoiceCertificate,
@@ -9152,6 +9186,9 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       industryId: data.industryId.present
           ? data.industryId.value
           : this.industryId,
+      firstMonthOfYear: data.firstMonthOfYear.present
+          ? data.firstMonthOfYear.value
+          : this.firstMonthOfYear,
       legalEntityId: data.legalEntityId.present
           ? data.legalEntityId.value
           : this.legalEntityId,
@@ -9403,6 +9440,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           ..write('customFields: $customFields, ')
           ..write('sizeId: $sizeId, ')
           ..write('industryId: $industryId, ')
+          ..write('firstMonthOfYear: $firstMonthOfYear, ')
           ..write('legalEntityId: $legalEntityId, ')
           ..write('hasEInvoiceCertificate: $hasEInvoiceCertificate, ')
           ..write(
@@ -9511,6 +9549,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     customFields,
     sizeId,
     industryId,
+    firstMonthOfYear,
     legalEntityId,
     hasEInvoiceCertificate,
     eInvoiceCertificatePassphrase,
@@ -9610,6 +9649,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           other.customFields == this.customFields &&
           other.sizeId == this.sizeId &&
           other.industryId == this.industryId &&
+          other.firstMonthOfYear == this.firstMonthOfYear &&
           other.legalEntityId == this.legalEntityId &&
           other.hasEInvoiceCertificate == this.hasEInvoiceCertificate &&
           other.eInvoiceCertificatePassphrase ==
@@ -9712,6 +9752,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
   final Value<String> customFields;
   final Value<String> sizeId;
   final Value<String> industryId;
+  final Value<String> firstMonthOfYear;
   final Value<int> legalEntityId;
   final Value<bool> hasEInvoiceCertificate;
   final Value<String> eInvoiceCertificatePassphrase;
@@ -9808,6 +9849,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.customFields = const Value.absent(),
     this.sizeId = const Value.absent(),
     this.industryId = const Value.absent(),
+    this.firstMonthOfYear = const Value.absent(),
     this.legalEntityId = const Value.absent(),
     this.hasEInvoiceCertificate = const Value.absent(),
     this.eInvoiceCertificatePassphrase = const Value.absent(),
@@ -9905,6 +9947,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.customFields = const Value.absent(),
     this.sizeId = const Value.absent(),
     this.industryId = const Value.absent(),
+    this.firstMonthOfYear = const Value.absent(),
     this.legalEntityId = const Value.absent(),
     this.hasEInvoiceCertificate = const Value.absent(),
     this.eInvoiceCertificatePassphrase = const Value.absent(),
@@ -10008,6 +10051,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Expression<String>? customFields,
     Expression<String>? sizeId,
     Expression<String>? industryId,
+    Expression<String>? firstMonthOfYear,
     Expression<int>? legalEntityId,
     Expression<bool>? hasEInvoiceCertificate,
     Expression<String>? eInvoiceCertificatePassphrase,
@@ -10105,6 +10149,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       if (customFields != null) 'custom_fields': customFields,
       if (sizeId != null) 'size_id': sizeId,
       if (industryId != null) 'industry_id': industryId,
+      if (firstMonthOfYear != null) 'first_month_of_year': firstMonthOfYear,
       if (legalEntityId != null) 'legal_entity_id': legalEntityId,
       if (hasEInvoiceCertificate != null)
         'has_e_invoice_certificate': hasEInvoiceCertificate,
@@ -10247,6 +10292,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Value<String>? customFields,
     Value<String>? sizeId,
     Value<String>? industryId,
+    Value<String>? firstMonthOfYear,
     Value<int>? legalEntityId,
     Value<bool>? hasEInvoiceCertificate,
     Value<String>? eInvoiceCertificatePassphrase,
@@ -10344,6 +10390,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       customFields: customFields ?? this.customFields,
       sizeId: sizeId ?? this.sizeId,
       industryId: industryId ?? this.industryId,
+      firstMonthOfYear: firstMonthOfYear ?? this.firstMonthOfYear,
       legalEntityId: legalEntityId ?? this.legalEntityId,
       hasEInvoiceCertificate:
           hasEInvoiceCertificate ?? this.hasEInvoiceCertificate,
@@ -10497,6 +10544,9 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     }
     if (industryId.present) {
       map['industry_id'] = Variable<String>(industryId.value);
+    }
+    if (firstMonthOfYear.present) {
+      map['first_month_of_year'] = Variable<String>(firstMonthOfYear.value);
     }
     if (legalEntityId.present) {
       map['legal_entity_id'] = Variable<int>(legalEntityId.value);
@@ -10835,6 +10885,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
           ..write('customFields: $customFields, ')
           ..write('sizeId: $sizeId, ')
           ..write('industryId: $industryId, ')
+          ..write('firstMonthOfYear: $firstMonthOfYear, ')
           ..write('legalEntityId: $legalEntityId, ')
           ..write('hasEInvoiceCertificate: $hasEInvoiceCertificate, ')
           ..write(
@@ -45567,6 +45618,7 @@ typedef $$CompaniesTableCreateCompanionBuilder =
       Value<String> customFields,
       Value<String> sizeId,
       Value<String> industryId,
+      Value<String> firstMonthOfYear,
       Value<int> legalEntityId,
       Value<bool> hasEInvoiceCertificate,
       Value<String> eInvoiceCertificatePassphrase,
@@ -45665,6 +45717,7 @@ typedef $$CompaniesTableUpdateCompanionBuilder =
       Value<String> customFields,
       Value<String> sizeId,
       Value<String> industryId,
+      Value<String> firstMonthOfYear,
       Value<int> legalEntityId,
       Value<bool> hasEInvoiceCertificate,
       Value<String> eInvoiceCertificatePassphrase,
@@ -45812,6 +45865,11 @@ class $$CompaniesTableFilterComposer
 
   ColumnFilters<String> get industryId => $composableBuilder(
     column: $table.industryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get firstMonthOfYear => $composableBuilder(
+    column: $table.firstMonthOfYear,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -46296,6 +46354,11 @@ class $$CompaniesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get firstMonthOfYear => $composableBuilder(
+    column: $table.firstMonthOfYear,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get legalEntityId => $composableBuilder(
     column: $table.legalEntityId,
     builder: (column) => ColumnOrderings(column),
@@ -46765,6 +46828,11 @@ class $$CompaniesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get firstMonthOfYear => $composableBuilder(
+    column: $table.firstMonthOfYear,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get legalEntityId => $composableBuilder(
     column: $table.legalEntityId,
     builder: (column) => column,
@@ -47208,6 +47276,7 @@ class $$CompaniesTableTableManager
                 Value<String> customFields = const Value.absent(),
                 Value<String> sizeId = const Value.absent(),
                 Value<String> industryId = const Value.absent(),
+                Value<String> firstMonthOfYear = const Value.absent(),
                 Value<int> legalEntityId = const Value.absent(),
                 Value<bool> hasEInvoiceCertificate = const Value.absent(),
                 Value<String> eInvoiceCertificatePassphrase =
@@ -47308,6 +47377,7 @@ class $$CompaniesTableTableManager
                 customFields: customFields,
                 sizeId: sizeId,
                 industryId: industryId,
+                firstMonthOfYear: firstMonthOfYear,
                 legalEntityId: legalEntityId,
                 hasEInvoiceCertificate: hasEInvoiceCertificate,
                 eInvoiceCertificatePassphrase: eInvoiceCertificatePassphrase,
@@ -47408,6 +47478,7 @@ class $$CompaniesTableTableManager
                 Value<String> customFields = const Value.absent(),
                 Value<String> sizeId = const Value.absent(),
                 Value<String> industryId = const Value.absent(),
+                Value<String> firstMonthOfYear = const Value.absent(),
                 Value<int> legalEntityId = const Value.absent(),
                 Value<bool> hasEInvoiceCertificate = const Value.absent(),
                 Value<String> eInvoiceCertificatePassphrase =
@@ -47508,6 +47579,7 @@ class $$CompaniesTableTableManager
                 customFields: customFields,
                 sizeId: sizeId,
                 industryId: industryId,
+                firstMonthOfYear: firstMonthOfYear,
                 legalEntityId: legalEntityId,
                 hasEInvoiceCertificate: hasEInvoiceCertificate,
                 eInvoiceCertificatePassphrase: eInvoiceCertificatePassphrase,

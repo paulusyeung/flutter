@@ -33,6 +33,11 @@ import 'package:admin/ui/features/invoices/widgets/detail/invoice_payment_schedu
 import 'package:admin/ui/features/invoices/widgets/invoice_actions.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_status_pill.dart';
 import 'package:admin/ui/features/invoices/widgets/rectify_invoice.dart';
+import 'package:admin/data/models/value/date.dart';
+import 'package:admin/domain/billing/totals_calculator.dart';
+import 'package:admin/ui/features/billing_shared/billing_doc_kpi_strip.dart';
+import 'package:admin/ui/features/billing_shared/billing_doc_overview.dart';
+import 'package:admin/ui/features/invoices/widgets/detail/invoice_applied_payments_section.dart';
 
 /// Read-only Invoice detail screen.
 ///
@@ -391,6 +396,10 @@ class _HeaderState extends State<_Header> {
   Widget build(BuildContext context) {
     final invoice = widget.invoice;
     final tokens = context.inTheme;
+    final formatter = FormatterScope.maybeOf(context);
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value!.currentCompanyId;
+    final effectiveDue = invoice.partialDueDate ?? invoice.dueDate;
     return Container(
       padding: EdgeInsets.all(InSpacing.lg(context)),
       decoration: BoxDecoration(
@@ -429,31 +438,43 @@ class _HeaderState extends State<_Header> {
             link: true,
             style: TextStyle(color: tokens.ink3),
           ),
+          const SizedBox(height: 12),
+          BillingDatesCaption(
+            formatter: formatter,
+            issuedLabel: context.tr('date'),
+            issued: invoice.date,
+            secondaryLabel: context.tr('due_date'),
+            secondary: effectiveDue,
+            overduePrefix: context.tr('overdue'),
+            overdueDays: invoice.isPastDue && effectiveDue != null
+                ? Date.today().differenceInDays(effectiveDue)
+                : null,
+          ),
           const SizedBox(height: 16),
-          Wrap(
-            spacing: 24,
-            runSpacing: 12,
-            children: [
-              _LabelValue(
-                label: context.tr('amount'),
-                value: invoice.amount.toString(),
-              ),
-              _LabelValue(
-                label: context.tr('balance'),
-                value: invoice.balance.toString(),
-                strong: invoice.isPastDue,
-              ),
-              _LabelValue(
-                label: context.tr('paid_to_date'),
-                value: invoice.paidToDate.toString(),
-              ),
-              if (invoice.dueDate != null)
-                _LabelValue(
-                  label: context.tr('due_date'),
-                  value: invoice.dueDate!.toIso(),
-                  strong: invoice.isPastDue,
+          StreamBuilder<Client?>(
+            stream: services.clients.watch(
+              companyId: companyId,
+              id: invoice.clientId,
+            ),
+            builder: (context, clientSnap) => BillingDocKpiStrip(
+              formatter: formatter,
+              currencyId: clientSnap.data?.currencyId,
+              metrics: [
+                BillingMetric(
+                  label: context.tr('amount'),
+                  amount: invoice.amount,
                 ),
-            ],
+                BillingMetric(
+                  label: context.tr('balance'),
+                  amount: invoice.balance,
+                  highlightWhenPositive: invoice.isPastDue,
+                ),
+                BillingMetric(
+                  label: context.tr('paid_to_date'),
+                  amount: invoice.paidToDate,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -467,46 +488,63 @@ class _Overview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          // M3 lands the full overview (line items / payments). For M2 we
-          // surface the public notes / terms / footer so something useful
-          // shows on the tab.
-          context.tr('public_notes'),
-          style: TextStyle(
-            fontSize: 12,
-            color: tokens.ink3,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          invoice.publicNotes.isEmpty ? '—' : invoice.publicNotes,
-          style: TextStyle(color: tokens.ink),
-        ),
-        SizedBox(height: InSpacing.md(context)),
-        Text(
-          context.tr('terms'),
-          style: TextStyle(
-            fontSize: 12,
-            color: tokens.ink3,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          invoice.terms.isEmpty ? '—' : invoice.terms,
-          style: TextStyle(color: tokens.ink),
-        ),
-        SizedBox(height: InSpacing.md(context)),
-        InvoiceRemindersSummary(invoice: invoice),
-      ],
+    final formatter = FormatterScope.maybeOf(context);
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value!.currentCompanyId;
+    return StreamBuilder<Client?>(
+      stream: services.clients.watch(
+        companyId: companyId,
+        id: invoice.clientId,
+      ),
+      builder: (context, clientSnap) {
+        final currencyId = clientSnap.data?.currencyId;
+        final precision =
+            formatter?.precisionFor(clientCurrencyId: currencyId) ?? 2;
+        return BillingDocOverview(
+          totalsInput: _invoiceTotalsInput(invoice),
+          precision: precision,
+          paidToDate: invoice.paidToDate,
+          balance: invoice.balance,
+          publicNotes: invoice.publicNotes,
+          terms: invoice.terms,
+          formatter: formatter,
+          currencyId: currencyId,
+          trailing: [
+            InvoiceAppliedPaymentsSection(
+              invoice: invoice,
+              services: services,
+              companyId: companyId,
+              formatter: formatter,
+              currencyId: currencyId,
+            ),
+            InvoiceRemindersSummary(invoice: invoice),
+          ],
+        );
+      },
     );
   }
 }
+
+BillingTotalsInput _invoiceTotalsInput(Invoice d) => BillingTotalsInput(
+  lineItems: d.lineItems,
+  discount: d.discount,
+  isAmountDiscount: d.isAmountDiscount,
+  usesInclusiveTaxes: d.usesInclusiveTaxes,
+  taxName1: d.taxName1,
+  taxRate1: d.taxRate1,
+  taxName2: d.taxName2,
+  taxRate2: d.taxRate2,
+  taxName3: d.taxName3,
+  taxRate3: d.taxRate3,
+  customSurcharge1: d.customSurcharge1,
+  customSurcharge2: d.customSurcharge2,
+  customSurcharge3: d.customSurcharge3,
+  customSurcharge4: d.customSurcharge4,
+  customTaxes1: d.customTaxes1,
+  customTaxes2: d.customTaxes2,
+  customTaxes3: d.customTaxes3,
+  customTaxes4: d.customTaxes4,
+);
 
 class _PdfPane extends StatelessWidget {
   const _PdfPane({required this.invoice});
@@ -543,54 +581,22 @@ class _LockedBanner extends StatelessWidget {
         vertical: 8,
       ),
       decoration: BoxDecoration(
-        color: tokens.overdueSoft,
+        color: tokens.surfaceAlt,
         borderRadius: BorderRadius.circular(InRadii.r2),
+        border: Border.all(color: tokens.border),
       ),
       child: Row(
         children: [
-          Icon(Icons.lock_outline, size: 16, color: tokens.overdue),
+          Icon(Icons.lock_outline, size: 16, color: tokens.ink2),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               context.tr(invoiceLockMessageKey(reason)),
-              style: TextStyle(color: tokens.overdue, fontSize: 13),
+              style: TextStyle(color: tokens.ink2, fontSize: 13),
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _LabelValue extends StatelessWidget {
-  const _LabelValue({
-    required this.label,
-    required this.value,
-    this.strong = false,
-  });
-  final String label;
-  final String value;
-  final bool strong;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(label, style: TextStyle(fontSize: 11, color: tokens.ink3)),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: strong ? tokens.overdue : tokens.ink,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
-        ),
-      ],
     );
   }
 }

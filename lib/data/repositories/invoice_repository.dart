@@ -381,7 +381,7 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>
   /// `messageId`. The dispatcher's `customActions[reactivateEmail]` hits
   /// `POST /api/v1/reactivate_email/{messageId}`; no local update — the Sends
   /// tab refreshes on the next invoice sync.
-  Future<void> reactivateInvitationEmail({
+  Future<int> reactivateInvitationEmail({
     required String companyId,
     required String id,
     required String messageId,
@@ -456,6 +456,7 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>
     required String sendAt,
     String? subject,
     String? body,
+    String? ccEmail,
   }) => enqueueMutation(
     companyId: companyId,
     entityId: id,
@@ -466,6 +467,7 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>
       'send_at': sendAt,
       if (subject != null) 'subject': subject,
       if (body != null) 'body': body,
+      if (ccEmail != null) 'cc_email': ccEmail,
     },
   );
 

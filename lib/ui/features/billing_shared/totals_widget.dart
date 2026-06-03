@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/domain/billing/totals_calculator.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Read-only totals breakdown card. Drives the sticky-bottom footer on
 /// every billing-doc edit screen (Invoice / Quote / Credit / PO /
@@ -31,6 +32,8 @@ class TotalsWidget extends StatelessWidget {
     this.dense = false,
     this.slim = false,
     this.bordered = true,
+    this.formatter,
+    this.currencyId,
   }) : discount = discount ?? Decimal.zero,
        partial = partial ?? Decimal.zero;
 
@@ -73,6 +76,12 @@ class TotalsWidget extends StatelessWidget {
   /// Flutter references where the totals are a borderless row list.
   /// Default true keeps the bordered detail-screen card.
   final bool bordered;
+
+  /// When provided, money rows render via `Formatter.money` (currency symbol,
+  /// company precision + separators) instead of the bare [NumberFormat]
+  /// fallback. [currencyId] feeds the client-currency cascade.
+  final Formatter? formatter;
+  final String? currencyId;
 
   @override
   Widget build(BuildContext context) {
@@ -204,14 +213,7 @@ class TotalsWidget extends StatelessWidget {
     bool subtractive = false,
   }) {
     final tokens = context.inTheme;
-    final formatter = NumberFormat.decimalPattern()
-      ..minimumFractionDigits = 2
-      ..maximumFractionDigits = 2;
-    final amountText =
-        rawText ??
-        (amount == null
-            ? '—'
-            : '${subtractive && amount > Decimal.zero ? '-' : ''}${formatter.format(amount.toDouble())}');
+    final amountText = rawText ?? _formatAmount(amount, subtractive);
     final color = subtractive ? tokens.ink3 : tokens.ink;
     final size = dense ? 13.0 : 14.0;
     return Padding(
@@ -239,6 +241,22 @@ class TotalsWidget extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// Money rendering: `Formatter.money` when a [formatter] was supplied, else
+  /// the legacy bare [NumberFormat] (no symbol). Subtractive rows keep the
+  /// leading `-`.
+  String _formatAmount(Decimal? amount, bool subtractive) {
+    if (amount == null) return '—';
+    final sign = subtractive && amount > Decimal.zero ? '-' : '';
+    final f = formatter;
+    if (f != null) {
+      return '$sign${f.money(amount, clientCurrencyId: currencyId)}';
+    }
+    final numberFormat = NumberFormat.decimalPattern()
+      ..minimumFractionDigits = 2
+      ..maximumFractionDigits = 2;
+    return '$sign${numberFormat.format(amount.toDouble())}';
   }
 }
 

@@ -41,6 +41,13 @@ class Date implements Comparable<Date> {
   /// user's wall-clock interpretation of the date.
   DateTime toDateTime() => DateTime(year, month, day);
 
+  /// Whole calendar days from [other] to this date (`this - other`), mirroring
+  /// `DateTime.difference(...).inDays`. Positive when this date is later than
+  /// [other] — e.g. `Date.today().differenceInDays(dueDate)` is how many days
+  /// an invoice is overdue.
+  int differenceInDays(Date other) =>
+      toDateTime().difference(other.toDateTime()).inDays;
+
   @override
   String toString() => toIso();
 

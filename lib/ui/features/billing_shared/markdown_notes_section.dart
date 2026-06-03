@@ -108,11 +108,15 @@ class _MarkdownNotesFieldState extends State<MarkdownNotesField> {
           )
         : null;
 
+    // The inner editor never labels itself: when [showLabel] is true the
+    // `header` above already provides the single section label; when false the
+    // host (e.g. a TabBar tab name) does. Forwarding `widget.showLabel` here
+    // would double the label in the stacked (non-tabbed) Notes layout.
     final editor = MarkdownTextField(
       initialValue: widget.value,
       onChanged: widget.onChanged,
       label: widget.label,
-      showLabel: widget.showLabel,
+      showLabel: false,
       height: widget.height,
       expand: widget.expand,
       externalValueKey: widget.externalValueKey,

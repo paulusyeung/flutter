@@ -416,7 +416,7 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
   /// groups it sensibly; the dispatcher's `customActions[reactivateEmail]`
   /// hits `POST /api/v1/reactivate_email/{messageId}`. No local entity update
   /// — the bounce indicator refreshes on the next client sync.
-  Future<void> reactivateContactEmail({
+  Future<int> reactivateContactEmail({
     required String companyId,
     required String clientId,
     required String messageId,

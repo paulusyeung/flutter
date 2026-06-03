@@ -170,6 +170,52 @@ void main() {
     );
   });
 
+  group('resetInFlightForCompany', () {
+    test('re-arms orphaned in_flight rows to pending, scoped to the company, '
+        'leaving pending and dead rows untouched', () async {
+      final orphanA = await enqueue(
+        entityId: 'a',
+        state: 'in_flight',
+        idempotencyKey: 'k1',
+      );
+      final orphanB = await enqueue(
+        entityId: 'b',
+        state: 'in_flight',
+        idempotencyKey: 'k2',
+      );
+      final stillPending = await enqueue(entityId: 'c', idempotencyKey: 'k3');
+      final dead = await enqueue(
+        entityId: 'd',
+        state: 'dead',
+        idempotencyKey: 'k4',
+      );
+      // A different company's in_flight row must not be touched.
+      final otherCo = await enqueue(
+        companyId: 'other',
+        entityId: 'e',
+        state: 'in_flight',
+        idempotencyKey: 'k5',
+      );
+
+      final recovered = await db.outboxDao.resetInFlightForCompany('co');
+
+      Future<String> stateOf(int id) async => (await (db.select(
+        db.outbox,
+      )..where((o) => o.id.equals(id))).getSingle()).state;
+
+      expect(recovered, 2, reason: 'two orphaned rows recovered');
+      expect(await stateOf(orphanA), 'pending');
+      expect(await stateOf(orphanB), 'pending');
+      expect(await stateOf(stillPending), 'pending');
+      expect(await stateOf(dead), 'dead', reason: 'dead rows stay dead');
+      expect(
+        await stateOf(otherCo),
+        'in_flight',
+        reason: 'other companies are not touched',
+      );
+    });
+  });
+
   group('retryDead', () {
     test(
       're-arms a dead row to pending with attempts reset and nextAttemptAt '

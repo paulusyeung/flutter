@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
+import 'package:admin/ui/features/billing_shared/email/labeled_field.dart';
 import 'package:admin/ui/features/billing_shared/email/schedule_email_picker.dart';
 import 'package:admin/utils/formatting.dart';
 
@@ -228,7 +229,7 @@ class _EmailSheetState extends State<_EmailSheet> {
                       controller: scrollController,
                       padding: EdgeInsets.all(InSpacing.lg(context)),
                       children: [
-                        _LabeledField(
+                        LabeledField(
                           label: context.tr('template'),
                           child: DropdownButtonFormField<String>(
                             initialValue: _template,
@@ -246,7 +247,7 @@ class _EmailSheetState extends State<_EmailSheet> {
                           ),
                         ),
                         SizedBox(height: InSpacing.md(context)),
-                        _LabeledField(
+                        LabeledField(
                           label: context.tr('subject'),
                           child: TextField(
                             controller: _subjectController,
@@ -256,7 +257,7 @@ class _EmailSheetState extends State<_EmailSheet> {
                           ),
                         ),
                         SizedBox(height: InSpacing.md(context)),
-                        _LabeledField(
+                        LabeledField(
                           label: context.tr('body'),
                           child: TextField(
                             controller: _bodyController,
@@ -268,7 +269,7 @@ class _EmailSheetState extends State<_EmailSheet> {
                           ),
                         ),
                         SizedBox(height: InSpacing.md(context)),
-                        _LabeledField(
+                        LabeledField(
                           label: context.tr('cc_email'),
                           child: TextField(
                             controller: _ccController,
@@ -318,30 +319,6 @@ class _EmailSheetState extends State<_EmailSheet> {
           );
         },
       ),
-    );
-  }
-}
-
-class _LabeledField extends StatelessWidget {
-  const _LabeledField({required this.label, required this.child});
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: Text(
-            label,
-            style: TextStyle(fontSize: 12, color: tokens.ink3),
-          ),
-        ),
-        child,
-      ],
     );
   }
 }

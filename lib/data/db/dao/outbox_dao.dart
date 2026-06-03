@@ -138,6 +138,19 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
         const OutboxCompanion(state: Value('in_flight')),
       );
 
+  /// Re-arm rows orphaned in `in_flight` — left there when a drain was
+  /// interrupted (process death) between [markInFlight] and the catch handler
+  /// that would have rescheduled or killed them. Sets them back to `pending`
+  /// so [nextReady] sees them again. `SyncRepository` calls this at the top of
+  /// each drain pass; safe because `drainOnce` is single-flight per company, so
+  /// at drain-start no `in_flight` row for [companyId] is a live request.
+  /// Returns the number of rows recovered.
+  Future<int> resetInFlightForCompany(String companyId) =>
+      (update(outbox)..where(
+            (o) => o.companyId.equals(companyId) & o.state.equals('in_flight'),
+          ))
+          .write(const OutboxCompanion(state: Value('pending')));
+
   Future<void> deleteRow(int id) =>
       (delete(outbox)..where((o) => o.id.equals(id))).go();
 

@@ -141,10 +141,6 @@ final Map<String, SettingsBinding> _bindings = <String, SettingsBinding>{
     read: (s) => s.dateFormatId,
     write: (s, v) => s.copyWith(dateFormatId: v),
   ),
-  'first_month_of_year': (
-    read: (s) => s.firstMonthOfYear,
-    write: (s, v) => s.copyWith(firstMonthOfYear: v),
-  ),
   'show_currency_code': (
     read: (s) => s.showCurrencyCode?.toString(),
     write: (s, v) => s.copyWith(showCurrencyCode: _parseBool(v)),

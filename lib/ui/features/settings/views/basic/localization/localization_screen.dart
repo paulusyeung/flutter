@@ -1,3 +1,4 @@
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -11,10 +12,11 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
-import 'package:admin/ui/features/settings/widgets/overridable_dropdown_field.dart';
+import 'package:admin/ui/features/settings/widgets/overridable_radio_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_searchable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_switch_field.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Localization "Settings" tab — field labels surfaced by the in-app search.
 /// Combined with `kLocalizationCustomLabelsSearchKeys` in
@@ -58,6 +60,10 @@ class LocalizationSettingsBody extends StatelessWidget {
     final timezones = statics.timezones.values.toList()
       ..sort((a, b) => a.name.compareTo(b.name));
     final dateFormats = statics.dateFormats.values.toList();
+    // First Month of the Year is a top-level company field (not cascade) — read
+    // it off the company draft, mirroring Company Details' size / industry.
+    final months = _monthOptions(context);
+    final firstMonth = host.draft?.firstMonthOfYear ?? '';
 
     final isCompanyScope = scope.isCompany;
     // Demo accounts can't change the UI language — would conflict with the
@@ -82,11 +88,7 @@ class LocalizationSettingsBody extends StatelessWidget {
               onChanged: (v) =>
                   host.updateSettings((s) => s.copyWith(currencyId: v)),
             ),
-            OverridableSwitchField(
-              label: context.tr('currency_format'),
-              apiKey: 'show_currency_code',
-              subtitle: context.tr('show_currency_code'),
-            ),
+            _currencyFormatField(context, host),
             if (showLanguage)
               OverridableSearchableDropdownField<Language>(
                 label: context.tr('language'),
@@ -137,18 +139,71 @@ class LocalizationSettingsBody extends StatelessWidget {
                 apiKey: 'use_comma_as_decimal_place',
                 subtitle: context.tr('use_comma_as_decimal_place'),
               ),
-              OverridableDropdownField<String>(
-                label: context.tr('first_month_of_the_year'),
-                apiKey: 'first_month_of_year',
-                value: host.settings.firstMonthOfYear,
-                items: _monthOptions(context),
-                onChanged: (v) =>
-                    host.updateSettings((s) => s.copyWith(firstMonthOfYear: v)),
+              // first_month_of_year is a top-level company field, not a
+              // settings-cascade value — a plain dropdown bound to the company
+              // draft (like Company Details' size / industry), not an
+              // OverridableDropdownField.
+              DropdownButtonFormField<String>(
+                isExpanded: true,
+                decoration: InputDecoration(
+                  labelText: context.tr('first_month_of_the_year'),
+                ),
+                initialValue: months.any((m) => m.value == firstMonth)
+                    ? firstMonth
+                    : null,
+                items: months,
+                onChanged: (v) => host.updateCompany(
+                  (c) => c.copyWith(firstMonthOfYear: v ?? ''),
+                ),
               ),
             ],
           ],
         ),
       ],
+    );
+  }
+
+  /// Currency-display radio (Symbol vs Code) with a live formatted sample on
+  /// each option — `Symbol: $1,000.00` / `Code: 1,000.00 USD`. Mirrors the old
+  /// admin-portal `BoolDropdownButton` behaviour. Samples format a fixed
+  /// `1000` against the *draft's* currency so the preview updates the moment
+  /// the user changes the Currency dropdown above (the whole body rebuilds on
+  /// `host` change and this re-runs against the cached formatter Future).
+  Widget _currencyFormatField(BuildContext context, SettingsDraftHost host) {
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId;
+    return FutureBuilder<Formatter>(
+      future: companyId == null ? null : services.formatterFor(companyId),
+      initialData: companyId == null
+          ? null
+          : services.formatterIfReady(companyId),
+      builder: (context, snapshot) {
+        final formatter = snapshot.data;
+        // Before the formatter resolves (cold deep-link) fall back to the bare
+        // option labels; the sample appears once the Future completes.
+        String optionLabel(String key, bool showCurrencyCode) {
+          final label = context.tr(key);
+          if (formatter == null) return label;
+          final sample = formatter.money(
+            Decimal.fromInt(1000),
+            currencyId: host.settings.currencyId,
+            showCurrencyCode: showCurrencyCode,
+          );
+          return '$label: $sample';
+        }
+
+        return OverridableRadioField<bool>(
+          label: context.tr('currency_format'),
+          apiKey: 'show_currency_code',
+          value: host.settings.showCurrencyCode ?? false,
+          options: [
+            (value: false, label: optionLabel('symbol', false)),
+            (value: true, label: optionLabel('currency_code', true)),
+          ],
+          onChanged: (v) =>
+              host.updateSettings((s) => s.copyWith(showCurrencyCode: v)),
+        );
+      },
     );
   }
 

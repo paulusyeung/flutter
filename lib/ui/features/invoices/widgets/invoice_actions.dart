@@ -20,8 +20,6 @@ import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/billing_shared/actions/add_comment_prompt.dart';
-import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
-import 'package:admin/ui/features/billing_shared/email/billing_doc_email_sheet.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/mark_paid_confirm_dialog.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_locked_dialog.dart';
@@ -182,13 +180,33 @@ class InvoiceActions {
         invoice.isSent &&
         !invoice.isCancelled &&
         !invoice.isReversed;
+    // Enter Payment → record a (partial) payment against an unpaid, non-draft
+    // invoice. Promoted to the primary action (demoting Edit to a visible
+    // secondary) when the invoice still owes money — recording payment is the
+    // likely intent on a sent / past-due invoice.
+    final canEnterPayment =
+        (me?.can('create_payment') ?? false) &&
+        !invoice.isDraft &&
+        !invoice.isPaid &&
+        !invoice.isCancelled &&
+        !invoice.isReversed;
 
     return [
+      if (canEnterPayment)
+        EntityActionItem(
+          kind: InvoiceAction.enterPayment,
+          icon: Icons.payments_outlined,
+          label: context.tr('enter_payment'),
+          enabled: true,
+          isPrimary: true,
+          onTap: () => onTap(InvoiceAction.enterPayment),
+        ),
       if (canEditInvoice)
         editActionItem(
           context: context,
           kind: InvoiceAction.edit,
           onTap: () => onTap(InvoiceAction.edit),
+          isPrimary: !canEnterPayment,
         ),
       pdfGroupActionItem(
         context: context,
@@ -463,39 +481,10 @@ class InvoiceActions {
       case InvoiceAction.sendEmail:
       case InvoiceAction.scheduleEmail:
         if (tmpGate()) return;
-        // Formatter wiring lands in M3 alongside the edit screen's
-        // per-screen FormatterHostMixin. For M2 the sheet falls back to
-        // ISO display in the schedule picker, which is acceptable.
-        final result = await showBillingDocEmailSheet(
-          context,
-          entity: BillingDocType.invoice,
-          entityNumber: invoice.number,
-          formatter: null,
-        );
-        if (result == null) return;
-        if (result.scheduledFor != null) {
-          await services.invoices.scheduleEmail(
-            companyId: companyId,
-            id: invoice.id,
-            template: result.template,
-            sendAt: result.scheduledFor!.toUtc().toIso8601String(),
-            subject: result.subject.isEmpty ? null : result.subject,
-            body: result.body.isEmpty ? null : result.body,
-          );
-          if (!context.mounted) return;
-          Notify.success(context, context.tr('email_queued'));
-        } else {
-          await services.invoices.email(
-            companyId: companyId,
-            id: invoice.id,
-            template: result.template,
-            subject: result.subject.isEmpty ? null : result.subject,
-            body: result.body.isEmpty ? null : result.body,
-            ccEmail: result.ccEmail.isEmpty ? null : result.ccEmail,
-          );
-          if (!context.mounted) return;
-          Notify.success(context, context.tr('email_queued'));
-        }
+        // Full-screen Send Email surface (form + live preview + PDF +
+        // History). The screen owns both immediate-send and scheduled
+        // dispatch; bulk multi-select still uses showBillingDocEmailSheet.
+        context.go('/invoices/${invoice.id}/email');
 
       case InvoiceAction.markSent:
         if (tmpGate()) return;

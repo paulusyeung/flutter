@@ -18,12 +18,13 @@ EntityActionItem<A> editActionItem<A>({
   required BuildContext context,
   required A kind,
   required VoidCallback onTap,
+  bool isPrimary = true,
 }) => EntityActionItem(
   kind: kind,
   icon: Icons.edit_outlined,
   label: context.tr('edit'),
   enabled: true,
-  isPrimary: true,
+  isPrimary: isPrimary,
   onTap: onTap,
 );
 

@@ -39,15 +39,24 @@ class PasswordRequiredEvent extends SyncEvent {
   });
 }
 
-/// Row gave up after the max retry count. Sits on the Outbox screen until
-/// the user retries or discards.
+/// Row reached a terminal failure — gave up after the max retry count, or
+/// fail-fast on a permanent (4xx) error. Sits on the Outbox screen until the
+/// user retries or discards.
+///
+/// [handledByCaller] is true when an `awaitRow` caller (an open edit form, or a
+/// confirm-after-server action) is already surfacing this failure itself — the
+/// shell then keeps a toast instead of popping a duplicate modal. When false,
+/// the failure is a silent background death and the shell escalates to a modal
+/// while the user is online.
 class DeadEvent extends SyncEvent {
   const DeadEvent({
     required super.entityType,
     required super.entityId,
     required this.message,
     required this.statusCode,
+    this.handledByCaller = false,
   });
   final String message;
   final int? statusCode;
+  final bool handledByCaller;
 }

@@ -280,7 +280,7 @@ class PurchaseOrderRepository
   /// Clears the Postmark bounce/spam suppression for a vendor invitation's
   /// `messageId` via `customActions[reactivateEmail]`. No local update — the
   /// Sends tab refreshes on the next purchase-order sync.
-  Future<void> reactivateInvitationEmail({
+  Future<int> reactivateInvitationEmail({
     required String companyId,
     required String id,
     required String messageId,
@@ -344,6 +344,7 @@ class PurchaseOrderRepository
     required String sendAt,
     String? subject,
     String? body,
+    String? ccEmail,
   }) => enqueueMutation(
     companyId: companyId,
     entityId: id,
@@ -354,6 +355,7 @@ class PurchaseOrderRepository
       'send_at': sendAt,
       if (subject != null) 'subject': subject,
       if (body != null) 'body': body,
+      if (ccEmail != null) 'cc_email': ccEmail,
     },
   );
 

@@ -18,7 +18,7 @@ import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 /// localization key (e.g. `'invoice'` → "Invoice"); selecting one from the
 /// dropdown adds a new overridable row backed by `settings.translations[key]`.
 /// Users can also add free-form keys (`Add Custom`) and country aliases
-/// (`Add Country`, key prefix `country_<id>`).
+/// (`Add Country`, key prefix `country_<name>`).
 const kCustomLabelKeys = <String>[
   'address1',
   'address2',
@@ -76,7 +76,7 @@ const String _countryKeyPrefix = 'country_';
 /// Custom Labels tab body. Lists the entity's `settings.translations` entries
 /// as editable rows; the header row adds new entries via a dropdown of
 /// predefined keys, an "Add Custom" dialog for free-form keys, and an
-/// "Add Country" dialog that scopes the key under `country_<id>`.
+/// "Add Country" dialog that scopes the key under `country_<name>`.
 ///
 /// Mounted by `LocalizationShell` inside `CascadeTabbedSettingsShell`; the
 /// shell owns the cascade VM and provides it via Provider.
@@ -124,7 +124,7 @@ class LocalizationCustomLabelsBody extends StatelessWidget {
                 _TranslationRow(
                   key: ValueKey('translation_$key'),
                   translationKey: key,
-                  displayLabel: _resolveLabel(context, services, key),
+                  displayLabel: _resolveLabel(context, key),
                   onRemove: () => _removeLabel(host, key),
                 ),
           ],
@@ -133,15 +133,13 @@ class LocalizationCustomLabelsBody extends StatelessWidget {
     );
   }
 
-  static String _resolveLabel(
-    BuildContext context,
-    Services services,
-    String key,
-  ) {
+  static String _resolveLabel(BuildContext context, String key) {
     if (key.startsWith(_countryKeyPrefix)) {
-      final id = key.substring(_countryKeyPrefix.length);
-      final country = services.statics.country(id);
-      return country?.name ?? key;
+      // i18n ships localized country names keyed by `country_<name>` — the same
+      // shape the server / legacy app store. Localize it; if the active locale
+      // lacks the entry, fall back to the bare name (without the prefix).
+      return context.trIfDefined(key) ??
+          key.substring(_countryKeyPrefix.length);
     }
     return context.tr(key);
   }
@@ -241,7 +239,7 @@ class _AddRow extends StatelessWidget {
       builder: (dialogContext) => _AddCountryDialog(countries: countries),
     );
     if (country == null) return;
-    _addLabel(host, '$_countryKeyPrefix${country.id}');
+    _addLabel(host, '$_countryKeyPrefix${country.name}');
   }
 }
 

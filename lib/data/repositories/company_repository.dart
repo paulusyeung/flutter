@@ -129,6 +129,7 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
           customFields: Value(jsonEncode(draft.customFields)),
           sizeId: Value(draft.sizeId),
           industryId: Value(draft.industryId),
+          firstMonthOfYear: Value(draft.firstMonthOfYear),
           legalEntityId: Value(draft.legalEntityId),
           hasEInvoiceCertificate: Value(draft.hasEInvoiceCertificate),
           eInvoiceCertificatePassphrase: Value(
@@ -496,6 +497,7 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
         customFields: Value(jsonEncode(serverResponse.customFields)),
         sizeId: Value(serverResponse.sizeId),
         industryId: Value(serverResponse.industryId),
+        firstMonthOfYear: Value(serverResponse.firstMonthOfYear),
         legalEntityId: Value(serverResponse.legalEntityId),
         hasEInvoiceCertificate: Value(serverResponse.hasEInvoiceCertificate),
         eInvoiceCertificatePassphrase: Value(
@@ -669,6 +671,7 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
       displayName: row.displayName ?? '',
       sizeId: row.sizeId,
       industryId: row.industryId,
+      firstMonthOfYear: row.firstMonthOfYear,
       legalEntityId: row.legalEntityId,
       hasEInvoiceCertificate: row.hasEInvoiceCertificate,
       eInvoiceCertificatePassphrase: row.eInvoiceCertificatePassphrase,

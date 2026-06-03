@@ -21,6 +21,11 @@ import 'package:admin/ui/features/billing_shared/pdf/billing_doc_pdf_view.dart';
 import 'package:admin/ui/features/credits/view_models/credit_detail_view_model.dart';
 import 'package:admin/ui/features/credits/widgets/credit_actions.dart';
 import 'package:admin/ui/features/credits/widgets/credit_status_pill.dart';
+import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/domain/billing/totals_calculator.dart';
+import 'package:admin/ui/core/widgets/formatter_scope.dart';
+import 'package:admin/ui/features/billing_shared/billing_doc_kpi_strip.dart';
+import 'package:admin/ui/features/billing_shared/billing_doc_overview.dart';
 
 class CreditDetailScreen extends StatefulWidget {
   const CreditDetailScreen({required this.id, super.key});
@@ -67,8 +72,15 @@ class _CreditDetailScreenState extends State<CreditDetailScreen>
               CreditActions.dispatch(context, _services, _companyId, credit, a),
         ),
       ),
-      bodyBuilder: (context, credit) =>
-          _Body(credit: credit, services: _services, companyId: _companyId),
+      bodyBuilder: (context, credit) {
+        final body = _Body(
+          credit: credit,
+          services: _services,
+          companyId: _companyId,
+        );
+        final f = formatter;
+        return f != null ? FormatterScope(formatter: f, child: body) : body;
+      },
     );
   }
 }
@@ -206,6 +218,9 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    final formatter = FormatterScope.maybeOf(context);
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value!.currentCompanyId;
     return Container(
       padding: EdgeInsets.all(InSpacing.lg(context)),
       decoration: BoxDecoration(
@@ -242,30 +257,38 @@ class _Header extends StatelessWidget {
             link: true,
             style: TextStyle(color: tokens.ink3),
           ),
+          const SizedBox(height: 12),
+          BillingDatesCaption(
+            formatter: formatter,
+            issuedLabel: context.tr('date'),
+            issued: credit.date,
+            secondaryLabel: context.tr('due_date'),
+            secondary: credit.dueDate,
+          ),
           const SizedBox(height: 16),
-          Wrap(
-            spacing: 24,
-            runSpacing: 12,
-            children: [
-              _LabelValue(
-                label: context.tr('amount'),
-                value: credit.amount.toString(),
-              ),
-              _LabelValue(
-                label: context.tr('balance'),
-                value: credit.balance.toString(),
-              ),
-              if (credit.paidToDate.toString() != '0')
-                _LabelValue(
+          StreamBuilder<Client?>(
+            stream: services.clients.watch(
+              companyId: companyId,
+              id: credit.clientId,
+            ),
+            builder: (context, clientSnap) => BillingDocKpiStrip(
+              formatter: formatter,
+              currencyId: clientSnap.data?.currencyId,
+              metrics: [
+                BillingMetric(
+                  label: context.tr('amount'),
+                  amount: credit.amount,
+                ),
+                BillingMetric(
+                  label: context.tr('balance'),
+                  amount: credit.balance,
+                ),
+                BillingMetric(
                   label: context.tr('applied'),
-                  value: credit.paidToDate.toString(),
+                  amount: credit.paidToDate,
                 ),
-              if (credit.dueDate != null)
-                _LabelValue(
-                  label: context.tr('due_date'),
-                  value: credit.dueDate!.toIso(),
-                ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -279,41 +302,50 @@ class _Overview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          context.tr('public_notes'),
-          style: TextStyle(
-            fontSize: 12,
-            color: tokens.ink3,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          credit.publicNotes.isEmpty ? '—' : credit.publicNotes,
-          style: TextStyle(color: tokens.ink),
-        ),
-        SizedBox(height: InSpacing.md(context)),
-        Text(
-          context.tr('terms'),
-          style: TextStyle(
-            fontSize: 12,
-            color: tokens.ink3,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          credit.terms.isEmpty ? '—' : credit.terms,
-          style: TextStyle(color: tokens.ink),
-        ),
-      ],
+    final formatter = FormatterScope.maybeOf(context);
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value!.currentCompanyId;
+    return StreamBuilder<Client?>(
+      stream: services.clients.watch(companyId: companyId, id: credit.clientId),
+      builder: (context, clientSnap) {
+        final currencyId = clientSnap.data?.currencyId;
+        final precision =
+            formatter?.precisionFor(clientCurrencyId: currencyId) ?? 2;
+        return BillingDocOverview(
+          totalsInput: _creditTotalsInput(credit),
+          precision: precision,
+          paidToDate: credit.paidToDate,
+          balance: credit.balance,
+          publicNotes: credit.publicNotes,
+          terms: credit.terms,
+          formatter: formatter,
+          currencyId: currencyId,
+        );
+      },
     );
   }
 }
+
+BillingTotalsInput _creditTotalsInput(Credit d) => BillingTotalsInput(
+  lineItems: d.lineItems,
+  discount: d.discount,
+  isAmountDiscount: d.isAmountDiscount,
+  usesInclusiveTaxes: d.usesInclusiveTaxes,
+  taxName1: d.taxName1,
+  taxRate1: d.taxRate1,
+  taxName2: d.taxName2,
+  taxRate2: d.taxRate2,
+  taxName3: d.taxName3,
+  taxRate3: d.taxRate3,
+  customSurcharge1: d.customSurcharge1,
+  customSurcharge2: d.customSurcharge2,
+  customSurcharge3: d.customSurcharge3,
+  customSurcharge4: d.customSurcharge4,
+  customTaxes1: d.customTaxes1,
+  customTaxes2: d.customTaxes2,
+  customTaxes3: d.customTaxes3,
+  customTaxes4: d.customTaxes4,
+);
 
 class _PdfPane extends StatelessWidget {
   const _PdfPane({required this.credit});
@@ -331,34 +363,6 @@ class _PdfPane extends StatelessWidget {
             designId:
                 designId ?? (credit.designId.isEmpty ? null : credit.designId),
           ),
-    );
-  }
-}
-
-class _LabelValue extends StatelessWidget {
-  const _LabelValue({required this.label, required this.value});
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(label, style: TextStyle(fontSize: 11, color: tokens.ink3)),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: tokens.ink,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
-        ),
-      ],
     );
   }
 }

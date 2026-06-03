@@ -515,6 +515,7 @@ class _FakeSyncRepository extends SyncRepository {
     required String companyId,
     Duration timeout = const Duration(seconds: 30),
     Duration pollInterval = const Duration(milliseconds: 200),
+    bool callerWillDisplayFailure = true,
   }) async {
     lastRowId = rowId;
     if (asyncHandler != null) return asyncHandler!(rowId);
