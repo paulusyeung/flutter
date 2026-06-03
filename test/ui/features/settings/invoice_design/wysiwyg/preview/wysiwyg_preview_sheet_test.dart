@@ -18,7 +18,9 @@ import '../../../../../../_localization_helper.dart';
 /// the arguments. Returns whatever the test sets up via [result] /
 /// [throwOnNext].
 class _StubLiveDesignService implements LiveDesignService {
-  Uint8List result = Uint8List.fromList(utf8.encode('%PDF-1.4 fake'));
+  // A renderable PDF needs both the `%PDF-` header and a trailing `%%EOF`
+  // marker — `isRenderablePdf` rejects header-only bytes as truncated.
+  Uint8List result = Uint8List.fromList(utf8.encode('%PDF-1.4 fake\n%%EOF'));
   Object? throwOnNext;
   String? lastEntityType;
   Design? lastDesign;

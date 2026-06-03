@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
+import 'package:admin/ui/features/settings/views/advanced/e_invoice/e_invoice_constants.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_date_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_dropdown_field.dart';
@@ -108,10 +109,18 @@ class _GeneratedNumbersSettingsBodyState
     final frequency = host.settings.resetCounterFrequencyId;
     final showNextReset =
         frequency != null && frequency != 0 && _formatter != null;
+    // VeriFactu (Spain's tax-authority e-invoicing) mandates when the number
+    // is applied, so the server locks `counter_number_applied`. Mirror the
+    // React app's `Settings.tsx:109` (`|| verifactuEnabled`) by greying the
+    // dropdown — a null `onChanged` disables it per `OverridableDropdownField`.
+    final isVerifactu = host.settings.eInvoiceType == kEInvoiceTypeVERIFACTU;
     return SettingsFormShell(
       sections: [
         FormSection(
           title: context.tr('settings'),
+          // Field order mirrors React's `generated-numbers/components/
+          // Settings.tsx`: padding, generate, recurring prefix, shared
+          // counters, then the reset-counter block last.
           children: [
             OverridableDropdownField<String>(
               label: context.tr('number_padding'),
@@ -138,10 +147,27 @@ class _GeneratedNumbersSettingsBodyState
                   child: Text(context.tr('when_sent')),
                 ),
               ],
-              onChanged: (v) => host.updateSettings(
-                (s) => s.copyWith(counterNumberApplied: v),
-              ),
+              onChanged: isVerifactu
+                  ? null
+                  : (v) => host.updateSettings(
+                      (s) => s.copyWith(counterNumberApplied: v),
+                    ),
             ),
+            if (widget.showRecurringPrefix)
+              OverridableTextField(
+                label: context.tr('recurring_prefix'),
+                apiKey: 'recurring_number_prefix',
+              ),
+            if (widget.showSharedQuoteCounter)
+              OverridableSwitchField(
+                label: context.tr('shared_invoice_quote_counter'),
+                apiKey: 'shared_invoice_quote_counter',
+              ),
+            if (widget.showSharedCreditCounter)
+              OverridableSwitchField(
+                label: context.tr('shared_invoice_credit_counter'),
+                apiKey: 'shared_invoice_credit_counter',
+              ),
             OverridableDropdownField<String>(
               label: context.tr('reset_counter'),
               apiKey: 'reset_counter_frequency_id',
@@ -173,21 +199,6 @@ class _GeneratedNumbersSettingsBodyState
                 label: context.tr('next_reset'),
                 apiKey: 'reset_counter_date',
                 formatter: _formatter!,
-              ),
-            if (widget.showRecurringPrefix)
-              OverridableTextField(
-                label: context.tr('recurring_prefix'),
-                apiKey: 'recurring_number_prefix',
-              ),
-            if (widget.showSharedQuoteCounter)
-              OverridableSwitchField(
-                label: context.tr('shared_invoice_quote_counter'),
-                apiKey: 'shared_invoice_quote_counter',
-              ),
-            if (widget.showSharedCreditCounter)
-              OverridableSwitchField(
-                label: context.tr('shared_invoice_credit_counter'),
-                apiKey: 'shared_invoice_credit_counter',
               ),
           ],
         ),

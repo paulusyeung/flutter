@@ -1284,12 +1284,19 @@ class _ProductCell extends StatefulWidget {
 }
 
 class _ProductCellState extends State<_ProductCell> {
+  // Fixed row height in the options popover — lets keyboard navigation scroll
+  // the highlighted row into view with simple arithmetic (mirrors
+  // `SearchableDropdownField._optionExtent`). Tall enough for the two-line
+  // product row (key + first notes line).
+  static const double _optionExtent = 48.0;
+
   Timer? _searchDebounce;
   String _query = '';
   List<Product> _results = const [];
   StreamSubscription<List<Product>>? _sub;
   bool _searching = false;
   bool _searchFailed = false;
+  final ScrollController _optionsScrollController = ScrollController();
 
   @override
   void initState() {
@@ -1301,7 +1308,46 @@ class _ProductCellState extends State<_ProductCell> {
   void dispose() {
     _searchDebounce?.cancel();
     _sub?.cancel();
+    _optionsScrollController.dispose();
     super.dispose();
+  }
+
+  /// Keep the keyboard-highlighted option visible as the user arrows past the
+  /// popover's visible window. Same arithmetic as
+  /// `SearchableDropdownField._scrollHighlightedIntoView`, keyed off the fixed
+  /// [_optionExtent].
+  void _scrollHighlightedIntoView(int highlightedIndex, int optionCount) {
+    if (highlightedIndex < 0 || highlightedIndex >= optionCount) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_optionsScrollController.hasClients) return;
+      final position = _optionsScrollController.position;
+      final target = highlightedIndex * _optionExtent;
+      final viewport = position.viewportDimension;
+      final current = position.pixels;
+      double? newOffset;
+      if (target < current) {
+        newOffset = target;
+      } else if (target + _optionExtent > current + viewport) {
+        newOffset = target + _optionExtent - viewport;
+      }
+      if (newOffset != null) {
+        _optionsScrollController.animateTo(
+          newOffset.clamp(position.minScrollExtent, position.maxScrollExtent),
+          duration: const Duration(milliseconds: 80),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  /// Whether the options popover currently has something to accept — mirrors
+  /// the list `optionsBuilder` produces. Gates Tab-to-select so that, with
+  /// nothing to pick, Tab keeps doing normal cell-to-cell focus traversal.
+  bool get _hasSelectableOptions {
+    if (!widget.focusNode.hasFocus) return false;
+    // A non-empty result set, or any typed text (which yields a synthetic
+    // "Create '<query>'" option), means at least one selectable row.
+    return _results.isNotEmpty || widget.controller.text.trim().isNotEmpty;
   }
 
   void _runSearch(String query) {
@@ -1394,18 +1440,42 @@ class _ProductCellState extends State<_ProductCell> {
         }
       },
       fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-        return TextField(
-          controller: controller,
-          focusNode: focusNode,
-          onChanged: (_) => widget.onCommitText(),
-          onSubmitted: (_) => onFieldSubmitted(),
-          textAlignVertical: TextAlignVertical.center,
-          style: const TextStyle(fontSize: 13),
-          decoration: _decoration(context),
+        // Pure key interceptor (no tab stop of its own) so Tab can accept the
+        // highlighted suggestion, same as Enter. Up/Down/Enter are left for
+        // RawAutocomplete's own shortcuts (we return `ignored`).
+        return Focus(
+          canRequestFocus: false,
+          skipTraversal: true,
+          onKeyEvent: (node, event) {
+            if (event is! KeyDownEvent) return KeyEventResult.ignored;
+            if (event.logicalKey != LogicalKeyboardKey.tab) {
+              return KeyEventResult.ignored;
+            }
+            if (HardwareKeyboard.instance.isShiftPressed) {
+              return KeyEventResult.ignored;
+            }
+            if (!_hasSelectableOptions) return KeyEventResult.ignored;
+            // Accept the highlighted option (selection advances focus to the
+            // notes cell). `handled` suppresses default traversal so it doesn't
+            // race with that focus move.
+            onFieldSubmitted();
+            return KeyEventResult.handled;
+          },
+          child: TextField(
+            controller: controller,
+            focusNode: focusNode,
+            onChanged: (_) => widget.onCommitText(),
+            onSubmitted: (_) => onFieldSubmitted(),
+            textAlignVertical: TextAlignVertical.center,
+            style: const TextStyle(fontSize: 13),
+            decoration: _decoration(context),
+          ),
         );
       },
       optionsViewBuilder: (context, onSelected, options) {
         final tokens = context.inTheme;
+        final highlightedIndex = AutocompleteHighlightedOption.of(context);
+        _scrollHighlightedIntoView(highlightedIndex, options.length);
         return Align(
           alignment: Alignment.topLeft,
           child: Material(
@@ -1436,73 +1506,86 @@ class _ProductCellState extends State<_ProductCell> {
                     child: ListView.builder(
                       shrinkWrap: true,
                       padding: EdgeInsets.zero,
+                      controller: _optionsScrollController,
+                      itemExtent: _optionExtent,
                       itemCount: options.length,
                       itemBuilder: (context, i) {
                         final opt = options.elementAt(i);
+                        final isHighlighted = i == highlightedIndex;
                         if (opt is _ProductCreate) {
-                          return InkWell(
-                            onTap: () => onSelected(opt),
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: InSpacing.md(context),
-                                vertical: 10,
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.add,
-                                    size: 16,
-                                    color: tokens.accent,
+                          return Container(
+                            color: isHighlighted ? tokens.accentSoft : null,
+                            child: InkWell(
+                              onTap: () => onSelected(opt),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: InSpacing.md(context),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      '${context.tr('create')} "${opt.label}"',
-                                      style: TextStyle(
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.add,
+                                        size: 16,
                                         color: tokens.accent,
-                                        fontWeight: FontWeight.w500,
                                       ),
-                                    ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          '${context.tr('create')} "${opt.label}"',
+                                          style: TextStyle(
+                                            color: tokens.accent,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
                             ),
                           );
                         }
                         final product = (opt as _ProductExisting).product;
-                        return InkWell(
-                          onTap: () => onSelected(opt),
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: InSpacing.md(context),
-                              vertical: 8,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  product.productKey,
-                                  style: TextStyle(
-                                    color: tokens.ink,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                        return Container(
+                          color: isHighlighted ? tokens.accentSoft : null,
+                          child: InkWell(
+                            onTap: () => onSelected(opt),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: InSpacing.md(context),
                                 ),
-                                if (product.notes.isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 2),
-                                    child: Text(
-                                      product.notes.split('\n').first,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      product.productKey,
                                       style: TextStyle(
-                                        color: tokens.ink3,
-                                        fontSize: 11,
+                                        color: tokens.ink,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
                                       ),
                                     ),
-                                  ),
-                              ],
+                                    if (product.notes.isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 2),
+                                        child: Text(
+                                          product.notes.split('\n').first,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: tokens.ink3,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
                         );

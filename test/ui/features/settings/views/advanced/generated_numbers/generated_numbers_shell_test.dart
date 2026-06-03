@@ -12,6 +12,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/app/theme.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/domain/company.dart';
+import 'package:admin/data/models/domain/company_settings.dart';
 import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/data/repositories/client_repository.dart';
@@ -21,6 +22,7 @@ import 'package:admin/data/services/companies_api.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/core/unsaved_changes/unsaved_changes_guard.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
+import 'package:admin/ui/features/settings/views/advanced/e_invoice/e_invoice_constants.dart';
 import 'package:admin/ui/features/settings/views/advanced/generated_numbers/generated_numbers_shell.dart';
 
 import '../../../../../../_localization_helper.dart';
@@ -500,6 +502,48 @@ void main() {
       find.widgetWithText(ActionChip, '{\$client_custom1}'),
       findsOneWidget,
     );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  // VeriFactu (Spain's tax-authority e-invoicing) locks `counter_number_applied`
+  // server-side. The Settings tab mirrors React (`Settings.tsx:109`,
+  // `|| verifactuEnabled`) by greying the Generate Number dropdown — a null
+  // `onChanged` on its DropdownButtonFormField. The Settings tab is index 0, so
+  // it renders without tapping any tab.
+  DropdownButtonFormField<String> generateNumberField(WidgetTester tester) =>
+      tester.widget<DropdownButtonFormField<String>>(
+        find.widgetWithText(DropdownButtonFormField<String>, 'Generate Number'),
+      );
+
+  testWidgets('VeriFactu disables the Generate Number dropdown', (
+    tester,
+  ) async {
+    final services = makeServices(
+      company: const Company(
+        id: 'co-A',
+        enabledModules: 0,
+        settings: CompanySettings(eInvoiceType: kEInvoiceTypeVERIFACTU),
+      ),
+    );
+    await tester.pumpWidget(_host(services: services));
+    await settle(tester);
+
+    expect(generateNumberField(tester).onChanged, isNull);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('non-VeriFactu leaves the Generate Number dropdown editable', (
+    tester,
+  ) async {
+    final services = makeServices(
+      company: const Company(id: 'co-A', enabledModules: 0),
+    );
+    await tester.pumpWidget(_host(services: services));
+    await settle(tester);
+
+    expect(generateNumberField(tester).onChanged, isNotNull);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
