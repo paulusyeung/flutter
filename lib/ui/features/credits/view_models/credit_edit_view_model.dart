@@ -147,6 +147,11 @@ class CreditEditViewModel extends GenericBillingDocEditViewModel<Credit> {
   void setPoNumber(String v) => updateDraft(draft.copyWith(poNumber: v));
   void setDate(Date? d) => updateDraft(draft.copyWith(date: d));
   void setDueDate(Date? d) => updateDraft(draft.copyWith(dueDate: d));
+  void setPartialDueDate(Date? d) =>
+      updateDraft(draft.copyWith(partialDueDate: d));
+  void setPartial(String input) => updateDraft(
+    draft.copyWith(partial: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+  );
   void setDesignId(String v) => updateDraft(draft.copyWith(designId: v));
   void setExchangeRate(String input) => updateDraft(
     draft.copyWith(exchangeRate: Decimal.tryParse(input.trim()) ?? Decimal.one),
@@ -220,6 +225,7 @@ Credit emptyCredit() => Credit(
   poNumber: '',
   date: Date.today(),
   dueDate: null,
+  partialDueDate: null,
   statusId: CreditStatus.draft,
   clientId: '',
   vendorId: '',
@@ -231,6 +237,7 @@ Credit emptyCredit() => Credit(
   amount: Decimal.zero,
   balance: Decimal.zero,
   paidToDate: Decimal.zero,
+  partial: Decimal.zero,
   taxAmount: Decimal.zero,
   discount: Decimal.zero,
   isAmountDiscount: false,

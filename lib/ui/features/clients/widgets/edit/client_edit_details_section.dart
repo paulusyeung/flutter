@@ -81,6 +81,7 @@ class ClientEditDetailsSection extends StatelessWidget {
           EntityCustomFieldsSection(
             keyPrefix: 'client',
             companyStream: services.company.watchCompany(vm.companyId),
+            formatter: services.formatterIfReady(vm.companyId),
             values: [
               draft.customValue1,
               draft.customValue2,

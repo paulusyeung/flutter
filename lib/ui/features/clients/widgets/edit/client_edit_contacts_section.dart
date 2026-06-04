@@ -12,6 +12,7 @@ import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
 import 'package:admin/ui/core/edit/entity_edit_field.dart';
 import 'package:admin/ui/core/widgets/labeled_switch_group.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 
 /// "Contacts" card on the client edit screen. Renders every contact inline,
@@ -36,6 +37,7 @@ class ClientEditContactsSection extends StatelessWidget {
     // Drives the per-contact custom fields (gated by the company's
     // `contact1..4` labels), same source the Details card uses for `client*`.
     final companyStream = services.company.watchCompany(vm.companyId);
+    final formatter = services.formatterIfReady(vm.companyId);
     final contacts = vm.draft.contacts;
     final canDelete = contacts.length > 1;
     return DashboardCardShell(
@@ -65,6 +67,7 @@ class ClientEditContactsSection extends StatelessWidget {
                 contact: contacts[i],
                 canDelete: canDelete,
                 companyStream: companyStream,
+                formatter: formatter,
                 onMakePrimary: () => vm.setContactPrimary(i),
                 onDelete: () => vm.removeContact(i),
                 onFirstName: (v) => vm.setContactFirstNameAt(i, v),
@@ -202,6 +205,7 @@ class _ContactEditor extends StatelessWidget {
     required this.contact,
     required this.canDelete,
     required this.companyStream,
+    required this.formatter,
     required this.onMakePrimary,
     required this.onDelete,
     required this.onFirstName,
@@ -221,6 +225,7 @@ class _ContactEditor extends StatelessWidget {
   final Contact contact;
   final bool canDelete;
   final Stream<Company?> companyStream;
+  final Formatter? formatter;
   final VoidCallback onMakePrimary;
   final VoidCallback onDelete;
   final ValueChanged<String> onFirstName;
@@ -317,6 +322,7 @@ class _ContactEditor extends StatelessWidget {
         EntityCustomFieldsSection(
           keyPrefix: 'contact',
           companyStream: companyStream,
+          formatter: formatter,
           wrapInCard: false,
           values: [
             contact.customValue1,

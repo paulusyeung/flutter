@@ -158,6 +158,10 @@ const kSettingsSections = <SettingsSectionDef>[
     icon: Icons.inventory_2_outlined,
     route: '/settings/product_settings',
     isBasic: true,
+    // Product settings are all top-level `company.*` fields with no per-client
+    // override (the screen uses `SettingsCompanyScopedHost`). Company-only,
+    // like Company Details — matches the React app.
+    clientEditable: false,
   ),
   SettingsSectionDef(
     slug: 'task_settings',

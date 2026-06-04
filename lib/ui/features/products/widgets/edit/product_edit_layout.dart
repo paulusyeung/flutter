@@ -71,6 +71,7 @@ class ProductEditLayout extends StatelessWidget {
     return EntityCustomFieldsSection(
       keyPrefix: 'product',
       companyStream: services.company.watchCompany(vm.companyId),
+      formatter: services.formatterIfReady(vm.companyId),
       values: [
         vm.draft.customValue1,
         vm.draft.customValue2,

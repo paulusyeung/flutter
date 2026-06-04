@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/company.dart';
+import 'package:admin/data/models/domain/company_custom_fields.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/expenses/view_models/expense_edit_view_model.dart';
@@ -90,15 +94,7 @@ class ExpenseEditLayout extends StatelessWidget {
                 child: ExpenseEditBankingSection(vm: vm),
               ),
               SizedBox(height: InSpacing.md(context)),
-              _CollapsibleFormSection(
-                title: context.tr('custom_fields'),
-                initiallyExpanded:
-                    vm.draft.customValue1.isNotEmpty ||
-                    vm.draft.customValue2.isNotEmpty ||
-                    vm.draft.customValue3.isNotEmpty ||
-                    vm.draft.customValue4.isNotEmpty,
-                child: ExpenseEditCustomFieldsSection(vm: vm),
-              ),
+              _CustomFieldsCollapsible(vm: vm),
             ],
           ),
         ),
@@ -135,7 +131,37 @@ class ExpenseEditLayout extends StatelessWidget {
           child: ExpenseEditBankingSection(vm: vm),
         ),
         SizedBox(height: InSpacing.md(context)),
-        _CollapsibleFormSection(
+        _CustomFieldsCollapsible(vm: vm),
+      ],
+    );
+  }
+}
+
+/// The "Custom Fields" collapsible — shown only when the company has at least
+/// one configured `expense1..4` label (matching React, which hides custom
+/// fields with no label). Without this gate, a company that hasn't configured
+/// expense custom fields would see an empty collapsible card.
+class _CustomFieldsCollapsible extends StatelessWidget {
+  const _CustomFieldsCollapsible({required this.vm});
+  final ExpenseEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    return StreamBuilder<Company?>(
+      stream: services.company.watchCompany(vm.companyId),
+      builder: (context, snapshot) {
+        final company = snapshot.data;
+        final hasLabels =
+            company != null &&
+            [
+              1,
+              2,
+              3,
+              4,
+            ].any((i) => company.customFieldLabel('expense$i').isNotEmpty);
+        if (!hasLabels) return const SizedBox.shrink();
+        return _CollapsibleFormSection(
           title: context.tr('custom_fields'),
           initiallyExpanded:
               vm.draft.customValue1.isNotEmpty ||
@@ -143,8 +169,8 @@ class ExpenseEditLayout extends StatelessWidget {
               vm.draft.customValue3.isNotEmpty ||
               vm.draft.customValue4.isNotEmpty,
           child: ExpenseEditCustomFieldsSection(vm: vm),
-        ),
-      ],
+        );
+      },
     );
   }
 }

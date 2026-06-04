@@ -34,6 +34,18 @@ class CreditsApi extends BaseEntityApi<CreditListApi, CreditItemApi> {
     idempotencyKey: idempotencyKey,
   );
 
+  /// `POST /credits/bulk {action:'mark_paid', ids:[id]}` — records a synthetic
+  /// payment closing the credit. Surfaced only for negative credits (which
+  /// behave like a receivable). Mirrors `InvoicesApi.markPaid`.
+  Future<CreditItemApi?> markPaid({
+    required String id,
+    required String idempotencyKey,
+  }) => bulkActionOne(
+    id: id,
+    action: 'mark_paid',
+    idempotencyKey: idempotencyKey,
+  );
+
   Future<CreditItemApi?> email({
     required String id,
     required String template,

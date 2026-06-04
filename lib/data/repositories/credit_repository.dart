@@ -282,6 +282,14 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
         payload: {'id': id},
       );
 
+  Future<void> markPaid({required String companyId, required String id}) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.markPaid,
+        payload: {'id': id},
+      );
+
   /// Clears the Postmark bounce/spam suppression for an invitation's
   /// `messageId` via `customActions[reactivateEmail]`. No local update — the
   /// Sends tab refreshes on the next credit sync.

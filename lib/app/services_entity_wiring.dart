@@ -1263,6 +1263,13 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         );
         return response?.data;
       },
+      MutationKind.markPaid: ({required row, required payload}) async {
+        final response = await creditsApi.markPaid(
+          id: payload['id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
       MutationKind.emailEntity: ({required row, required payload}) async {
         final response = await creditsApi.email(
           id: payload['id'] as String,

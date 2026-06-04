@@ -385,6 +385,7 @@ class _DatesCardDesktopState extends State<_DatesCardDesktop> {
           companyStream: context.read<Services>().company.watchCompany(
             vm.companyId,
           ),
+          formatter: context.read<Services>().formatterIfReady(vm.companyId),
           values: [
             vm.draft.customValue1,
             vm.draft.customValue2,
@@ -502,6 +503,7 @@ class _NumberCardDesktopState extends State<_NumberCardDesktop> {
           companyStream: context.read<Services>().company.watchCompany(
             vm.companyId,
           ),
+          formatter: context.read<Services>().formatterIfReady(vm.companyId),
           values: [
             vm.draft.customValue1,
             vm.draft.customValue2,
@@ -1027,6 +1029,7 @@ class _DetailsTabState extends State<_DetailsTab> {
             companyStream: context.read<Services>().company.watchCompany(
               vm.companyId,
             ),
+            formatter: context.read<Services>().formatterIfReady(vm.companyId),
             values: [
               vm.draft.customValue1,
               vm.draft.customValue2,

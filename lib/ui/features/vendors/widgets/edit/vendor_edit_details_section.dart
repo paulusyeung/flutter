@@ -75,6 +75,7 @@ class VendorEditDetailsSection extends StatelessWidget {
           EntityCustomFieldsSection(
             keyPrefix: 'vendor',
             companyStream: services.company.watchCompany(vm.companyId),
+            formatter: services.formatterIfReady(vm.companyId),
             values: [
               draft.customValue1,
               draft.customValue2,

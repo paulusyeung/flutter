@@ -36,6 +36,7 @@ enum CreditAction {
   sendEmail,
   scheduleEmail,
   markSent,
+  markPaid,
   applyToInvoice,
   cloneGroup,
   clone,
@@ -56,14 +57,15 @@ class CreditActions {
   /// action is performed *by* the create/update request via these query
   /// params (server creates/updates and acts atomically — no temp-id
   /// gap). Keys are credit-specific (verified against admin-portal
-  /// `credit_repository.saveData`: `mark_paid` / `mark_sent`). The credit
-  /// action set has no mark-paid affordance, so only `markSent` maps here.
-  /// `sendEmail` is intentionally **not** here — it is an after-save
-  /// separate request.
+  /// `credit_repository.saveData`: `mark_paid` / `mark_sent`). `markPaid`
+  /// only surfaces for negative credits (see [itemsFor]). `sendEmail` is
+  /// intentionally **not** here — it is an after-save separate request.
   static Map<String, String>? saveParamFor(CreditAction action) {
     switch (action) {
       case CreditAction.markSent:
         return const {'mark_sent': 'true'};
+      case CreditAction.markPaid:
+        return const {'mark_paid': 'true'};
       default:
         return null;
     }
@@ -115,6 +117,12 @@ class CreditActions {
     final canCreate = me?.can('create_credit') ?? false;
     final canDelete = me?.can('delete_credit') ?? false;
     final canMarkSent = canEdit && credit.isDraft;
+    // Mark paid only for negative credits (which behave like a receivable),
+    // and only while still open — mirrors React's `amount < 0` + status gate.
+    final canMarkPaid =
+        canEdit &&
+        credit.amount < Decimal.zero &&
+        (credit.isDraft || credit.isSent || credit.isPartial);
 
     return [
       if (canEdit)
@@ -164,6 +172,14 @@ class CreditActions {
         enabled: canMarkSent,
         onTap: () => onTap(CreditAction.markSent),
       ),
+      if (canMarkPaid)
+        EntityActionItem(
+          kind: CreditAction.markPaid,
+          icon: Icons.payments_outlined,
+          label: context.tr('mark_paid'),
+          enabled: true,
+          onTap: () => onTap(CreditAction.markPaid),
+        ),
       if (me?.moduleEnabled(EntityType.invoice) ?? false)
         EntityActionItem(
           kind: CreditAction.applyToInvoice,
@@ -311,6 +327,12 @@ class CreditActions {
         if (!context.mounted) return;
         Notify.success(context, context.tr('marked_credit_as_sent'));
 
+      case CreditAction.markPaid:
+        if (tmpGate()) return;
+        await services.credits.markPaid(companyId: companyId, id: credit.id);
+        if (!context.mounted) return;
+        Notify.success(context, context.tr('marked_credit_as_paid'));
+
       case CreditAction.applyToInvoice:
         if (tmpGate()) return;
         // Open the payment editor prefilled with this credit as a credit
@@ -340,15 +362,17 @@ class CreditActions {
         // the invoice clone). Critically `statusId` + `paidToDate`: a clone of
         // an Applied credit must open as an unapplied Draft, not inherit
         // "applied" with a stale paid-to-date. Also drop dates (→ today /
-        // unset), exchange rate, party links, and the e-invoice block. Credits
-        // have no `partial` / `partialDueDate` / `subscriptionId` fields.
+        // unset), partial deposit, exchange rate, party links, and the
+        // e-invoice block. Credits have no `subscriptionId` field.
         final draft = credit.copyWith(
           id: '',
           number: '',
           statusId: CreditStatus.draft,
           date: Date.today(),
           dueDate: null,
+          partialDueDate: null,
           paidToDate: Decimal.zero,
+          partial: Decimal.zero,
           taxAmount: Decimal.zero,
           balance: credit.amount,
           exchangeRate: Decimal.one,

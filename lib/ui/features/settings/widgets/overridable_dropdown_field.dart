@@ -22,12 +22,17 @@ class OverridableDropdownField<T> extends StatelessWidget {
     required this.value,
     required this.items,
     required this.onChanged,
+    this.helperText,
   });
 
   final String label;
   final String apiKey;
   final T? value;
   final List<DropdownMenuItem<T>> items;
+
+  /// Optional helper text shown beneath the dropdown (e.g. the task-rounding
+  /// explanation). `null` renders no helper line.
+  final String? helperText;
 
   /// `null` disables the dropdown (matches Material's `DropdownButtonFormField`
   /// contract — a null `onChanged` greys out the field and ignores taps). Use
@@ -49,7 +54,11 @@ class OverridableDropdownField<T> extends StatelessWidget {
     final field = DropdownButtonFormField<T>(
       initialValue: effective,
       isExpanded: true,
-      decoration: InputDecoration(labelText: label, errorText: errorText),
+      decoration: InputDecoration(
+        labelText: label,
+        helperText: helperText,
+        errorText: errorText,
+      ),
       items: items,
       onChanged: onChanged,
     );

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -10,11 +8,10 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/expense_settings_view_model.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
+import 'package:admin/ui/features/settings/widgets/cascade_settings_scaffold.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_searchable_dropdown_field.dart';
-import 'package:admin/ui/features/settings/widgets/settings_company_scoped_host.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
-import 'package:admin/ui/features/settings/widgets/settings_page_scaffold.dart';
 import 'package:admin/ui/features/settings/widgets/settings_switch_tile.dart';
 import 'package:admin/ui/features/settings/widgets/settings_text_field.dart';
 
@@ -47,30 +44,21 @@ const kExpenseSettingsSearchKeys = <String>[
 /// the expense-tax pair) with the cascade
 /// `settings.defaultExpensePaymentTypeId` picker.
 ///
-/// Style: `SettingsCompanyScopedHost` + `SettingsPageScaffold` (the Task
-/// Settings hybrid pattern) per CLAUDE.md § Settings screens — using
-/// `CascadeSettingsScaffold` here would silently drop the top-level
-/// `vm.updateCompany(...)` writes at non-company scope.
+/// Style: `CascadeSettingsScaffold` (like Task Settings / Localization) so
+/// the one cascade field (`default_expense_payment_type_id`) writes to the
+/// right entity at every scope. The top-level `company.*` toggles render
+/// only inside `if (isCompanyScope)` via `host.draft` / `host.updateCompany`,
+/// which resolve to the company VM at company scope (where alone they show).
 class ExpenseSettingsScreen extends StatelessWidget {
   const ExpenseSettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final services = context.read<Services>();
-    return SettingsCompanyScopedHost<ExpenseSettingsViewModel>(
-      create: (companyId) {
-        final vm = ExpenseSettingsViewModel(
-          repo: services.company,
-          companyId: companyId,
-        );
-        unawaited(vm.load());
-        return vm;
-      },
-      builder: (context, vm) => SettingsPageScaffold<ExpenseSettingsViewModel>(
-        titleKey: 'expense_settings',
-        viewModel: vm,
-        body: const _ExpenseSettingsBody(),
-      ),
+    return CascadeSettingsScaffold(
+      titleKey: 'expense_settings',
+      companyVmFactory: ({required repo, required companyId}) =>
+          ExpenseSettingsViewModel(repo: repo, companyId: companyId),
+      body: const _ExpenseSettingsBody(),
     );
   }
 }
@@ -80,11 +68,13 @@ class _ExpenseSettingsBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<ExpenseSettingsViewModel>();
     final host = context.watch<SettingsDraftHost>();
     final scope = context.watch<SettingsLevelController>();
-    final draft = vm.draft;
-    if (draft == null) return const SizedBox.shrink();
+    // Company draft: non-null at company scope (the scaffold gates the body on
+    // `draftReady` = draft != null), null at client/group scope where only the
+    // cascade picker shows. Top-level sections guard on `draft != null`, which
+    // promotes `draft` to non-null inside.
+    final draft = host.draft;
 
     final isCompanyScope = scope.isCompany;
     final services = context.read<Services>();
@@ -97,12 +87,12 @@ class _ExpenseSettingsBody extends StatelessWidget {
         FormSection(
           title: context.tr('settings'),
           children: [
-            if (isCompanyScope) ...[
+            if (isCompanyScope && draft != null) ...[
               SettingsSwitchTile(
                 label: context.tr('should_be_invoiced'),
                 help: context.tr('should_be_invoiced_help'),
                 value: draft.markExpensesInvoiceable,
-                onChanged: (v) => vm.updateCompany(
+                onChanged: (v) => host.updateCompany(
                   (c) => c.copyWith(markExpensesInvoiceable: v),
                 ),
               ),
@@ -111,7 +101,7 @@ class _ExpenseSettingsBody extends StatelessWidget {
                 help: context.tr('mark_paid_help'),
                 value: draft.markExpensesPaid,
                 onChanged: (v) =>
-                    vm.updateCompany((c) => c.copyWith(markExpensesPaid: v)),
+                    host.updateCompany((c) => c.copyWith(markExpensesPaid: v)),
               ),
             ],
             // Cascade picker. At company scope it follows the old admin-portal
@@ -119,14 +109,14 @@ class _ExpenseSettingsBody extends StatelessWidget {
             // scope it's always visible — it's the only field on this page
             // that cascades, so hiding it would leave the user nothing to
             // edit.
-            if (!isCompanyScope || draft.markExpensesPaid)
+            if (!isCompanyScope || (draft?.markExpensesPaid ?? false))
               _DefaultPaymentTypePicker(host: host, services: services),
-            if (isCompanyScope) ...[
+            if (isCompanyScope && draft != null) ...[
               SettingsSwitchTile(
                 label: context.tr('convert_currency'),
                 help: context.tr('convert_expense_currency_help'),
                 value: draft.convertExpenseCurrency,
-                onChanged: (v) => vm.updateCompany(
+                onChanged: (v) => host.updateCompany(
                   (c) => c.copyWith(convertExpenseCurrency: v),
                 ),
               ),
@@ -134,7 +124,7 @@ class _ExpenseSettingsBody extends StatelessWidget {
                 label: context.tr('add_documents_to_invoice'),
                 help: context.tr('add_documents_to_invoice_help'),
                 value: draft.invoiceExpenseDocuments,
-                onChanged: (v) => vm.updateCompany(
+                onChanged: (v) => host.updateCompany(
                   (c) => c.copyWith(invoiceExpenseDocuments: v),
                 ),
               ),
@@ -142,14 +132,14 @@ class _ExpenseSettingsBody extends StatelessWidget {
                 label: context.tr('notify_vendor_when_paid'),
                 help: context.tr('notify_vendor_when_paid_help'),
                 value: draft.notifyVendorWhenPaid,
-                onChanged: (v) => vm.updateCompany(
+                onChanged: (v) => host.updateCompany(
                   (c) => c.copyWith(notifyVendorWhenPaid: v),
                 ),
               ),
             ],
           ],
         ),
-        if (isCompanyScope && isSelfHosted)
+        if (isCompanyScope && isSelfHosted && draft != null)
           FormSection(
             title: context.tr('expense_mailbox_active'),
             children: [
@@ -157,7 +147,7 @@ class _ExpenseSettingsBody extends StatelessWidget {
                 label: context.tr('expense_mailbox_active'),
                 help: context.tr('expense_mailbox_active_help'),
                 value: draft.expenseMailboxActive,
-                onChanged: (v) => vm.updateCompany(
+                onChanged: (v) => host.updateCompany(
                   (c) => c.copyWith(expenseMailboxActive: v),
                 ),
               ),
@@ -169,13 +159,13 @@ class _ExpenseSettingsBody extends StatelessWidget {
                   helperMaxLines: 2,
                   initialValue: draft.expenseMailbox,
                   onChanged: (v) =>
-                      vm.updateCompany((c) => c.copyWith(expenseMailbox: v)),
+                      host.updateCompany((c) => c.copyWith(expenseMailbox: v)),
                 ),
                 SettingsSwitchTile(
                   label: context.tr('inbound_mailbox_allow_company_users'),
                   help: context.tr('inbound_mailbox_allow_company_users_help'),
                   value: draft.inboundMailboxAllowCompanyUsers,
-                  onChanged: (v) => vm.updateCompany(
+                  onChanged: (v) => host.updateCompany(
                     (c) => c.copyWith(inboundMailboxAllowCompanyUsers: v),
                   ),
                 ),
@@ -183,7 +173,7 @@ class _ExpenseSettingsBody extends StatelessWidget {
                   label: context.tr('inbound_mailbox_allow_vendors'),
                   help: context.tr('inbound_mailbox_allow_vendors_help'),
                   value: draft.inboundMailboxAllowVendors,
-                  onChanged: (v) => vm.updateCompany(
+                  onChanged: (v) => host.updateCompany(
                     (c) => c.copyWith(inboundMailboxAllowVendors: v),
                   ),
                 ),
@@ -191,7 +181,7 @@ class _ExpenseSettingsBody extends StatelessWidget {
                   label: context.tr('inbound_mailbox_allow_clients'),
                   help: context.tr('inbound_mailbox_allow_clients_help'),
                   value: draft.inboundMailboxAllowClients,
-                  onChanged: (v) => vm.updateCompany(
+                  onChanged: (v) => host.updateCompany(
                     (c) => c.copyWith(inboundMailboxAllowClients: v),
                   ),
                 ),
@@ -201,7 +191,7 @@ class _ExpenseSettingsBody extends StatelessWidget {
                   helperText: context.tr('inbound_mailbox_whitelist_help'),
                   helperMaxLines: 2,
                   initialValue: draft.inboundMailboxWhitelist,
-                  onChanged: (v) => vm.updateCompany(
+                  onChanged: (v) => host.updateCompany(
                     (c) => c.copyWith(inboundMailboxWhitelist: v),
                   ),
                 ),
@@ -211,7 +201,7 @@ class _ExpenseSettingsBody extends StatelessWidget {
                   helperText: context.tr('inbound_mailbox_blacklist_help'),
                   helperMaxLines: 2,
                   initialValue: draft.inboundMailboxBlacklist,
-                  onChanged: (v) => vm.updateCompany(
+                  onChanged: (v) => host.updateCompany(
                     (c) => c.copyWith(inboundMailboxBlacklist: v),
                   ),
                 ),
@@ -219,7 +209,7 @@ class _ExpenseSettingsBody extends StatelessWidget {
                   label: context.tr('inbound_mailbox_allow_unknown'),
                   help: context.tr('inbound_mailbox_allow_unknown_help'),
                   value: draft.inboundMailboxAllowUnknown,
-                  onChanged: (v) => vm.updateCompany(
+                  onChanged: (v) => host.updateCompany(
                     (c) => c.copyWith(inboundMailboxAllowUnknown: v),
                   ),
                 ),
@@ -231,7 +221,7 @@ class _ExpenseSettingsBody extends StatelessWidget {
         // `numberOfItemTaxRates > 0`, but `calculateExpenseTaxByAmount` and
         // `expenseInclusiveTaxes` are independently meaningful even before
         // any tax rate slots are enabled in Tax Settings.
-        if (isCompanyScope)
+        if (isCompanyScope && draft != null)
           FormSection(
             title: context.tr('tax_settings'),
             children: [
@@ -255,7 +245,7 @@ class _ExpenseSettingsBody extends StatelessWidget {
                 ],
                 onChanged: (v) {
                   if (v == null) return;
-                  vm.updateCompany(
+                  host.updateCompany(
                     (c) => c.copyWith(calculateExpenseTaxByAmount: v),
                   );
                 },
@@ -268,7 +258,7 @@ class _ExpenseSettingsBody extends StatelessWidget {
                     '\n${context.tr('exclusive')}: 100 + 10% = 100 + 10\n'
                     '${context.tr('inclusive')}: 100 + 10% = 90.91 + 9.09',
                 value: draft.expenseInclusiveTaxes,
-                onChanged: (v) => vm.updateCompany(
+                onChanged: (v) => host.updateCompany(
                   (c) => c.copyWith(expenseInclusiveTaxes: v),
                 ),
               ),

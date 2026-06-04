@@ -374,13 +374,14 @@ class EmailSettingsBody extends StatelessWidget {
           children: [
             _BrandDot(color: _kBrandDotColors['smtp']!),
             const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                'SMTP',
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: smtpEnabled ? null : Theme.of(context).disabledColor,
-                ),
+            // Not wrapped in Flexible: "SMTP" can't overflow, and the trailing
+            // _ProChip should sit adjacent — a Flexible would expand the text
+            // and right-align the chip. The long brand labels (which can
+            // overflow) get the Flexible treatment in _brandItem instead.
+            Text(
+              'SMTP',
+              style: TextStyle(
+                color: smtpEnabled ? null : Theme.of(context).disabledColor,
               ),
             ),
             if (!smtpEnabled) ...[const SizedBox(width: 8), const _ProChip()],

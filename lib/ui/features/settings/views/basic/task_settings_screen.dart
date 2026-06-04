@@ -1,22 +1,18 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/view_models/task_settings_view_model.dart';
+import 'package:admin/ui/features/settings/widgets/cascade_settings_scaffold.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_switch_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_text_field.dart';
-import 'package:admin/ui/features/settings/widgets/settings_company_scoped_host.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
-import 'package:admin/ui/features/settings/widgets/settings_page_scaffold.dart';
 import 'package:admin/ui/features/settings/widgets/settings_switch_tile.dart';
 
 /// Searchable label keys rendered by this screen. Aggregated into
@@ -55,31 +51,25 @@ const Set<int> _kPresetSeconds = {60, 300, 900, 1800, 3600, 86400};
 /// start, invoice task options, lock, documents) with cascade
 /// `company.settings.*` fields (default rate, rounding, client portal).
 ///
-/// Style: company-only `SettingsCompanyScopedHost` + `SettingsPageScaffold`
-/// per CLAUDE.md § Settings screens — `CascadeSettingsScaffold` is wrong
-/// here because top-level edits would be silently dropped at client scope.
-/// `Overridable*` widgets still work inside this pattern; at company scope
-/// they render plain, at non-company scope they show the override checkbox.
+/// Style: `CascadeSettingsScaffold` (like Localization / Tax Settings) so
+/// the cascade fields write to the right entity at every scope — the
+/// company's own settings at company scope, the client/group override blob
+/// otherwise. The top-level `company.*` toggles are company-level only:
+/// they render only inside `if (isCompanyScope)` and read/write via
+/// `host.draft` / `host.updateCompany`, which resolve to the company VM at
+/// company scope (where alone they appear). `Overridable*` widgets render
+/// plain at company scope and show the override checkbox at client/group
+/// scope.
 class TaskSettingsScreen extends StatelessWidget {
   const TaskSettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final services = context.read<Services>();
-    return SettingsCompanyScopedHost<TaskSettingsViewModel>(
-      create: (companyId) {
-        final vm = TaskSettingsViewModel(
-          repo: services.company,
-          companyId: companyId,
-        );
-        unawaited(vm.load());
-        return vm;
-      },
-      builder: (context, vm) => SettingsPageScaffold<TaskSettingsViewModel>(
-        titleKey: 'task_settings',
-        viewModel: vm,
-        body: const _TaskSettingsBody(),
-      ),
+    return CascadeSettingsScaffold(
+      titleKey: 'task_settings',
+      companyVmFactory: ({required repo, required companyId}) =>
+          TaskSettingsViewModel(repo: repo, companyId: companyId),
+      body: const _TaskSettingsBody(),
     );
   }
 }
@@ -89,11 +79,8 @@ class _TaskSettingsBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<TaskSettingsViewModel>();
     final host = context.watch<SettingsDraftHost>();
     final scope = context.watch<SettingsLevelController>();
-    final draft = vm.draft;
-    if (draft == null) return const SizedBox.shrink();
 
     final isCompanyScope = scope.isCompany;
     final settings = host.settings;
@@ -119,16 +106,16 @@ class _TaskSettingsBody extends StatelessWidget {
               SettingsSwitchTile(
                 label: context.tr('auto_start_tasks'),
                 help: context.tr('auto_start_tasks_help'),
-                value: draft.autoStartTasks,
+                value: host.draft?.autoStartTasks ?? false,
                 onChanged: (v) =>
-                    vm.updateCompany((c) => c.copyWith(autoStartTasks: v)),
+                    host.updateCompany((c) => c.copyWith(autoStartTasks: v)),
               ),
               SettingsSwitchTile(
                 label: context.tr('show_task_end_date'),
                 help: context.tr('show_task_end_date_help'),
-                value: draft.showTaskEndDate,
+                value: host.draft?.showTaskEndDate ?? false,
                 onChanged: (v) =>
-                    vm.updateCompany((c) => c.copyWith(showTaskEndDate: v)),
+                    host.updateCompany((c) => c.copyWith(showTaskEndDate: v)),
               ),
             ],
             OverridableSwitchField(
@@ -151,69 +138,72 @@ class _TaskSettingsBody extends StatelessWidget {
               SettingsSwitchTile(
                 label: context.tr('show_tasks_table'),
                 help: context.tr('show_tasks_table_help'),
-                value: draft.showTasksTable,
+                value: host.draft?.showTasksTable ?? false,
                 onChanged: (v) =>
-                    vm.updateCompany((c) => c.copyWith(showTasksTable: v)),
+                    host.updateCompany((c) => c.copyWith(showTasksTable: v)),
               ),
               SettingsSwitchTile(
                 label: context.tr('invoice_task_datelog'),
                 help: context.tr('invoice_task_datelog_help'),
-                value: draft.invoiceTaskDatelog,
-                onChanged: (v) =>
-                    vm.updateCompany((c) => c.copyWith(invoiceTaskDatelog: v)),
+                value: host.draft?.invoiceTaskDatelog ?? false,
+                onChanged: (v) => host.updateCompany(
+                  (c) => c.copyWith(invoiceTaskDatelog: v),
+                ),
               ),
               SettingsSwitchTile(
                 label: context.tr('invoice_task_timelog'),
                 help: context.tr('invoice_task_timelog_help'),
-                value: draft.invoiceTaskTimelog,
-                onChanged: (v) =>
-                    vm.updateCompany((c) => c.copyWith(invoiceTaskTimelog: v)),
+                value: host.draft?.invoiceTaskTimelog ?? false,
+                onChanged: (v) => host.updateCompany(
+                  (c) => c.copyWith(invoiceTaskTimelog: v),
+                ),
               ),
               SettingsSwitchTile(
                 label: context.tr('invoice_task_hours'),
                 help: context.tr('invoice_task_hours_help'),
-                value: draft.invoiceTaskHours,
+                value: host.draft?.invoiceTaskHours ?? false,
                 onChanged: (v) =>
-                    vm.updateCompany((c) => c.copyWith(invoiceTaskHours: v)),
+                    host.updateCompany((c) => c.copyWith(invoiceTaskHours: v)),
               ),
               // Render disabled-with-tooltip when the cascade field gating
               // this row isn't enabled — fewer layout jumps than hide/show.
               SettingsSwitchTile(
                 label: context.tr('invoice_task_item_description'),
                 help: context.tr('invoice_task_item_description_help'),
-                value: draft.invoiceTaskItemDescription,
+                value: host.draft?.invoiceTaskItemDescription ?? false,
                 enabled: settings.showTaskItemDescription == true,
                 disabledTooltip: context.tr('show_task_item_description'),
-                onChanged: (v) => vm.updateCompany(
+                onChanged: (v) => host.updateCompany(
                   (c) => c.copyWith(invoiceTaskItemDescription: v),
                 ),
               ),
               SettingsSwitchTile(
                 label: context.tr('invoice_task_project'),
                 help: context.tr('invoice_task_project_help'),
-                value: draft.invoiceTaskProject,
-                onChanged: (v) =>
-                    vm.updateCompany((c) => c.copyWith(invoiceTaskProject: v)),
+                value: host.draft?.invoiceTaskProject ?? false,
+                onChanged: (v) => host.updateCompany(
+                  (c) => c.copyWith(invoiceTaskProject: v),
+                ),
               ),
               _ProjectLocationDropdown(
-                value: draft.invoiceTaskProjectHeader,
-                enabled: draft.invoiceTaskProject,
-                onChanged: (v) => vm.updateCompany(
+                value: host.draft?.invoiceTaskProjectHeader ?? false,
+                enabled: host.draft?.invoiceTaskProject ?? false,
+                onChanged: (v) => host.updateCompany(
                   (c) => c.copyWith(invoiceTaskProjectHeader: v),
                 ),
               ),
               SettingsSwitchTile(
                 label: context.tr('lock_invoiced_tasks'),
                 help: context.tr('lock_invoiced_tasks_help'),
-                value: draft.invoiceTaskLock,
+                value: host.draft?.invoiceTaskLock ?? false,
                 onChanged: (v) =>
-                    vm.updateCompany((c) => c.copyWith(invoiceTaskLock: v)),
+                    host.updateCompany((c) => c.copyWith(invoiceTaskLock: v)),
               ),
               SettingsSwitchTile(
                 label: context.tr('add_documents_to_invoice'),
                 help: context.tr('add_documents_to_invoice_help'),
-                value: draft.invoiceTaskDocuments,
-                onChanged: (v) => vm.updateCompany(
+                value: host.draft?.invoiceTaskDocuments ?? false,
+                onChanged: (v) => host.updateCompany(
                   (c) => c.copyWith(invoiceTaskDocuments: v),
                 ),
               ),
@@ -245,7 +235,7 @@ class _TaskSettingsBody extends StatelessWidget {
             ),
             _PortalTasksDropdown(
               value: settings.showAllTasksClientPortal ?? 'invoiced',
-              enabled: settings.enableClientPortalTasks != false,
+              enabled: settings.enableClientPortalTasks == true,
               onChanged: (v) => host.updateSettings(
                 (s) => s.copyWith(showAllTasksClientPortal: v),
               ),
@@ -311,6 +301,7 @@ class _RoundingSectionState extends State<_RoundingSection> {
           initialValue: enabled,
           decoration: InputDecoration(
             labelText: context.tr('round_tasks'),
+            helperText: context.tr('round_tasks_help'),
             enabled: isOverridden,
           ),
           items: [
@@ -356,6 +347,7 @@ class _RoundingSectionState extends State<_RoundingSection> {
           OverridableDropdownField<int>(
             label: context.tr('task_round_to_nearest'),
             apiKey: 'task_round_to_nearest',
+            helperText: context.tr('task_round_to_nearest_help'),
             value: isCustomValue ? 0 : (asInt ?? _lastEnabledSeconds),
             items: [
               DropdownMenuItem(value: 60, child: Text(context.tr('1_minute'))),

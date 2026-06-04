@@ -29,16 +29,17 @@ List<({String label, String value})> customFieldDetailRows({
     final label = company.customFieldLabel(key);
     final raw = values[i - 1];
     if (label.isEmpty || raw.isEmpty) continue;
-    rows.add((
-      label: label,
-      value: company.customFieldDisplay(
-        key,
-        raw,
-        formatter: formatter,
-        yes: yes,
-        no: no,
-      ),
-    ));
+    final display = company.customFieldDisplay(
+      key,
+      raw,
+      formatter: formatter,
+      yes: yes,
+      no: no,
+    );
+    // A date-typed slot holding non-ISO garbage formats to '' — skip rather
+    // than render a "Label: <blank>" row.
+    if (display.isEmpty) continue;
+    rows.add((label: label, value: display));
   }
   return rows;
 }

@@ -77,15 +77,7 @@ class RecurringExpenseEditLayout extends StatelessWidget {
                 child: RecurringExpenseEditCurrencyConversionSection(vm: vm),
               ),
               SizedBox(height: InSpacing.md(context)),
-              _CollapsibleFormSection(
-                title: context.tr('custom_fields'),
-                initiallyExpanded:
-                    vm.draft.customValue1.isNotEmpty ||
-                    vm.draft.customValue2.isNotEmpty ||
-                    vm.draft.customValue3.isNotEmpty ||
-                    vm.draft.customValue4.isNotEmpty,
-                child: RecurringExpenseEditCustomFieldsSection(vm: vm),
-              ),
+              _CustomFieldsCollapsible(vm: vm),
             ],
           ),
         ),
@@ -115,15 +107,7 @@ class RecurringExpenseEditLayout extends StatelessWidget {
           child: RecurringExpenseEditCurrencyConversionSection(vm: vm),
         ),
         SizedBox(height: InSpacing.md(context)),
-        _CollapsibleFormSection(
-          title: context.tr('custom_fields'),
-          initiallyExpanded:
-              vm.draft.customValue1.isNotEmpty ||
-              vm.draft.customValue2.isNotEmpty ||
-              vm.draft.customValue3.isNotEmpty ||
-              vm.draft.customValue4.isNotEmpty,
-          child: RecurringExpenseEditCustomFieldsSection(vm: vm),
-        ),
+        _CustomFieldsCollapsible(vm: vm),
       ],
     );
   }

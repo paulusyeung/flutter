@@ -15,6 +15,7 @@ const List<String> kDefaultCreditColumns = <String>[
   CreditFieldIds.amount,
   CreditFieldIds.balance,
   CreditFieldIds.date,
+  CreditFieldIds.dueDate,
 ];
 
 final List<CreditColumn> kAllCreditColumns = <CreditColumn>[
@@ -56,6 +57,15 @@ final List<CreditColumn> kAllCreditColumns = <CreditColumn>[
     cellBuilder: (c, ctx) =>
         c.date == null ? cellEmpty() : cellDate(c.date!.toDateTime(), ctx),
     valueBuilder: (c) => c.date?.toIso(),
+  ),
+  CreditColumn(
+    id: CreditFieldIds.dueDate,
+    labelKey: 'due_date',
+    width: 120,
+    cellBuilder: (c, ctx) => c.dueDate == null
+        ? cellEmpty()
+        : cellDate(c.dueDate!.toDateTime(), ctx),
+    valueBuilder: (c) => c.dueDate?.toIso(),
   ),
   CreditColumn(
     id: CreditFieldIds.amount,

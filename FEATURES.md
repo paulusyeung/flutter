@@ -242,6 +242,8 @@ the honest default.
 | Credit — clone to credit | ✅ | ✅ | ✅ | ✅ | |
 | Credit — clone to invoice | ✅ | ❌ | ✅ | ✅ | |
 | Credit — apply to invoice | ✅ | ✅ | ✅ | ✅ | |
+| Credit — mark paid (negative credits) | ✅ | ✅ | ✅ | ✅ | |
+| Credit — partial deposit / partial due date | ✅ | ✅ | ✅ | ✅ | |
 | Credit — email to client | ✅ | ✅ | ✅ | ✅ | |
 | Credit — email history | ✅ | ✅ | ✅ | | |
 | Credit — email bounce indicator + reactivate | ✅ | ✅ | ✅ | | |
