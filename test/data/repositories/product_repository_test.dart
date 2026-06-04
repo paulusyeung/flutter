@@ -111,6 +111,40 @@ void main() {
       expect(payload['tax_id'], '3');
     });
 
+    test(
+      'read-only server fields (assigned_user_id / user_id / '
+      'income_account_id) survive the Product.fromApi/toApiJson round-trip',
+      () {
+        final api = const ProductApi(
+          id: 'prod_1',
+          productKey: 'Widget',
+          price: '10',
+          updatedAt: 1700000000,
+          userId: 'creator_1',
+          assignedUserId: 'user_9',
+          incomeAccountId: 'acct_7',
+        );
+        final domain = Product.fromApi(api);
+        expect(domain.userId, 'creator_1');
+        expect(domain.assignedUserId, 'user_9');
+        expect(domain.incomeAccountId, 'acct_7');
+
+        final payload = domain.toApiJson();
+        expect(payload['assigned_user_id'], 'user_9');
+        expect(payload['user_id'], 'creator_1');
+        expect(payload['income_account_id'], 'acct_7');
+
+        // assigned_user_id is always emitted (so clearing it unassigns); the
+        // other two are omitted when empty.
+        final blank = Product.fromApi(
+          const ProductApi(productKey: 'Y', updatedAt: 1),
+        ).toApiJson();
+        expect(blank['assigned_user_id'], '');
+        expect(blank.containsKey('user_id'), isFalse);
+        expect(blank.containsKey('income_account_id'), isFalse);
+      },
+    );
+
     test('uploadDocument enqueues MutationKind.documentUpload with the right '
         'payload and is NOT password-gated', () async {
       final repo = makeRepo();

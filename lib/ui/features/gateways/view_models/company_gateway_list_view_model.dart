@@ -1,12 +1,17 @@
+import 'dart:async';
+
 import 'package:admin/data/db/dao/company_gateway_dao.dart';
+import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/company_gateway.dart';
 import 'package:admin/data/repositories/company_gateway_repository.dart';
+import 'package:admin/data/repositories/company_repository.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/domain/columns/company_gateway_columns.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/standard_crud_bulk_actions.dart';
+import 'package:admin/ui/features/gateways/gateway_order_writer.dart';
 
 /// List ViewModel for the Company Gateways screen. Mirrors the standard
 /// `<Entity>ListViewModel` shape — the base class owns pagination, search,
@@ -14,6 +19,7 @@ import 'package:admin/ui/core/list/standard_crud_bulk_actions.dart';
 class CompanyGatewayListViewModel extends GenericListViewModel<CompanyGateway> {
   CompanyGatewayListViewModel({
     required this.repo,
+    required this.companyRepo,
     required super.companyId,
     required super.navStateDao,
     required super.userSettings,
@@ -24,6 +30,15 @@ class CompanyGatewayListViewModel extends GenericListViewModel<CompanyGateway> {
   });
 
   final CompanyGatewayRepository repo;
+
+  /// Read-only company watch — supplies `company_gateway_ids` so the list can
+  /// present gateways in the saved order and mark the default one.
+  final CompanyRepository companyRepo;
+
+  /// Id of the default gateway (first in `company_gateway_ids`), surfaced for
+  /// the per-row "Default" badge. Recomputed on every list emission.
+  String? _defaultGatewayId;
+  String? get defaultGatewayId => _defaultGatewayId;
 
   @override
   EntityType get entityType => EntityType.companyGateway;
@@ -53,14 +68,70 @@ class CompanyGatewayListViewModel extends GenericListViewModel<CompanyGateway> {
   bool isDeleted(CompanyGateway item) => item.isDeleted;
 
   @override
-  Stream<List<CompanyGateway>> watchPage() => repo.watchPage(
-    companyId: companyId,
-    loadedPages: loadedPages,
-    search: search.isEmpty ? null : search,
-    states: states,
-    sortField: sortField,
-    sortAscending: sortAscending,
-  );
+  Stream<List<CompanyGateway>> watchPage() {
+    final base = repo.watchPage(
+      companyId: companyId,
+      loadedPages: loadedPages,
+      search: search.isEmpty ? null : search,
+      states: states,
+      sortField: sortField,
+      sortAscending: sortAscending,
+    );
+    // Fold in `company_gateway_ids`: the default sort presents gateways in the
+    // saved order (so a reorder via the sheet is reflected here); an explicit
+    // sort choice from the menu wins. Either way we stamp the default id for
+    // the per-row badge. Combining streams keeps it reactive to a reorder even
+    // when the gateway rows themselves don't change.
+    return _combineLatest<List<CompanyGateway>, Company?, List<CompanyGateway>>(
+      base,
+      companyRepo.watchCompany(companyId),
+      (gateways, company) {
+        final csv = company?.settings.companyGatewayIds ?? '';
+        _defaultGatewayId = firstGatewayId(csv);
+        if (sortField != defaultSortField) return gateways;
+        return orderGatewaysByCsv(gateways, csv);
+      },
+    );
+  }
+
+  /// Minimal combine-latest (no rxdart in the project). Emits once both
+  /// sources have produced a value, then on every subsequent event.
+  Stream<R> _combineLatest<A, B, R>(
+    Stream<A> a,
+    Stream<B> b,
+    R Function(A, B) combine,
+  ) {
+    late StreamController<R> controller;
+    StreamSubscription<A>? subA;
+    StreamSubscription<B>? subB;
+    A? latestA;
+    B? latestB;
+    var hasA = false;
+    var hasB = false;
+    void emit() {
+      if (hasA && hasB) controller.add(combine(latestA as A, latestB as B));
+    }
+
+    controller = StreamController<R>(
+      onListen: () {
+        subA = a.listen((v) {
+          latestA = v;
+          hasA = true;
+          emit();
+        }, onError: controller.addError);
+        subB = b.listen((v) {
+          latestB = v;
+          hasB = true;
+          emit();
+        }, onError: controller.addError);
+      },
+      onCancel: () async {
+        await subA?.cancel();
+        await subB?.cancel();
+      },
+    );
+    return controller.stream;
+  }
 
   @override
   Future<bool> fetchPage({

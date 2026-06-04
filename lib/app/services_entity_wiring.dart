@@ -1506,20 +1506,6 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         );
         return response?.data;
       },
-      MutationKind.markSent: ({required row, required payload}) async {
-        final response = await recurringInvoicesApi.markSent(
-          id: payload['id'] as String,
-          idempotencyKey: row.idempotencyKey,
-        );
-        return response?.data;
-      },
-      MutationKind.sendNow: ({required row, required payload}) async {
-        final response = await recurringInvoicesApi.sendNow(
-          id: payload['id'] as String,
-          idempotencyKey: row.idempotencyKey,
-        );
-        return response?.data;
-      },
       MutationKind.emailEntity: ({required row, required payload}) async {
         final response = await recurringInvoicesApi.email(
           id: payload['id'] as String,
@@ -1588,6 +1574,21 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         final response = await recurringInvoicesApi.runTemplate(
           id: payload['id'] as String,
           templateId: payload['template_id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.updatePrices: ({required row, required payload}) async {
+        final response = await recurringInvoicesApi.updatePrices(
+          id: payload['id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.increasePrices: ({required row, required payload}) async {
+        final response = await recurringInvoicesApi.increasePrices(
+          id: payload['id'] as String,
+          percentageIncrease: payload['percentage_increase'] as String,
           idempotencyKey: row.idempotencyKey,
         );
         return response?.data;

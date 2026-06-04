@@ -128,6 +128,16 @@ enum MutationKind {
   /// + entity id. Routed via `customActions`.
   runTemplate,
 
+  /// `POST /recurring_invoices/bulk` with `action: update_prices` — recompute
+  /// each recurring invoice's line-item prices from the current product
+  /// catalog. Payload `{'id': id}`. Recurring-only; routed via `customActions`.
+  updatePrices,
+
+  /// `POST /recurring_invoices/bulk` with `action: increase_prices` — bump
+  /// line-item prices by a percentage. Payload carries `id` +
+  /// `percentage_increase`. Recurring-only; routed via `customActions`.
+  increasePrices,
+
   /// `POST /quotes/{id}/approve` — manually mark a quote as approved by
   /// the client (override of the portal-driven flow). Quote-only.
   /// Payload is `{'id': id}`.
@@ -313,6 +323,8 @@ enum MutationKind {
     'auto_bill' => MutationKind.autoBill,
     'cancel_entity' => MutationKind.cancelEntity,
     'run_template' => MutationKind.runTemplate,
+    'update_prices' => MutationKind.updatePrices,
+    'increase_prices' => MutationKind.increasePrices,
     'approve' => MutationKind.approve,
     'convert_to_invoice' => MutationKind.convertToInvoice,
     'convert_to_project' => MutationKind.convertToProject,
@@ -368,6 +380,8 @@ enum MutationKind {
     MutationKind.autoBill => 'auto_bill',
     MutationKind.cancelEntity => 'cancel_entity',
     MutationKind.runTemplate => 'run_template',
+    MutationKind.updatePrices => 'update_prices',
+    MutationKind.increasePrices => 'increase_prices',
     MutationKind.approve => 'approve',
     MutationKind.convertToInvoice => 'convert_to_invoice',
     MutationKind.convertToProject => 'convert_to_project',

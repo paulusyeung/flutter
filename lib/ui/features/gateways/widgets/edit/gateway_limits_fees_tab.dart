@@ -4,11 +4,14 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/company_gateway.dart';
+import 'package:admin/data/models/domain/tax_rate.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
 import 'package:admin/domain/gateway_constants.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/utils/formatting.dart';
+import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/gateways/view_models/company_gateway_edit_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
@@ -29,7 +32,8 @@ class _GatewayLimitsFeesTabState extends State<GatewayLimitsFeesTab> {
 
   @override
   Widget build(BuildContext context) {
-    final statics = context.read<Services>().statics;
+    final services = context.read<Services>();
+    final statics = services.statics;
     final draft = widget.vm.draft;
     final enabledTypeIds = draft.feesAndLimits.entries
         .where((e) => e.value.isEnabled)
@@ -53,27 +57,51 @@ class _GatewayLimitsFeesTabState extends State<GatewayLimitsFeesTab> {
         : enabledTypeIds.first;
     final fees = draft.feesAndLimits[active] ?? const FeesAndLimits();
 
-    return SettingsFormShell(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Wrap(
-            spacing: InSpacing.sm,
-            runSpacing: InSpacing.sm,
+    // The active company drives (a) how many fee-tax slots to show
+    // (`enabled_item_tax_rates`, exactly like the line-item editor + Tax
+    // Settings) and (b) the decimal separator for parsing typed input.
+    return StreamBuilder<Company?>(
+      stream: services.company.watchCompany(widget.vm.companyId),
+      builder: (context, snap) {
+        final company = snap.data;
+        final taxRateSlots = company?.enabledItemTaxRates ?? 0;
+        final useComma = company?.useCommaAsDecimalPlace ?? false;
+        final formatter = services.formatterIfReady(widget.vm.companyId);
+        return SettingsFormShell(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              for (final id in enabledTypeIds)
-                ChoiceChip(
-                  label: Text(_typeLabel(context, statics, id)),
-                  selected: id == active,
-                  onSelected: (_) => setState(() => _activeTypeId = id),
-                ),
+              Wrap(
+                spacing: InSpacing.sm,
+                runSpacing: InSpacing.sm,
+                children: [
+                  for (final id in enabledTypeIds)
+                    ChoiceChip(
+                      label: Text(_typeLabel(context, statics, id)),
+                      selected: id == active,
+                      onSelected: (_) => setState(() => _activeTypeId = id),
+                    ),
+                ],
+              ),
+              SizedBox(height: InSpacing.lg(context)),
+              // Key on the active type id: the text fields seed from
+              // `initialValue` (applied once in initState), so switching the
+              // payment-type chip must recreate them — otherwise they'd keep
+              // showing the previous type's amounts.
+              _LimitsAndFeesEditor(
+                key: ValueKey(active),
+                vm: widget.vm,
+                typeId: active,
+                fees: fees,
+                taxRateSlots: taxRateSlots,
+                useComma: useComma,
+                formatter: formatter,
+              ),
             ],
           ),
-          SizedBox(height: InSpacing.lg(context)),
-          _LimitsAndFeesEditor(vm: widget.vm, typeId: active, fees: fees),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -92,14 +120,41 @@ class _GatewayLimitsFeesTabState extends State<GatewayLimitsFeesTab> {
 
 class _LimitsAndFeesEditor extends StatelessWidget {
   const _LimitsAndFeesEditor({
+    super.key,
     required this.vm,
     required this.typeId,
     required this.fees,
+    required this.taxRateSlots,
+    required this.useComma,
+    required this.formatter,
   });
 
   final CompanyGatewayEditViewModel vm;
   final String typeId;
   final FeesAndLimits fees;
+
+  /// Number of fee-tax slots to show (company `enabled_item_tax_rates`, 0-3).
+  final int taxRateSlots;
+
+  /// Active company decimal-comma flag — drives input parsing.
+  final bool useComma;
+
+  /// Company `Formatter` if already resolved; seeds inputs empty-for-zero.
+  final Formatter? formatter;
+
+  /// Seed a numeric field: empty for zero (per CLAUDE.md § Forms), otherwise
+  /// the locale-aware rendering. Falls back to a locale-correct `toString()`
+  /// only when the formatter hasn't resolved yet (cold deep-link) — still
+  /// honoring the decimal-comma so the seed matches what the parser expects.
+  String _seed(double value) {
+    if (formatter != null) return formatter!.inputAmount(value);
+    if (value == 0) return '';
+    final s = value.toString();
+    return useComma ? s.replaceFirst('.', ',') : s;
+  }
+
+  double _parse(String v) =>
+      parseDouble(v, useCommaAsDecimalPlace: useComma) ?? 0;
 
   @override
   Widget build(BuildContext context) {
@@ -122,15 +177,13 @@ class _LimitsAndFeesEditor extends StatelessWidget {
             ),
             if (minEnabled)
               TextFormField(
-                initialValue: fees.minLimit.toString(),
+                initialValue: _seed(fees.minLimit),
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
                 decoration: InputDecoration(labelText: context.tr('min_limit')),
-                onChanged: (v) {
-                  final parsed = double.tryParse(v) ?? 0;
-                  vm.updateFees(typeId, fees.copyWith(minLimit: parsed));
-                },
+                onChanged: (v) =>
+                    vm.updateFees(typeId, fees.copyWith(minLimit: _parse(v))),
               ),
             SwitchListTile(
               title: Text(context.tr('enable_max')),
@@ -143,15 +196,13 @@ class _LimitsAndFeesEditor extends StatelessWidget {
             ),
             if (maxEnabled)
               TextFormField(
-                initialValue: fees.maxLimit.toString(),
+                initialValue: _seed(fees.maxLimit),
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
                 decoration: InputDecoration(labelText: context.tr('max_limit')),
-                onChanged: (v) {
-                  final parsed = double.tryParse(v) ?? 0;
-                  vm.updateFees(typeId, fees.copyWith(maxLimit: parsed));
-                },
+                onChanged: (v) =>
+                    vm.updateFees(typeId, fees.copyWith(maxLimit: _parse(v))),
               ),
           ],
         ),
@@ -159,41 +210,42 @@ class _LimitsAndFeesEditor extends StatelessWidget {
           title: context.tr('fees'),
           children: [
             TextFormField(
-              initialValue: fees.feeAmount == 0
-                  ? ''
-                  : fees.feeAmount.toString(),
+              initialValue: _seed(fees.feeAmount),
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
               decoration: InputDecoration(labelText: context.tr('fee_amount')),
-              onChanged: (v) {
-                final parsed = double.tryParse(v) ?? 0;
-                vm.updateFees(typeId, fees.copyWith(feeAmount: parsed));
-              },
+              onChanged: (v) =>
+                  vm.updateFees(typeId, fees.copyWith(feeAmount: _parse(v))),
             ),
             TextFormField(
-              initialValue: fees.feePercent == 0
-                  ? ''
-                  : fees.feePercent.toString(),
+              initialValue: _seed(fees.feePercent),
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
               decoration: InputDecoration(labelText: context.tr('fee_percent')),
-              onChanged: (v) {
-                final parsed = double.tryParse(v) ?? 0;
-                vm.updateFees(typeId, fees.copyWith(feePercent: parsed));
-              },
+              onChanged: (v) =>
+                  vm.updateFees(typeId, fees.copyWith(feePercent: _parse(v))),
             ),
+            // Fee-tax slots — one per company item-tax-rate (0-3). Each picks
+            // a bundled tax rate and writes the `fee_tax_name<N>` /
+            // `fee_tax_rate<N>` pair together, mirroring React + admin-portal.
+            for (var slot = 1; slot <= taxRateSlots && slot <= 3; slot++)
+              _FeeTaxPicker(
+                vm: vm,
+                typeId: typeId,
+                fees: fees,
+                slot: slot,
+                singleSlot: taxRateSlots == 1,
+              ),
             TextFormField(
-              initialValue: fees.feeCap == 0 ? '' : fees.feeCap.toString(),
+              initialValue: _seed(fees.feeCap),
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
               decoration: InputDecoration(labelText: context.tr('fee_cap')),
-              onChanged: (v) {
-                final parsed = double.tryParse(v) ?? 0;
-                vm.updateFees(typeId, fees.copyWith(feeCap: parsed));
-              },
+              onChanged: (v) =>
+                  vm.updateFees(typeId, fees.copyWith(feeCap: _parse(v))),
             ),
             SwitchListTile(
               title: Text(context.tr('adjust_fee_percent')),
@@ -210,6 +262,99 @@ class _LimitsAndFeesEditor extends StatelessWidget {
   }
 }
 
+/// One fee-tax-rate row. Mirrors `TaxRatePicker` (Tax Settings): strict-pick
+/// from the bundled tax rates, writing the name + rate pair together. Unlike
+/// `TaxRatePicker` this binds to the gateway draft's `FeesAndLimits`, not the
+/// company settings cascade, so it's a purpose-built (small) variant.
+class _FeeTaxPicker extends StatelessWidget {
+  const _FeeTaxPicker({
+    required this.vm,
+    required this.typeId,
+    required this.fees,
+    required this.slot,
+    required this.singleSlot,
+  });
+
+  final CompanyGatewayEditViewModel vm;
+  final String typeId;
+  final FeesAndLimits fees;
+  final int slot; // 1-3
+  final bool singleSlot;
+
+  String get _currentName => switch (slot) {
+    1 => fees.feeTaxName1,
+    2 => fees.feeTaxName2,
+    _ => fees.feeTaxName3,
+  };
+
+  double get _currentRate => switch (slot) {
+    1 => fees.feeTaxRate1,
+    2 => fees.feeTaxRate2,
+    _ => fees.feeTaxRate3,
+  };
+
+  FeesAndLimits _write({required String name, required double rate}) {
+    switch (slot) {
+      case 1:
+        return fees.copyWith(feeTaxName1: name, feeTaxRate1: rate);
+      case 2:
+        return fees.copyWith(feeTaxName2: name, feeTaxRate2: rate);
+      default:
+        return fees.copyWith(feeTaxName3: name, feeTaxRate3: rate);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    final label = singleSlot ? context.tr('tax') : '${context.tr('tax')} $slot';
+    return Padding(
+      padding: EdgeInsets.only(top: InSpacing.md(context)),
+      child: StreamBuilder<List<TaxRate>>(
+        stream: services.taxRates.watchAll(companyId: vm.companyId),
+        builder: (context, snap) {
+          final rates = snap.data ?? const <TaxRate>[];
+          final sorted = [...rates]..sort((a, b) => a.name.compareTo(b.name));
+
+          // Match the stored name+rate against the bundled list; fall back to
+          // a synthetic entry so a legacy/hand-entered value still shows.
+          TaxRate? selected;
+          for (final r in sorted) {
+            if (r.name == _currentName &&
+                (r.rate - _currentRate).abs() < 0.0001) {
+              selected = r;
+              break;
+            }
+          }
+          if (selected == null && _currentName.isNotEmpty) {
+            selected = TaxRate(
+              id: '__current__',
+              name: _currentName,
+              rate: _currentRate,
+              updatedAt: DateTime.fromMillisecondsSinceEpoch(0),
+              createdAt: DateTime.fromMillisecondsSinceEpoch(0),
+              archivedAt: null,
+              isDeleted: false,
+            );
+          }
+
+          return SearchableDropdownField<TaxRate>(
+            label: label,
+            items: sorted,
+            initialValue: selected,
+            displayString: (r) => '${r.name} (${r.rate}%)',
+            idOf: (r) => '${r.name}|${r.rate}',
+            onChanged: (r) => vm.updateFees(
+              typeId,
+              _write(name: r?.name ?? '', rate: r?.rate ?? 0),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 /// Live preview: "On a $100 payment: total $X, fee $Y" — rendered through
 /// the company `Formatter` so the currency symbol / locale match the rest
 /// of the app instead of a hardcoded `$`.
@@ -221,8 +366,7 @@ class _FeePreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const sample = 100.0;
-    var fee = fees.feeAmount + (sample * fees.feePercent / 100.0);
-    if (fees.feeCap > 0 && fee > fees.feeCap) fee = fees.feeCap;
+    var fee = _sampleFee(sample);
     final total = sample + fee;
     final tokens = context.inTheme;
     final services = context.read<Services>();
@@ -254,5 +398,24 @@ class _FeePreview extends StatelessWidget {
         );
       },
     );
+  }
+
+  /// Sample fee on [amount], honoring `adjust_fee_percent` and `fee_cap` —
+  /// mirrors admin-portal's `calculateSampleFee` (the correct branches; the
+  /// fee-tax line is omitted, matching the prior preview, since it doesn't
+  /// affect the headline fee/total the merchant tunes here).
+  double _sampleFee(double amount) {
+    double fee;
+    if (fees.feePercent == 0) {
+      fee = fees.feeAmount;
+    } else if (fees.adjustFeePercent && fees.feePercent < 100) {
+      // Gross-up: charge enough that the merchant nets `amount` after the
+      // percentage fee is taken out.
+      fee = ((fees.feeAmount + amount) / (1 - fees.feePercent / 100)) - amount;
+    } else {
+      fee = fees.feeAmount + (amount * fees.feePercent / 100);
+    }
+    if (fees.feeCap > 0 && fee > fees.feeCap) fee = fees.feeCap;
+    return fee < 0 ? 0 : fee;
   }
 }

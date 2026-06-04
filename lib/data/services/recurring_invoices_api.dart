@@ -23,18 +23,11 @@ class RecurringInvoicesApi
   RecurringInvoiceItemApi parseItem(Object json) =>
       RecurringInvoiceItemApi.fromJson(json as Map<String, dynamic>);
 
-  // Recurring invoices have ONLY a `/bulk` route server-side (no per-id
-  // `/{id}/{action}` route at all), so every lifecycle action MUST ride
-  // `POST /recurring_invoices/bulk` ({action, ids:[id]}).
-  Future<RecurringInvoiceItemApi?> markSent({
-    required String id,
-    required String idempotencyKey,
-  }) => bulkActionOne(
-    id: id,
-    action: 'mark_sent',
-    idempotencyKey: idempotencyKey,
-  );
-
+  // Recurring lifecycle actions ride `POST /recurring_invoices/bulk`
+  // ({action, ids:[id]}) — start / stop / update_prices / increase_prices /
+  // template — there is no per-id `/{id}/{action}` route. (send_now is the
+  // exception: it rides a normal update as `?send_now=true`; see
+  // RecurringInvoiceRepository.sendNow. mark_sent is not a recurring action.)
   Future<RecurringInvoiceItemApi?> start({
     required String id,
     required String idempotencyKey,
@@ -44,12 +37,6 @@ class RecurringInvoicesApi
     required String id,
     required String idempotencyKey,
   }) => bulkActionOne(id: id, action: 'stop', idempotencyKey: idempotencyKey);
-
-  Future<RecurringInvoiceItemApi?> sendNow({
-    required String id,
-    required String idempotencyKey,
-  }) =>
-      bulkActionOne(id: id, action: 'send_now', idempotencyKey: idempotencyKey);
 
   Future<RecurringInvoiceItemApi?> email({
     required String id,
@@ -110,6 +97,26 @@ class RecurringInvoicesApi
     action: 'template',
     idempotencyKey: idempotencyKey,
     extra: {'template_id': templateId},
+  );
+
+  Future<RecurringInvoiceItemApi?> updatePrices({
+    required String id,
+    required String idempotencyKey,
+  }) => bulkActionOne(
+    id: id,
+    action: 'update_prices',
+    idempotencyKey: idempotencyKey,
+  );
+
+  Future<RecurringInvoiceItemApi?> increasePrices({
+    required String id,
+    required String percentageIncrease,
+    required String idempotencyKey,
+  }) => bulkActionOne(
+    id: id,
+    action: 'increase_prices',
+    idempotencyKey: idempotencyKey,
+    extra: {'percentage_increase': num.tryParse(percentageIncrease) ?? 0},
   );
 
   /// Server-rendered PDF via `POST /api/v1/live_preview?entity=recurring_invoice

@@ -78,6 +78,23 @@ class ProductEditViewModel extends GenericEditViewModel<Product> {
   void setTaxRate2(String v) => setDec((d, n) => d.copyWith(taxRate2: n), v);
   void setTaxName3(String v) => setStr((d, n) => d.copyWith(taxName3: n), v);
   void setTaxRate3(String v) => setDec((d, n) => d.copyWith(taxRate3: n), v);
+
+  /// Atomically set a tax slot's name + rate from the bundled tax-rate
+  /// picker. Takes a machine [Decimal] and bypasses the String-based
+  /// `setTaxRateN` setters on purpose: routing the picker's value through
+  /// `setDec` → `parseDecimal(useCommaAsDecimalPlace:)` would strip the
+  /// decimal point under comma-decimal locales.
+  void setTaxSlot(int slot, {required String name, required Decimal rate}) {
+    switch (slot) {
+      case 1:
+        updateDraft(draft.copyWith(taxName1: name, taxRate1: rate));
+      case 2:
+        updateDraft(draft.copyWith(taxName2: name, taxRate2: rate));
+      case 3:
+        updateDraft(draft.copyWith(taxName3: name, taxRate3: rate));
+    }
+  }
+
   void setCustomValue1(String v) =>
       setStr((d, n) => d.copyWith(customValue1: n), v);
   void setCustomValue2(String v) =>

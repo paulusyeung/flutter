@@ -19,10 +19,19 @@ abstract class Contact with _$Contact {
     required bool sendEmail,
     @Default(false) bool ccOnly,
     @Default(false) bool isLocked,
+    // "Authorized to sign" — portal e-signature permission. Editable when the
+    // company has the relevant module enabled (React parity).
+    @Default(false) bool canSign,
     @Default('') String password,
     required DateTime updatedAt,
     required bool isDeleted,
     @Default('') String link,
+    // Server-assigned stable identifier for the contact. Read-only; echoed
+    // back on save so the server can match existing portal credentials.
+    @Default('') String contactKey,
+    // Last portal login (read-only); null when the contact has never signed
+    // in. Display-only — not written back.
+    DateTime? lastLogin,
     @Default('') String customValue1,
     @Default('') String customValue2,
     @Default('') String customValue3,
@@ -39,10 +48,13 @@ abstract class Contact with _$Contact {
     sendEmail: a.sendEmail,
     ccOnly: a.ccOnly,
     isLocked: a.isLocked,
+    canSign: a.canSign,
     password: a.password,
     updatedAt: epochSecondsToUtc(a.updatedAt),
     isDeleted: a.isDeleted,
     link: a.link,
+    contactKey: a.contactKey,
+    lastLogin: epochSecondsToUtcOrNull(a.lastLogin),
     customValue1: a.customValue1,
     customValue2: a.customValue2,
     customValue3: a.customValue3,
@@ -60,7 +72,9 @@ extension ContactCopy on Contact {
     'is_primary': isPrimary,
     'send_email': sendEmail,
     'cc_only': ccOnly,
+    'can_sign': canSign,
     if (password.isNotEmpty) 'password': password,
+    if (contactKey.isNotEmpty) 'contact_key': contactKey,
     'link': link,
     'custom_value1': customValue1,
     'custom_value2': customValue2,

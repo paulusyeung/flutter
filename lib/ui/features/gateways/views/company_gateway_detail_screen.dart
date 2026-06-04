@@ -57,7 +57,7 @@ class _CompanyGatewayDetailScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            CompanyGatewayDetailHeader(gateway: gateway),
+            CompanyGatewayDetailHeader(gateway: gateway, companyId: _companyId),
             const SizedBox(height: InSpacing.xl),
             CompanyGatewayDetailCardsGrid(gateway: gateway),
           ],

@@ -124,6 +124,11 @@ _CompanyEnvelopeApi _$CompanyEnvelopeApiFromJson(
         (k, e) => MapEntry(k, e as String),
       ) ??
       const <String, String>{},
+  documents:
+      (json['documents'] as List<dynamic>?)
+          ?.map((e) => DocumentApi.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const <DocumentApi>[],
   sizeId: json['size_id'] as String? ?? '',
   industryId: json['industry_id'] as String? ?? '',
   firstMonthOfYear: json['first_month_of_year'] as String? ?? '',
@@ -254,6 +259,7 @@ Map<String, dynamic> _$CompanyEnvelopeApiToJson(
   'portal_mode': instance.portalMode,
   'client_registration_fields': instance.clientRegistrationFields,
   'custom_fields': instance.customFields,
+  'documents': instance.documents,
   'size_id': instance.sizeId,
   'industry_id': instance.industryId,
   'first_month_of_year': instance.firstMonthOfYear,

@@ -1,10 +1,54 @@
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/company_gateway.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 
 /// Wire-side key for the per-scope gateway-order override. Same string the
 /// server uses on `client.settings` / `group.settings`.
 const String _kCompanyGatewayIdsKey = 'company_gateway_ids';
+
+/// First gateway id in a `company_gateway_ids` CSV — i.e. the default gateway
+/// (clients are offered it first, matching React). Null/empty CSV → null.
+String? firstGatewayId(String? csv) {
+  if (csv == null) return null;
+  for (final part in csv.split(',')) {
+    final id = part.trim();
+    if (id.isNotEmpty) return id;
+  }
+  return null;
+}
+
+/// Reorder [items] to match a `company_gateway_ids` CSV: gateways referenced
+/// in [csv] come first in CSV order; any not referenced keep their incoming
+/// (already-sorted) order after. Stable — never drops or duplicates a row, so
+/// it's safe to apply on top of `watchPage` without disturbing pagination
+/// counts. Mirrors the client portal's gateway ordering.
+List<CompanyGateway> orderGatewaysByCsv(
+  List<CompanyGateway> items,
+  String csv,
+) {
+  final order = csv
+      .split(',')
+      .map((s) => s.trim())
+      .where((s) => s.isNotEmpty)
+      .toList();
+  if (order.isEmpty) return items;
+  final byId = {for (final g in items) g.id: g};
+  final result = <CompanyGateway>[];
+  final used = <String>{};
+  for (final id in order) {
+    if (used.contains(id)) continue; // tolerate a duplicate id in the CSV
+    final g = byId[id];
+    if (g != null) {
+      result.add(g);
+      used.add(id);
+    }
+  }
+  for (final g in items) {
+    if (!used.contains(g.id)) result.add(g);
+  }
+  return result;
+}
 
 /// Persist [csv] (the new comma-separated `companyGatewayIds`) to whichever
 /// scope is currently active.

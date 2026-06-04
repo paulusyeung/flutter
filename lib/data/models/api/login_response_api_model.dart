@@ -4,6 +4,7 @@ import 'package:admin/data/models/api/bank_account_api_model.dart';
 import 'package:admin/data/models/api/client_registration_field_api_model.dart';
 import 'package:admin/data/models/api/company_gateway_api_model.dart';
 import 'package:admin/data/models/api/design_api_model.dart';
+import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/api/expense_category_api_model.dart';
 import 'package:admin/data/models/api/group_setting_api_model.dart';
 import 'package:admin/data/models/api/payment_term_api_model.dart';
@@ -139,6 +140,14 @@ abstract class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
     @JsonKey(name: 'custom_fields')
     @Default(<String, String>{})
     Map<String, String> customFields,
+    // Company file attachments. The server ships these on the login/refresh
+    // envelope; persisting them straight into the `companies.documents` Drift
+    // column keeps the Settings → Company Details → Documents tab populated
+    // offline and before its own `GET /companies/{id}` lands. Without this the
+    // `_persistAndActivate` wipe+upsert nulls the column on every refresh.
+    @JsonKey(name: 'documents')
+    @Default(<DocumentApi>[])
+    List<DocumentApi> documents,
     @JsonKey(name: 'size_id') @Default('') String sizeId,
     @JsonKey(name: 'industry_id') @Default('') String industryId,
     @JsonKey(name: 'first_month_of_year') @Default('') String firstMonthOfYear,

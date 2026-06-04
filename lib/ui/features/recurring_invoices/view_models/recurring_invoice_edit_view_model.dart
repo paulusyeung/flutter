@@ -223,6 +223,9 @@ class RecurringInvoiceEditViewModel
   // Recurring-specific setters
 
   void setFrequencyId(String v) => updateDraft(draft.copyWith(frequencyId: v));
+  // Only next_send_date is user-editable. next_send_datetime is server-managed
+  // (recomputed from this date + the company send time) — intentionally left
+  // untouched here; see RecurringInvoice.toApiJson.
   void setNextSendDate(Date? d) => updateDraft(draft.copyWith(nextSendDate: d));
   void setRemainingCycles(int v) =>
       updateDraft(draft.copyWith(remainingCycles: v));
@@ -278,12 +281,15 @@ RecurringInvoice emptyRecurringInvoice() => RecurringInvoice(
   customValue2: '',
   customValue3: '',
   customValue4: '',
-  frequencyId: '',
+  // Defaults mirror admin-portal / React new-recurring-invoice forms: monthly
+  // frequency, "use payment terms", endless cycles. An empty frequency_id is a
+  // 422 risk on save and a poor blank-form UX.
+  frequencyId: '5', // monthly
   nextSendDate: null,
   nextSendDatetime: '',
   lastSentDate: null,
-  remainingCycles: -1,
-  dueDateDays: '',
+  remainingCycles: -1, // endless
+  dueDateDays: 'terms',
   autoBill: 'off',
   autoBillEnabled: false,
   isDeleted: false,

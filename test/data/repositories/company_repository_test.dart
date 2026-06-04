@@ -52,6 +52,7 @@ void main() {
     Map<String, dynamic> settings = const {'name': 'Acme'},
     Map<String, String> customFields = const {},
     String? logoUrl,
+    List<Map<String, dynamic>>? documents,
   }) async {
     await db.companiesDao.upsertAll([
       CompaniesCompanion.insert(
@@ -61,6 +62,7 @@ void main() {
         settings: jsonEncode(settings),
         customFields: Value(jsonEncode(customFields)),
         logoUrl: Value(logoUrl),
+        documents: Value(documents == null ? null : jsonEncode(documents)),
         permissions: '',
         accountId: 'acct',
         token: 'tok',
@@ -242,6 +244,43 @@ void main() {
         'company1': 'Department|single_line_text',
       });
     });
+
+    test(
+      'persists enable_applying_payments + convert_payment_currency edits '
+      'and surfaces them through _fromRow + the outbox payload — Online '
+      'Payments "Payment Settings" toggles. Regression: with no column the '
+      'toggle reverted after restart even though the PUT carried it',
+      () async {
+        const companyId = 'co';
+        await seedCompany(companyId);
+        final repo = makeRepo();
+
+        final current = await repo.get(companyId);
+        final draft = current!.copyWith(
+          enableApplyingPayments: true,
+          convertPaymentCurrency: true,
+        );
+        await repo.updateCompany(draft: draft);
+
+        // Written to the dedicated columns (survives restart)…
+        final row = await db.companiesDao.byId(companyId);
+        expect(row!.enableApplyingPayments, true);
+        expect(row.convertPaymentCurrency, true);
+        // …surfaced on the domain model the toggle binds to…
+        final reloaded = await repo.get(companyId);
+        expect(reloaded!.enableApplyingPayments, true);
+        expect(reloaded.convertPaymentCurrency, true);
+        // …and present in the outbox payload PUT to the server.
+        final pending = await db.outboxDao.nextReady(
+          companyId: companyId,
+          now: 1 << 60,
+        );
+        final payload =
+            jsonDecode(pending.single.payload) as Map<String, dynamic>;
+        expect(payload['enable_applying_payments'], true);
+        expect(payload['convert_payment_currency'], true);
+      },
+    );
   });
 
   group('applyUpdateResponse', () {
@@ -328,6 +367,37 @@ void main() {
       final company = await repo.get(companyId);
       expect(company!.useCommaAsDecimalPlace, true);
       expect(company.firstDayOfWeek, '1');
+    });
+
+    test('persists enable_applying_payments + convert_payment_currency and '
+        'surfaces them through _fromRow — the Online Payments "Payment '
+        'Settings" toggles live top-level on the company (not in `settings`). '
+        'Regression: both had no column, so they reset to false on every '
+        'login/refresh after the user enabled them', () async {
+      const companyId = 'co';
+      await seedCompany(companyId);
+      final repo = makeRepo();
+
+      await repo.applyUpdateResponse(
+        companyId: companyId,
+        serverResponse: CompanyApi(
+          id: companyId,
+          name: 'Acme',
+          // Both top-level on the company object (not inside `settings`),
+          // exactly as the live API returns them.
+          enableApplyingPayments: true,
+          convertPaymentCurrency: true,
+        ),
+      );
+
+      // Written to the dedicated columns…
+      final row = await db.companiesDao.byId(companyId);
+      expect(row!.enableApplyingPayments, true);
+      expect(row.convertPaymentCurrency, true);
+      // …and surfaced on the domain model the Online Payments screen binds to.
+      final company = await repo.get(companyId);
+      expect(company!.enableApplyingPayments, true);
+      expect(company.convertPaymentCurrency, true);
     });
 
     test('refreshes the logo_url column from settings.company_logo', () async {
@@ -503,6 +573,78 @@ void main() {
           jsonDecode(pending.single.payload) as Map<String, dynamic>;
       expect(payload['_action'], 'upload_logo');
       expect(payload['local_path'], '/tmp/logo.png');
+    });
+  });
+
+  group('documents', () {
+    test(
+      'deleteDocument enqueues a password-required documentDelete row',
+      () async {
+        const companyId = 'co';
+        await seedCompany(companyId);
+        final repo = makeRepo();
+
+        await repo.deleteDocument(companyId: companyId, documentId: 'doc-7');
+
+        final pending = await db.outboxDao.nextReady(
+          companyId: companyId,
+          now: 1 << 60,
+        );
+        expect(pending, hasLength(1));
+        expect(
+          pending.single.mutationKind,
+          MutationKind.documentDelete.wireName,
+        );
+        expect(pending.single.entityId, companyId);
+        // Server gates DELETE /documents/{id} on X-API-PASSWORD-BASE64; the
+        // row must carry the flag so the sync engine fires ConfirmPasswordSheet.
+        expect(pending.single.requiresPassword, true);
+        final payload =
+            jsonDecode(pending.single.payload) as Map<String, dynamic>;
+        expect(payload['document_id'], 'doc-7');
+      },
+    );
+
+    test(
+      'removeDocumentLocally drops the matching doc from the column',
+      () async {
+        const companyId = 'co';
+        await seedCompany(
+          companyId,
+          documents: const [
+            {'id': 'doc-1', 'name': 'a.pdf'},
+            {'id': 'doc-2', 'name': 'b.pdf'},
+          ],
+        );
+        final repo = makeRepo();
+
+        await repo.removeDocumentLocally(
+          companyId: companyId,
+          documentId: 'doc-1',
+        );
+
+        final reloaded = await repo.get(companyId);
+        expect(reloaded!.documents.map((d) => d.id), ['doc-2']);
+      },
+    );
+
+    test('removeDocumentLocally is a no-op when the id is absent', () async {
+      const companyId = 'co';
+      await seedCompany(
+        companyId,
+        documents: const [
+          {'id': 'doc-1', 'name': 'a.pdf'},
+        ],
+      );
+      final repo = makeRepo();
+
+      await repo.removeDocumentLocally(
+        companyId: companyId,
+        documentId: 'missing',
+      );
+
+      final reloaded = await repo.get(companyId);
+      expect(reloaded!.documents.map((d) => d.id), ['doc-1']);
     });
   });
 }

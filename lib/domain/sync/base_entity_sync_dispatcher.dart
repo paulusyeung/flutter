@@ -182,6 +182,8 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
       case MutationKind.autoBill:
       case MutationKind.cancelEntity:
       case MutationKind.runTemplate:
+      case MutationKind.updatePrices:
+      case MutationKind.increasePrices:
       case MutationKind.approve:
       case MutationKind.convertToInvoice:
       case MutationKind.convertToProject:

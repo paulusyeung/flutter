@@ -31,6 +31,7 @@ _ClientApi _$ClientApiFromJson(Map<String, dynamic> json) => _ClientApi(
   balance: json['balance'] as Object? ?? '0',
   paidToDate: json['paid_to_date'] as Object? ?? '0',
   creditBalance: json['credit_balance'] as Object? ?? '0',
+  paymentBalance: json['payment_balance'] as Object? ?? '0',
   currencyId: json['currency_id'] as String? ?? '',
   languageId: json['language_id'] as String? ?? '',
   paymentTerms: json['payment_terms'] as String? ?? '',
@@ -45,7 +46,11 @@ _ClientApi _$ClientApiFromJson(Map<String, dynamic> json) => _ClientApi(
   industryId: json['industry_id'] as String? ?? '',
   sizeId: json['size_id'] as String? ?? '',
   classification: json['classification'] as String? ?? '',
+  isTaxExempt: json['is_tax_exempt'] as bool? ?? false,
+  hasValidVatNumber: json['has_valid_vat_number'] as bool? ?? false,
+  routingId: json['routing_id'] as String? ?? '',
   userId: json['user_id'] as String? ?? '',
+  lastLogin: (json['last_login'] as num?)?.toInt() ?? 0,
   createdAt: (json['created_at'] as num?)?.toInt() ?? 0,
   updatedAt: (json['updated_at'] as num?)?.toInt() ?? 0,
   archivedAt: (json['archived_at'] as num?)?.toInt() ?? 0,
@@ -60,6 +65,11 @@ _ClientApi _$ClientApiFromJson(Map<String, dynamic> json) => _ClientApi(
           ?.map((e) => LocationApi.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const <LocationApi>[],
+  gatewayTokens:
+      (json['gateway_tokens'] as List<dynamic>?)
+          ?.map((e) => GatewayTokenApi.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const <GatewayTokenApi>[],
   documents: (json['documents'] as List<dynamic>?)
       ?.map((e) => DocumentApi.fromJson(e as Map<String, dynamic>))
       .toList(),
@@ -92,6 +102,7 @@ Map<String, dynamic> _$ClientApiToJson(_ClientApi instance) =>
       'balance': instance.balance,
       'paid_to_date': instance.paidToDate,
       'credit_balance': instance.creditBalance,
+      'payment_balance': instance.paymentBalance,
       'currency_id': instance.currencyId,
       'language_id': instance.languageId,
       'payment_terms': instance.paymentTerms,
@@ -106,13 +117,18 @@ Map<String, dynamic> _$ClientApiToJson(_ClientApi instance) =>
       'industry_id': instance.industryId,
       'size_id': instance.sizeId,
       'classification': instance.classification,
+      'is_tax_exempt': instance.isTaxExempt,
+      'has_valid_vat_number': instance.hasValidVatNumber,
+      'routing_id': instance.routingId,
       'user_id': instance.userId,
+      'last_login': instance.lastLogin,
       'created_at': instance.createdAt,
       'updated_at': instance.updatedAt,
       'archived_at': instance.archivedAt,
       'is_deleted': instance.isDeleted,
       'contacts': instance.contacts,
       'locations': instance.locations,
+      'gateway_tokens': instance.gatewayTokens,
       'documents': instance.documents,
       'settings': ?instance.settings,
     };

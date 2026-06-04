@@ -38,7 +38,14 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
     this.onSettingsWritten,
   }) : super(
          entityType: EntityType.company,
-         requiresPasswordFor: const {MutationKind.delete},
+         // `documentDelete` is password-gated server-side — the outbox row
+         // gets `requiresPassword=true` so the sync engine fires
+         // `ConfirmPasswordSheet` before draining (mirrors every other
+         // document-bearing entity, see mutation.dart).
+         requiresPasswordFor: const {
+           MutationKind.delete,
+           MutationKind.documentDelete,
+         },
        );
 
   final CompaniesApi api;
@@ -153,6 +160,8 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
           markdownEmailEnabled: Value(draft.markdownEmailEnabled),
           reportIncludeDrafts: Value(draft.reportIncludeDrafts),
           reportIncludeDeleted: Value(draft.reportIncludeDeleted),
+          enableApplyingPayments: Value(draft.enableApplyingPayments),
+          convertPaymentCurrency: Value(draft.convertPaymentCurrency),
           quickbooksJson: Value(
             draft.quickbooks == null ? null : jsonEncode(draft.quickbooks),
           ),
@@ -265,6 +274,52 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
       entityId: companyId,
       kind: MutationKind.update,
       payload: {'_action': 'upload_document', ...source.toPayload()},
+    );
+  }
+
+  /// Enqueue a company document delete (`DELETE /documents/{id}`).
+  /// Password-gated — the outbox row carries `requiresPassword=true` (see
+  /// `requiresPasswordFor`), so the sync engine prompts before draining. The
+  /// local list is pruned by the dispatcher *after* the server confirms (via
+  /// [removeDocumentLocally]) rather than optimistically — the Company
+  /// Details page's mount `refresh()` would otherwise re-add a not-yet-drained
+  /// delete.
+  Future<void> deleteDocument({
+    required String companyId,
+    required String documentId,
+  }) async {
+    await enqueueMutation(
+      companyId: companyId,
+      entityId: companyId,
+      kind: MutationKind.documentDelete,
+      payload: {'document_id': documentId},
+    );
+  }
+
+  /// Drop a single document from the local `documents` column. Operates on the
+  /// raw JSON list so every stored field round-trips (not just the typed
+  /// subset). No-op when the row, column, or matching id is absent.
+  Future<void> removeDocumentLocally({
+    required String companyId,
+    required String documentId,
+  }) async {
+    final row = await db.companiesDao.byId(companyId);
+    final raw = row?.documents;
+    if (raw == null || raw.isEmpty) return;
+    final List<dynamic> decoded;
+    try {
+      final parsed = jsonDecode(raw);
+      if (parsed is! List) return;
+      decoded = parsed;
+    } catch (_) {
+      return;
+    }
+    final filtered = decoded
+        .where((e) => !(e is Map && e['id']?.toString() == documentId))
+        .toList();
+    if (filtered.length == decoded.length) return; // id not present
+    await (db.update(db.companies)..where((c) => c.id.equals(companyId))).write(
+      CompaniesCompanion(documents: Value(jsonEncode(filtered))),
     );
   }
 
@@ -533,6 +588,8 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
         markdownEmailEnabled: Value(serverResponse.markdownEmailEnabled),
         reportIncludeDrafts: Value(serverResponse.reportIncludeDrafts),
         reportIncludeDeleted: Value(serverResponse.reportIncludeDeleted),
+        enableApplyingPayments: Value(serverResponse.enableApplyingPayments),
+        convertPaymentCurrency: Value(serverResponse.convertPaymentCurrency),
         quickbooksJson: Value(
           serverResponse.quickbooks == null
               ? null
@@ -705,6 +762,8 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
       markdownEmailEnabled: row.markdownEmailEnabled,
       reportIncludeDrafts: row.reportIncludeDrafts,
       reportIncludeDeleted: row.reportIncludeDeleted,
+      enableApplyingPayments: row.enableApplyingPayments,
+      convertPaymentCurrency: row.convertPaymentCurrency,
       quickbooks: _decodeQuickbooks(row.quickbooksJson),
       customFields: customFields,
       rawSettings: raw,

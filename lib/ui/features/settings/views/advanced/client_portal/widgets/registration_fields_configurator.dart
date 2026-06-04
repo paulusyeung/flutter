@@ -82,13 +82,16 @@ class _Row extends StatelessWidget {
           child: Text(
             context.tr(fieldKey),
             style: Theme.of(context).textTheme.bodyLarge,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
         SizedBox(
-          width: 200,
+          width: 160,
           child: DropdownButtonFormField<_FieldChoice>(
             initialValue: selected,
             isDense: true,
+            isExpanded: true,
             items: [
               DropdownMenuItem(
                 value: _FieldChoice.hidden,

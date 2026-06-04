@@ -28,6 +28,7 @@ class CompanyGatewayListTile extends StatelessWidget {
     required this.gateway,
     required this.columns,
     required this.onTap,
+    this.isDefault = false,
     this.wide = true,
     this.editable = true,
     this.onAction,
@@ -40,6 +41,10 @@ class CompanyGatewayListTile extends StatelessWidget {
   });
 
   final CompanyGateway gateway;
+
+  /// True when this is the default gateway (first in `company_gateway_ids`);
+  /// renders a "Default" pill in the status slot.
+  final bool isDefault;
   final List<ColumnDefinition<CompanyGateway>> columns;
   final VoidCallback onTap;
   final bool wide;
@@ -170,17 +175,34 @@ class CompanyGatewayListTile extends StatelessWidget {
     );
   }
 
-  /// Test-mode pill takes priority. Otherwise no pill — archived/deleted
-  /// state is conveyed by the column cells and the row treatment.
+  /// "Default" + "Test" pills (either/both/none). A `Wrap` lets them stack to
+  /// a second line inside the wide table's fixed 96px pill slot instead of
+  /// overflowing; in narrow mode the row's `Expanded(identity)` absorbs their
+  /// width. Archived/deleted state is conveyed by the column cells + row.
   Widget _statusPill(BuildContext context) {
-    if (!gateway.testMode) return const SizedBox.shrink();
     final tokens = context.inTheme;
+    final pills = <Widget>[
+      if (isDefault)
+        StatusPill(
+          label: context.tr('default'),
+          fgColor: tokens.accent,
+          bgColor: tokens.accentSoft,
+        ),
+      if (gateway.testMode)
+        StatusPill(
+          label: context.tr('test'),
+          fgColor: tokens.sent,
+          bgColor: tokens.sentSoft,
+        ),
+    ];
+    if (pills.isEmpty) return const SizedBox.shrink();
     return Align(
       alignment: AlignmentDirectional.centerEnd,
-      child: StatusPill(
-        label: context.tr('test'),
-        fgColor: tokens.sent,
-        bgColor: tokens.sentSoft,
+      child: Wrap(
+        alignment: WrapAlignment.end,
+        spacing: 4,
+        runSpacing: 2,
+        children: pills,
       ),
     );
   }

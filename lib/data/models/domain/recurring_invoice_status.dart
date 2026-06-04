@@ -1,9 +1,9 @@
 /// Stored status discriminator on every recurring invoice. Wire ids are
 /// `'1'..'4'`. Mirrors admin-portal `kRecurringInvoiceStatus*` constants.
 ///
-/// Computed-only pseudo-statuses (`pending`) are derived on the client when
-/// next_send_date is in the future — see
-/// [RecurringInvoiceCalculation.calculatedStatusId].
+/// Computed-only pseudo-statuses (`pending`) are derived on the client when an
+/// active schedule has not yet sent its first invoice (no last_sent_date) —
+/// see [RecurringInvoiceCalculation.calculatedStatusId].
 enum RecurringInvoiceStatus {
   draft('1'),
   active('2'),

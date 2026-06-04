@@ -5,6 +5,7 @@ import 'package:drift/drift.dart' show Value, BooleanExpressionOperators;
 import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/db/dao/billing_extra_filters.dart';
 import 'package:admin/data/db/dao/recurring_invoice_dao.dart';
 import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/api/recurring_invoice_api_model.dart';
@@ -51,6 +52,7 @@ class RecurringInvoiceRepository
     bool sortAscending = false,
     String? clientId,
     Map<int, Set<String>> customFilters = const {},
+    Map<String, Set<String>> extraFilters = const {},
   }) {
     assert(loadedPages >= 1);
     return db.recurringInvoiceDao
@@ -63,6 +65,7 @@ class RecurringInvoiceRepository
           sortField: sortField,
           sortAscending: sortAscending,
           clientId: clientId,
+          statusIds: parseRecurringInvoiceStatusFilter(extraFilters),
           customValues1: customFilters[1] ?? const {},
           customValues2: customFilters[2] ?? const {},
           customValues3: customFilters[3] ?? const {},
@@ -285,14 +288,6 @@ class RecurringInvoiceRepository
         payload: {'id': id},
       );
 
-  Future<void> markSent({required String companyId, required String id}) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.markSent,
-        payload: {'id': id},
-      );
-
   /// Clears the Postmark bounce/spam suppression for an invitation's
   /// `messageId` via `customActions[reactivateEmail]`. No local update — the
   /// Sends tab refreshes on the next recurring-invoice sync.
@@ -307,13 +302,20 @@ class RecurringInvoiceRepository
     payload: {'message_id': messageId},
   );
 
-  Future<void> sendNow({required String companyId, required String id}) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.sendNow,
-        payload: {'id': id},
-      );
+  /// Sends the next occurrence immediately. React-aligned: a normal update
+  /// carrying `?send_now=true` (`PUT /recurring_invoices/{id}?send_now=true`
+  /// with the full entity), NOT a bulk action — the server's recurring `/bulk`
+  /// has no `send_now`. Reuses the SAVE-PARAM update plumbing; works per-id for
+  /// the bulk action too.
+  Future<void> sendNow({required String companyId, required String id}) async {
+    final current = await watchByRealId(companyId: companyId, id: id).first;
+    if (current == null) return;
+    await save(
+      companyId: companyId,
+      recurringInvoice: current,
+      extraQuery: const {'send_now': 'true'},
+    );
+  }
 
   Future<void> email({
     required String companyId,
@@ -377,6 +379,25 @@ class RecurringInvoiceRepository
     entityId: id,
     kind: MutationKind.runTemplate,
     payload: {'id': id, 'template_id': templateId},
+  );
+
+  Future<void> updatePrices({required String companyId, required String id}) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.updatePrices,
+        payload: {'id': id},
+      );
+
+  Future<void> increasePrices({
+    required String companyId,
+    required String id,
+    required String percentageIncrease,
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: MutationKind.increasePrices,
+    payload: {'id': id, 'percentage_increase': percentageIncrease},
   );
 
   Future<void> addComment({

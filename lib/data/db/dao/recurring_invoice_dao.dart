@@ -64,6 +64,7 @@ class RecurringInvoiceDao
     String sortField = RecurringInvoiceFieldIds.number,
     bool sortAscending = false,
     String? clientId,
+    Set<String> statusIds = const {},
     Set<String> customValues1 = const {},
     Set<String> customValues2 = const {},
     Set<String> customValues3 = const {},
@@ -73,6 +74,11 @@ class RecurringInvoiceDao
       ..where((e) => e.companyId.equals(companyId));
     if (clientId != null && clientId.isNotEmpty) {
       q.where((e) => e.clientId.equals(clientId));
+    }
+    // Lifecycle status filter (draft/active/paused/completed) — exact-set
+    // predicate on the stored `statusId` column, same idiom as InvoiceDao.
+    if (statusIds.isNotEmpty) {
+      q.where((e) => e.statusId.isIn(statusIds.toList()));
     }
     // Custom-field filters mirror server `custom_value1..4` (exact-set local
     // predicate is source of truth — same idiom as ClientDao/InvoiceDao).

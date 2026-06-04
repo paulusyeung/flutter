@@ -139,6 +139,9 @@ the honest default.
 | Client — import contact from device address book (iOS) | ❌ | ✅ | ✅ | | |
 | Client/Vendor — contact CC-only | ✅ | ✅ | ✅ | — | — |
 | Client — multiple shipping / billing locations | ✅ | ✅ | ✅ | ✅ | |
+| Client — shipping address on the record (billing + shipping, Copy Billing) | ✅ | ✅ | ✅ | ✅ | |
+| Client — settings editor (currency / language / classification / size / industry / tax flags) | ✅ | ✅ | ✅ | ✅ | |
+| Client — saved payment methods (gateway tokens) card | ✅ | ✅ | ✅ | ✅ | |
 | Client — payment terms override | ✅ | ✅ | ✅ | ✅ | |
 | Client — currency override (cascade) | ✅ | ✅ | ✅ | ✅ | |
 | Client — portal-access toggle / portal password | ✅ | ✅ | ✅ | ✅ | |
@@ -266,6 +269,8 @@ the honest default.
 | Recurring invoice — start / activate | ✅ | ✅ | ✅ | ✅ | |
 | Recurring invoice — stop / pause | ✅ | ✅ | ✅ | ✅ | |
 | Recurring invoice — send now | ✅ | ✅ | ✅ | ✅ | |
+| Recurring invoice — bulk update / increase prices | ✅ | ✅ | ✅ | ✅ | |
+| Recurring invoice — filter by status | ✅ | ✅ | ✅ | ✅ | |
 | Recurring invoice — change template / design | ✅ | ✅ | ✅ | ✅ | |
 | Recurring invoice — view next-occurrence schedule | ✅ | ✅ | ✅ | ✅ | |
 | Recurring invoice — view / download PDF | ✅ | ✅ | ✅ | ✅ | |
@@ -1362,6 +1367,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Gateway list | ✅ | ✅ | ✅ | ✅ | 🟡 |
 | Gateway detail | ✅ | ✅ | ✅ | ✅ | 🟡 |
 | Gateway edit | ✅ | ✅ | ✅ | ✅ | |
+| Gateway fees, limits & fee taxes (per payment type) | ✅ | ✅ | ✅ | ✅ | |
 | Gateway create / add | ✅ | ✅ | ✅ | ✅ | |
 | Gateway disconnect / deactivate | ✅ | ✅ | ✅ | ✅ | |
 | Gateway archive / restore | ✅ | ✅ | ✅ | ✅ | |

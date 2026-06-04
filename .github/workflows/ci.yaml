@@ -207,6 +207,17 @@ jobs:
       - name: Select Xcode 26.4.1
         run: sudo xcode-select -s /Applications/Xcode_26.4.1.app
 
+      # Xcode 26 unbundled the Metal toolchain into a ~700 MB on-demand
+      # component that macos-26 does NOT bake in (even for its default Xcode).
+      # Flutter's macOS Impeller renderer needs Metal, so without it the app
+      # crashes on launch and every integration file dies with "Error waiting
+      # for a debug connection: The log reader stopped unexpectedly." Run AFTER
+      # xcode-select so it installs for the selected Xcode. No sudo required.
+      # Remove once actions/runner-images#13080 ships the baked-in toolchain
+      # (after which this is a fast no-op).
+      - name: Install Metal toolchain (Xcode 26 ships it separately)
+        run: xcodebuild -downloadComponent MetalToolchain
+
       - name: Install dependencies
         run: flutter pub get
 

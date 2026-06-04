@@ -875,6 +875,12 @@ class AuthRepository {
             logoUrl: Value(companyLogoUrl(uc.company.settings)),
             settings: jsonEncode(uc.company.settings),
             customFields: Value(jsonEncode(uc.company.customFields)),
+            // Persist envelope-carried company documents so the Documents tab
+            // survives the wipe+upsert and renders offline (mirrors how
+            // `applyUpdateResponse` writes this column on a settings save).
+            documents: Value(
+              jsonEncode(uc.company.documents.map((d) => d.toJson()).toList()),
+            ),
             sizeId: Value(uc.company.sizeId),
             industryId: Value(uc.company.industryId),
             firstMonthOfYear: Value(uc.company.firstMonthOfYear),

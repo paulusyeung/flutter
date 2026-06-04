@@ -41,6 +41,12 @@ abstract class Product with _$Product {
     required DateTime createdAt,
     required DateTime? archivedAt,
     required bool isDeleted,
+    // Read-only server fields. Surfaced so edits round-trip them instead of
+    // dropping them — `_domainToCompanion` rewrites the local payload column
+    // from `toApiJson` on every save. `userId` is the creator. Mirrors Client.
+    @Default('') String userId,
+    @Default('') String assignedUserId,
+    @Default('') String incomeAccountId,
     @Default(<Document>[]) List<Document> documents,
     @Default(false) bool isDirty,
   }) = _Product;
@@ -72,6 +78,9 @@ abstract class Product with _$Product {
     createdAt: epochSecondsToUtc(a.createdAt),
     archivedAt: epochSecondsToUtcOrNull(a.archivedAt),
     isDeleted: a.isDeleted,
+    userId: a.userId,
+    assignedUserId: a.assignedUserId,
+    incomeAccountId: a.incomeAccountId,
     documents: mapDocuments(a.documents),
   );
 }
@@ -151,6 +160,12 @@ extension ProductPayload on Product {
       'custom_value2': customValue2,
       'custom_value3': customValue3,
       'custom_value4': customValue4,
+      // Read-only server fields preserved on the round-trip (mirror Client):
+      // emit assigned_user_id unconditionally so clearing it unassigns; the
+      // other two only when set, to avoid sending an empty QuickBooks id.
+      'assigned_user_id': assignedUserId,
+      if (userId.isNotEmpty) 'user_id': userId,
+      if (incomeAccountId.isNotEmpty) 'income_account_id': incomeAccountId,
     };
     return json;
   }

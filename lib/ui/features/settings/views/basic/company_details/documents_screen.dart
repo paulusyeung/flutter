@@ -46,7 +46,18 @@ class CompanyDetailsDocumentsScreen extends StatelessWidget {
             ),
             if (documents.isNotEmpty) ...[
               SizedBox(height: InSpacing.lg(context)),
-              _DocumentList(documents: documents, tokens: tokens),
+              _DocumentList(
+                documents: documents,
+                tokens: tokens,
+                // Delete is password-gated server-side; the sync engine prompts
+                // via ConfirmPasswordSheet when the row drains (no pre-confirm
+                // dialog — typing the password is the confirmation, mirroring
+                // EntityDocumentsTab). The row drops once the delete confirms.
+                onDelete: (doc) => services.company.deleteDocument(
+                  companyId: vm.companyId,
+                  documentId: doc.id,
+                ),
+              ),
             ],
           ],
         ),
@@ -112,10 +123,15 @@ class CompanyDetailsDocumentsScreen extends StatelessWidget {
 }
 
 class _DocumentList extends StatelessWidget {
-  const _DocumentList({required this.documents, required this.tokens});
+  const _DocumentList({
+    required this.documents,
+    required this.tokens,
+    required this.onDelete,
+  });
 
   final List<Document> documents;
   final InTheme tokens;
+  final Future<void> Function(Document doc) onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -123,7 +139,7 @@ class _DocumentList extends StatelessWidget {
       children: [
         for (var i = 0; i < documents.length; i++) ...[
           if (i > 0) const SizedBox(height: InSpacing.sm),
-          _DocumentRow(doc: documents[i], tokens: tokens),
+          _DocumentRow(doc: documents[i], tokens: tokens, onDelete: onDelete),
         ],
       ],
     );
@@ -131,10 +147,15 @@ class _DocumentList extends StatelessWidget {
 }
 
 class _DocumentRow extends StatelessWidget {
-  const _DocumentRow({required this.doc, required this.tokens});
+  const _DocumentRow({
+    required this.doc,
+    required this.tokens,
+    required this.onDelete,
+  });
 
   final Document doc;
   final InTheme tokens;
+  final Future<void> Function(Document doc) onDelete;
 
   static const _imageExts = <String>{
     'png',
@@ -178,6 +199,14 @@ class _DocumentRow extends StatelessWidget {
             SizedBox(width: InSpacing.md(context)),
             Text(formatSize(doc.size), style: TextStyle(color: tokens.ink3)),
           ],
+          const SizedBox(width: InSpacing.sm),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, size: 20),
+            tooltip: context.tr('delete'),
+            visualDensity: VisualDensity.compact,
+            color: tokens.ink3,
+            onPressed: () => onDelete(doc),
+          ),
         ],
       ),
     );

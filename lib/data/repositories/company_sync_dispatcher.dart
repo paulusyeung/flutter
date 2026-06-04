@@ -7,6 +7,7 @@ import 'package:admin/data/models/api/company_api_model.dart';
 import 'package:admin/data/repositories/company_repository.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/companies_api.dart';
+import 'package:admin/data/services/documents_api.dart';
 import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/domain/sync/mutation.dart';
 import 'package:admin/domain/sync/sync_dispatcher.dart';
@@ -18,10 +19,19 @@ final _log = Logger('CompanySyncDispatcher');
 /// the regular settings PUT and the two multipart upload paths); the
 /// Danger Zone Delete-company flow goes through `delete`.
 class CompanySyncDispatcher implements SyncDispatcher {
-  CompanySyncDispatcher({required this.api, required this.repo});
+  CompanySyncDispatcher({
+    required this.api,
+    required this.repo,
+    required this.documentsApi,
+  });
 
   final CompaniesApi api;
   final CompanyRepository repo;
+
+  /// Doc-scoped delete endpoint (`DELETE /documents/{id}`) — distinct from the
+  /// entity-scoped upload on [CompaniesApi]. Mirrors `documentMutationHandlers`,
+  /// where the delete also lives on [DocumentsApi].
+  final DocumentsApi documentsApi;
 
   /// Decode the JSON payload defensively. A corrupt row would otherwise
   /// throw to the catch-all in `SyncRepository._attempt` and burn 5 retries
@@ -56,6 +66,23 @@ class CompanySyncDispatcher implements SyncDispatcher {
         id: row.entityId,
         body: payload,
         idempotencyKey: row.idempotencyKey,
+      );
+      return;
+    }
+    // Document delete — doc-scoped endpoint, password-gated. Prune the local
+    // `documents` column only after the server confirms (the page's mount
+    // refresh would otherwise re-add a not-yet-drained delete).
+    if (kind == MutationKind.documentDelete) {
+      final payload = _decodePayload(row);
+      final documentId = payload['document_id'] as String;
+      await documentsApi.delete(
+        id: documentId,
+        idempotencyKey: row.idempotencyKey,
+        requiresPassword: true,
+      );
+      await repo.removeDocumentLocally(
+        companyId: row.companyId,
+        documentId: documentId,
       );
       return;
     }

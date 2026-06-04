@@ -9,9 +9,17 @@ class Date implements Comparable<Date> {
   const Date(this.year, this.month, this.day);
 
   /// Parse `YYYY-MM-DD`. Empty or null inputs return null.
+  ///
+  /// Tolerates a trailing time component: some endpoints return date-only
+  /// fields as a full timestamp (e.g. recurring invoices' `next_send_date` /
+  /// `last_sent_date` come back as `2026-07-04 04:00:17`, space- or
+  /// `T`-separated). The time is intentionally discarded — this type is
+  /// deliberately time-free, so we take the calendar date verbatim and never
+  /// timezone-convert.
   static Date? tryParse(String? input) {
     if (input == null || input.isEmpty) return null;
-    final parts = input.split('-');
+    final dateOnly = input.split(RegExp('[ T]')).first;
+    final parts = dateOnly.split('-');
     if (parts.length != 3) return null;
     final y = int.tryParse(parts[0]);
     final m = int.tryParse(parts[1]);

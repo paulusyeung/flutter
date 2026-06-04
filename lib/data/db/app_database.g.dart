@@ -6806,6 +6806,36 @@ class $CompaniesTable extends Companies
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _enableApplyingPaymentsMeta =
+      const VerificationMeta('enableApplyingPayments');
+  @override
+  late final GeneratedColumn<bool> enableApplyingPayments =
+      GeneratedColumn<bool>(
+        'enable_applying_payments',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("enable_applying_payments" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _convertPaymentCurrencyMeta =
+      const VerificationMeta('convertPaymentCurrency');
+  @override
+  late final GeneratedColumn<bool> convertPaymentCurrency =
+      GeneratedColumn<bool>(
+        'convert_payment_currency',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("convert_payment_currency" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
   static const VerificationMeta _quickbooksJsonMeta = const VerificationMeta(
     'quickbooksJson',
   );
@@ -6991,6 +7021,8 @@ class $CompaniesTable extends Companies
     markdownEmailEnabled,
     reportIncludeDrafts,
     reportIncludeDeleted,
+    enableApplyingPayments,
+    convertPaymentCurrency,
     quickbooksJson,
     subdomain,
     portalDomain,
@@ -7774,6 +7806,24 @@ class $CompaniesTable extends Companies
         ),
       );
     }
+    if (data.containsKey('enable_applying_payments')) {
+      context.handle(
+        _enableApplyingPaymentsMeta,
+        enableApplyingPayments.isAcceptableOrUnknown(
+          data['enable_applying_payments']!,
+          _enableApplyingPaymentsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('convert_payment_currency')) {
+      context.handle(
+        _convertPaymentCurrencyMeta,
+        convertPaymentCurrency.isAcceptableOrUnknown(
+          data['convert_payment_currency']!,
+          _convertPaymentCurrencyMeta,
+        ),
+      );
+    }
     if (data.containsKey('quickbooks_json')) {
       context.handle(
         _quickbooksJsonMeta,
@@ -8201,6 +8251,14 @@ class $CompaniesTable extends Companies
         DriftSqlType.bool,
         data['${effectivePrefix}report_include_deleted'],
       )!,
+      enableApplyingPayments: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}enable_applying_payments'],
+      )!,
+      convertPaymentCurrency: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}convert_payment_currency'],
+      )!,
       quickbooksJson: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}quickbooks_json'],
@@ -8332,6 +8390,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
   final bool markdownEmailEnabled;
   final bool reportIncludeDrafts;
   final bool reportIncludeDeleted;
+  final bool enableApplyingPayments;
+  final bool convertPaymentCurrency;
   final String? quickbooksJson;
   final String subdomain;
   final String portalDomain;
@@ -8437,6 +8497,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     required this.markdownEmailEnabled,
     required this.reportIncludeDrafts,
     required this.reportIncludeDeleted,
+    required this.enableApplyingPayments,
+    required this.convertPaymentCurrency,
     this.quickbooksJson,
     required this.subdomain,
     required this.portalDomain,
@@ -8572,6 +8634,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     map['markdown_email_enabled'] = Variable<bool>(markdownEmailEnabled);
     map['report_include_drafts'] = Variable<bool>(reportIncludeDrafts);
     map['report_include_deleted'] = Variable<bool>(reportIncludeDeleted);
+    map['enable_applying_payments'] = Variable<bool>(enableApplyingPayments);
+    map['convert_payment_currency'] = Variable<bool>(convertPaymentCurrency);
     if (!nullToAbsent || quickbooksJson != null) {
       map['quickbooks_json'] = Variable<String>(quickbooksJson);
     }
@@ -8686,6 +8750,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       markdownEmailEnabled: Value(markdownEmailEnabled),
       reportIncludeDrafts: Value(reportIncludeDrafts),
       reportIncludeDeleted: Value(reportIncludeDeleted),
+      enableApplyingPayments: Value(enableApplyingPayments),
+      convertPaymentCurrency: Value(convertPaymentCurrency),
       quickbooksJson: quickbooksJson == null && nullToAbsent
           ? const Value.absent()
           : Value(quickbooksJson),
@@ -8870,6 +8936,12 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       reportIncludeDeleted: serializer.fromJson<bool>(
         json['reportIncludeDeleted'],
       ),
+      enableApplyingPayments: serializer.fromJson<bool>(
+        json['enableApplyingPayments'],
+      ),
+      convertPaymentCurrency: serializer.fromJson<bool>(
+        json['convertPaymentCurrency'],
+      ),
       quickbooksJson: serializer.fromJson<String?>(json['quickbooksJson']),
       subdomain: serializer.fromJson<String>(json['subdomain']),
       portalDomain: serializer.fromJson<String>(json['portalDomain']),
@@ -9005,6 +9077,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       'markdownEmailEnabled': serializer.toJson<bool>(markdownEmailEnabled),
       'reportIncludeDrafts': serializer.toJson<bool>(reportIncludeDrafts),
       'reportIncludeDeleted': serializer.toJson<bool>(reportIncludeDeleted),
+      'enableApplyingPayments': serializer.toJson<bool>(enableApplyingPayments),
+      'convertPaymentCurrency': serializer.toJson<bool>(convertPaymentCurrency),
       'quickbooksJson': serializer.toJson<String?>(quickbooksJson),
       'subdomain': serializer.toJson<String>(subdomain),
       'portalDomain': serializer.toJson<String>(portalDomain),
@@ -9108,6 +9182,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     bool? markdownEmailEnabled,
     bool? reportIncludeDrafts,
     bool? reportIncludeDeleted,
+    bool? enableApplyingPayments,
+    bool? convertPaymentCurrency,
     Value<String?> quickbooksJson = const Value.absent(),
     String? subdomain,
     String? portalDomain,
@@ -9227,6 +9303,10 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     markdownEmailEnabled: markdownEmailEnabled ?? this.markdownEmailEnabled,
     reportIncludeDrafts: reportIncludeDrafts ?? this.reportIncludeDrafts,
     reportIncludeDeleted: reportIncludeDeleted ?? this.reportIncludeDeleted,
+    enableApplyingPayments:
+        enableApplyingPayments ?? this.enableApplyingPayments,
+    convertPaymentCurrency:
+        convertPaymentCurrency ?? this.convertPaymentCurrency,
     quickbooksJson: quickbooksJson.present
         ? quickbooksJson.value
         : this.quickbooksJson,
@@ -9483,6 +9563,12 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       reportIncludeDeleted: data.reportIncludeDeleted.present
           ? data.reportIncludeDeleted.value
           : this.reportIncludeDeleted,
+      enableApplyingPayments: data.enableApplyingPayments.present
+          ? data.enableApplyingPayments.value
+          : this.enableApplyingPayments,
+      convertPaymentCurrency: data.convertPaymentCurrency.present
+          ? data.convertPaymentCurrency.value
+          : this.convertPaymentCurrency,
       quickbooksJson: data.quickbooksJson.present
           ? data.quickbooksJson.value
           : this.quickbooksJson,
@@ -9606,6 +9692,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           ..write('markdownEmailEnabled: $markdownEmailEnabled, ')
           ..write('reportIncludeDrafts: $reportIncludeDrafts, ')
           ..write('reportIncludeDeleted: $reportIncludeDeleted, ')
+          ..write('enableApplyingPayments: $enableApplyingPayments, ')
+          ..write('convertPaymentCurrency: $convertPaymentCurrency, ')
           ..write('quickbooksJson: $quickbooksJson, ')
           ..write('subdomain: $subdomain, ')
           ..write('portalDomain: $portalDomain, ')
@@ -9709,6 +9797,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     markdownEmailEnabled,
     reportIncludeDrafts,
     reportIncludeDeleted,
+    enableApplyingPayments,
+    convertPaymentCurrency,
     quickbooksJson,
     subdomain,
     portalDomain,
@@ -9816,6 +9906,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           other.markdownEmailEnabled == this.markdownEmailEnabled &&
           other.reportIncludeDrafts == this.reportIncludeDrafts &&
           other.reportIncludeDeleted == this.reportIncludeDeleted &&
+          other.enableApplyingPayments == this.enableApplyingPayments &&
+          other.convertPaymentCurrency == this.convertPaymentCurrency &&
           other.quickbooksJson == this.quickbooksJson &&
           other.subdomain == this.subdomain &&
           other.portalDomain == this.portalDomain &&
@@ -9916,6 +10008,8 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
   final Value<bool> markdownEmailEnabled;
   final Value<bool> reportIncludeDrafts;
   final Value<bool> reportIncludeDeleted;
+  final Value<bool> enableApplyingPayments;
+  final Value<bool> convertPaymentCurrency;
   final Value<String?> quickbooksJson;
   final Value<String> subdomain;
   final Value<String> portalDomain;
@@ -10015,6 +10109,8 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.markdownEmailEnabled = const Value.absent(),
     this.reportIncludeDrafts = const Value.absent(),
     this.reportIncludeDeleted = const Value.absent(),
+    this.enableApplyingPayments = const Value.absent(),
+    this.convertPaymentCurrency = const Value.absent(),
     this.quickbooksJson = const Value.absent(),
     this.subdomain = const Value.absent(),
     this.portalDomain = const Value.absent(),
@@ -10115,6 +10211,8 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.markdownEmailEnabled = const Value.absent(),
     this.reportIncludeDrafts = const Value.absent(),
     this.reportIncludeDeleted = const Value.absent(),
+    this.enableApplyingPayments = const Value.absent(),
+    this.convertPaymentCurrency = const Value.absent(),
     this.quickbooksJson = const Value.absent(),
     this.subdomain = const Value.absent(),
     this.portalDomain = const Value.absent(),
@@ -10221,6 +10319,8 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Expression<bool>? markdownEmailEnabled,
     Expression<bool>? reportIncludeDrafts,
     Expression<bool>? reportIncludeDeleted,
+    Expression<bool>? enableApplyingPayments,
+    Expression<bool>? convertPaymentCurrency,
     Expression<String>? quickbooksJson,
     Expression<String>? subdomain,
     Expression<String>? portalDomain,
@@ -10364,6 +10464,10 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
         'report_include_drafts': reportIncludeDrafts,
       if (reportIncludeDeleted != null)
         'report_include_deleted': reportIncludeDeleted,
+      if (enableApplyingPayments != null)
+        'enable_applying_payments': enableApplyingPayments,
+      if (convertPaymentCurrency != null)
+        'convert_payment_currency': convertPaymentCurrency,
       if (quickbooksJson != null) 'quickbooks_json': quickbooksJson,
       if (subdomain != null) 'subdomain': subdomain,
       if (portalDomain != null) 'portal_domain': portalDomain,
@@ -10467,6 +10571,8 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Value<bool>? markdownEmailEnabled,
     Value<bool>? reportIncludeDrafts,
     Value<bool>? reportIncludeDeleted,
+    Value<bool>? enableApplyingPayments,
+    Value<bool>? convertPaymentCurrency,
     Value<String?>? quickbooksJson,
     Value<String>? subdomain,
     Value<String>? portalDomain,
@@ -10598,6 +10704,10 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       markdownEmailEnabled: markdownEmailEnabled ?? this.markdownEmailEnabled,
       reportIncludeDrafts: reportIncludeDrafts ?? this.reportIncludeDrafts,
       reportIncludeDeleted: reportIncludeDeleted ?? this.reportIncludeDeleted,
+      enableApplyingPayments:
+          enableApplyingPayments ?? this.enableApplyingPayments,
+      convertPaymentCurrency:
+          convertPaymentCurrency ?? this.convertPaymentCurrency,
       quickbooksJson: quickbooksJson ?? this.quickbooksJson,
       subdomain: subdomain ?? this.subdomain,
       portalDomain: portalDomain ?? this.portalDomain,
@@ -10949,6 +11059,16 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
         reportIncludeDeleted.value,
       );
     }
+    if (enableApplyingPayments.present) {
+      map['enable_applying_payments'] = Variable<bool>(
+        enableApplyingPayments.value,
+      );
+    }
+    if (convertPaymentCurrency.present) {
+      map['convert_payment_currency'] = Variable<bool>(
+        convertPaymentCurrency.value,
+      );
+    }
     if (quickbooksJson.present) {
       map['quickbooks_json'] = Variable<String>(quickbooksJson.value);
     }
@@ -11081,6 +11201,8 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
           ..write('markdownEmailEnabled: $markdownEmailEnabled, ')
           ..write('reportIncludeDrafts: $reportIncludeDrafts, ')
           ..write('reportIncludeDeleted: $reportIncludeDeleted, ')
+          ..write('enableApplyingPayments: $enableApplyingPayments, ')
+          ..write('convertPaymentCurrency: $convertPaymentCurrency, ')
           ..write('quickbooksJson: $quickbooksJson, ')
           ..write('subdomain: $subdomain, ')
           ..write('portalDomain: $portalDomain, ')
@@ -45808,6 +45930,8 @@ typedef $$CompaniesTableCreateCompanionBuilder =
       Value<bool> markdownEmailEnabled,
       Value<bool> reportIncludeDrafts,
       Value<bool> reportIncludeDeleted,
+      Value<bool> enableApplyingPayments,
+      Value<bool> convertPaymentCurrency,
       Value<String?> quickbooksJson,
       Value<String> subdomain,
       Value<String> portalDomain,
@@ -45909,6 +46033,8 @@ typedef $$CompaniesTableUpdateCompanionBuilder =
       Value<bool> markdownEmailEnabled,
       Value<bool> reportIncludeDrafts,
       Value<bool> reportIncludeDeleted,
+      Value<bool> enableApplyingPayments,
+      Value<bool> convertPaymentCurrency,
       Value<String?> quickbooksJson,
       Value<String> subdomain,
       Value<String> portalDomain,
@@ -46372,6 +46498,16 @@ class $$CompaniesTableFilterComposer
 
   ColumnFilters<bool> get reportIncludeDeleted => $composableBuilder(
     column: $table.reportIncludeDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get enableApplyingPayments => $composableBuilder(
+    column: $table.enableApplyingPayments,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get convertPaymentCurrency => $composableBuilder(
+    column: $table.convertPaymentCurrency,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -46873,6 +47009,16 @@ class $$CompaniesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get enableApplyingPayments => $composableBuilder(
+    column: $table.enableApplyingPayments,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get convertPaymentCurrency => $composableBuilder(
+    column: $table.convertPaymentCurrency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get quickbooksJson => $composableBuilder(
     column: $table.quickbooksJson,
     builder: (column) => ColumnOrderings(column),
@@ -47343,6 +47489,16 @@ class $$CompaniesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get enableApplyingPayments => $composableBuilder(
+    column: $table.enableApplyingPayments,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get convertPaymentCurrency => $composableBuilder(
+    column: $table.convertPaymentCurrency,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get quickbooksJson => $composableBuilder(
     column: $table.quickbooksJson,
     builder: (column) => column,
@@ -47504,6 +47660,8 @@ class $$CompaniesTableTableManager
                 Value<bool> markdownEmailEnabled = const Value.absent(),
                 Value<bool> reportIncludeDrafts = const Value.absent(),
                 Value<bool> reportIncludeDeleted = const Value.absent(),
+                Value<bool> enableApplyingPayments = const Value.absent(),
+                Value<bool> convertPaymentCurrency = const Value.absent(),
                 Value<String?> quickbooksJson = const Value.absent(),
                 Value<String> subdomain = const Value.absent(),
                 Value<String> portalDomain = const Value.absent(),
@@ -47605,6 +47763,8 @@ class $$CompaniesTableTableManager
                 markdownEmailEnabled: markdownEmailEnabled,
                 reportIncludeDrafts: reportIncludeDrafts,
                 reportIncludeDeleted: reportIncludeDeleted,
+                enableApplyingPayments: enableApplyingPayments,
+                convertPaymentCurrency: convertPaymentCurrency,
                 quickbooksJson: quickbooksJson,
                 subdomain: subdomain,
                 portalDomain: portalDomain,
@@ -47710,6 +47870,8 @@ class $$CompaniesTableTableManager
                 Value<bool> markdownEmailEnabled = const Value.absent(),
                 Value<bool> reportIncludeDrafts = const Value.absent(),
                 Value<bool> reportIncludeDeleted = const Value.absent(),
+                Value<bool> enableApplyingPayments = const Value.absent(),
+                Value<bool> convertPaymentCurrency = const Value.absent(),
                 Value<String?> quickbooksJson = const Value.absent(),
                 Value<String> subdomain = const Value.absent(),
                 Value<String> portalDomain = const Value.absent(),
@@ -47811,6 +47973,8 @@ class $$CompaniesTableTableManager
                 markdownEmailEnabled: markdownEmailEnabled,
                 reportIncludeDrafts: reportIncludeDrafts,
                 reportIncludeDeleted: reportIncludeDeleted,
+                enableApplyingPayments: enableApplyingPayments,
+                convertPaymentCurrency: convertPaymentCurrency,
                 quickbooksJson: quickbooksJson,
                 subdomain: subdomain,
                 portalDomain: portalDomain,

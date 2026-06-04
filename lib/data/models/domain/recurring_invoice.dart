@@ -156,14 +156,20 @@ extension RecurringInvoiceCalculation on RecurringInvoice {
   bool get isPaused => statusId == RecurringInvoiceStatus.paused;
   bool get isCompleted => statusId == RecurringInvoiceStatus.completed;
 
-  bool get isPending {
-    if (!isActive) return false;
-    final next = nextSendDate;
-    if (next == null) return false;
-    return next.toDateTime().isAfter(DateTime.now());
-  }
+  /// "Pending" = active but the first occurrence hasn't been generated yet —
+  /// i.e. active with no `last_sent_date`. Matches React `RecurringInvoiceStatus`
+  /// and admin-portal `InvoiceEntity.isPending`. Note this relies on
+  /// `lastSentDate` parsing correctly; the server sends it as a datetime, so
+  /// [Date.tryParse] must preserve the date (see `value/date.dart`).
+  bool get isPending => isActive && lastSentDate == null;
 
   String get calculatedStatusId {
+    // A non-draft schedule that has run out of cycles reads as completed even
+    // if the server still flags it active (matches React + admin-portal
+    // `calculatedStatusId`).
+    if (!isDraft && remainingCycles == 0) {
+      return RecurringInvoiceStatus.completed.wireId;
+    }
     if (isPending) return RecurringInvoiceStatusComputed.pending;
     return statusId.wireId;
   }
@@ -224,6 +230,11 @@ extension RecurringInvoicePayload on RecurringInvoice {
       'custom_value4': customValue4,
       'frequency_id': frequencyId,
       'next_send_date': nextSendDate?.toIso() ?? '',
+      // Server-managed: the API recomputes this from next_send_date + the
+      // company's send time-of-day on save, so we send it back unchanged
+      // (there is no client setter — only next_send_date is editable). Matches
+      // React / admin-portal. Do NOT "sync" it to `<next_send_date> 00:00:00`
+      // — that clobbers the configured send time (e.g. 17:00).
       'next_send_datetime': nextSendDatetime,
       'remaining_cycles': remainingCycles,
       'due_date_days': dueDateDays,

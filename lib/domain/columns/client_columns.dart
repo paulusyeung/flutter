@@ -160,12 +160,12 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
     valueBuilder: (c) => cellNonZeroString(_primary(c.contacts)?.phone ?? ''),
   ),
   ClientColumn(
-    // Not yet wired — contact `lastLogin` isn't on the new domain model.
-    // Empty cell keeps the id alive for round-trip through the old app.
     id: ClientFieldIds.lastLoginAt,
     labelKey: 'last_login',
     width: 120,
-    cellBuilder: (_, _) => cellEmpty(),
+    cellBuilder: (c, ctx) =>
+        c.lastLogin == null ? cellEmpty() : cellDate(c.lastLogin!, ctx),
+    valueBuilder: (c) => c.lastLogin?.toIso8601String(),
   ),
   ClientColumn(
     id: ClientFieldIds.idNumber,

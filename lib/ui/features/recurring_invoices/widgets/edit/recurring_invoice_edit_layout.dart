@@ -1,6 +1,5 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
@@ -325,39 +324,12 @@ class _ContactsForClient extends StatelessWidget {
   }
 }
 
-class _ScheduleCardDesktop extends StatefulWidget {
+class _ScheduleCardDesktop extends StatelessWidget {
   const _ScheduleCardDesktop({required this.vm});
   final RecurringInvoiceEditViewModel vm;
 
   @override
-  State<_ScheduleCardDesktop> createState() => _ScheduleCardDesktopState();
-}
-
-class _ScheduleCardDesktopState extends State<_ScheduleCardDesktop> {
-  late final TextEditingController _remainingCycles;
-  late final TextEditingController _dueDateDays;
-
-  @override
-  void initState() {
-    super.initState();
-    _remainingCycles = TextEditingController(
-      text: widget.vm.draft.remainingCycles < 0
-          ? ''
-          : '${widget.vm.draft.remainingCycles}',
-    );
-    _dueDateDays = TextEditingController(text: widget.vm.draft.dueDateDays);
-  }
-
-  @override
-  void dispose() {
-    _remainingCycles.dispose();
-    _dueDateDays.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final vm = widget.vm;
     final fmt = context.read<Services>().formatterIfReady(vm.companyId);
     return FormSection(
       title: null,
@@ -389,32 +361,11 @@ class _ScheduleCardDesktopState extends State<_ScheduleCardDesktop> {
           labelText: context.tr('next_send_date'),
           clearable: true,
         ),
+        if (vm.draft.nextSendDate != null) _NextSendPreview(vm: vm),
         SizedBox(height: InSpacing.md(context)),
-        TextField(
-          controller: _remainingCycles,
-          decoration: billingFieldDecoration(
-            context,
-            label: context.tr('remaining_cycles'),
-            hint: '-1 = ${context.tr('endless')}',
-          ),
-          keyboardType: TextInputType.number,
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'-?\d*')),
-          ],
-          onChanged: (v) {
-            final parsed = int.tryParse(v.trim());
-            if (parsed != null) vm.setRemainingCycles(parsed);
-          },
-        ),
+        _RemainingCyclesField(vm: vm),
         SizedBox(height: InSpacing.md(context)),
-        TextField(
-          controller: _dueDateDays,
-          decoration: billingFieldDecoration(
-            context,
-            label: context.tr('due_date_days'),
-          ),
-          onChanged: vm.setDueDateDays,
-        ),
+        _DueDateDaysField(vm: vm),
         SizedBox(height: InSpacing.md(context)),
         DropdownButtonFormField<String>(
           initialValue: vm.draft.autoBill.isEmpty ? 'off' : vm.draft.autoBill,
@@ -422,18 +373,7 @@ class _ScheduleCardDesktopState extends State<_ScheduleCardDesktop> {
             context,
             label: context.tr('auto_bill'),
           ),
-          items: [
-            DropdownMenuItem(value: 'off', child: Text(context.tr('off'))),
-            DropdownMenuItem(
-              value: 'always',
-              child: Text(context.tr('enabled')),
-            ),
-            DropdownMenuItem(
-              value: 'optout',
-              child: Text(context.tr('opt_out')),
-            ),
-            DropdownMenuItem(value: 'optin', child: Text(context.tr('opt_in'))),
-          ],
+          items: _autoBillItems(context),
           onChanged: (v) => vm.setAutoBill(v ?? 'off'),
         ),
         SizedBox(height: InSpacing.md(context)),
@@ -746,6 +686,113 @@ List<DropdownMenuItem<String>> _frequencyItems(BuildContext context) => [
     ),
 ];
 
+/// Auto-bill mode items, shared by the desktop card and the mobile schedule
+/// tab. Values match the server (`off` / `always` / `optout` / `optin`);
+/// `always` is labelled "Enabled" to match the React form.
+List<DropdownMenuItem<String>> _autoBillItems(BuildContext context) => [
+  DropdownMenuItem(value: 'off', child: Text(context.tr('off'))),
+  DropdownMenuItem(value: 'always', child: Text(context.tr('enabled'))),
+  DropdownMenuItem(value: 'optout', child: Text(context.tr('opt_out'))),
+  DropdownMenuItem(value: 'optin', child: Text(context.tr('opt_in'))),
+];
+
+/// `due_date_days` options: `terms` + day-of-month `1..31` (matches React /
+/// admin-portal). An unrecognized stored value (e.g. a legacy `on_receipt`) is
+/// preserved at the head so the picker never silently drops it.
+List<String> _dueDateDaysOptions(String current) {
+  final base = <String>['terms', for (var i = 1; i <= 31; i++) '$i'];
+  if (current.isNotEmpty && !base.contains(current)) return [current, ...base];
+  return base;
+}
+
+String _dueDateDaysLabel(BuildContext context, String v) => switch (v) {
+  'terms' => context.tr('use_payment_terms'),
+  '1' => context.tr('first_day_of_the_month'),
+  '31' => context.tr('last_day_of_the_month'),
+  _ => int.tryParse(v) != null ? context.tr('day_count', {'count': v}) : v,
+};
+
+/// `remaining_cycles` options: endless (`-1`) + `0..36`. An out-of-range stored
+/// value is preserved (same anti-drop guard as due-date days).
+List<String> _remainingCyclesOptions(int current) {
+  final base = <String>['-1', for (var i = 0; i <= 36; i++) '$i'];
+  final cur = '$current';
+  if (!base.contains(cur)) return [cur, ...base];
+  return base;
+}
+
+/// Searchable `due_date_days` picker — shared by desktop + mobile so the two
+/// layouts can't drift. >20 options ⇒ searchable (CLAUDE.md). Clearing falls
+/// back to `terms` (the server default), never an empty value.
+class _DueDateDaysField extends StatelessWidget {
+  const _DueDateDaysField({required this.vm});
+  final RecurringInvoiceEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final current = vm.draft.dueDateDays;
+    return SearchableDropdownField<String>(
+      label: context.tr('due_date_days'),
+      items: _dueDateDaysOptions(current),
+      initialValue: current.isEmpty ? null : current,
+      displayString: (v) => _dueDateDaysLabel(context, v),
+      idOf: (v) => v,
+      onChanged: (v) => vm.setDueDateDays(v ?? 'terms'),
+    );
+  }
+}
+
+/// Searchable `remaining_cycles` picker — shared by desktop + mobile. Clearing
+/// falls back to `-1` (endless).
+class _RemainingCyclesField extends StatelessWidget {
+  const _RemainingCyclesField({required this.vm});
+  final RecurringInvoiceEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final current = vm.draft.remainingCycles;
+    return SearchableDropdownField<String>(
+      label: context.tr('remaining_cycles'),
+      items: _remainingCyclesOptions(current),
+      initialValue: '$current',
+      displayString: (v) => v == '-1' ? context.tr('endless') : v,
+      idOf: (v) => v,
+      onChanged: (v) => vm.setRemainingCycles(int.tryParse(v ?? '') ?? -1),
+    );
+  }
+}
+
+/// "Next: d1, d2, d3" inline preview of the upcoming send dates, computed
+/// client-side from `nextSendDate` + `frequencyId` via [nextSendAfter] (mirrors
+/// the recurring-expense schedule preview). Dates render through the company
+/// [Formatter] so they honor the configured date format.
+class _NextSendPreview extends StatelessWidget {
+  const _NextSendPreview({required this.vm});
+  final RecurringInvoiceEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final start = vm.draft.nextSendDate;
+    final freq = vm.draft.frequencyId;
+    if (start == null || freq.isEmpty) return const SizedBox.shrink();
+    final fmt = context.read<Services>().formatterIfReady(vm.companyId);
+    final previews = <String>[];
+    for (var i = 0; i < 3; i++) {
+      final d = nextSendAfter(start, freq, i);
+      if (d == null) break;
+      previews.add(fmt?.date(d.toIso()) ?? d.toIso());
+    }
+    if (previews.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: InSpacing.sm),
+      child: Text(
+        '${context.tr('next')}: ${previews.join(', ')}',
+        style: TextStyle(color: context.inTheme.ink3, fontSize: 12),
+      ),
+    );
+  }
+}
+
 /// Document-level tax tiers + custom surcharges + inclusive-tax toggle.
 /// Self-collapses when the company has no enabled tax rates and no surcharge
 /// labels configured (so it adds no chrome when unused).
@@ -979,38 +1026,12 @@ class _SettingsTab extends StatelessWidget {
   }
 }
 
-class _ScheduleTab extends StatefulWidget {
+class _ScheduleTab extends StatelessWidget {
   const _ScheduleTab({required this.vm});
   final RecurringInvoiceEditViewModel vm;
-  @override
-  State<_ScheduleTab> createState() => _ScheduleTabState();
-}
-
-class _ScheduleTabState extends State<_ScheduleTab> {
-  late final TextEditingController _remainingCycles;
-  late final TextEditingController _dueDateDays;
-
-  @override
-  void initState() {
-    super.initState();
-    _remainingCycles = TextEditingController(
-      text: widget.vm.draft.remainingCycles < 0
-          ? ''
-          : '${widget.vm.draft.remainingCycles}',
-    );
-    _dueDateDays = TextEditingController(text: widget.vm.draft.dueDateDays);
-  }
-
-  @override
-  void dispose() {
-    _remainingCycles.dispose();
-    _dueDateDays.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
-    final vm = widget.vm;
     final fmt = context.read<Services>().formatterIfReady(vm.companyId);
     return SingleChildScrollView(
       padding: EdgeInsets.all(InSpacing.lg(context)),
@@ -1039,57 +1060,16 @@ class _ScheduleTabState extends State<_ScheduleTab> {
             labelText: context.tr('next_send_date'),
             clearable: true,
           ),
+          if (vm.draft.nextSendDate != null) _NextSendPreview(vm: vm),
           SizedBox(height: InSpacing.md(context)),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _remainingCycles,
-                  decoration: InputDecoration(
-                    labelText: context.tr('remaining_cycles'),
-                    hintText: '-1 = ${context.tr('endless')}',
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'-?\d*')),
-                  ],
-                  onChanged: (v) {
-                    final parsed = int.tryParse(v.trim());
-                    if (parsed != null) vm.setRemainingCycles(parsed);
-                  },
-                ),
-              ),
-              SizedBox(width: InSpacing.md(context)),
-              Expanded(
-                child: TextField(
-                  controller: _dueDateDays,
-                  decoration: InputDecoration(
-                    labelText: context.tr('due_date_days'),
-                  ),
-                  onChanged: vm.setDueDateDays,
-                ),
-              ),
-            ],
-          ),
+          _RemainingCyclesField(vm: vm),
+          SizedBox(height: InSpacing.md(context)),
+          _DueDateDaysField(vm: vm),
           SizedBox(height: InSpacing.lg(context)),
           DropdownButtonFormField<String>(
             initialValue: vm.draft.autoBill.isEmpty ? 'off' : vm.draft.autoBill,
             decoration: InputDecoration(labelText: context.tr('auto_bill')),
-            items: [
-              DropdownMenuItem(value: 'off', child: Text(context.tr('off'))),
-              DropdownMenuItem(
-                value: 'always',
-                child: Text(context.tr('enabled')),
-              ),
-              DropdownMenuItem(
-                value: 'optout',
-                child: Text(context.tr('opt_out')),
-              ),
-              DropdownMenuItem(
-                value: 'optin',
-                child: Text(context.tr('opt_in')),
-              ),
-            ],
+            items: _autoBillItems(context),
             onChanged: (v) => vm.setAutoBill(v ?? 'off'),
           ),
         ],

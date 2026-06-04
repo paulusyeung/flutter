@@ -54,6 +54,7 @@ class CompanyGatewayListScreen extends StatelessWidget {
       emptyTitleKey: 'no_company_gateways_yet',
       buildVm: (services, companyId) => CompanyGatewayListViewModel(
         repo: services.companyGateways,
+        companyRepo: services.company,
         companyId: companyId,
         navStateDao: services.db.navStateDao,
         userSettings: services.userSettings,
@@ -89,6 +90,7 @@ class CompanyGatewayListScreen extends StatelessWidget {
         final isUrlSelected = options.selectedId == gateway.id;
         return CompanyGatewayListTile(
           gateway: gateway,
+          isDefault: gateway.id == vm.defaultGatewayId,
           columns: options.wide ? vm.columns : const [],
           wide: options.wide,
           editable: options.editable,

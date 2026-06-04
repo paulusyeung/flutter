@@ -858,7 +858,11 @@ class Services implements SidebarBadgeContext {
       routePath: '/settings/company_details',
       icon: Icons.business,
       sidebarSection: SidebarSection.none,
-      dispatcher: CompanySyncDispatcher(api: companiesApi, repo: companyRepo),
+      dispatcher: CompanySyncDispatcher(
+        api: companiesApi,
+        repo: companyRepo,
+        documentsApi: documentsApi,
+      ),
     );
     handlers[EntityType.user] = EntityHandlers(
       type: EntityType.user,

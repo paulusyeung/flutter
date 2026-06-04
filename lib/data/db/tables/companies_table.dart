@@ -288,6 +288,18 @@ class Companies extends Table {
   BoolColumn get reportIncludeDeleted => boolean()
       .named('report_include_deleted')
       .withDefault(const Constant(false))();
+  // Settings → Online Payments top-level toggles. Both live at company
+  // top-level in the API (not inside the `settings` JSON), so — like
+  // convert_expense_currency / first_month_of_year — they each need their own
+  // column or they're dropped on every login/refresh and the toggle resets.
+  // `enable_applying_payments` = "Admin Initiated Payments";
+  // `convert_payment_currency` = "Convert Currency".
+  BoolColumn get enableApplyingPayments => boolean()
+      .named('enable_applying_payments')
+      .withDefault(const Constant(false))();
+  BoolColumn get convertPaymentCurrency => boolean()
+      .named('convert_payment_currency')
+      .withDefault(const Constant(false))();
   // QuickBooks integration blob. Null when not connected; otherwise carries
   // the nested `{accessTokenKey, refresh_token, realmID, settings:{...}}`
   // object the server stores on `company.quickbooks`. Persisted as JSON so

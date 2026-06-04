@@ -55,11 +55,9 @@ class ClientDetailKpiStrip extends StatelessWidget {
         formatter: formatter,
         currencyId: client.currencyId,
       ),
-      // `payment_balance` is on the server schema but not yet sync-mapped into
-      // the local Client model. Renders as `—` so the grid is symmetric.
       _KpiCell(
         label: context.tr('payment_balance'),
-        amount: null,
+        amount: client.paymentBalance,
         tokens: tokens,
         formatter: formatter,
         currencyId: client.currencyId,

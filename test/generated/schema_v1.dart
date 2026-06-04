@@ -1966,6 +1966,26 @@ class Companies extends Table with TableInfo {
         'NOT NULL DEFAULT 0 CHECK (report_include_deleted IN (0, 1))',
     defaultValue: const CustomExpression('0'),
   );
+  late final GeneratedColumn<int> enableApplyingPayments = GeneratedColumn<int>(
+    'enable_applying_payments',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints:
+        'NOT NULL DEFAULT 0 CHECK (enable_applying_payments IN (0, 1))',
+    defaultValue: const CustomExpression('0'),
+  );
+  late final GeneratedColumn<int> convertPaymentCurrency = GeneratedColumn<int>(
+    'convert_payment_currency',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints:
+        'NOT NULL DEFAULT 0 CHECK (convert_payment_currency IN (0, 1))',
+    defaultValue: const CustomExpression('0'),
+  );
   late final GeneratedColumn<String> quickbooksJson = GeneratedColumn<String>(
     'quickbooks_json',
     aliasedName,
@@ -2128,6 +2148,8 @@ class Companies extends Table with TableInfo {
     markdownEmailEnabled,
     reportIncludeDrafts,
     reportIncludeDeleted,
+    enableApplyingPayments,
+    convertPaymentCurrency,
     quickbooksJson,
     subdomain,
     portalDomain,

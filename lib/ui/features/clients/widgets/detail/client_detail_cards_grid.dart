@@ -6,6 +6,8 @@ import 'package:admin/ui/features/clients/widgets/detail/client_detail_address_c
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_contacts_card.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_details_card.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_notes_card.dart';
+import 'package:admin/ui/features/clients/widgets/detail/client_detail_payment_methods_card.dart';
+import 'package:admin/ui/features/clients/widgets/detail/client_detail_shipping_address_card.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// Responsive grid for the client detail body cards.
@@ -54,7 +56,19 @@ class ClientDetailCardsGrid extends StatelessWidget {
     final columns = <Widget>[
       Expanded(child: ClientDetailDetailsCard(client: c)),
       SizedBox(width: InSpacing.md(context)),
-      Expanded(child: ClientDetailAddressCard(client: c)),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClientDetailAddressCard(client: c),
+            if (ClientDetailShippingAddressCard.hasContent(c)) ...[
+              SizedBox(height: InSpacing.md(context)),
+              ClientDetailShippingAddressCard(client: c),
+            ],
+          ],
+        ),
+      ),
       if (hasContacts) ...[
         SizedBox(width: InSpacing.md(context)),
         Expanded(
@@ -75,6 +89,10 @@ class ClientDetailCardsGrid extends StatelessWidget {
             children: columns,
           ),
         ),
+        if (ClientDetailPaymentMethodsCard.hasContent(c)) ...[
+          SizedBox(height: InSpacing.md(context)),
+          ClientDetailPaymentMethodsCard(client: c),
+        ],
         if (hasNotes) ...[
           SizedBox(height: InSpacing.md(context)),
           ClientDetailNotesCard(client: c),
@@ -88,7 +106,11 @@ class ClientDetailCardsGrid extends StatelessWidget {
       if (ClientDetailDetailsCard.hasContent(c))
         ClientDetailDetailsCard(client: c, compact: true),
       ClientDetailAddressCard(client: c),
+      if (ClientDetailShippingAddressCard.hasContent(c))
+        ClientDetailShippingAddressCard(client: c),
       ClientDetailContactsCard(contacts: c.contacts, clientHash: c.clientHash),
+      if (ClientDetailPaymentMethodsCard.hasContent(c))
+        ClientDetailPaymentMethodsCard(client: c),
       if (c.privateNotes.isNotEmpty || c.publicNotes.isNotEmpty)
         ClientDetailNotesCard(client: c),
     ];

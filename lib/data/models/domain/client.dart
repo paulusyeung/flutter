@@ -6,6 +6,7 @@ import 'package:admin/data/models/value/money.dart';
 import 'package:admin/data/models/value/parsing.dart';
 import 'package:admin/data/models/domain/contact.dart';
 import 'package:admin/data/models/domain/document.dart';
+import 'package:admin/data/models/domain/gateway_token.dart';
 import 'package:admin/data/models/domain/location.dart';
 
 part 'client.freezed.dart';
@@ -62,6 +63,30 @@ abstract class Client with _$Client {
     required List<Contact> contacts,
     @Default(<Location>[]) List<Location> locations,
     @Default(<Document>[]) List<Document> documents,
+    // Shipping address (distinct from the billing address above). All
+    // optional/defaulted so existing `Client(...)` fixtures don't need
+    // updating — these were historically dropped on the floor.
+    @Default('') String shippingAddress1,
+    @Default('') String shippingAddress2,
+    @Default('') String shippingCity,
+    @Default('') String shippingState,
+    @Default('') String shippingPostalCode,
+    @Default('') String shippingCountryId,
+    // Tax / e-invoice flags. Editable; the UI gates them on the company's
+    // calculate_taxes / e-invoice toggles (React parity).
+    @Default(false) bool isTaxExempt,
+    @Default(false) bool hasValidVatNumber,
+    @Default('') String routingId,
+    // Read-only server fields surfaced in the UI. `userId` is the creator;
+    // `paymentBalance` is the unapplied-payments KPI; `lastLogin` drives the
+    // "Last login" list column (null when no portal login yet).
+    @Default('') String userId,
+    Decimal? paymentBalance,
+    DateTime? lastLogin,
+    // Saved payment methods (gateway tokens), read-embedded and display-only.
+    // Never written to the server; survives a local save via a payload inject
+    // in `ClientRepository._domainToCompanion` (no dedicated Drift column).
+    @Default(<GatewayToken>[]) List<GatewayToken> gatewayTokens,
     // Sparse per-client settings overrides. Mirrors the wire shape — keys
     // not present mean "inherit from company via the cascade." Stored raw
     // because the wire is open-ended; the typed `CompanySettings` view is
@@ -73,48 +98,79 @@ abstract class Client with _$Client {
     @Default(false) bool isDirty,
   }) = _Client;
 
-  factory Client.fromApi(ClientApi a) => Client(
-    id: a.id,
-    name: a.name,
-    displayName: a.displayName.isNotEmpty ? a.displayName : a.name,
-    number: a.number,
-    idNumber: a.idNumber,
-    vatNumber: a.vatNumber,
-    clientHash: a.clientHash,
-    website: a.website,
-    phone: a.phone,
-    address1: a.address1,
-    address2: a.address2,
-    city: a.city,
-    state: a.state,
-    postalCode: a.postalCode,
-    countryId: a.countryId,
-    balance: parseMoney(a.balance),
-    paidToDate: parseMoney(a.paidToDate),
-    creditBalance: parseMoney(a.creditBalance),
-    currencyId: a.currencyId,
-    languageId: a.languageId,
-    paymentTerms: a.paymentTerms,
-    privateNotes: a.privateNotes,
-    publicNotes: a.publicNotes,
-    groupSettingsId: a.groupSettingsId,
-    assignedUserId: a.assignedUserId,
-    industryId: a.industryId,
-    sizeId: a.sizeId,
-    classification: a.classification,
-    updatedAt: epochSecondsToUtc(a.updatedAt),
-    createdAt: epochSecondsToUtc(a.createdAt),
-    archivedAt: epochSecondsToUtcOrNull(a.archivedAt),
-    isDeleted: a.isDeleted,
-    customValue1: a.customValue1,
-    customValue2: a.customValue2,
-    customValue3: a.customValue3,
-    customValue4: a.customValue4,
-    contacts: a.contacts.map(Contact.fromApi).toList(growable: false),
-    locations: a.locations.map(Location.fromApi).toList(growable: false),
-    documents: mapDocuments(a.documents),
-    settings: a.settings,
-  );
+  factory Client.fromApi(ClientApi a) {
+    // currency_id / language_id / payment_terms are CASCADE settings on the
+    // server — they live inside `settings`, never top-level (verified against
+    // the live API: a client with a per-client currency carries
+    // `settings.currency_id` and NO top-level `currency_id`). Read them from
+    // `settings` first, falling back to the (normally empty) top-level field
+    // for resilience. `toApiJson` folds them back into `settings`, so a
+    // per-client override round-trips and `Formatter.money(clientCurrencyId:)`
+    // actually sees it.
+    final s = a.settings;
+    String fromSettings(String key, String fallback) {
+      final v = s == null ? null : s[key];
+      return v == null ? fallback : v.toString();
+    }
+
+    return Client(
+      id: a.id,
+      name: a.name,
+      displayName: a.displayName.isNotEmpty ? a.displayName : a.name,
+      number: a.number,
+      idNumber: a.idNumber,
+      vatNumber: a.vatNumber,
+      clientHash: a.clientHash,
+      website: a.website,
+      phone: a.phone,
+      address1: a.address1,
+      address2: a.address2,
+      city: a.city,
+      state: a.state,
+      postalCode: a.postalCode,
+      countryId: a.countryId,
+      balance: parseMoney(a.balance),
+      paidToDate: parseMoney(a.paidToDate),
+      creditBalance: parseMoney(a.creditBalance),
+      currencyId: fromSettings('currency_id', a.currencyId),
+      languageId: fromSettings('language_id', a.languageId),
+      paymentTerms: fromSettings('payment_terms', a.paymentTerms),
+      privateNotes: a.privateNotes,
+      publicNotes: a.publicNotes,
+      groupSettingsId: a.groupSettingsId,
+      assignedUserId: a.assignedUserId,
+      industryId: a.industryId,
+      sizeId: a.sizeId,
+      classification: a.classification,
+      updatedAt: epochSecondsToUtc(a.updatedAt),
+      createdAt: epochSecondsToUtc(a.createdAt),
+      archivedAt: epochSecondsToUtcOrNull(a.archivedAt),
+      isDeleted: a.isDeleted,
+      customValue1: a.customValue1,
+      customValue2: a.customValue2,
+      customValue3: a.customValue3,
+      customValue4: a.customValue4,
+      contacts: a.contacts.map(Contact.fromApi).toList(growable: false),
+      locations: a.locations.map(Location.fromApi).toList(growable: false),
+      documents: mapDocuments(a.documents),
+      shippingAddress1: a.shippingAddress1,
+      shippingAddress2: a.shippingAddress2,
+      shippingCity: a.shippingCity,
+      shippingState: a.shippingState,
+      shippingPostalCode: a.shippingPostalCode,
+      shippingCountryId: a.shippingCountryId,
+      isTaxExempt: a.isTaxExempt,
+      hasValidVatNumber: a.hasValidVatNumber,
+      routingId: a.routingId,
+      userId: a.userId,
+      paymentBalance: parseMoney(a.paymentBalance),
+      lastLogin: epochSecondsToUtcOrNull(a.lastLogin),
+      gatewayTokens: a.gatewayTokens
+          .map(GatewayToken.fromApi)
+          .toList(growable: false),
+      settings: a.settings,
+    );
+  }
 }
 
 extension ClientCascade on Client {
@@ -142,39 +198,70 @@ extension ClientPayload on Client {
   /// [preserveTempId] is for **local storage** only — the Drift row needs to
   /// keep the tmp id so the detail screen can keep watching it. The outbox
   /// payload that goes to the server uses the default (drops tmp ids).
-  Map<String, dynamic> toApiJson({bool preserveTempId = false}) => {
-    if (preserveTempId || !id.startsWith('tmp_')) 'id': id,
-    'name': name,
-    'display_name': displayName,
-    'number': number,
-    'id_number': idNumber,
-    'vat_number': vatNumber,
-    'client_hash': clientHash,
-    'website': website,
-    'phone': phone,
-    'address1': address1,
-    'address2': address2,
-    'city': city,
-    'state': state,
-    'postal_code': postalCode,
-    'country_id': countryId,
-    'balance': balance.toString(),
-    'paid_to_date': paidToDate.toString(),
-    'credit_balance': creditBalance.toString(),
-    'currency_id': currencyId,
-    'language_id': languageId,
-    'payment_terms': paymentTerms,
-    'private_notes': privateNotes,
-    'public_notes': publicNotes,
-    'group_settings_id': groupSettingsId,
-    'assigned_user_id': assignedUserId,
-    'industry_id': industryId,
-    'size_id': sizeId,
-    'classification': classification,
-    'contacts': contacts.map((c) => c.toApiJson()).toList(),
-    // Only emit `settings` when the user has actually overridden something.
-    // An empty map would still serialize but means the same as "inherit"
-    // — omit it so the wire stays minimal.
-    if (settings != null && settings!.isNotEmpty) 'settings': settings,
-  };
+  Map<String, dynamic> toApiJson({bool preserveTempId = false}) {
+    // currency_id / language_id / payment_terms are cascade settings — fold
+    // them INTO `settings` (their real wire home) rather than emitting them
+    // top-level, where the server silently ignores them. An empty value
+    // removes the key (= "inherit from the company/group cascade"), matching
+    // the admin-portal convention (`withCascadeOverride`).
+    final mergedSettings = <String, dynamic>{...?settings};
+    void foldSetting(String key, String value) {
+      if (value.isEmpty) {
+        mergedSettings.remove(key);
+      } else {
+        mergedSettings[key] = value;
+      }
+    }
+
+    foldSetting('currency_id', currencyId);
+    foldSetting('language_id', languageId);
+    foldSetting('payment_terms', paymentTerms);
+
+    return {
+      if (preserveTempId || !id.startsWith('tmp_')) 'id': id,
+      'name': name,
+      'display_name': displayName,
+      'number': number,
+      'id_number': idNumber,
+      'vat_number': vatNumber,
+      'client_hash': clientHash,
+      'website': website,
+      'phone': phone,
+      'address1': address1,
+      'address2': address2,
+      'city': city,
+      'state': state,
+      'postal_code': postalCode,
+      'country_id': countryId,
+      'shipping_address1': shippingAddress1,
+      'shipping_address2': shippingAddress2,
+      'shipping_city': shippingCity,
+      'shipping_state': shippingState,
+      'shipping_postal_code': shippingPostalCode,
+      'shipping_country_id': shippingCountryId,
+      'balance': balance.toString(),
+      'paid_to_date': paidToDate.toString(),
+      'credit_balance': creditBalance.toString(),
+      'payment_balance': (paymentBalance ?? Decimal.zero).toString(),
+      'private_notes': privateNotes,
+      'public_notes': publicNotes,
+      'group_settings_id': groupSettingsId,
+      'assigned_user_id': assignedUserId,
+      'industry_id': industryId,
+      'size_id': sizeId,
+      'classification': classification,
+      'is_tax_exempt': isTaxExempt,
+      'has_valid_vat_number': hasValidVatNumber,
+      'routing_id': routingId,
+      // Read-only server fields — echoed only for the local payload round-trip
+      // (server `fill()` ignores non-fillable keys, same as `client_hash`).
+      if (userId.isNotEmpty) 'user_id': userId,
+      if (lastLogin != null)
+        'last_login': lastLogin!.millisecondsSinceEpoch ~/ 1000,
+      'contacts': contacts.map((c) => c.toApiJson()).toList(),
+      // Only emit `settings` when there's at least one override — an empty
+      // map means the same as "inherit," so omit it to keep the wire minimal.
+      if (mergedSettings.isNotEmpty) 'settings': mergedSettings,
+    };
+  }
 }

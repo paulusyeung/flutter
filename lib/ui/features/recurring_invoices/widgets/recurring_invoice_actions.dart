@@ -32,7 +32,6 @@ enum RecurringInvoiceAction {
   printPdf,
   sendEmail,
   scheduleEmail,
-  markSent,
   sendNow,
   start,
   stop,
@@ -117,8 +116,9 @@ class RecurringInvoiceActions {
     final canEdit = me?.can('edit_recurring_invoice') ?? false;
     final canCreate = me?.can('create_recurring_invoice') ?? false;
     final canDelete = me?.can('delete_recurring_invoice') ?? false;
-    final canMarkSent = canEdit && ri.isDraft;
-    final canSendNow = canEdit && ri.isActive;
+    // React gates send_now on draft (it sends the first occurrence now); it is
+    // performed as `?send_now=true` on a normal save, not a bulk action.
+    final canSendNow = canEdit && ri.isDraft;
     final canStart = canEdit && (ri.isDraft || ri.isPaused);
     final canStop = canEdit && ri.isActive;
 
@@ -162,13 +162,6 @@ class RecurringInvoiceActions {
         label: context.tr('send_email'),
         enabled: canEdit,
         onTap: () => onTap(RecurringInvoiceAction.sendEmail),
-      ),
-      EntityActionItem(
-        kind: RecurringInvoiceAction.markSent,
-        icon: Icons.send_outlined,
-        label: context.tr('mark_sent'),
-        enabled: canMarkSent,
-        onTap: () => onTap(RecurringInvoiceAction.markSent),
       ),
       EntityActionItem(
         kind: RecurringInvoiceAction.sendNow,
@@ -331,15 +324,6 @@ class RecurringInvoiceActions {
         // Full-screen Send Email surface; bulk multi-select still uses the
         // showBillingDocEmailSheet bottom sheet.
         context.go('/recurring_invoices/${ri.id}/email?view=full');
-
-      case RecurringInvoiceAction.markSent:
-        if (tmpGate()) return;
-        await services.recurringInvoices.markSent(
-          companyId: companyId,
-          id: ri.id,
-        );
-        if (!context.mounted) return;
-        Notify.success(context, context.tr('marked_recurring_invoice_as_sent'));
 
       case RecurringInvoiceAction.sendNow:
         if (tmpGate()) return;

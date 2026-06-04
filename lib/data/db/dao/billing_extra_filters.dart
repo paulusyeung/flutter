@@ -47,6 +47,14 @@ String? parseSubstringFilter(
 Set<String> parseInvoiceStatusFilter(Map<String, Set<String>> extraFilters) =>
     extraFilters['status_id'] ?? const <String>{};
 
+/// Recurring-invoice `status_id` — stored discriminators `'1'..'4'`
+/// (draft/active/paused/completed), filtered directly against the `statusId`
+/// column. Mirrors React's server-side `status_id` filter (no computed-status
+/// remap: completed/pending are display-only derivations).
+Set<String> parseRecurringInvoiceStatusFilter(
+  Map<String, Set<String>> extraFilters,
+) => extraFilters['status_id'] ?? const <String>{};
+
 /// Invoice `overdue:true` — single boolean dimension.
 bool parseOverdueFilter(Map<String, Set<String>> extraFilters) =>
     (extraFilters['overdue'] ?? const <String>{}).contains('true');

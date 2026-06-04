@@ -14,6 +14,7 @@ import 'package:admin/data/db/dao/billing_extra_filters.dart';
 import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/gateway_token.dart';
 import 'package:admin/data/models/domain/location.dart';
 import 'package:admin/data/services/clients_api.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
@@ -640,7 +641,14 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
       locations: Value(
         jsonEncode(c.locations.map((l) => l.toApiJson()).toList()),
       ),
-      payload: jsonEncode(c.toApiJson(preserveTempId: true)),
+      // `gateway_tokens` are read-only and deliberately omitted from
+      // `toApiJson` (kept off the outbound wire). Inject them into the stored
+      // payload here so the "Payment Methods" card doesn't blank out after a
+      // local edit-save until the next server sync re-embeds them.
+      payload: jsonEncode({
+        ...c.toApiJson(preserveTempId: true),
+        'gateway_tokens': c.gatewayTokens.map((g) => g.toApiJson()).toList(),
+      }),
     );
   }
 

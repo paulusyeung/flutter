@@ -197,4 +197,208 @@ void main() {
       expect(json['name'], 'New');
     });
   });
+
+  group('Client cascade settings (currency / language / payment_terms)', () {
+    test('reads currency_id/language_id/payment_terms from settings, not '
+        'top-level (the live API only sends them inside settings)', () {
+      // Mirrors the live demo client: a per-client EUR override lives in
+      // `settings.currency_id`; there is NO top-level `currency_id`.
+      final api = ClientApi.fromJson({
+        'id': 'a',
+        'name': 'Acme',
+        'settings': {
+          'currency_id': '3',
+          'language_id': '5',
+          'payment_terms': '30',
+        },
+      });
+
+      final c = Client.fromApi(api);
+      expect(c.currencyId, '3', reason: 'sourced from settings.currency_id');
+      expect(c.languageId, '5');
+      expect(c.paymentTerms, '30');
+    });
+
+    test('falls back to top-level when settings is absent (resilience)', () {
+      final c = Client.fromApi(
+        ClientApi.fromJson({'id': 'a', 'name': 'Acme', 'currency_id': '7'}),
+      );
+      expect(c.currencyId, '7');
+    });
+
+    test('inherits (empty) when neither settings nor top-level set it', () {
+      final c = Client.fromApi(ClientApi.fromJson({'id': 'a', 'name': 'Acme'}));
+      expect(c.currencyId, isEmpty);
+      expect(c.languageId, isEmpty);
+      expect(c.paymentTerms, isEmpty);
+    });
+
+    test('toApiJson folds the three fields INTO settings and never emits '
+        'them top-level (server ignores the top-level keys)', () {
+      final c = Client.fromApi(
+        ClientApi.fromJson({
+          'id': 'a',
+          'name': 'Acme',
+          'settings': {'currency_id': '3'},
+        }),
+      );
+      final json = c.toApiJson();
+      expect(json.containsKey('currency_id'), isFalse);
+      expect(json.containsKey('language_id'), isFalse);
+      expect(json.containsKey('payment_terms'), isFalse);
+      expect((json['settings'] as Map)['currency_id'], '3');
+    });
+
+    test('full round-trip preserves a per-client currency override', () {
+      final api = ClientApi.fromJson({
+        'id': 'a',
+        'name': 'Acme',
+        'settings': {'currency_id': '3', 'enable_client_portal': true},
+      });
+      // domain → wire → domain again
+      final c1 = Client.fromApi(api);
+      final wire = c1.toApiJson();
+      final c2 = Client.fromApi(ClientApi.fromJson(wire));
+      expect(c2.currencyId, '3', reason: 'override survives the round-trip');
+      // Pre-existing unrelated settings keys are preserved, not clobbered.
+      expect((wire['settings'] as Map)['enable_client_portal'], true);
+    });
+
+    test('clearing currency (empty) removes the settings key (= inherit) and '
+        'preserves other overrides', () {
+      final c = Client.fromApi(
+        ClientApi.fromJson({
+          'id': 'a',
+          'name': 'Acme',
+          'settings': {'currency_id': '3', 'enable_client_portal': true},
+        }),
+      ).copyWith(currencyId: '');
+      final json = c.toApiJson();
+      final settings = json['settings'] as Map;
+      expect(settings.containsKey('currency_id'), isFalse);
+      expect(settings['enable_client_portal'], true);
+    });
+
+    test('emits no settings key at all when there are zero overrides', () {
+      final c = Client.fromApi(ClientApi.fromJson({'id': 'a', 'name': 'Acme'}));
+      expect(c.toApiJson().containsKey('settings'), isFalse);
+    });
+  });
+
+  group('Client newly-mapped fields', () {
+    test('round-trips the shipping address (read + write)', () {
+      final api = ClientApi.fromJson({
+        'id': 'a',
+        'name': 'Acme',
+        'shipping_address1': '500 Dock Rd',
+        'shipping_address2': 'Bay 7',
+        'shipping_city': 'Newark',
+        'shipping_state': 'NJ',
+        'shipping_postal_code': '07101',
+        'shipping_country_id': '840',
+      });
+      final c = Client.fromApi(api);
+      expect(c.shippingAddress1, '500 Dock Rd');
+      expect(c.shippingCity, 'Newark');
+      expect(c.shippingCountryId, '840');
+
+      final json = c.toApiJson();
+      expect(json['shipping_address1'], '500 Dock Rd');
+      expect(json['shipping_city'], 'Newark');
+      expect(json['shipping_country_id'], '840');
+    });
+
+    test('maps payment_balance / last_login / user_id (read-only)', () {
+      final c = Client.fromApi(
+        ClientApi.fromJson({
+          'id': 'a',
+          'name': 'Acme',
+          'payment_balance': '42.50',
+          'last_login': 1700000000,
+          'user_id': 'VolejRejNm',
+          'is_tax_exempt': true,
+          'routing_id': '111122',
+        }),
+      );
+      expect(c.paymentBalance, Decimal.parse('42.50'));
+      expect(c.lastLogin, isNotNull);
+      expect(c.userId, 'VolejRejNm');
+      expect(c.isTaxExempt, isTrue);
+      expect(c.routingId, '111122');
+    });
+
+    test('parses gateway_tokens with meta but never writes them back to the '
+        'server wire (read-only relation)', () {
+      final api = ClientApi.fromJson({
+        'id': 'a',
+        'name': 'Acme',
+        'gateway_tokens': [
+          {
+            'id': 'gt1',
+            'gateway_type_id': '1',
+            'is_default': true,
+            'meta': {
+              'brand': 'visa',
+              'last4': '4242',
+              'exp_month': '12',
+              'exp_year': '2027',
+              'type': 'card',
+            },
+          },
+        ],
+      });
+      final c = Client.fromApi(api);
+      expect(c.gatewayTokens, hasLength(1));
+      expect(c.gatewayTokens.first.brand, 'visa');
+      expect(c.gatewayTokens.first.last4, '4242');
+      expect(c.gatewayTokens.first.isDefault, isTrue);
+      // Off the outbound wire — the server manages tokens; we must not echo
+      // them on a client save.
+      expect(c.toApiJson().containsKey('gateway_tokens'), isFalse);
+    });
+
+    test('coerces gateway_token meta values that arrive as numbers', () {
+      final c = Client.fromApi(
+        ClientApi.fromJson({
+          'id': 'a',
+          'name': 'Acme',
+          'gateway_tokens': [
+            {
+              'id': 'gt1',
+              'meta': {'last4': 1234, 'exp_month': 1, 'exp_year': 2030},
+            },
+          ],
+        }),
+      );
+      expect(c.gatewayTokens.first.last4, '1234');
+      expect(c.gatewayTokens.first.expMonth, '1');
+    });
+
+    test('contact maps contact_key / can_sign / last_login and writes back '
+        'contact_key + can_sign', () {
+      final api = ClientApi.fromJson({
+        'id': 'a',
+        'name': 'Acme',
+        'contacts': [
+          {
+            'id': 'c1',
+            'email': 'a@x.test',
+            'contact_key': 'KEY123',
+            'can_sign': true,
+            'last_login': 1700000000,
+          },
+        ],
+      });
+      final c = Client.fromApi(api);
+      expect(c.contacts.first.contactKey, 'KEY123');
+      expect(c.contacts.first.canSign, isTrue);
+      expect(c.contacts.first.lastLogin, isNotNull);
+
+      final contactJson = (c.toApiJson()['contacts'] as List)
+          .cast<Map<String, dynamic>>()
+          .first;
+      expect(contactJson['contact_key'], 'KEY123');
+      expect(contactJson['can_sign'], isTrue);
+    });
+  });
 }

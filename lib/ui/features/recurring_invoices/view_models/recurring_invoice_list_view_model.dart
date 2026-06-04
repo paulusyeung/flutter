@@ -67,6 +67,7 @@ class RecurringInvoiceListViewModel
     sortAscending: sortAscending,
     clientId: clientId,
     customFilters: customFilters,
+    extraFilters: extraFilters,
   );
 
   @override
@@ -108,7 +109,8 @@ class RecurringInvoiceListViewModel
     BulkAction<RecurringInvoice>(
       id: 'send_now',
       labelKey: 'send_now',
-      eligible: (r) => !isDeleted(r),
+      // send_now sends the first occurrence — draft-only, matching React.
+      eligible: (r) => !isDeleted(r) && r.isDraft,
       apply: (id) => repo.sendNow(companyId: companyId, id: id),
     ),
     BulkAction<RecurringInvoice>(
@@ -131,6 +133,22 @@ class RecurringInvoiceListViewModel
         companyId: companyId,
         id: id,
         templateId: arg as String,
+      ),
+    ),
+    BulkAction<RecurringInvoice>(
+      id: 'update_prices',
+      labelKey: 'update_prices',
+      eligible: (r) => !isDeleted(r),
+      apply: (id) => repo.updatePrices(companyId: companyId, id: id),
+    ),
+    BulkAction<RecurringInvoice>(
+      id: 'increase_prices',
+      labelKey: 'increase_prices',
+      eligible: (r) => !isDeleted(r),
+      applyArg: (id, arg) => repo.increasePrices(
+        companyId: companyId,
+        id: id,
+        percentageIncrease: arg as String,
       ),
     ),
   ];

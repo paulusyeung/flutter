@@ -162,20 +162,28 @@ class _KeyValue extends StatelessWidget {
     final tokens = context.inTheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: InSpacing.xs),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 160,
-            child: Text(
-              context.tr(labelKey),
-              style: TextStyle(color: tokens.ink3),
-            ),
-          ),
-          Expanded(
-            child: Text(value, style: TextStyle(color: tokens.ink)),
-          ),
-        ],
+      // Narrow the label column on small widths (phones, or a narrow
+      // master-detail pane) so the value keeps room. Measured off the actual
+      // available width, not the whole screen.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final labelWidth = constraints.maxWidth < 360 ? 110.0 : 160.0;
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: labelWidth,
+                child: Text(
+                  context.tr(labelKey),
+                  style: TextStyle(color: tokens.ink3),
+                ),
+              ),
+              Expanded(
+                child: Text(value, style: TextStyle(color: tokens.ink)),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

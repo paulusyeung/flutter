@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:admin/data/models/api/contact_api_model.dart';
 import 'package:admin/data/models/api/document_api_model.dart';
+import 'package:admin/data/models/api/gateway_token_api_model.dart';
 import 'package:admin/data/models/api/location_api_model.dart';
 
 part 'client_api_model.freezed.dart';
@@ -45,6 +46,7 @@ abstract class ClientApi with _$ClientApi {
     @JsonKey(name: 'balance') @Default('0') Object balance,
     @JsonKey(name: 'paid_to_date') @Default('0') Object paidToDate,
     @JsonKey(name: 'credit_balance') @Default('0') Object creditBalance,
+    @JsonKey(name: 'payment_balance') @Default('0') Object paymentBalance,
     @JsonKey(name: 'currency_id') @Default('') String currencyId,
     @JsonKey(name: 'language_id') @Default('') String languageId,
     @JsonKey(name: 'payment_terms') @Default('') String paymentTerms,
@@ -59,7 +61,13 @@ abstract class ClientApi with _$ClientApi {
     @JsonKey(name: 'industry_id') @Default('') String industryId,
     @JsonKey(name: 'size_id') @Default('') String sizeId,
     @JsonKey(name: 'classification') @Default('') String classification,
+    @JsonKey(name: 'is_tax_exempt') @Default(false) bool isTaxExempt,
+    @JsonKey(name: 'has_valid_vat_number')
+    @Default(false)
+    bool hasValidVatNumber,
+    @JsonKey(name: 'routing_id') @Default('') String routingId,
     @JsonKey(name: 'user_id') @Default('') String userId,
+    @JsonKey(name: 'last_login') @Default(0) int lastLogin,
     @JsonKey(name: 'created_at') @Default(0) int createdAt,
     @JsonKey(name: 'updated_at') @Default(0) int updatedAt,
     @JsonKey(name: 'archived_at') @Default(0) int archivedAt,
@@ -75,6 +83,13 @@ abstract class ClientApi with _$ClientApi {
     // locks this contract — if the server ever makes it include-gated that
     // test fails loudly instead of silently wiping locations.
     @Default(<LocationApi>[]) List<LocationApi> locations,
+    // Saved payment methods (cards / bank accounts) stored at the gateway.
+    // Present on client GET/list responses (probe-verified: top-level key,
+    // `[]` when none). Read-only — surfaced in the "Payment Methods" detail
+    // card and never written back as part of the client save payload.
+    @JsonKey(name: 'gateway_tokens')
+    @Default(<GatewayTokenApi>[])
+    List<GatewayTokenApi> gatewayTokens,
     // Nullable on purpose: the IN list endpoint omits the `documents` field
     // unless `?include=documents` is requested. Distinguishing "key missing
     // from JSON" (→ null) from "key present, array empty" (→ `const []`)

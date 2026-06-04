@@ -39,6 +39,7 @@ class ClientEditViewModel extends GenericEditViewModel<Client> {
         d.phone.isNotEmpty ||
         d.website.isNotEmpty ||
         d.address1.isNotEmpty ||
+        d.shippingAddress1.isNotEmpty ||
         d.privateNotes.isNotEmpty ||
         d.publicNotes.isNotEmpty ||
         // The blank primary contact we seed on a new client is all-empty, so
@@ -83,6 +84,61 @@ class ClientEditViewModel extends GenericEditViewModel<Client> {
       updateDraft(draft.copyWith(postalCode: value));
   void setCountryId(String value) =>
       updateDraft(draft.copyWith(countryId: value));
+
+  // ───────────────────────── shipping address ───────────────────────────
+  void setShippingAddress1(String value) =>
+      updateDraft(draft.copyWith(shippingAddress1: value));
+  void setShippingAddress2(String value) =>
+      updateDraft(draft.copyWith(shippingAddress2: value));
+  void setShippingCity(String value) =>
+      updateDraft(draft.copyWith(shippingCity: value));
+  void setShippingState(String value) =>
+      updateDraft(draft.copyWith(shippingState: value));
+  void setShippingPostalCode(String value) =>
+      updateDraft(draft.copyWith(shippingPostalCode: value));
+  void setShippingCountryId(String value) =>
+      updateDraft(draft.copyWith(shippingCountryId: value));
+
+  /// Copy the billing address into the shipping address (React parity: the
+  /// "Copy billing address" affordance on the Shipping section).
+  void copyBillingToShipping() => updateDraft(
+    draft.copyWith(
+      shippingAddress1: draft.address1,
+      shippingAddress2: draft.address2,
+      shippingCity: draft.city,
+      shippingState: draft.state,
+      shippingPostalCode: draft.postalCode,
+      shippingCountryId: draft.countryId,
+    ),
+  );
+
+  // ──────────────────── per-client settings (cascade) ───────────────────
+  // currency / language / payment_terms are top-level domain fields that
+  // `Client.toApiJson` folds into the `settings` cascade on save; the others
+  // are real top-level client fields.
+  void setCurrencyId(String value) =>
+      updateDraft(draft.copyWith(currencyId: value));
+  void setLanguageId(String value) =>
+      updateDraft(draft.copyWith(languageId: value));
+  void setPaymentTerms(String value) =>
+      updateDraft(draft.copyWith(paymentTerms: value));
+  void setClassification(String value) =>
+      updateDraft(draft.copyWith(classification: value));
+  void setSizeId(String value) => updateDraft(draft.copyWith(sizeId: value));
+  void setIndustryId(String value) =>
+      updateDraft(draft.copyWith(industryId: value));
+  void setIsTaxExempt(bool value) =>
+      updateDraft(draft.copyWith(isTaxExempt: value));
+  void setHasValidVatNumber(bool value) =>
+      updateDraft(draft.copyWith(hasValidVatNumber: value));
+  void setRoutingId(String value) =>
+      updateDraft(draft.copyWith(routingId: value));
+
+  /// Per-client default task rate — a cascade setting stored in `settings`
+  /// (no top-level domain field). Empty string clears the override.
+  void setDefaultTaskRate(String value) =>
+      updateDraft(draft.withCascadeOverride('default_task_rate', value));
+
   void setPrivateNotes(String value) =>
       updateDraft(draft.copyWith(privateNotes: value));
   void setPublicNotes(String value) =>

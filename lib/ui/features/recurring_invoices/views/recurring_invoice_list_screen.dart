@@ -13,6 +13,7 @@ import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
 import 'package:admin/ui/features/recurring_invoices/view_models/recurring_invoice_edit_view_model.dart';
 import 'package:admin/ui/features/recurring_invoices/view_models/recurring_invoice_list_view_model.dart';
+import 'package:admin/ui/features/recurring_invoices/widgets/increase_prices_dialog.dart';
 import 'package:admin/ui/features/recurring_invoices/widgets/recurring_invoice_actions.dart';
 import 'package:admin/ui/features/recurring_invoices/widgets/recurring_invoice_list_empty_state.dart';
 import 'package:admin/ui/features/recurring_invoices/widgets/recurring_invoice_list_tile.dart';
@@ -182,6 +183,23 @@ class RecurringInvoiceListScreen extends StatelessWidget {
           pluralSuccessKey: 'ran_template_recurring_invoices',
           nothingKey: 'nothing_to_update',
           prepare: showRunTemplateDialog,
+        ),
+        const EntityListBulkAction(
+          actionId: 'update_prices',
+          icon: Icons.refresh_outlined,
+          tooltipKey: 'update_prices',
+          singleSuccessKey: 'updated_prices',
+          pluralSuccessKey: 'updated_prices',
+          nothingKey: 'nothing_to_update',
+        ),
+        EntityListBulkAction(
+          actionId: 'increase_prices',
+          icon: Icons.trending_up_outlined,
+          tooltipKey: 'increase_prices',
+          singleSuccessKey: 'updated_prices',
+          pluralSuccessKey: 'updated_prices',
+          nothingKey: 'nothing_to_update',
+          prepare: showIncreasePricesDialog,
         ),
       ],
     );

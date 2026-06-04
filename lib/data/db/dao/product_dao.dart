@@ -18,6 +18,26 @@ class ProductFieldIds {
   static const String cost = 'cost';
   static const String quantity = 'quantity';
   static const String updatedAt = 'updated_at';
+  // Display-only columns (selectable via the column picker). Not yet handled
+  // by [_sortExpression] — sorting on these falls back to the default order.
+  static const String description = 'description';
+  static const String custom1 = 'custom1';
+  static const String custom2 = 'custom2';
+  static const String custom3 = 'custom3';
+  static const String custom4 = 'custom4';
+  static const String taxName1 = 'tax_name1';
+  static const String taxRate1 = 'tax_rate1';
+  static const String taxName2 = 'tax_name2';
+  static const String taxRate2 = 'tax_rate2';
+  static const String taxName3 = 'tax_name3';
+  static const String taxRate3 = 'tax_rate3';
+  static const String inStockQuantity = 'in_stock_quantity';
+  static const String stockNotificationThreshold =
+      'stock_notification_threshold';
+  static const String maxQuantity = 'max_quantity';
+  static const String taxCategory = 'tax_category';
+  static const String createdAt = 'created_at';
+  static const String archivedAt = 'archived_at';
 }
 
 @DriftAccessor(tables: [Products])

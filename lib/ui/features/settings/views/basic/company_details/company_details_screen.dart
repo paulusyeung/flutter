@@ -69,6 +69,12 @@ class CompanyDetailsScreen extends StatelessWidget {
               label: context.tr('vat_number'),
               apiKey: 'vat_number',
               enabled: !legalEntityBound,
+              // When a legal entity is bound (PEPPOL), the server manages
+              // VAT / ID number — explain why the fields are disabled. Mirrors
+              // React's note under VAT (Details.tsx).
+              helperText: legalEntityBound
+                  ? context.tr('changing_vat_and_id_number_note')
+                  : null,
             ),
             _ClassificationField(),
             if (isSwiss) ...[
@@ -149,11 +155,14 @@ class _ClassificationField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<CompanyDetailsViewModel>();
+    final current = vm.settings.classification;
     return DropdownButtonFormField<String>(
+      // `initialValue` only seeds the FormField once; re-key on the current
+      // value so an external draft change (background refresh / company switch)
+      // re-seeds the field instead of showing the stale first-seeded value.
+      key: ValueKey('classification:$current'),
       decoration: InputDecoration(labelText: context.tr('classification')),
-      initialValue: _options.contains(vm.settings.classification)
-          ? vm.settings.classification
-          : null,
+      initialValue: _options.contains(current) ? current : null,
       items: [
         for (final v in _options)
           DropdownMenuItem(value: v, child: Text(context.tr(v))),
@@ -175,6 +184,9 @@ class _SizeField extends StatelessWidget {
       ..sort((a, b) => (int.tryParse(a.id) ?? 0) - (int.tryParse(b.id) ?? 0));
     final current = vm.draft?.sizeId ?? '';
     return DropdownButtonFormField<String>(
+      // See `_ClassificationField` — re-key so an external draft change
+      // re-seeds the once-only `initialValue`.
+      key: ValueKey('size:$current'),
       decoration: InputDecoration(labelText: context.tr('size')),
       initialValue: sizes.any((s) => s.id == current) ? current : null,
       disabledHint: sizes.isEmpty ? Text(context.tr('loading')) : null,

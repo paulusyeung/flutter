@@ -5,8 +5,11 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company.dart';
+import 'package:admin/data/models/domain/tax_rate.dart';
+import 'package:admin/data/models/value/parsing.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/edit/entity_edit_field.dart';
+import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/products/view_models/product_edit_view_model.dart';
 import 'package:admin/utils/formatting.dart';
@@ -17,9 +20,11 @@ import 'package:admin/utils/formatting.dart';
 /// `company.settings.enabled_item_tax_rates` (0=none, 1=one slot, 2=two,
 /// 3=three) — matches React `ProductForm.tsx`.
 ///
-/// Today the tax name/rate inputs are freeform (label text + decimal). When
-/// the tax_rates entity lands in Flutter, swap these for a TaxRateSelector
-/// (search the company's tax_rates list, with "create on the fly").
+/// Each enabled slot is a searchable dropdown over the company's bundled
+/// `tax_rates` (picking a rate writes BOTH `tax_name<N>` and `tax_rate<N>`),
+/// mirroring the legacy `TaxRateDropdown` and React `<Selector>`. When the
+/// company has no tax rates defined, the slot falls back to a freeform
+/// name/rate pair so a tax can still be hand-entered.
 class ProductEditTaxesSection extends StatelessWidget {
   const ProductEditTaxesSection({super.key, required this.vm});
 
@@ -71,33 +76,9 @@ class ProductEditTaxesSection extends StatelessWidget {
                   onChanged: (v) => vm.setTaxId(v ?? ''),
                 ),
               ),
-              if (enabledSlots >= 1)
-                _TaxRow(
-                  nameLabel: context.tr('tax_name'),
-                  rateLabel: context.tr('tax_rate'),
-                  nameValue: vm.draft.taxName1,
-                  rateValue: vm.draft.taxRate1,
-                  onNameChanged: vm.setTaxName1,
-                  onRateChanged: vm.setTaxRate1,
-                ),
-              if (enabledSlots >= 2)
-                _TaxRow(
-                  nameLabel: context.tr('tax_name'),
-                  rateLabel: context.tr('tax_rate'),
-                  nameValue: vm.draft.taxName2,
-                  rateValue: vm.draft.taxRate2,
-                  onNameChanged: vm.setTaxName2,
-                  onRateChanged: vm.setTaxRate2,
-                ),
-              if (enabledSlots >= 3)
-                _TaxRow(
-                  nameLabel: context.tr('tax_name'),
-                  rateLabel: context.tr('tax_rate'),
-                  nameValue: vm.draft.taxName3,
-                  rateValue: vm.draft.taxRate3,
-                  onNameChanged: vm.setTaxName3,
-                  onRateChanged: vm.setTaxRate3,
-                ),
+              if (enabledSlots >= 1) _TaxSlot(vm: vm, slot: 1),
+              if (enabledSlots >= 2) _TaxSlot(vm: vm, slot: 2),
+              if (enabledSlots >= 3) _TaxSlot(vm: vm, slot: 3),
             ],
           ),
         );
@@ -106,6 +87,108 @@ class ProductEditTaxesSection extends StatelessWidget {
   }
 }
 
+/// One tax-rate slot. Renders a searchable dropdown over the bundled
+/// `tax_rates`; if the company has none, falls back to the freeform
+/// name/rate pair.
+class _TaxSlot extends StatelessWidget {
+  const _TaxSlot({required this.vm, required this.slot});
+
+  final ProductEditViewModel vm;
+  final int slot;
+
+  String get _name => switch (slot) {
+    1 => vm.draft.taxName1,
+    2 => vm.draft.taxName2,
+    _ => vm.draft.taxName3,
+  };
+
+  Decimal get _rate => switch (slot) {
+    1 => vm.draft.taxRate1,
+    2 => vm.draft.taxRate2,
+    _ => vm.draft.taxRate3,
+  };
+
+  ValueChanged<String> get _onNameChanged => switch (slot) {
+    1 => vm.setTaxName1,
+    2 => vm.setTaxName2,
+    _ => vm.setTaxName3,
+  };
+
+  ValueChanged<String> get _onRateChanged => switch (slot) {
+    1 => vm.setTaxRate1,
+    2 => vm.setTaxRate2,
+    _ => vm.setTaxRate3,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    final name = _name;
+    final rate = _rate;
+    return StreamBuilder<List<TaxRate>>(
+      stream: services.taxRates.watchAll(companyId: vm.companyId),
+      builder: (context, snap) {
+        final rates = snap.data ?? const <TaxRate>[];
+        if (rates.isEmpty) {
+          // No bundled tax rates → keep the freeform pair so a tax can still
+          // be hand-entered. (Typed input correctly routes through the
+          // locale-aware String setters.)
+          return _TaxRow(
+            nameLabel: context.tr('tax_name'),
+            rateLabel: context.tr('tax_rate'),
+            nameValue: name,
+            rateValue: rate,
+            onNameChanged: _onNameChanged,
+            onRateChanged: _onRateChanged,
+          );
+        }
+
+        final sorted = [...rates]..sort((a, b) => a.name.compareTo(b.name));
+
+        TaxRate? selected;
+        for (final r in sorted) {
+          if (r.name == name && numToDecimal(r.rate) == rate) {
+            selected = r;
+            break;
+          }
+        }
+        // Stored value not in the bundled list (a legacy hand-entered rate) →
+        // show a synthetic entry so the user still sees what's saved. It's not
+        // added to `items`, so it disappears once a real rate is picked.
+        if (selected == null && name.isNotEmpty) {
+          selected = TaxRate(
+            id: '__current__',
+            name: name,
+            rate: rate.toDouble(),
+            updatedAt: DateTime.fromMillisecondsSinceEpoch(0),
+            createdAt: DateTime.fromMillisecondsSinceEpoch(0),
+            archivedAt: null,
+            isDeleted: false,
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: InSpacing.xs),
+          child: SearchableDropdownField<TaxRate>(
+            label: context.tr('tax_rate'),
+            items: sorted,
+            initialValue: selected,
+            displayString: (r) => '${r.name} (${r.rate}%)',
+            idOf: (r) => '${r.name}|${r.rate}',
+            onChanged: (r) => vm.setTaxSlot(
+              slot,
+              name: r?.name ?? '',
+              rate: r == null ? Decimal.zero : numToDecimal(r.rate),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Freeform name + rate pair, used only as the fallback when the company has
+/// no bundled tax rates to pick from.
 class _TaxRow extends StatelessWidget {
   const _TaxRow({
     required this.nameLabel,

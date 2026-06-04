@@ -3,6 +3,8 @@ import 'package:admin/data/db/dao/recurring_invoice_dao.dart';
 import 'package:admin/data/models/domain/recurring_invoice.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/domain/recurring_frequency.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
 import 'package:admin/ui/features/recurring_invoices/widgets/recurring_invoice_status_pill.dart';
 
@@ -78,8 +80,13 @@ final List<RecurringInvoiceColumn> kAllRecurringInvoiceColumns =
         id: RecurringInvoiceFieldIds.frequencyId,
         labelKey: 'frequency',
         width: 110,
-        cellBuilder: (r, _) =>
-            r.frequencyId.isEmpty ? cellEmpty() : cellText(r.frequencyId),
+        cellBuilder: (r, ctx) => r.frequencyId.isEmpty
+            ? cellEmpty()
+            : cellText(
+                ctx.tr(
+                  kRecurringFrequencyLabelKey[r.frequencyId] ?? r.frequencyId,
+                ),
+              ),
         valueBuilder: (r) => cellNonZeroString(r.frequencyId),
       ),
       RecurringInvoiceColumn(
