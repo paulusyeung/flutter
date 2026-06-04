@@ -225,30 +225,9 @@ class _ExpenseSettingsBody extends StatelessWidget {
           FormSection(
             title: context.tr('tax_settings'),
             children: [
-              DropdownButtonFormField<bool>(
-                key: ValueKey(
-                  'enter-taxes-${draft.calculateExpenseTaxByAmount}',
-                ),
-                initialValue: draft.calculateExpenseTaxByAmount,
-                decoration: InputDecoration(
-                  labelText: context.tr('enter_taxes'),
-                ),
-                items: [
-                  DropdownMenuItem(
-                    value: false,
-                    child: Text(context.tr('by_rate')),
-                  ),
-                  DropdownMenuItem(
-                    value: true,
-                    child: Text(context.tr('by_amount')),
-                  ),
-                ],
-                onChanged: (v) {
-                  if (v == null) return;
-                  host.updateCompany(
-                    (c) => c.copyWith(calculateExpenseTaxByAmount: v),
-                  );
-                },
+              _EnterTaxesRadio(
+                host: host,
+                value: draft.calculateExpenseTaxByAmount,
               ),
               SettingsSwitchTile(
                 label: context.tr('inclusive_taxes'),

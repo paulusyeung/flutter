@@ -20,6 +20,7 @@ class CreditEditViewModel extends GenericBillingDocEditViewModel<Credit> {
     required this.companyId,
     required this.clientRequiredMessage,
     required this.crossClientLineItemsMessage,
+    required this.partialInvalidMessage,
     Credit? existing,
     Credit? cloneFrom,
     super.currencyPrecision,
@@ -39,9 +40,17 @@ class CreditEditViewModel extends GenericBillingDocEditViewModel<Credit> {
   final String clientRequiredMessage;
   final String crossClientLineItemsMessage;
 
+  /// Localized "must be greater than zero and less than the total" — the inline
+  /// error for an out-of-range partial-deposit amount. Mirrors invoice.
+  final String partialInvalidMessage;
+
   @override
   Map<String, List<String>> validate() => {
     if (draft.clientId.isEmpty) 'client_id': [clientRequiredMessage],
+    // Partial deposit must sit within [0, total]; uses the fallback-precision
+    // total — adequate for an inequality guard (mirrors InvoiceEditViewModel).
+    if (draft.partial < Decimal.zero || draft.partial > totals.total)
+      'partial': [partialInvalidMessage],
     ...validateCrossClient(crossClientLineItemsMessage),
   };
 

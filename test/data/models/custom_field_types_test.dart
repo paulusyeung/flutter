@@ -78,4 +78,19 @@ void main() {
       expect(kSwitchValueNo, 'no');
     });
   });
+
+  group('isSwitchTruthy', () {
+    test('canonical and legacy truthy values', () {
+      expect(isSwitchTruthy('yes'), isTrue);
+      expect(isSwitchTruthy('true'), isTrue);
+      expect(isSwitchTruthy('1'), isTrue);
+    });
+
+    test('falsy values', () {
+      expect(isSwitchTruthy('no'), isFalse);
+      expect(isSwitchTruthy(''), isFalse);
+      expect(isSwitchTruthy('false'), isFalse);
+      expect(isSwitchTruthy('0'), isFalse);
+    });
+  });
 }

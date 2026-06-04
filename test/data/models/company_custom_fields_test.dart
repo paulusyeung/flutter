@@ -111,20 +111,21 @@ void main() {
       },
     );
 
-    test('switch → localized yes/no', () {
-      expect(
-        company.customFieldDisplay('client1', 'yes', yes: 'Yes', no: 'No'),
-        'Yes',
-      );
-      expect(
-        company.customFieldDisplay('client1', 'no', yes: 'Yes', no: 'No'),
-        'No',
-      );
-      // Any non-'yes' value reads as No.
-      expect(
-        company.customFieldDisplay('client1', '', yes: 'Yes', no: 'No'),
-        'No',
-      );
+    test('switch → localized yes/no (tolerates legacy true/1)', () {
+      for (final on in ['yes', 'true', '1']) {
+        expect(
+          company.customFieldDisplay('client1', on, yes: 'Yes', no: 'No'),
+          'Yes',
+          reason: '"$on" should read as on',
+        );
+      }
+      for (final off in ['no', '', 'false', '0']) {
+        expect(
+          company.customFieldDisplay('client1', off, yes: 'Yes', no: 'No'),
+          'No',
+          reason: '"$off" should read as off',
+        );
+      }
     });
 
     test('text / dropdown show the value verbatim', () {

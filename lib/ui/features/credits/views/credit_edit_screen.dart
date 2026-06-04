@@ -32,6 +32,7 @@ class CreditEditScreen extends StatelessWidget {
           companyId: companyId,
           clientRequiredMessage: ctx.tr('please_select_a_client'),
           crossClientLineItemsMessage: ctx.tr('cross_client_line_items'),
+          partialInvalidMessage: ctx.tr('partial_value'),
           existing: existing,
           cloneFrom: cloneFrom,
           sync: services.sync,

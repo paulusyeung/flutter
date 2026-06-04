@@ -94,6 +94,7 @@ class _CreditEditLayoutState extends State<CreditEditLayout>
       clientId: widget.vm.draft.clientId,
       discount: widget.vm.draft.discount,
       discountIsAmount: widget.vm.draft.isAmountDiscount,
+      partial: widget.vm.draft.partial,
       dense: true,
     ),
   );
@@ -103,6 +104,7 @@ class _CreditEditLayoutState extends State<CreditEditLayout>
     clientId: widget.vm.draft.clientId,
     discount: widget.vm.draft.discount,
     discountIsAmount: widget.vm.draft.isAmountDiscount,
+    partial: widget.vm.draft.partial,
     bordered: false,
   );
 
@@ -111,6 +113,7 @@ class _CreditEditLayoutState extends State<CreditEditLayout>
     clientId: widget.vm.draft.clientId,
     discount: widget.vm.draft.discount,
     discountIsAmount: widget.vm.draft.isAmountDiscount,
+    partial: widget.vm.draft.partial,
     dense: true,
     slim: true,
   );

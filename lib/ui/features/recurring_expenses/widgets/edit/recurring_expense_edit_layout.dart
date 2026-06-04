@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/company.dart';
+import 'package:admin/data/models/domain/company_custom_fields.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/recurring_expenses/view_models/recurring_expense_edit_view_model.dart';
@@ -109,6 +113,44 @@ class RecurringExpenseEditLayout extends StatelessWidget {
         SizedBox(height: InSpacing.md(context)),
         _CustomFieldsCollapsible(vm: vm),
       ],
+    );
+  }
+}
+
+/// The "Custom Fields" collapsible — shown only when the company has at least
+/// one configured `expense1..4` label (recurring expenses reuse the expense
+/// custom fields). Without this gate, a company with no expense custom fields
+/// would see an empty collapsible card.
+class _CustomFieldsCollapsible extends StatelessWidget {
+  const _CustomFieldsCollapsible({required this.vm});
+  final RecurringExpenseEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    return StreamBuilder<Company?>(
+      stream: services.company.watchCompany(vm.companyId),
+      builder: (context, snapshot) {
+        final company = snapshot.data;
+        final hasLabels =
+            company != null &&
+            [
+              1,
+              2,
+              3,
+              4,
+            ].any((i) => company.customFieldLabel('expense$i').isNotEmpty);
+        if (!hasLabels) return const SizedBox.shrink();
+        return _CollapsibleFormSection(
+          title: context.tr('custom_fields'),
+          initiallyExpanded:
+              vm.draft.customValue1.isNotEmpty ||
+              vm.draft.customValue2.isNotEmpty ||
+              vm.draft.customValue3.isNotEmpty ||
+              vm.draft.customValue4.isNotEmpty,
+          child: RecurringExpenseEditCustomFieldsSection(vm: vm),
+        );
+      },
     );
   }
 }

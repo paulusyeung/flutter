@@ -263,7 +263,7 @@ class _Header extends StatelessWidget {
             issuedLabel: context.tr('date'),
             issued: credit.date,
             secondaryLabel: context.tr('due_date'),
-            secondary: credit.dueDate,
+            secondary: credit.partialDueDate ?? credit.dueDate,
           ),
           const SizedBox(height: 16),
           StreamBuilder<Client?>(
