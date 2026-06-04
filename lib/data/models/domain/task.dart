@@ -64,7 +64,7 @@ abstract class Task with _$Task {
 /// Derived state. None of these are persisted — they're computed from the
 /// fields above. The UI surfaces all three (the kanban filters by
 /// [isInvoiced]; the list tile renders [isRunning]; the times section
-/// shows [totalDuration]).
+/// shows [loggedDuration]).
 extension TaskDerived on Task {
   /// True when the task has been invoiced. Locked out for edits — the
   /// server treats invoiced tasks as immutable, and the edit form mirrors
@@ -76,14 +76,29 @@ extension TaskDerived on Task {
   /// (server flag is stale until the next save).
   bool get isRunning => timeLog.isNotEmpty && timeLog.last.isRunning;
 
-  /// Total elapsed time across every billable entry, measured against
-  /// [now]. Non-billable entries don't count; that matches admin-portal's
-  /// "billable hours" semantics.
-  Duration totalDuration([DateTime? now]) {
+  /// Billable elapsed time across the log, measured against [now] — the
+  /// quantity that drives the invoice line (`rate × hours`). Non-billable
+  /// entries are excluded, matching admin-portal's "billable hours".
+  /// **Use this ONLY for invoicing**; the UI displays [loggedDuration].
+  Duration billableDuration([DateTime? now]) {
     final n = now ?? DateTime.now();
     var total = Duration.zero;
     for (final e in timeLog) {
       if (!e.billable) continue;
+      total += e.durationUpTo(n);
+    }
+    return total;
+  }
+
+  /// Total wall-clock elapsed time across EVERY entry (billable or not),
+  /// measured against [now] — the duration shown everywhere in the UI
+  /// (list, detail, kanban, editor). Matches admin-portal's
+  /// `calculateDuration()` default. Use [billableDuration] for invoice
+  /// quantities.
+  Duration loggedDuration([DateTime? now]) {
+    final n = now ?? DateTime.now();
+    var total = Duration.zero;
+    for (final e in timeLog) {
       total += e.durationUpTo(n);
     }
     return total;

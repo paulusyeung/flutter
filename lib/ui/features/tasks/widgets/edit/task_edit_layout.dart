@@ -7,6 +7,7 @@ import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/data/models/domain/task_status.dart';
+import 'package:admin/data/models/domain/user.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
 import 'package:admin/ui/core/widgets/form_save_scope.dart';
@@ -104,7 +105,9 @@ class TaskEditLayout extends StatelessWidget {
   Widget _narrow(BuildContext context, bool locked) {
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 800),
+        // 820 (not 800) so the time-log table — which renders at ≥800px and
+        // needs ~792 — has margin instead of butting against the cap.
+        constraints: const BoxConstraints(maxWidth: 820),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -226,11 +229,24 @@ class _IdentitySection extends StatelessWidget {
             onChanged: vm.setDescription,
           ),
           SizedBox(height: InSpacing.md(context)),
+          TextFormField(
+            // Server auto-assigns when left blank on create; editable to
+            // match admin-portal / React.
+            initialValue: vm.draft.number,
+            enabled: !locked,
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(labelText: context.tr('number')),
+            onChanged: vm.setNumber,
+            onFieldSubmitted: submit,
+          ),
+          SizedBox(height: InSpacing.md(context)),
           _ClientPicker(vm: vm, locked: locked),
           SizedBox(height: InSpacing.md(context)),
           _ProjectPicker(vm: vm, locked: locked),
           SizedBox(height: InSpacing.md(context)),
           _StatusPicker(vm: vm, locked: locked),
+          SizedBox(height: InSpacing.md(context)),
+          _AssignedUserPicker(vm: vm, locked: locked),
           SizedBox(height: InSpacing.md(context)),
           TextFormField(
             initialValue: decimalInputText(vm.draft.rate),
@@ -432,6 +448,49 @@ class _StatusPicker extends StatelessWidget {
               displayString: (s) => s.name.isEmpty ? s.id : s.name,
               idOf: (s) => s.id,
               onChanged: (s) => vm.setStatusId(s?.id ?? ''),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Searchable assigned-user picker. Reads `services.user.watchPage` —
+/// mirrors the kanban filter bar's assignee picker.
+class _AssignedUserPicker extends StatelessWidget {
+  const _AssignedUserPicker({required this.vm, required this.locked});
+
+  final TaskEditViewModel vm;
+  final bool locked;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    return StreamBuilder<List<User>>(
+      stream: services.user.watchPage(companyId: companyId, loadedPages: 100),
+      builder: (context, snapshot) {
+        final users = snapshot.data ?? const <User>[];
+        User? selected;
+        for (final u in users) {
+          if (u.id == vm.draft.assignedUserId) {
+            selected = u;
+            break;
+          }
+        }
+        return IgnorePointer(
+          ignoring: locked,
+          child: Opacity(
+            opacity: locked ? 0.5 : 1,
+            child: SearchableDropdownField<User>(
+              label: context.tr('assigned_user'),
+              items: users,
+              initialValue: selected,
+              displayString: (u) =>
+                  u.displayName.isEmpty ? u.id : u.displayName,
+              idOf: (u) => u.id,
+              onChanged: (u) => vm.setAssignedUserId(u?.id ?? ''),
             ),
           ),
         );

@@ -8,6 +8,8 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/billing/line_item.dart';
+import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/data/models/domain/expense.dart';
 import 'package:admin/data/models/domain/expense_category.dart';
@@ -96,6 +98,11 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
   Map<String, String> _vendorNames = const {};
   Map<String, String> _categoryNames = const {};
 
+  // Loaded for the task→invoice rate cascade — a picked task at rate 0
+  // inherits the client / company `default_task_rate` instead of $0.
+  Company? _company;
+  Client? _client;
+
   @override
   void initState() {
     super.initState();
@@ -126,6 +133,25 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
     _subscribeProducts(initial: true);
     _loadTasksAndExpenses();
     _loadLookupMaps();
+    _loadRateContext();
+  }
+
+  /// Load the company (and the target client, if any) so the task→invoice
+  /// rate cascade can fall back from `task.rate` to the client / company
+  /// `default_task_rate` when a picked task's own rate is 0.
+  Future<void> _loadRateContext() async {
+    final services = context.read<Services>();
+    final company = await services.company.get(widget.companyId);
+    final client = widget.clientId.isEmpty
+        ? null
+        : await services.clients
+              .watchByRealId(companyId: widget.companyId, id: widget.clientId)
+              .first;
+    if (!mounted) return;
+    setState(() {
+      _company = company;
+      _client = client;
+    });
   }
 
   Future<void> _loadLookupMaps() async {
@@ -379,7 +405,9 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
       if (_selProducts.contains(p.id)) out.add(lineItemForProduct(p));
     }
     for (final t in _tasks) {
-      if (_selTasks.contains(t.id)) out.add(taskToLineItem(t));
+      if (_selTasks.contains(t.id)) {
+        out.add(taskToLineItem(t, client: _client, company: _company));
+      }
     }
     for (final e in _expenses) {
       if (_selExpenses.contains(e.id)) out.add(expenseToLineItem(e));

@@ -478,6 +478,7 @@ abstract class BaseEntityRepository<TDomain, TApi> {
     Map<String, Set<String>> extraFilters = const {},
     Map<String, String> staticFilters = const {},
     bool ignoreCursor = false,
+    bool excludeDeletedClients = false,
     required Future<({TList data, int? cursorUpdatedAt, String? cursorId})>
     Function({
       required int page,
@@ -503,9 +504,17 @@ abstract class BaseEntityRepository<TDomain, TApi> {
     // Rolling `rel:` tokens must be resolved to absolute values before
     // they hit the wire — the server never sees a relative token.
     final resolvedExtra = resolveRelativeFilterTokens(extraFilters);
+    // `without_deleted_clients=true` hides rows of soft-deleted clients (React
+    // parity). Suppress it when the fetch is already scoped to a specific
+    // client — otherwise a deleted client's own detail tabs fetch nothing.
+    final hasClientScope =
+        resolvedExtra.containsKey('client_id') ||
+        resolvedExtra.containsKey('client_ids');
     final filters = <String, String>{
       ...stateQueryParams(states),
       ...staticFilters,
+      if (excludeDeletedClients && !hasClientScope)
+        'without_deleted_clients': 'true',
       for (final entry in resolvedExtra.entries)
         if (entry.value.isNotEmpty)
           entry.key: (entry.value.toList()..sort()).join(','),

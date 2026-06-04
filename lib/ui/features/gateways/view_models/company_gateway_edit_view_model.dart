@@ -24,7 +24,7 @@ class CompanyGatewayEditViewModel extends GenericEditViewModel<CompanyGateway> {
                gatewayKey: initialGatewayKey ?? '',
                requireContactEmail: true,
                requirePostalCode: true,
-               tokenBilling: kAutoBillOff,
+               tokenBilling: kAutoBillAlways,
              ),
          original: existing,
          companyId: companyId,

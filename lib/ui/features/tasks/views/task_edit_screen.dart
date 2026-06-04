@@ -118,6 +118,24 @@ class _TaskEditScreenState extends State<TaskEditScreen>
             );
           });
         }
+        // Auto-start: when `auto_start_tasks` is on, a brand-new task begins
+        // with a running timer (admin-portal parity). Clones carry their own
+        // entries, so skip them. Fire-and-forget, post-frame so the
+        // scaffold's listeners are attached before the seed notifies.
+        if (existing == null && widget.cloneFrom == null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            unawaited(
+              services.company
+                  .get(companyId)
+                  .then((company) {
+                    if (company?.autoStartTasks ?? false) {
+                      vm.applyAutoStartIfEmpty();
+                    }
+                  })
+                  .catchError((Object _) {}),
+            );
+          });
+        }
         return vm;
       },
       titleWhileLoading: (ctx) =>

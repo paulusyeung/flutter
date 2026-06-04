@@ -58,6 +58,15 @@ class TaskDao extends BaseEntityDao<$TasksTable, TaskRow> with _$TaskDaoMixin {
     if (clientId != null && clientId.isNotEmpty) {
       q.where((t) => t.clientId.equals(clientId));
     }
+    // Workspace list: hide rows of soft-deleted clients (offline parity with
+    // the server `without_deleted_clients` filter). Suppressed under an explicit
+    // client scope; client-less tasks (empty client_id) are preserved.
+    if (clientId == null || clientId.isEmpty) {
+      q.where(
+        (t) =>
+            clientNotDeletedFilter(clientId: t.clientId, companyId: companyId),
+      );
+    }
     // Project-scoped embedded list (Project detail tab). Single FK equals,
     // in-memory only — not forwarded as a server filter.
     if (projectId != null && projectId.isNotEmpty) {

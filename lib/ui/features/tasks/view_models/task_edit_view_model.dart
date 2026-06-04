@@ -82,6 +82,8 @@ class TaskEditViewModel extends GenericEditViewModel<Task> {
 
   void setProjectId(String v) => updateDraft(draft.copyWith(projectId: v));
   void setStatusId(String v) => updateDraft(draft.copyWith(statusId: v));
+  void setAssignedUserId(String v) =>
+      updateDraft(draft.copyWith(assignedUserId: v));
 
   /// Pick a project (or clear with null). Mirrors React's `TaskDetails`
   /// bidirectional pick: setting a project also sets the clientId from the
@@ -197,6 +199,15 @@ class TaskEditViewModel extends GenericEditViewModel<Task> {
     }
     final last = entries.last;
     startTimer(description: last.description, billable: last.billable);
+  }
+
+  /// Seed a single running entry on a brand-new task when the company has
+  /// `auto_start_tasks` enabled (admin-portal parity). No-op when the draft
+  /// already has entries (e.g. a clone), so it's safe to call once after the
+  /// company resolves.
+  void applyAutoStartIfEmpty() {
+    if (draft.timeLog.isNotEmpty) return;
+    startTimer();
   }
 }
 

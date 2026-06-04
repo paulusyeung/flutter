@@ -157,6 +157,7 @@ class PaymentRepository extends BaseEntityRepository<Payment, PaymentApi>
     states: states,
     extraFilters: extraFilters,
     ignoreCursor: ignoreCursor,
+    excludeDeletedClients: true,
     staticFilters: const {'include': 'client,invoices,paymentables,documents'},
     listCall: api.list,
     itemsOf: (l) => l.data,

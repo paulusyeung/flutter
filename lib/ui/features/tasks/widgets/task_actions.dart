@@ -10,6 +10,7 @@ import 'package:admin/data/models/domain/billing/line_item_type.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/data/models/domain/time_entry.dart';
 import 'package:admin/domain/entity_type.dart';
+import 'package:admin/domain/tasks/task_rate.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
@@ -245,18 +246,22 @@ class TaskActions {
           Notify.error(context, context.tr('sync_first'));
           return;
         }
-        final seconds = task.totalDuration().inSeconds;
+        final seconds = task.billableDuration().inSeconds;
         final hours = seconds == 0
             ? Decimal.zero
             : (Decimal.fromInt(seconds) / Decimal.fromInt(3600)).toDecimal(
                 scaleOnInfinitePrecision: 4,
               );
+        // Apply the task → project → client → company rate cascade so a task
+        // left at rate 0 invoices at the inherited rate, not $0.
+        final rate = await _resolveRate(services, companyId, task);
+        if (!context.mounted) return;
         final lineItem = emptyLineItem().copyWith(
           typeId: LineItemType.task,
           taskId: task.id,
           notes: task.description,
           quantity: hours,
-          cost: task.rate,
+          cost: rate,
         );
         final draft = emptyInvoice().copyWith(
           clientId: task.clientId,
@@ -283,24 +288,55 @@ class TaskActions {
           formatter: formatter,
         );
         if (target == null || !context.mounted) return;
-        final seconds = task.totalDuration().inSeconds;
+        final seconds = task.billableDuration().inSeconds;
         final hours = seconds == 0
             ? Decimal.zero
             : (Decimal.fromInt(seconds) / Decimal.fromInt(3600)).toDecimal(
                 scaleOnInfinitePrecision: 4,
               );
+        final rate = await _resolveRate(services, companyId, task);
+        if (!context.mounted) return;
         final lineItem = emptyLineItem().copyWith(
           typeId: LineItemType.task,
           taskId: task.id,
           notes: task.description,
           quantity: hours,
-          cost: task.rate,
+          cost: rate,
         );
         context.go(
           '/invoices/${target.id}/edit',
           extra: target.copyWith(lineItems: [...target.lineItems, lineItem]),
         );
     }
+  }
+
+  /// Effective hourly rate for a task→invoice line, applying the
+  /// task → project → client → company `default_task_rate` cascade. Loads
+  /// the related entities lazily — and only when the task's own rate is 0,
+  /// the sole case where the fallback matters.
+  static Future<Decimal> _resolveRate(
+    Services services,
+    String companyId,
+    Task task,
+  ) async {
+    if (task.rate > Decimal.zero) return task.rate;
+    final company = await services.company.get(companyId);
+    final project = task.projectId.isEmpty
+        ? null
+        : await services.projects
+              .watchByRealId(companyId: companyId, id: task.projectId)
+              .first;
+    final client = task.clientId.isEmpty
+        ? null
+        : await services.clients
+              .watchByRealId(companyId: companyId, id: task.clientId)
+              .first;
+    return resolveTaskRate(
+      task: task,
+      project: project,
+      client: client,
+      company: company,
+    );
   }
 
   /// Start a fresh timer on [task]. Atomically stops any currently-

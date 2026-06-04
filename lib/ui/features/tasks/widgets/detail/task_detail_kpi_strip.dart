@@ -28,14 +28,14 @@ class TaskDetailKpiStrip extends StatelessWidget {
     final theme = Theme.of(context);
     final t = task;
 
-    // `Task.totalDuration()` already skips non-billable entries — that's the
-    // canonical "duration" the app shows. If a running timer is active we
+    // `Task.loggedDuration()` is the canonical wall-clock total the app
+    // shows (every entry, billable or not). If a running timer is active we
     // delegate to RunningDurationLabel so the cell ticks live.
     final runningEntry = (t.isRunning && t.timeLog.isNotEmpty)
         ? t.timeLog.last
         : null;
     final hasRunning = runningEntry?.start != null && runningEntry!.billable;
-    final durationText = formatDuration(t.totalDuration(), compactDays: true);
+    final durationText = formatDuration(t.loggedDuration(), compactDays: true);
 
     final rateText = t.rate.toDouble() == 0
         ? '—'
@@ -60,7 +60,7 @@ class TaskDetailKpiStrip extends StatelessWidget {
             : Text(
                 durationText,
                 style: theme.textTheme.titleLarge?.copyWith(
-                  color: t.totalDuration() == Duration.zero
+                  color: t.loggedDuration() == Duration.zero
                       ? tokens.ink3
                       : tokens.ink,
                   fontWeight: FontWeight.w600,

@@ -70,6 +70,28 @@ abstract class BaseEntityDao<TableT extends Table, RowT>
     return q.watchSingleOrNull();
   }
 
+  /// Predicate that excludes rows whose client is soft-deleted in [companyId],
+  /// while preserving rows that have no client (`client_id == ''`). Mirrors the
+  /// server `without_deleted_clients=true` filter for the offline cache: a
+  /// client delete doesn't cascade to its rows in Drift, so client-bearing DAOs
+  /// AND this into `watchPage` to drop them from workspace lists. The `clients`
+  /// subquery makes the watch reactive to client deletes.
+  ///
+  /// Apply it ONLY when the list is NOT scoped to a single client — viewing a
+  /// (soft-deleted) client's own detail tabs must still show that client's rows.
+  Expression<bool> clientNotDeletedFilter({
+    required GeneratedColumn<String> clientId,
+    required String companyId,
+  }) {
+    final clients = attachedDatabase.clients;
+    final deletedClientIds = selectOnly(clients)
+      ..addColumns([clients.id])
+      ..where(
+        clients.companyId.equals(companyId) & clients.isDeleted.equals(true),
+      );
+    return clientId.equals('') | clientId.isNotInQuery(deletedClientIds);
+  }
+
   /// Insert-or-update one row. The repository uses this on every applyXxx
   /// response handler.
   Future<void> upsert(Insertable<RowT> row) =>

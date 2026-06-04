@@ -94,6 +94,15 @@ class InvoiceDao extends BaseEntityDao<$InvoicesTable, InvoiceRow>
     if (clientIds.isNotEmpty) {
       q.where((e) => e.clientId.isIn(clientIds.toList()));
     }
+    // Workspace list: hide rows of soft-deleted clients (offline parity with
+    // the server `without_deleted_clients` filter). Suppressed under an explicit
+    // client scope so a client's detail tabs still show its rows.
+    if ((clientId == null || clientId.isEmpty) && clientIds.isEmpty) {
+      q.where(
+        (e) =>
+            clientNotDeletedFilter(clientId: e.clientId, companyId: companyId),
+      );
+    }
     // Custom-field filters mirror the server `custom_value1..4` (single-value
     // substring server-side; the exact-set local predicate is the source of
     // truth — same idiom as ClientDao).

@@ -67,6 +67,14 @@ class ProjectDao extends BaseEntityDao<$ProjectsTable, ProjectRow>
 
     if (clientId != null && clientId.isNotEmpty) {
       q.where((p) => p.clientId.equals(clientId));
+    } else {
+      // Workspace list: hide projects whose client was soft-deleted (offline
+      // parity with the server `without_deleted_clients` fetch filter). Skipped
+      // above when scoped to a specific client (e.g. the client-detail tab).
+      q.where(
+        (p) =>
+            clientNotDeletedFilter(clientId: p.clientId, companyId: companyId),
+      );
     }
     // Custom-field filters mirror server `custom_value1..4` (exact-set local
     // predicate is source of truth — same idiom as ClientDao/InvoiceDao).

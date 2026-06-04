@@ -86,6 +86,16 @@ class ExpenseDao extends BaseEntityDao<$ExpensesTable, ExpenseRow>
     if (clientIds.isNotEmpty) {
       q.where((e) => e.clientId.isIn(clientIds.toList()));
     }
+    // Workspace list: hide rows of soft-deleted clients (offline parity with
+    // the server `without_deleted_clients` filter). Suppressed under an explicit
+    // client scope so a client's detail tabs still show its rows. Client-less
+    // expenses (empty client_id) are preserved by the helper.
+    if ((clientId == null || clientId.isEmpty) && clientIds.isEmpty) {
+      q.where(
+        (e) =>
+            clientNotDeletedFilter(clientId: e.clientId, companyId: companyId),
+      );
+    }
     if (categoryIds.isNotEmpty) {
       q.where((e) => e.categoryId.isIn(categoryIds.toList()));
     }

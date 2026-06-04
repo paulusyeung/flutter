@@ -164,12 +164,18 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>
           );
 
     final resolvedExtra = resolveRelativeFilterTokens(extraFilters);
+    // Hide rows of soft-deleted clients (React parity) unless the fetch is
+    // already scoped to a specific client (then the detail tab needs them).
+    final hasClientScope =
+        resolvedExtra.containsKey('client_id') ||
+        resolvedExtra.containsKey('client_ids');
     final filters = <String, String>{
       ...stateQueryParams(states),
       // `?include=documents` — same rationale as Client/Expense. Without
       // it the list response omits documents and remote uploads never
       // propagate to the local cache.
       'include': 'documents',
+      if (!hasClientScope) 'without_deleted_clients': 'true',
       for (final entry in resolvedExtra.entries)
         if (entry.value.isNotEmpty)
           entry.key: (entry.value.toList()..sort()).join(','),

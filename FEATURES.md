@@ -1367,9 +1367,11 @@ Field-level breakdown of every option under each advanced settings panel. Source
 |---|---|---|---|---|---|
 | Gateway list | ✅ | ✅ | ✅ | ✅ | 🟡 |
 | Gateway detail | ✅ | ✅ | ✅ | ✅ | 🟡 |
+| Webhook URL (copy to clipboard) | ✅ | ✅ | ✅ | ✅ | |
 | Gateway edit | ✅ | ✅ | ✅ | ✅ | |
 | Gateway fees, limits & fee taxes (per payment type) | ✅ | ✅ | ✅ | ✅ | |
 | Gateway create / add | ✅ | ✅ | ✅ | ✅ | |
+| Duplicate-gateway warning on add | ✅ | ❌ | ✅ | ✅ | |
 | Gateway disconnect / deactivate | ✅ | ✅ | ✅ | ✅ | |
 | Gateway archive / restore | ✅ | ✅ | ✅ | ✅ | |
 | Gateway purge | ✅ | ✅ | ✅ | ✅ | |

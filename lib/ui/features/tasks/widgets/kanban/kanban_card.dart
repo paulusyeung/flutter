@@ -83,7 +83,7 @@ class KanbanCard extends StatelessWidget {
                 else
                   Text(
                     formatDuration(
-                      task.totalDuration(),
+                      task.loggedDuration(),
                       compactDays: true,
                       showSeconds: false,
                     ),

@@ -111,9 +111,15 @@ class RecurringInvoiceRepository
             companyId: companyId,
             entityType: entityTypeName,
           );
+    // Hide rows of soft-deleted clients (React parity) unless the fetch is
+    // already scoped to a specific client (then the detail tab needs them).
+    final hasClientScope =
+        extraFilters.containsKey('client_id') ||
+        extraFilters.containsKey('client_ids');
     final filters = <String, String>{
       ...stateQueryParams(states),
       'include': 'documents',
+      if (!hasClientScope) 'without_deleted_clients': 'true',
       for (final entry in extraFilters.entries)
         if (entry.value.isNotEmpty)
           entry.key: (entry.value.toList()..sort()).join(','),

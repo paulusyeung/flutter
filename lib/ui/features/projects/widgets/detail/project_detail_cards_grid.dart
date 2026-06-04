@@ -9,6 +9,7 @@ import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/task.dart';
+import 'package:admin/data/models/domain/user.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/custom_field_detail_rows.dart';
@@ -66,7 +67,7 @@ class ProjectDetailCardsGrid extends StatelessWidget {
   Widget _wide(BuildContext context) {
     final p = project;
     final leftCards = <Widget>[
-      _DetailsCard(project: p, formatter: formatter),
+      _DetailsCard(project: p, companyId: companyId, formatter: formatter),
       if (_tasksEnabled(context))
         _TasksCard(project: p, companyId: companyId, formatter: formatter),
     ];
@@ -99,7 +100,7 @@ class ProjectDetailCardsGrid extends StatelessWidget {
   Widget _stacked(BuildContext context) {
     final p = project;
     final cards = <Widget>[
-      _DetailsCard(project: p, formatter: formatter),
+      _DetailsCard(project: p, companyId: companyId, formatter: formatter),
       if (p.clientId.isNotEmpty) _clientLink(context, p),
       if (_tasksEnabled(context))
         _TasksCard(project: p, companyId: companyId, formatter: formatter),
@@ -156,13 +157,15 @@ class _Row extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    // Narrower label column on phones so the value keeps a usable width.
+    final labelWidth = MediaQuery.sizeOf(context).width < 600 ? 104.0 : 160.0;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 160,
+            width: labelWidth,
             child: Text(
               label,
               style: TextStyle(fontSize: 13, color: tokens.ink3),
@@ -182,8 +185,13 @@ class _Row extends StatelessWidget {
 }
 
 class _DetailsCard extends StatelessWidget {
-  const _DetailsCard({required this.project, required this.formatter});
+  const _DetailsCard({
+    required this.project,
+    required this.companyId,
+    required this.formatter,
+  });
   final Project project;
+  final String companyId;
   final Formatter? formatter;
 
   @override
@@ -202,6 +210,14 @@ class _DetailsCard extends StatelessWidget {
             value: Text(p.number.isEmpty ? '—' : p.number),
           ),
           _Row(label: context.tr('due_date'), value: Text(dueDateText)),
+          if (p.assignedUserId.isNotEmpty)
+            _Row(
+              label: context.tr('assigned_user'),
+              value: _AssignedUserName(
+                companyId: companyId,
+                userId: p.assignedUserId,
+              ),
+            ),
           _Row(
             label: context.tr('task_rate'),
             value: Text(
@@ -222,6 +238,31 @@ class _DetailsCard extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// Resolves an assigned-user id to its display name via a single-user watch,
+/// falling back to the raw id until the user row streams in.
+class _AssignedUserName extends StatelessWidget {
+  const _AssignedUserName({required this.companyId, required this.userId});
+  final String companyId;
+  final String userId;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: context.read<Services>().user.watch(
+        companyId: companyId,
+        id: userId,
+      ),
+      builder: (context, snap) {
+        final u = snap.data;
+        final name = (u != null && u.displayName.isNotEmpty)
+            ? u.displayName
+            : userId;
+        return Text(name);
+      },
     );
   }
 }
@@ -352,7 +393,7 @@ class _TaskRow extends StatelessWidget {
               )
             else
               Text(
-                formatDuration(task.totalDuration(), compactDays: true),
+                formatDuration(task.loggedDuration(), compactDays: true),
                 style: TextStyle(
                   color: tokens.ink2,
                   fontFeatures: const [FontFeature.tabularFigures()],

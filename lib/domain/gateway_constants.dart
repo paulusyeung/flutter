@@ -13,7 +13,10 @@ const String kGatewayPayPalPlatform = '80af24a6a691230bbec33e930ab40666';
 // Real hash confirmed via live demo API; earlier value was a leftover
 // placeholder string. (Square's `*baz` hash *is* real — that one stays.)
 const String kGatewayPayPalExpress = '38f2c48af60c7dd69e04248cbb24c36e';
-const String kGatewayPayPalPpcp = 'b9886f9257f0c6ee7c302f1c74475f6b';
+// PayPal PPCP shares paypal_platform's gateway key (…ab40666) — there is no
+// distinct PPCP key on the wire, so `kGatewayPayPalPlatform` covers it
+// everywhere (OAuth detection, setup URL, logo). The earlier standalone
+// `kGatewayPayPalPpcp` constant held a fabricated hash that matched no gateway.
 const String kGatewayAuthorizeNet = '3b6621f970ab18887c4f6dca78d3f8bb';
 const String kGatewayCheckoutCom = '3758e7f7c6f4cecf0f4f348b9a00f456';
 const String kGatewayWePay = '8fdeed552015b3c7b44ed6c8ebd9e992';
@@ -41,7 +44,6 @@ const String kGatewayCbaPowerboard = 'b67581d804dbad1743b61c57285142ad';
 const Set<String> kOAuthGatewayKeys = <String>{
   kGatewayStripeConnect,
   kGatewayPayPalPlatform,
-  kGatewayPayPalPpcp,
   kGatewayWePay,
   kGatewayGoCardlessOAuth,
   kGatewaySquare,
@@ -115,7 +117,6 @@ const Map<String, String> kGatewayLogoByKey = <String, String>{
   kGatewayStripeConnect: 'assets/images/gateway_logos/stripe.png',
   kGatewayPayPalRest: 'assets/images/gateway_logos/paypal.png',
   kGatewayPayPalPlatform: 'assets/images/gateway_logos/paypal.png',
-  kGatewayPayPalPpcp: 'assets/images/gateway_logos/paypal.png',
   kGatewayPayPalExpress: 'assets/images/gateway_logos/paypal.png',
   kGatewayMollie: 'assets/images/gateway_logos/mollie.png',
   kGatewayBraintree: 'assets/images/gateway_logos/braintree.svg.png',

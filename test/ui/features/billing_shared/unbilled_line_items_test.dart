@@ -14,6 +14,7 @@ Task _task({
   String number = '',
   String rate = '0',
   String timeLog = '',
+  String invoiceId = '',
 }) => Task.fromApi(
   TaskApi(
     id: id,
@@ -21,6 +22,7 @@ Task _task({
     number: number,
     rate: rate,
     timeLog: timeLog,
+    invoiceId: invoiceId,
   ),
 );
 
@@ -31,6 +33,8 @@ Expense _expense({
   String amount = '0',
   String taxName1 = '',
   Object taxRate1 = '0',
+  String invoiceId = '',
+  bool shouldBeInvoiced = false,
 }) => Expense.fromApi(
   ExpenseApi(
     id: id,
@@ -39,8 +43,15 @@ Expense _expense({
     amount: amount,
     taxName1: taxName1,
     taxRate1: taxRate1,
+    invoiceId: invoiceId,
+    shouldBeInvoiced: shouldBeInvoiced,
   ),
 );
+
+// A stopped, billable, 1-hour entry.
+const _stopped1h = '[[1700000000,1700003600,"",true]]';
+// A still-running entry (no stop) — billable.
+const _running = '[[1700000000,0,"",true]]';
 
 void main() {
   group('taskToLineItem', () {
@@ -112,6 +123,60 @@ void main() {
         _task(timeLog: '[[1700000000,1700003661,"",true]]'),
       );
       expect(h, Decimal.parse('1.017'));
+    });
+  });
+
+  group('projectInvoiceLineItems', () {
+    test('includes pending expenses first, then stopped+uninvoiced tasks', () {
+      final items = projectInvoiceLineItems(
+        tasks: [
+          _task(id: 't_ok', rate: '100', timeLog: _stopped1h), // ✓ include
+          _task(
+            id: 't_inv',
+            rate: '100',
+            timeLog: _stopped1h,
+            invoiceId: 'i1',
+          ), // invoiced
+          _task(id: 't_run', rate: '100', timeLog: _running), // running
+          _task(id: 't_zero', rate: '100'), // no logged time
+          _task(id: 'tmp_t', rate: '100', timeLog: _stopped1h), // unsynced
+        ],
+        expenses: [
+          _expense(
+            id: 'e_ok',
+            amount: '50',
+            shouldBeInvoiced: true,
+          ), // ✓ include
+          _expense(
+            id: 'e_inv',
+            amount: '50',
+            shouldBeInvoiced: true,
+            invoiceId: 'i2',
+          ), // invoiced
+          _expense(id: 'e_nb', amount: '50'), // not should_be_invoiced
+          _expense(
+            id: 'tmp_e',
+            amount: '50',
+            shouldBeInvoiced: true,
+          ), // unsynced
+        ],
+      );
+
+      expect(items.length, 2);
+      // Expenses come first (mirrors admin-portal ordering), then tasks.
+      expect(items[0].expenseId, 'e_ok');
+      expect(items[1].taskId, 't_ok');
+    });
+
+    test('returns empty when nothing is billable', () {
+      final items = projectInvoiceLineItems(
+        tasks: [
+          _task(id: 't_run', timeLog: _running),
+          _task(id: 't_zero'),
+        ],
+        expenses: [_expense(id: 'e_nb')],
+      );
+      expect(items, isEmpty);
     });
   });
 }

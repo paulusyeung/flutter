@@ -53,7 +53,12 @@ class GatewaySettingsTab extends StatelessWidget {
             ),
             if (showTokenBilling)
               DropdownButtonFormField<String>(
-                initialValue: draft.tokenBilling,
+                // Guard the seed value: a stray `token_billing` outside the
+                // four options would trip Flutter's "exactly one item"
+                // assertion. Mirrors the config-form dropdown's guard.
+                initialValue: kAutoBillOptions.contains(draft.tokenBilling)
+                    ? draft.tokenBilling
+                    : kAutoBillOff,
                 isExpanded: true,
                 decoration: InputDecoration(
                   labelText: context.tr('token_billing'),

@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company_gateway.dart';
+import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/domain/gateway_constants.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
+import 'package:admin/ui/core/widgets/confirm_password_sheet.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/notify_async.dart';
 
@@ -115,11 +117,22 @@ class CompanyGatewayActions {
       case CompanyGatewayAction.edit:
         goEntityEdit(context, '/settings/company_gateways', gateway.id);
       case CompanyGatewayAction.disconnect:
-        await runMutationWithNotify(
-          context,
-          () => services.companyGateways.disconnectStripe(id: gateway.id),
-          successMsg: context.tr('disconnected_gateway'),
-        );
+        {
+          // Stripe disconnect hits a password-gated endpoint. Prime the
+          // password cache on demand and retry rather than dead-ending on a
+          // generic error when the cache is cold (e.g. after a restart).
+          final disconnected = await _withPasswordRetry(
+            context,
+            services,
+            () async {
+              await services.companyGateways.disconnectStripe(id: gateway.id);
+              return true;
+            },
+          );
+          if (disconnected == true && context.mounted) {
+            Notify.success(context, context.tr('disconnected_gateway'));
+          }
+        }
       case CompanyGatewayAction.importCustomers:
         await runMutationWithNotify(
           context,
@@ -127,12 +140,16 @@ class CompanyGatewayActions {
           successMsg: context.tr('imported_customers'),
         );
       case CompanyGatewayAction.verifyCustomers:
-        try {
-          final counts = await services.companyGateways.verifyStripeCustomers();
-          if (!context.mounted) return;
-          await _showVerifyCustomersDialog(context, counts);
-        } catch (e) {
-          if (context.mounted) Notify.error(context, e.toString());
+        {
+          // Verify hits the same password-gated `/stripe/verify` endpoint.
+          final counts = await _withPasswordRetry(
+            context,
+            services,
+            () => services.companyGateways.verifyStripeCustomers(),
+          );
+          if (counts != null && context.mounted) {
+            await _showVerifyCustomersDialog(context, counts);
+          }
         }
       case CompanyGatewayAction.archive:
         await StandardEntityActions.archive(
@@ -165,6 +182,42 @@ class CompanyGatewayActions {
             id: gateway.id,
           ),
         );
+    }
+  }
+
+  /// Run a password-gated Stripe op. The server throws
+  /// [PasswordRequiredException] when the 5-minute password cache is empty
+  /// (common right after an app restart); prime it via
+  /// [showConfirmPasswordSheet] and retry once. Returns the op's result, or
+  /// null if it failed or the user cancelled — mirroring the danger-zone /
+  /// 2FA re-prompt pattern instead of swallowing the exception into a generic
+  /// "could not save".
+  static Future<T?> _withPasswordRetry<T>(
+    BuildContext context,
+    Services services,
+    Future<T> Function() op,
+  ) async {
+    try {
+      return await op();
+    } on PasswordRequiredException {
+      if (!context.mounted) return null;
+      final ok = await showConfirmPasswordSheet(
+        context,
+        cache: services.passwordCache,
+      );
+      if (!ok || !context.mounted) return null;
+      try {
+        return await op();
+      } catch (e) {
+        if (context.mounted) {
+          Notify.error(context, context.tr('could_not_save'), error: e);
+        }
+        return null;
+      }
+    } catch (e) {
+      if (!context.mounted) return null;
+      Notify.error(context, context.tr('could_not_save'), error: e);
+      return null;
     }
   }
 

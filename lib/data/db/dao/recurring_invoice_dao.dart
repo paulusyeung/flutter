@@ -75,6 +75,15 @@ class RecurringInvoiceDao
     if (clientId != null && clientId.isNotEmpty) {
       q.where((e) => e.clientId.equals(clientId));
     }
+    // Workspace list: hide rows of soft-deleted clients (offline parity with
+    // the server `without_deleted_clients` filter). Suppressed under an explicit
+    // client scope so a client's detail tabs still show its rows.
+    if (clientId == null || clientId.isEmpty) {
+      q.where(
+        (e) =>
+            clientNotDeletedFilter(clientId: e.clientId, companyId: companyId),
+      );
+    }
     // Lifecycle status filter (draft/active/paused/completed) — exact-set
     // predicate on the stored `statusId` column, same idiom as InvoiceDao.
     if (statusIds.isNotEmpty) {

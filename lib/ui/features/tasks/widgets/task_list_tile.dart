@@ -168,7 +168,7 @@ class _TaskListTileState extends State<TaskListTile> {
           )
         else
           Text(
-            formatDuration(t.totalDuration(), compactDays: true),
+            formatDuration(t.loggedDuration(), compactDays: true),
             style: TextStyle(
               color: tokens.ink,
               fontFeatures: const [FontFeature.tabularFigures()],

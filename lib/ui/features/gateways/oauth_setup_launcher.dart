@@ -23,7 +23,7 @@ Uri? buildOAuthSetupUrl({
     case kGatewayWePay:
       return Uri.parse('$cleanUrl/wepay/signup/$hash');
     case kGatewayPayPalPlatform:
-    case kGatewayPayPalPpcp:
+      // PayPal PPCP shares this gateway key — covered by the same branch.
       return Uri.parse('$cleanUrl/paypal?hash=$hash');
     case kGatewayGoCardlessOAuth:
       return Uri.parse('$cleanUrl/gocardless/oauth/connect/$hash');

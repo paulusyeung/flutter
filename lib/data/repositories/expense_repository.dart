@@ -168,6 +168,7 @@ class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi>
     states: states,
     extraFilters: extraFilters,
     ignoreCursor: ignoreCursor,
+    excludeDeletedClients: true,
     // `?include=documents` — same rationale as Project/Client.
     staticFilters: const {'include': 'documents'},
     listCall: api.list,

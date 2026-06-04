@@ -86,6 +86,15 @@ class PaymentDao extends BaseEntityDao<$PaymentsTable, PaymentRow>
     if (clientIds.isNotEmpty) {
       q.where((p) => p.clientId.isIn(clientIds.toList()));
     }
+    // Workspace list: hide rows of soft-deleted clients (offline parity with
+    // the server `without_deleted_clients` filter). Suppressed under an explicit
+    // client scope so a client's detail tabs still show its rows.
+    if ((clientId == null || clientId.isEmpty) && clientIds.isEmpty) {
+      q.where(
+        (p) =>
+            clientNotDeletedFilter(clientId: p.clientId, companyId: companyId),
+      );
+    }
     // Custom-field filters mirror server `custom_value1..4` (exact-set local
     // predicate is source of truth — same idiom as ClientDao/InvoiceDao).
     if (customValues1.isNotEmpty) {

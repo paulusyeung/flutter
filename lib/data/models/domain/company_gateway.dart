@@ -76,7 +76,13 @@ abstract class CompanyGateway with _$CompanyGateway {
     requireCustomValue4: api.requireCustomValue4,
     updateDetails: api.updateDetails,
     alwaysShowRequiredFields: api.alwaysShowRequiredFields,
-    tokenBilling: api.tokenBilling.isEmpty ? kAutoBillOff : api.tokenBilling,
+    // Normalize to a known auto-bill option. The server can return '' (or,
+    // for legacy rows, a stray value); coercing anything outside
+    // `kAutoBillOptions` to `off` keeps the Settings-tab dropdown (and the
+    // detail card) from rendering a value with no matching item.
+    tokenBilling: kAutoBillOptions.contains(api.tokenBilling)
+        ? api.tokenBilling
+        : kAutoBillOff,
     label: api.label,
     config: api.config,
     feesAndLimits: Map<String, FeesAndLimits>.from(api.feesAndLimits),

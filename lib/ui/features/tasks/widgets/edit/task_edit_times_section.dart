@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/time_entry.dart';
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/tasks/view_models/task_edit_view_model.dart';
 import 'package:admin/ui/features/tasks/widgets/edit/time_entry_editor_sheet.dart';
 import 'package:admin/ui/features/tasks/widgets/edit/time_entry_row.dart';
@@ -28,6 +27,13 @@ class TaskEditTimesSection extends StatelessWidget {
   /// Resolved company `Formatter` for date rendering inside each row.
   /// Null in test contexts; falls back to ISO inside `TimeEntryRow`.
   final Formatter? formatter;
+
+  /// The desktop time-log table's intrinsic minimum width (six fixed
+  /// columns + gaps + card padding ≈ 792px, rounded up). Below this width
+  /// the mobile `TimeEntryRow` list renders instead so the table never
+  /// overflows its constraints (the generic 600px `Breakpoints.isWide`
+  /// used to leave a 600–792px band — tablet / iPad portrait — that did).
+  static const double _kTableMinWidth = 800;
 
   Future<void> _openEditor(BuildContext context, int displayIndex) async {
     final entries = vm.draft.timeLog;
@@ -74,33 +80,38 @@ class TaskEditTimesSection extends StatelessWidget {
     vm.addEntry();
   }
 
-  Widget _timerButton(BuildContext context) {
+  Widget _timerButton(BuildContext context, {bool compact = false}) {
     // Per-call minimumSize override — `FilledButton.tonal` inherits
     // `Size.fromHeight(44)` from the theme, which is infinite-width and
     // crashes when rendered in this Row. See CLAUDE.md § Design system
     // (v2) for the canonical rule + reference call site.
     final style = FilledButton.styleFrom(minimumSize: const Size(64, 44));
-    if (vm.hasRunningEntry) {
-      return FilledButton.tonalIcon(
-        style: style,
-        icon: const Icon(Icons.stop_circle_outlined),
-        label: Text(context.tr('stop')),
-        onPressed: locked ? null : vm.stopTimer,
-      );
-    }
-    if (vm.hasStoppedEntries) {
-      return FilledButton.tonalIcon(
-        style: style,
-        icon: const Icon(Icons.play_arrow_outlined),
-        label: Text(context.tr('resume')),
-        onPressed: locked ? null : vm.resumeTimer,
+    // Phones: drop the label so the title + total + two buttons fit.
+    final compactStyle = FilledButton.styleFrom(
+      minimumSize: const Size(44, 44),
+      padding: EdgeInsets.zero,
+    );
+    final (
+      IconData icon,
+      String labelKey,
+      VoidCallback? onPressed,
+    ) = vm.hasRunningEntry
+        ? (Icons.stop_circle_outlined, 'stop', locked ? null : vm.stopTimer)
+        : vm.hasStoppedEntries
+        ? (Icons.play_arrow_outlined, 'resume', locked ? null : vm.resumeTimer)
+        : (Icons.play_arrow_outlined, 'start', locked ? null : vm.startTimer);
+    if (compact) {
+      return FilledButton.tonal(
+        style: compactStyle,
+        onPressed: onPressed,
+        child: Icon(icon),
       );
     }
     return FilledButton.tonalIcon(
       style: style,
-      icon: const Icon(Icons.play_arrow_outlined),
-      label: Text(context.tr('start')),
-      onPressed: locked ? null : vm.startTimer,
+      icon: Icon(icon),
+      label: Text(context.tr(labelKey)),
+      onPressed: onPressed,
     );
   }
 
@@ -116,7 +127,12 @@ class TaskEditTimesSection extends StatelessWidget {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final wide = Breakpoints.isWide(constraints);
+          // Gate the desktop table on its real minimum width, not the
+          // generic 600px breakpoint — below it the mobile row list renders.
+          final wide = constraints.maxWidth >= _kTableMinWidth;
+          // Phones: collapse the header actions to icon-only so the title +
+          // live total + two buttons don't overflow the header Row.
+          final compact = constraints.maxWidth < 480;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -130,13 +146,17 @@ class TaskEditTimesSection extends StatelessWidget {
                 padding: EdgeInsets.all(InSpacing.lg(context)),
                 child: Row(
                   children: [
-                    Text(
-                      context.tr('time_log').toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: tokens.ink3,
-                        letterSpacing: 0.4,
+                    Flexible(
+                      child: Text(
+                        context.tr('time_log').toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: tokens.ink3,
+                          letterSpacing: 0.4,
+                        ),
                       ),
                     ),
                     SizedBox(width: InSpacing.md(context)),
@@ -152,18 +172,27 @@ class TaskEditTimesSection extends StatelessWidget {
                       // FilledButton.tonalIcon returned by `_timerButton`.
                       // See CLAUDE.md § Design system (v2) "Default to
                       // side-by-side dialog actions" for the verbatim rule.
-                      OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(64, 40),
+                      if (compact)
+                        IconButton(
+                          tooltip: context.tr('add_time'),
+                          icon: const Icon(Icons.add),
+                          onPressed: wide
+                              ? _addEntryInline
+                              : () => _addEntryViaSheet(context),
+                        )
+                      else
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(64, 40),
+                          ),
+                          icon: const Icon(Icons.add, size: 16),
+                          label: Text(context.tr('add_time')),
+                          onPressed: wide
+                              ? _addEntryInline
+                              : () => _addEntryViaSheet(context),
                         ),
-                        icon: const Icon(Icons.add, size: 16),
-                        label: Text(context.tr('add_time')),
-                        onPressed: wide
-                            ? _addEntryInline
-                            : () => _addEntryViaSheet(context),
-                      ),
                       const SizedBox(width: InSpacing.sm),
-                      _timerButton(context),
+                      _timerButton(context, compact: compact),
                     ],
                   ],
                 ),

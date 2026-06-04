@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/company_gateway.dart';
 import 'package:admin/domain/gateway_constants.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 
 /// Three info cards for the CompanyGateway detail screen body:
@@ -13,9 +16,14 @@ import 'package:admin/ui/features/settings/widgets/form_section.dart';
 ///   2. Required fields — chips for each `require_*` toggle that's on.
 ///   3. Accepted payment types — chips for each enabled payment type.
 class CompanyGatewayDetailCardsGrid extends StatelessWidget {
-  const CompanyGatewayDetailCardsGrid({super.key, required this.gateway});
+  const CompanyGatewayDetailCardsGrid({
+    super.key,
+    required this.gateway,
+    required this.companyId,
+  });
 
   final CompanyGateway gateway;
+  final String companyId;
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +31,7 @@ class CompanyGatewayDetailCardsGrid extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        _OverviewCard(gateway: gateway),
+        _OverviewCard(gateway: gateway, companyId: companyId),
         _RequiredFieldsCard(gateway: gateway),
         _AcceptedTypesCard(gateway: gateway),
       ],
@@ -32,8 +40,9 @@ class CompanyGatewayDetailCardsGrid extends StatelessWidget {
 }
 
 class _OverviewCard extends StatelessWidget {
-  const _OverviewCard({required this.gateway});
+  const _OverviewCard({required this.gateway, required this.companyId});
   final CompanyGateway gateway;
+  final String companyId;
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +66,73 @@ class _OverviewCard extends StatelessWidget {
           labelKey: 'token_billing',
           value: context.tr(gateway.tokenBilling),
         ),
+        _WebhookRow(gateway: gateway, companyId: companyId),
       ],
+    );
+  }
+}
+
+/// Inbound payment webhook URL with copy-to-clipboard. Merchants paste this
+/// into the gateway provider's dashboard to receive payment-status callbacks.
+/// Mirrors admin-portal's gateway view + React's `WebhookConfiguration`:
+/// `{baseUrl}/payment_webhook/{company_key}/{gateway_id}`. Hidden until the
+/// company (for its key) resolves and the gateway has a server-assigned id.
+class _WebhookRow extends StatelessWidget {
+  const _WebhookRow({required this.gateway, required this.companyId});
+  final CompanyGateway gateway;
+  final String companyId;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    final baseUrl = services.auth.session.value?.baseUrl ?? '';
+    if (baseUrl.isEmpty || gateway.id.isEmpty) return const SizedBox.shrink();
+    final tokens = context.inTheme;
+    return StreamBuilder<Company?>(
+      stream: services.company.watchCompany(companyId),
+      builder: (context, snap) {
+        final key = snap.data?.companyKey ?? '';
+        if (key.isEmpty) return const SizedBox.shrink();
+        final url = '$baseUrl/payment_webhook/$key/${gateway.id}';
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: InSpacing.xs),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                context.tr('webhook_url'),
+                style: TextStyle(color: tokens.ink3),
+              ),
+              const SizedBox(height: 2),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      url,
+                      style: TextStyle(color: tokens.ink),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.copy_outlined, size: 18),
+                    tooltip: context.tr('copy'),
+                    onPressed: () async {
+                      await Clipboard.setData(ClipboardData(text: url));
+                      if (context.mounted) {
+                        Notify.success(
+                          context,
+                          context.tr('copied_to_clipboard'),
+                        );
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

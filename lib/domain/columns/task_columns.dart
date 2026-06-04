@@ -73,8 +73,8 @@ final List<TaskColumn> kAllTaskColumns = <TaskColumn>[
     width: 120,
     align: ColumnAlign.end,
     cellBuilder: (t, _) =>
-        cellText(formatDuration(t.totalDuration(), compactDays: true)),
-    valueBuilder: (t) => formatDuration(t.totalDuration(), compactDays: true),
+        cellText(formatDuration(t.loggedDuration(), compactDays: true)),
+    valueBuilder: (t) => formatDuration(t.loggedDuration(), compactDays: true),
   ),
   TaskColumn(
     id: TaskFieldIds.taskStatusId,

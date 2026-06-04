@@ -5,6 +5,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company_gateway.dart';
 import 'package:admin/data/models/value/gateway.dart';
+import 'package:admin/domain/gateway_constants.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/edit/edit_action_filter.dart';
@@ -85,6 +86,46 @@ class _CompanyGatewayEditScreenState extends State<CompanyGatewayEditScreen> {
     _pickedGatewayKey = widget.initialGatewayKey;
   }
 
+  /// Picker → tabbed-form transition. Before accepting a brand-new gateway,
+  /// warn if one of the same provider already exists (mirrors React's
+  /// `DuplicatingGatewayModal`) — except providers that legitimately support
+  /// multiple instances (PayPal Platform / PPCP, Stripe Connect).
+  Future<void> _onPickGateway(String key) async {
+    final services = context.read<Services>();
+    final allowsMultiple =
+        key == kGatewayPayPalPlatform || key == kGatewayStripeConnect;
+    if (!allowsMultiple) {
+      final companyId = services.auth.session.value!.currentCompanyId;
+      final existing = await services.companyGateways
+          .watchPage(companyId: companyId)
+          .first;
+      if (existing.any((g) => g.gatewayKey == key)) {
+        if (!mounted) return;
+        final proceed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(ctx.tr('existing_gateway')),
+            content: Text(ctx.tr('confirm_duplicate_gateway')),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text(ctx.tr('no')),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: Text(ctx.tr('yes')),
+              ),
+            ],
+          ),
+        );
+        if (proceed != true) return;
+      }
+    }
+    if (!mounted) return;
+    setState(() => _pickedGatewayKey = key);
+  }
+
   @override
   Widget build(BuildContext context) {
     // Create flow without a chosen provider yet → render the picker
@@ -95,9 +136,7 @@ class _CompanyGatewayEditScreenState extends State<CompanyGatewayEditScreen> {
         (_pickedGatewayKey == null || _pickedGatewayKey!.isEmpty)) {
       return Scaffold(
         appBar: AppBar(title: Text(context.tr('new_company_gateway'))),
-        body: GatewayTypePicker(
-          onSelected: (key) => setState(() => _pickedGatewayKey = key),
-        ),
+        body: GatewayTypePicker(onSelected: _onPickGateway),
       );
     }
 

@@ -2,8 +2,13 @@ import 'package:decimal/decimal.dart';
 
 import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/billing/line_item_type.dart';
+import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/expense.dart';
+import 'package:admin/data/models/domain/group_setting.dart';
+import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/task.dart';
+import 'package:admin/domain/tasks/task_rate.dart';
 
 /// Pure task/expense → [LineItem] conversion for the "Add unbilled items"
 /// sheet. Kept free of widgets so it's unit-testable; mirrors admin-portal's
@@ -13,18 +18,33 @@ import 'package:admin/data/models/domain/task.dart';
 /// task has no logged time so the appended row is a sane editable default
 /// rather than a zero-quantity ghost.
 Decimal taskBillableHours(Task task, {DateTime? now}) {
-  final seconds = task.totalDuration(now).inSeconds;
+  final seconds = task.billableDuration(now).inSeconds;
   if (seconds <= 0) return Decimal.one;
   return Decimal.parse((seconds / 3600).toStringAsFixed(3));
 }
 
-LineItem taskToLineItem(Task task, {DateTime? now}) {
+LineItem taskToLineItem(
+  Task task, {
+  DateTime? now,
+  Project? project,
+  Client? client,
+  GroupSetting? group,
+  Company? company,
+}) {
   final notes = task.description.trim().isNotEmpty
       ? task.description.trim()
       : (task.number.isNotEmpty ? '#${task.number}' : '');
   return emptyLineItem().copyWith(
     notes: notes,
-    cost: task.rate,
+    // task → project → client → group → company rate cascade. Falls back to
+    // `task.rate` when no related entities are passed (no regression).
+    cost: resolveTaskRate(
+      task: task,
+      project: project,
+      client: client,
+      group: group,
+      company: company,
+    ),
     quantity: taskBillableHours(task, now: now),
     typeId: LineItemType.task,
     taskId: task.id,
@@ -58,6 +78,8 @@ List<LineItem> projectInvoiceLineItems({
   required List<Task> tasks,
   required List<Expense> expenses,
   DateTime? now,
+  Project? project,
+  Company? company,
 }) {
   return <LineItem>[
     for (final e in expenses)
@@ -66,7 +88,7 @@ List<LineItem> projectInvoiceLineItems({
       if (!t.id.startsWith('tmp_') &&
           !t.isRunning &&
           !t.isInvoiced &&
-          t.totalDuration(now).inSeconds > 0)
-        taskToLineItem(t, now: now),
+          t.billableDuration(now).inSeconds > 0)
+        taskToLineItem(t, now: now, project: project, company: company),
   ];
 }

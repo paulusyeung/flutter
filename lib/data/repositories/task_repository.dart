@@ -147,6 +147,7 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
     states: states,
     extraFilters: extraFilters,
     ignoreCursor: ignoreCursor,
+    excludeDeletedClients: true,
     listCall: api.list,
     itemsOf: (l) => l.data,
     idOf: (a) => a.id,

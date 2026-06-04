@@ -45,7 +45,9 @@ class _ColorFieldState extends State<ColorField> {
       builder: (ctx) => AlertDialog(
         title: Text(context.tr('color')),
         content: SizedBox(
-          width: 280,
+          // Cap at 280 on wide screens but shrink on narrow phones so the
+          // preset grid never overflows the dialog's inset-padded width.
+          width: (MediaQuery.sizeOf(context).width - 120).clamp(200.0, 280.0),
           child: Wrap(
             spacing: 12,
             runSpacing: 12,

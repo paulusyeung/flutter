@@ -59,7 +59,10 @@ class _CompanyGatewayDetailScreenState
           children: [
             CompanyGatewayDetailHeader(gateway: gateway, companyId: _companyId),
             const SizedBox(height: InSpacing.xl),
-            CompanyGatewayDetailCardsGrid(gateway: gateway),
+            CompanyGatewayDetailCardsGrid(
+              gateway: gateway,
+              companyId: _companyId,
+            ),
           ],
         ),
       ),

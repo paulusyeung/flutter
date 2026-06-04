@@ -4,10 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
-import 'package:admin/data/models/domain/billing/line_item.dart';
-import 'package:admin/data/models/domain/expense.dart';
 import 'package:admin/data/models/domain/project.dart';
-import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
@@ -282,9 +279,14 @@ class ProjectActions {
         final expenses = await services.expenses
             .watchForProject(companyId: companyId, projectId: project.id)
             .first;
+        // Load the company so a task at rate 0 inherits project.taskRate →
+        // company.settings.default_task_rate instead of invoicing at $0.
+        final company = await services.company.get(companyId);
         final lineItems = projectInvoiceLineItems(
           tasks: tasks,
           expenses: expenses,
+          project: project,
+          company: company,
         );
         if (!context.mounted) return;
         if (lineItems.isEmpty) {

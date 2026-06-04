@@ -3,12 +3,15 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/models/api/project_api_model.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
+import 'package:admin/data/repositories/client_repository.dart';
 import 'package:admin/data/repositories/project_repository.dart';
+import 'package:admin/data/services/clients_api.dart';
 import 'package:admin/data/services/projects_api.dart';
 import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/domain/sync/mutation.dart';
@@ -252,9 +255,100 @@ void main() {
       expect(purgeRow.requiresPassword, isTrue);
     });
   });
+
+  group('ProjectRepository — deleted-client filter', () {
+    late AppDatabase db;
+
+    setUp(() {
+      db = AppDatabase(NativeDatabase.memory());
+    });
+    tearDown(() async {
+      await db.close();
+    });
+
+    Future<void> seedProject(String id, String clientId) =>
+        ProjectRepository(db: db, api: _FakeProjectsApi()).applyUpdateResponse(
+          companyId: 'co',
+          serverResponse: ProjectApi(
+            id: id,
+            name: id,
+            clientId: clientId,
+            updatedAt: 1700000000,
+          ),
+        );
+
+    Future<void> seedClient(String id, {required bool deleted}) =>
+        ClientRepository(db: db, api: _FakeClientsApi()).applyUpdateResponse(
+          companyId: 'co',
+          serverResponse: ClientApi(
+            id: id,
+            name: id,
+            isDeleted: deleted,
+            updatedAt: 1700000000,
+          ),
+        );
+
+    test('workspace list hides projects of soft-deleted clients but keeps '
+        'active-client and client-less projects', () async {
+      await seedProject('p_active', 'c_active');
+      await seedProject('p_deleted', 'c_deleted');
+      await seedProject('p_noclient', '');
+      await seedClient('c_active', deleted: false);
+      await seedClient('c_deleted', deleted: true);
+
+      final rows = await ProjectRepository(
+        db: db,
+        api: _FakeProjectsApi(),
+      ).watchPage(companyId: 'co').first;
+      final ids = rows.map((p) => p.id).toSet();
+      expect(ids, containsAll(<String>['p_active', 'p_noclient']));
+      expect(ids, isNot(contains('p_deleted')));
+    });
+
+    test("client-scoped watch still shows a soft-deleted client's projects "
+        '(detail tabs must not go blank)', () async {
+      await seedProject('p1', 'c_deleted');
+      await seedClient('c_deleted', deleted: true);
+
+      final rows = await ProjectRepository(
+        db: db,
+        api: _FakeProjectsApi(),
+      ).watchPage(companyId: 'co', clientId: 'c_deleted').first;
+      expect(rows.map((p) => p.id), contains('p1'));
+    });
+
+    test('watch re-emits without the project when its client is soft-deleted '
+        '(reactivity)', () async {
+      final repo = ProjectRepository(db: db, api: _FakeProjectsApi());
+      await seedProject('p1', 'c1');
+      await seedClient('c1', deleted: false);
+
+      final emissions = <Set<String>>[];
+      final sub = repo
+          .watchPage(companyId: 'co')
+          .listen((rows) => emissions.add(rows.map((p) => p.id).toSet()));
+      await pumpEventQueue();
+      expect(emissions.last, contains('p1'));
+
+      await seedClient('c1', deleted: true);
+      await pumpEventQueue();
+      expect(
+        emissions.last,
+        isNot(contains('p1')),
+        reason: 'the projects watch must react to a client soft-delete',
+      );
+
+      await sub.cancel();
+    });
+  });
 }
 
 class _FakeProjectsApi implements ProjectsApi {
+  @override
+  Object? noSuchMethod(Invocation invocation) => throw UnimplementedError();
+}
+
+class _FakeClientsApi implements ClientsApi {
   @override
   Object? noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }

@@ -19,12 +19,23 @@ class TimeEntryEditorSheet extends StatefulWidget {
     super.key,
     required this.initial,
     this.allowBillableToggle = true,
+    this.showEndDate = false,
+    this.showItemDescription = true,
     this.allowRemove = true,
     this.formatter,
   });
 
   final TimeEntry initial;
   final bool allowBillableToggle;
+
+  /// When true, surface a stop-DATE field so a single entry can span
+  /// multiple days (company `show_task_end_date`). Default false: the stop
+  /// date follows the start date and only the stop time is editable.
+  final bool showEndDate;
+
+  /// When false, hide the per-entry description field (company
+  /// `show_task_item_description`).
+  final bool showItemDescription;
   final bool allowRemove;
 
   /// Resolved company `Formatter` for the start-date button label.
@@ -38,6 +49,8 @@ class TimeEntryEditorSheet extends StatefulWidget {
     BuildContext context, {
     required TimeEntry initial,
     bool allowBillableToggle = true,
+    bool showEndDate = false,
+    bool showItemDescription = true,
     bool allowRemove = true,
     Formatter? formatter,
   }) async {
@@ -51,6 +64,8 @@ class TimeEntryEditorSheet extends StatefulWidget {
             child: TimeEntryEditorSheet(
               initial: initial,
               allowBillableToggle: allowBillableToggle,
+              showEndDate: showEndDate,
+              showItemDescription: showItemDescription,
               allowRemove: allowRemove,
               formatter: formatter,
             ),
@@ -67,6 +82,8 @@ class TimeEntryEditorSheet extends StatefulWidget {
         child: TimeEntryEditorSheet(
           initial: initial,
           allowBillableToggle: allowBillableToggle,
+          showEndDate: showEndDate,
+          showItemDescription: showItemDescription,
           allowRemove: allowRemove,
           formatter: formatter,
         ),
@@ -178,6 +195,24 @@ class _TimeEntryEditorSheetState extends State<TimeEntryEditorSheet> {
     });
   }
 
+  void _onStopDate(DateTime? picked) {
+    if (picked == null) return;
+    setState(() {
+      _stop = DateTime(
+        picked.year,
+        picked.month,
+        picked.day,
+        _stop.hour,
+        _stop.minute,
+      );
+      _isRunning = false;
+      _duration.text = formatDuration(
+        _stop.difference(_start),
+        compactDays: true,
+      );
+    });
+  }
+
   void _commit() {
     Navigator.of(context).pop(
       TimeEntry(
@@ -230,6 +265,14 @@ class _TimeEntryEditorSheetState extends State<TimeEntryEditorSheet> {
                 ),
               ],
             ),
+            if (widget.showEndDate && !_isRunning) ...[
+              SizedBox(height: InSpacing.md(context)),
+              InDateField(
+                value: _stop,
+                onChanged: _onStopDate,
+                formatter: widget.formatter,
+              ),
+            ],
             SizedBox(height: InSpacing.md(context)),
             Row(
               children: [
@@ -257,13 +300,17 @@ class _TimeEntryEditorSheetState extends State<TimeEntryEditorSheet> {
                 ),
               ],
             ),
-            SizedBox(height: InSpacing.md(context)),
-            TextField(
-              controller: _description,
-              maxLines: 3,
-              minLines: 1,
-              decoration: InputDecoration(labelText: context.tr('description')),
-            ),
+            if (widget.showItemDescription) ...[
+              SizedBox(height: InSpacing.md(context)),
+              TextField(
+                controller: _description,
+                maxLines: 3,
+                minLines: 1,
+                decoration: InputDecoration(
+                  labelText: context.tr('description'),
+                ),
+              ),
+            ],
             if (widget.allowBillableToggle) ...[
               const SizedBox(height: InSpacing.sm),
               SwitchListTile(

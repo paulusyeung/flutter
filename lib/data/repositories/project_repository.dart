@@ -137,6 +137,7 @@ class ProjectRepository extends BaseEntityRepository<Project, ProjectApi>
     states: states,
     extraFilters: extraFilters,
     ignoreCursor: ignoreCursor,
+    excludeDeletedClients: true,
     // `?include=documents` — same rationale as Client/Product.
     staticFilters: const {'include': 'documents'},
     listCall: api.list,
