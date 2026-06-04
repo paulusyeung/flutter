@@ -266,6 +266,18 @@ class _SummaryCard extends StatelessWidget {
     final grossText = f == null
         ? e.grossAmount.toString()
         : f.money(e.grossAmount, clientCurrencyId: e.currencyId);
+    final netText = f == null
+        ? e.netAmount.toString()
+        : f.money(e.netAmount, clientCurrencyId: e.currencyId);
+    // Converted total in the invoice currency — only meaningful when an
+    // invoice currency is set and the rate isn't a no-op. Mirrors the Expense
+    // detail Summary card.
+    final hasConversion =
+        e.invoiceCurrencyId.isNotEmpty &&
+        e.effectiveExchangeRate != Decimal.one;
+    final convertedText = f == null
+        ? e.convertedAmount.toString()
+        : f.money(e.convertedAmount, clientCurrencyId: e.invoiceCurrencyId);
     return DashboardCardShell(
       title: context.tr('details'),
       child: Column(
@@ -280,8 +292,17 @@ class _SummaryCard extends StatelessWidget {
           ),
           _Row(label: context.tr('date'), value: Text(dateText)),
           _Row(label: context.tr('amount'), value: Text(amountText)),
+          // Net (amount minus tax) is only distinct from amount for inclusive
+          // taxes; gross (amount plus tax) for exclusive.
+          if (e.usesInclusiveTaxes && e.taxAmountSum != Decimal.zero)
+            _Row(label: context.tr('net_amount'), value: Text(netText)),
           if (e.taxAmountSum != Decimal.zero)
             _Row(label: context.tr('gross_amount'), value: Text(grossText)),
+          if (hasConversion)
+            _Row(
+              label: context.tr('converted_amount'),
+              value: Text(convertedText),
+            ),
         ],
       ),
     );
@@ -430,6 +451,13 @@ class _TaxBreakdownCard extends StatelessWidget {
     return f.money(amount, clientCurrencyId: recurringExpense.currencyId);
   }
 
+  /// In by-amount mode the rate is 0, so show just the amount — a "0% ·"
+  /// prefix would misrepresent a fixed-amount tax.
+  String _valueText(Decimal rate, Decimal amount) =>
+      recurringExpense.calculateTaxByAmount
+      ? _fmt(amount)
+      : '$rate% · ${_fmt(amount)}';
+
   @override
   Widget build(BuildContext context) {
     final e = recurringExpense;
@@ -437,20 +465,26 @@ class _TaxBreakdownCard extends StatelessWidget {
       title: context.tr('tax_breakdown'),
       child: Column(
         children: [
-          if (e.taxName1.isNotEmpty || e.taxRate1 != Decimal.zero)
+          if (e.taxName1.isNotEmpty ||
+              e.taxRate1 != Decimal.zero ||
+              e.taxAmount1Computed != Decimal.zero)
             _Row(
               label: e.taxName1.isEmpty ? context.tr('tax_rate1') : e.taxName1,
-              value: Text('${e.taxRate1}% · ${_fmt(e.taxAmount1Computed)}'),
+              value: Text(_valueText(e.taxRate1, e.taxAmount1Computed)),
             ),
-          if (e.taxName2.isNotEmpty || e.taxRate2 != Decimal.zero)
+          if (e.taxName2.isNotEmpty ||
+              e.taxRate2 != Decimal.zero ||
+              e.taxAmount2Computed != Decimal.zero)
             _Row(
               label: e.taxName2.isEmpty ? context.tr('tax_rate2') : e.taxName2,
-              value: Text('${e.taxRate2}% · ${_fmt(e.taxAmount2Computed)}'),
+              value: Text(_valueText(e.taxRate2, e.taxAmount2Computed)),
             ),
-          if (e.taxName3.isNotEmpty || e.taxRate3 != Decimal.zero)
+          if (e.taxName3.isNotEmpty ||
+              e.taxRate3 != Decimal.zero ||
+              e.taxAmount3Computed != Decimal.zero)
             _Row(
               label: e.taxName3.isEmpty ? context.tr('tax_rate3') : e.taxName3,
-              value: Text('${e.taxRate3}% · ${_fmt(e.taxAmount3Computed)}'),
+              value: Text(_valueText(e.taxRate3, e.taxAmount3Computed)),
             ),
           _Row(
             label: context.tr('inclusive_taxes'),

@@ -10,9 +10,9 @@ import 'package:admin/data/services/base_entity_api.dart';
 ///     the detail screen's Schedule card and the edit screen's
 ///     next-send-date preview).
 ///   * `start(id)` / `stop(id)` hit `PUT /recurring_expenses/{id}?start=true`
-///     (or `&stop=true`) with an empty body, the standard idempotency
-///     header, and no payload — the server transitions the row's
-///     `status_id` to Active / Paused.
+///     (or `&stop=true`) with the full entity body (parity with admin-portal +
+///     React) — the query flag transitions the row's `status_id` to
+///     Active / Paused server-side.
 class RecurringExpensesApi
     extends BaseEntityApi<RecurringExpenseListApi, RecurringExpenseItemApi> {
   RecurringExpensesApi(super.client);
@@ -82,9 +82,12 @@ class RecurringExpensesApi
   }
 
   /// `PUT /recurring_expenses/{id}?start=true` — transition Draft / Paused
-  /// → Active. Empty body. Returns the refreshed envelope.
+  /// → Active. Sends the full entity body (`payload`) like admin-portal +
+  /// React; the `?start=true` flag drives the status flip server-side.
+  /// Returns the refreshed envelope.
   Future<RecurringExpenseItemApi> start({
     required String id,
+    required Map<String, dynamic> payload,
     required String idempotencyKey,
   }) async {
     final raw = await client.mutate(
@@ -92,14 +95,16 @@ class RecurringExpensesApi
       path: '$basePath/$id',
       query: const {'start': 'true', 'show_dates': 'true'},
       idempotencyKey: idempotencyKey,
-      body: const <String, dynamic>{},
+      body: payload,
     );
     return parseItem(raw as Object);
   }
 
   /// `PUT /recurring_expenses/{id}?stop=true` — Active / Pending → Paused.
+  /// Sends the full entity body (`payload`), matching the references.
   Future<RecurringExpenseItemApi> stop({
     required String id,
+    required Map<String, dynamic> payload,
     required String idempotencyKey,
   }) async {
     final raw = await client.mutate(
@@ -107,7 +112,7 @@ class RecurringExpensesApi
       path: '$basePath/$id',
       query: const {'stop': 'true', 'show_dates': 'true'},
       idempotencyKey: idempotencyKey,
-      body: const <String, dynamic>{},
+      body: payload,
     );
     return parseItem(raw as Object);
   }

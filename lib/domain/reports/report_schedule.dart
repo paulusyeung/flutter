@@ -13,7 +13,7 @@ import 'package:admin/data/models/value/date.dart';
 /// identifier → `report_name`; the report's short-form date preset → the
 /// scheduler's long-form `date_range` (React's `DATE_RANGES_ALIASES` only
 /// rewrites `last7`/`last30`; everything else — `all`, `this_month`,
-/// `last90`, … — passes through); CSV filters + bool flags copied across;
+/// `last365_days`, … — passes through); CSV filters + bool flags copied across;
 /// visible columns → `report_keys`; `send_email: true`. Pure +
 /// unit-tested; `now` is injectable for deterministic `next_run`.
 Schedule reportEmailSchedule(
@@ -55,22 +55,46 @@ Schedule reportEmailSchedule(
   );
 }
 
-/// Normalize a report-registry identifier to a server-valid email_report
-/// `report_name`. The report registry exposes identifiers (`contact`,
-/// `task`, `vendor`, `purchase_order`, …) that don't all line up with the
-/// scheduler's exporter set: `contact`/`task` need the server's
-/// `client_contact`/`tasks`, and reports with no scheduler exporter
-/// (vendor, purchase_order[_item]) would be force-deleted on first run. Map
-/// the aliases and fall back to `activity` for anything unschedulable so a
-/// seeded schedule never silently self-destructs.
-String _scheduleReportName(String reportIdentifier) {
-  const aliases = <String, String>{
-    'contact': 'client_contact',
-    'task': 'tasks',
-  };
-  final mapped = aliases[reportIdentifier] ?? reportIdentifier;
-  return kEmailReportReportNames.contains(mapped) ? mapped : 'activity';
+/// Registry identifier → server `email_report` `report_name`. The report
+/// registry exposes identifiers that don't all line up with the scheduler's
+/// exporter set (`app/Services/Scheduler/EmailReport.php`): `contact`/`task`
+/// need `client_contact`/`tasks`, and the aggregate reports use the short
+/// names the server's `match` expects (`ar_detailed`, …) rather than the
+/// registry's long identifiers (`aged_receivable_detailed_report`, …).
+/// Without these the name misses the `match` and the schedule is
+/// `cancelSchedule()`d (or, worse, silently falls back to a different report).
+const Map<String, String> _kScheduleReportNameAliases = <String, String>{
+  'contact': 'client_contact',
+  'task': 'tasks',
+  'aged_receivable_detailed_report': 'ar_detailed',
+  'aged_receivable_summary_report': 'ar_summary',
+  'client_balance_report': 'client_balance',
+  'client_sales_report': 'client_sales',
+  'tax_summary_report': 'tax_summary',
+  'user_sales_report': 'user_sales',
+};
+
+/// The server-side `report_name` for a registry identifier, or `null` when the
+/// report has no scheduler exporter and would self-destruct on first run.
+String? _serverReportName(String reportIdentifier) {
+  final mapped =
+      _kScheduleReportNameAliases[reportIdentifier] ?? reportIdentifier;
+  return kEmailReportReportNames.contains(mapped) ? mapped : null;
 }
+
+/// Whether "Schedule recurring email" should be offered for this report.
+/// False for reports the server's `email_report` exporter doesn't handle
+/// (`vendor`, `purchase_order[_item]`, `recurring_invoice_item`, `project`,
+/// `tax_period_report`) — those pass scheduler validation but hit the `match`
+/// `default` and are `cancelSchedule()`d on first run. Gate the Schedule
+/// action on this so a user never seeds a schedule that silently vanishes.
+bool isReportSchedulable(String reportIdentifier) =>
+    _serverReportName(reportIdentifier) != null;
+
+/// The `report_name` to store; falls back to `activity` defensively (callers
+/// should gate on [isReportSchedulable], so the fallback is never reached).
+String _scheduleReportName(String reportIdentifier) =>
+    _serverReportName(reportIdentifier) ?? 'activity';
 
 /// Scheduler `date_range` vocabulary is long-form; the report payload uses
 /// short-form. React rewrites only `last7`/`last30`; all other presets are

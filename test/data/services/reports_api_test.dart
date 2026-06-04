@@ -150,6 +150,47 @@ void main() {
         expect(pollCount, lessThanOrEqualTo(1));
       },
     );
+
+    test('a 200 status Map without `columns` is not treated as ready', () async {
+      // While the job runs the server can reply 200 with a status envelope
+      // (no `columns`). The poll guard must keep waiting, NOT parse it as a
+      // finished (empty) report. With a small budget that means a timeout.
+      var pollCount = 0;
+      final fake = MockClient((req) async {
+        if (req.url.path == '/api/v1/reports/clients') {
+          return http.Response(
+            jsonEncode({'message': 'hash-pending'}),
+            200,
+            headers: const {'content-type': 'application/json'},
+          );
+        }
+        pollCount++;
+        return http.Response(
+          jsonEncode({'message': 'Still working.....'}),
+          200,
+          headers: const {'content-type': 'application/json'},
+        );
+      });
+      final client = ApiClient(
+        credentials: _creds(),
+        passwordCache: PasswordCache(),
+        onUnauthorized: () async {},
+        httpClient: fake,
+      );
+      final api = ReportsApi(client);
+
+      await expectLater(
+        api.runPreview(
+          endpoint: '/api/v1/reports/clients',
+          payload: const {},
+          maxRetries: 2,
+          pollInterval: const Duration(milliseconds: 1),
+        ),
+        throwsA(isA<ReportPollingTimeout>()),
+      );
+      // It actually polled — i.e. it did NOT early-return the columnless body.
+      expect(pollCount, greaterThanOrEqualTo(1));
+    });
   });
 
   group('ReportsApi.runExport polling contract', () {

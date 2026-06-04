@@ -29,7 +29,12 @@ ReportColumnType inferColumnType(String identifier) {
   final tail = id.contains('.') ? id.split('.').last : id;
 
   if (tail.endsWith('_at')) return ReportColumnType.dateTime;
-  if (tail.endsWith('_date') || tail == 'date') return ReportColumnType.date;
+  // `paid_to_date` ends in `_date` but is money, not a date — exclude it so it
+  // falls through to the money block (sums in totals, right-aligns). Matches
+  // admin-portal's `getReportColumnType`.
+  if (tail != 'paid_to_date' && (tail.endsWith('_date') || tail == 'date')) {
+    return ReportColumnType.date;
+  }
   if (tail.endsWith('_age') || tail == 'age') return ReportColumnType.age;
   if (tail.endsWith('_duration') || tail == 'duration') {
     return ReportColumnType.duration;
@@ -53,6 +58,13 @@ ReportColumnType inferColumnType(String identifier) {
     'refunded',
     'credit_balance',
     'payment_balance',
+    // Custom surcharge amounts (`invoice.custom_surcharge1`, …). Exact tails,
+    // NOT a `contains('surcharge')` — that would also match the
+    // `custom_surcharge_taxes1..4` booleans and sum them as money.
+    'custom_surcharge1',
+    'custom_surcharge2',
+    'custom_surcharge3',
+    'custom_surcharge4',
   };
   if (moneyTails.contains(tail) ||
       tail.endsWith('_total') ||

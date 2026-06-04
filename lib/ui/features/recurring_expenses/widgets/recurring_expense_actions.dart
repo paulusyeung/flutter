@@ -5,6 +5,7 @@ import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/recurring_expense.dart';
 import 'package:admin/domain/entity_type.dart';
+import 'package:admin/domain/expense_recurring_conversion.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
@@ -180,26 +181,15 @@ class RecurringExpenseActions {
         );
         goEntityCreateFullWidth(context, '/recurring_expenses', extra: draft);
       case RecurringExpenseAction.cloneToExpense:
-        // Hand the draft over via `state.extra`; the Expense create form
-        // already accepts an `Expense?` clone seed. The conversion happens
-        // server-side once the user saves — we just navigate.
-        final draft = recurringExpense.copyWith(
-          id: '',
-          number: '',
-          archivedAt: null,
-          isDeleted: false,
-          isDirty: false,
-          invoiceId: '',
-          paymentDate: null,
-          paymentTypeId: '',
-          transactionReference: '',
-          transactionId: '',
-          statusId: null,
-          lastSentDate: null,
-          updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
-          createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+        // Convert to a real [Expense] clone seed before navigating. Expense and
+        // RecurringExpense are distinct Freezed types, so the Expense create
+        // form's `state.extra is Expense` guard silently drops a
+        // RecurringExpense — handing it the converted object preserves the data.
+        goEntityCreateFullWidth(
+          context,
+          '/expenses',
+          extra: recurringExpense.toExpenseClone(),
         );
-        goEntityCreateFullWidth(context, '/expenses', extra: draft);
       case RecurringExpenseAction.addComment:
         await _promptAddComment(context, services, companyId, recurringExpense);
       case RecurringExpenseAction.archive:

@@ -8,6 +8,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/expense.dart';
 import 'package:admin/domain/entity_type.dart';
+import 'package:admin/domain/expense_recurring_conversion.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
@@ -163,24 +164,16 @@ class ExpenseActions {
         );
         goEntityCreateFullWidth(context, '/expenses', extra: draft);
       case ExpenseAction.cloneToRecurring:
-        // Recurring Expense lands later in this PR / a follow-up. Hand the
-        // draft over via `state.extra` so the recurring create form can
-        // seed itself the same way Product's clone path does.
-        final draft = expense.copyWith(
-          id: '',
-          number: '',
-          archivedAt: null,
-          isDeleted: false,
-          isDirty: false,
-          invoiceId: '',
-          paymentDate: null,
-          paymentTypeId: '',
-          transactionReference: '',
-          transactionId: '',
-          updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
-          createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+        // Convert to a real [RecurringExpense] clone seed (default monthly
+        // schedule) before navigating. Expense and RecurringExpense are
+        // distinct Freezed types, so the recurring create form's
+        // `state.extra is RecurringExpense` guard silently drops an Expense —
+        // handing it the converted object preserves the data.
+        goEntityCreateFullWidth(
+          context,
+          '/recurring_expenses',
+          extra: expense.toRecurringExpenseClone(),
         );
-        goEntityCreateFullWidth(context, '/recurring_expenses', extra: draft);
       case ExpenseAction.addComment:
         await _promptAddComment(context, services, companyId, expense);
       case ExpenseAction.archive:

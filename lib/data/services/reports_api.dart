@@ -268,20 +268,20 @@ class ReportsApi {
           '/api/v1/reports/preview/$hash',
           readOnly: true,
         );
-        if (raw is Map<String, Object?>) {
-          return raw;
+        // Only a payload carrying `columns` is the finished report. Guarding
+        // on it (rather than "any Map is ready") future-proofs against a 200
+        // "pending" envelope: anything without `columns` falls through to
+        // wait + retry instead of being mis-parsed as an empty report.
+        if (raw is Map && raw.containsKey('columns')) {
+          return raw is Map<String, Object?>
+              ? raw
+              : raw.map((k, v) => MapEntry(k.toString(), v));
         }
-        if (raw is Map) {
-          return raw.map((k, v) => MapEntry(k.toString(), v));
-        }
-        // Defensive — server should always emit an object once ready.
       } on ConflictException catch (_) {
-        // ApiClient maps 404 → ConflictException (designed for entity
-        // delete-conflict resolution). For the report-preview hash
-        // endpoint, 404 means "the queued job is still running" — exactly
-        // what we want to retry on. 409 would be a real conflict and
-        // doesn't apply to this endpoint, so retrying it is harmless
-        // (we'll time out cleanly if it persists).
+        // ApiClient maps both 404 and 409 → ConflictException. The
+        // report-preview hash endpoint returns 409 + `{"message":"Still
+        // working..."}` while the queued job runs (verified against the live
+        // server) — exactly what we want to retry on.
       }
       // ValidationException, UnauthorizedException, RateLimitedException,
       // ServerException (5xx), and every other ApiException bubble up

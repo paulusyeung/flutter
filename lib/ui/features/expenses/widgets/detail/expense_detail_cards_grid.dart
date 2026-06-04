@@ -409,6 +409,11 @@ class _TaxBreakdownCard extends StatelessWidget {
     return f.money(amount, clientCurrencyId: expense.currencyId);
   }
 
+  /// In by-amount mode the rate is 0, so show just the amount — a "0% ·"
+  /// prefix would misrepresent a fixed-amount tax.
+  String _valueText(Decimal rate, Decimal amount) =>
+      expense.calculateTaxByAmount ? _fmt(amount) : '$rate% · ${_fmt(amount)}';
+
   @override
   Widget build(BuildContext context) {
     final e = expense;
@@ -416,20 +421,26 @@ class _TaxBreakdownCard extends StatelessWidget {
       title: context.tr('tax_breakdown'),
       child: Column(
         children: [
-          if (e.taxName1.isNotEmpty || e.taxRate1 != Decimal.zero)
+          if (e.taxName1.isNotEmpty ||
+              e.taxRate1 != Decimal.zero ||
+              e.taxAmount1Computed != Decimal.zero)
             _Row(
               label: e.taxName1.isEmpty ? context.tr('tax_rate1') : e.taxName1,
-              value: Text('${e.taxRate1}% · ${_fmt(e.taxAmount1Computed)}'),
+              value: Text(_valueText(e.taxRate1, e.taxAmount1Computed)),
             ),
-          if (e.taxName2.isNotEmpty || e.taxRate2 != Decimal.zero)
+          if (e.taxName2.isNotEmpty ||
+              e.taxRate2 != Decimal.zero ||
+              e.taxAmount2Computed != Decimal.zero)
             _Row(
               label: e.taxName2.isEmpty ? context.tr('tax_rate2') : e.taxName2,
-              value: Text('${e.taxRate2}% · ${_fmt(e.taxAmount2Computed)}'),
+              value: Text(_valueText(e.taxRate2, e.taxAmount2Computed)),
             ),
-          if (e.taxName3.isNotEmpty || e.taxRate3 != Decimal.zero)
+          if (e.taxName3.isNotEmpty ||
+              e.taxRate3 != Decimal.zero ||
+              e.taxAmount3Computed != Decimal.zero)
             _Row(
               label: e.taxName3.isEmpty ? context.tr('tax_rate3') : e.taxName3,
-              value: Text('${e.taxRate3}% · ${_fmt(e.taxAmount3Computed)}'),
+              value: Text(_valueText(e.taxRate3, e.taxAmount3Computed)),
             ),
           _Row(
             label: context.tr('inclusive_taxes'),

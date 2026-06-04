@@ -177,7 +177,7 @@ void main() {
       );
     });
 
-    test('numeric range filter applies (lower-upper)', () {
+    test('numeric range filter applies (min..max)', () {
       final preview = previewWith(
         columns: [amountCol],
         rows: [
@@ -186,14 +186,46 @@ void main() {
           [ReportNumberCell(value: d('500'), isMoney: true)],
         ],
       );
-      final view = engine.compute(
+      ReportView run(String filter) => engine.compute(
         preview: preview,
-        ui: const ReportUiState(columnFilters: {'invoice.amount': '100-400'}),
+        ui: ReportUiState(columnFilters: {'invoice.amount': filter}),
         exchangeRates: const {},
         companyCurrencyId: '1',
       );
-      expect(view.rows, hasLength(1));
-      expect((view.rows.first.cells.first as ReportNumberCell).value, d('150'));
+
+      // Closed range.
+      final ranged = run('100..400');
+      expect(ranged.rows, hasLength(1));
+      expect(
+        (ranged.rows.first.cells.first as ReportNumberCell).value,
+        d('150'),
+      );
+
+      // Open-ended bounds.
+      expect(run('..100').rows, hasLength(1)); // only 50
+      expect(run('200..').rows, hasLength(1)); // only 500
+
+      // Bare number is a lower bound (>=), not exact-match.
+      expect(run('150').rows, hasLength(2)); // 150 and 500
+    });
+
+    test('negative numeric bounds parse with the .. separator', () {
+      final preview = previewWith(
+        columns: [amountCol],
+        rows: [
+          [ReportNumberCell(value: d('-100'), isMoney: true)],
+          [ReportNumberCell(value: d('-10'), isMoney: true)],
+          [ReportNumberCell(value: d('80'), isMoney: true)],
+        ],
+      );
+      final view = engine.compute(
+        preview: preview,
+        ui: const ReportUiState(columnFilters: {'invoice.amount': '-50..50'}),
+        exchangeRates: const {},
+        companyCurrencyId: '1',
+      );
+      expect(view.rows, hasLength(1)); // only -10 is within [-50, 50]
+      expect((view.rows.first.cells.first as ReportNumberCell).value, d('-10'));
     });
 
     test('groups by string column and counts members', () {
@@ -351,7 +383,7 @@ void main() {
           ui: const ReportUiState(
             group: 'client.name',
             selectedGroup: 'ACME',
-            columnFilters: {'invoice.amount': '0-200'},
+            columnFilters: {'invoice.amount': '0..200'},
           ),
           exchangeRates: const {},
           companyCurrencyId: '1',
@@ -425,7 +457,7 @@ void main() {
         visibleColumnIds: {'client.name', 'invoice.amount'},
         columnFilters: const {
           'client.name': 'acme',
-          'invoice.amount': '100-500',
+          'invoice.amount': '100..500',
         },
         sortField: 'invoice.amount',
         sortAscending: false,
@@ -438,7 +470,7 @@ void main() {
       final b = ReportUiState(
         visibleColumnIds: {'invoice.amount', 'client.name'},
         columnFilters: const {
-          'invoice.amount': '100-500',
+          'invoice.amount': '100..500',
           'client.name': 'acme',
         },
         sortField: 'invoice.amount',

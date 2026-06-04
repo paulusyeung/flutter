@@ -83,10 +83,10 @@ void main() {
       expect(
         reportEmailSchedule(
           _seed(
-            payload: const ReportPayload(datePreset: ReportDatePreset.last90),
+            payload: const ReportPayload(datePreset: ReportDatePreset.last365),
           ),
         ).parameters['date_range'],
-        'last90',
+        'last365_days',
       );
     });
 
@@ -169,15 +169,25 @@ void main() {
       );
     });
 
-    test('reports with no scheduler exporter fall back to activity', () {
-      // vendor / purchase_order(_item) would be force-deleted server-side.
-      for (final id in ['vendor', 'purchase_order', 'purchase_order_item']) {
+    test('aggregate reports map long identifier → server short name', () {
+      // The server `match` (EmailReport.php) keys on the short names; the
+      // registry uses long identifiers. Without these aliases the schedule is
+      // silently created as `activity`.
+      const cases = <String, String>{
+        'aged_receivable_detailed_report': 'ar_detailed',
+        'aged_receivable_summary_report': 'ar_summary',
+        'client_balance_report': 'client_balance',
+        'client_sales_report': 'client_sales',
+        'tax_summary_report': 'tax_summary',
+        'user_sales_report': 'user_sales',
+      };
+      cases.forEach((id, expected) {
         expect(
           reportEmailSchedule(_seed(id: id)).parameters['report_name'],
-          'activity',
-          reason: '$id is not schedulable',
+          expected,
+          reason: '$id should schedule as $expected',
         );
-      }
+      });
     });
 
     test('a valid report identifier passes through unchanged', () {
@@ -185,6 +195,39 @@ void main() {
         reportEmailSchedule(_seed(id: 'expense')).parameters['report_name'],
         'expense',
       );
+    });
+  });
+
+  group('isReportSchedulable', () {
+    test('true for reports the server exporter handles', () {
+      for (final id in [
+        'invoice',
+        'expense',
+        'contact',
+        'task',
+        'profitloss',
+        'aged_receivable_detailed_report',
+        'client_balance_report',
+        'tax_summary_report',
+        'user_sales_report',
+        'product_sales',
+      ]) {
+        expect(isReportSchedulable(id), isTrue, reason: '$id schedulable');
+      }
+    });
+
+    test('false for reports the server cancelSchedule()s on first run', () {
+      // These pass scheduler validation but hit the `match` default.
+      for (final id in [
+        'vendor',
+        'purchase_order',
+        'purchase_order_item',
+        'recurring_invoice_item',
+        'project',
+        'tax_period_report',
+      ]) {
+        expect(isReportSchedulable(id), isFalse, reason: '$id not schedulable');
+      }
     });
   });
 }

@@ -567,6 +567,8 @@ the honest default.
 | Report — typed status filter (multi-select) | ✅ | ✅ | ✅ | — | |
 | Report — currency-aware grand totals | — | ✅ | ✅ | — | |
 | Report — column reorder | ✅ | ❌ | ✅ | — | |
+| Report — per-column table filters (type-aware) | ❌ | ✅ | ✅ | — | |
+| Report — chart (bar + time-series) | ❌ | ✅ | ✅ | — | |
 
 ---
 

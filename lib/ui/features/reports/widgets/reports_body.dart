@@ -16,6 +16,7 @@ import 'package:admin/data/models/domain/report_payload.dart';
 import 'package:admin/data/models/domain/report_preview.dart';
 import 'package:admin/data/models/domain/report_schedule_seed.dart';
 import 'package:admin/data/models/value/dashboard_filter.dart';
+import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/repositories/reports_repository.dart';
 import 'package:admin/data/services/reports_api.dart';
 import 'package:admin/data/static/activity_types_catalog.dart';
@@ -23,6 +24,7 @@ import 'package:admin/domain/reports/report_column_types.dart';
 import 'package:admin/domain/reports/report_engine.dart';
 import 'package:admin/domain/reports/report_filter_options.dart';
 import 'package:admin/domain/reports/report_registry.dart';
+import 'package:admin/domain/reports/report_schedule.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
@@ -201,37 +203,44 @@ class _ReportSettingsPanel extends StatelessWidget {
                   SizedBox(height: InSpacing.lg(context)),
                   _PanelLabel(text: context.tr('date_range')),
                   _DateRangeField(vm: vm, formatter: formatter),
-                  SizedBox(height: InSpacing.lg(context)),
-                  _PanelLabel(text: context.tr('group_by')),
-                  _GroupByField(vm: vm, enabled: hasPreview),
-                  if (hasPreview && vm.group != null)
+                  // Grouping, charting, columns and column-filters are
+                  // preview-only. The ~11 reports that don't support preview
+                  // can only be exported/emailed, so hide these controls for
+                  // them entirely rather than showing them permanently
+                  // disabled (matches React).
+                  if (vm.definition.supportsPreview) ...[
+                    SizedBox(height: InSpacing.lg(context)),
+                    _PanelLabel(text: context.tr('group_by')),
+                    _GroupByField(vm: vm, enabled: hasPreview),
+                    if (hasPreview && vm.group != null)
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        value: vm.chartVisible,
+                        onChanged: vm.setChartVisible,
+                        title: Text(context.tr('show_chart')),
+                      ),
+                    SizedBox(height: InSpacing.lg(context)),
+                    _ColumnsField(vm: vm, enabled: hasPreview),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
                       dense: true,
-                      value: vm.chartVisible,
-                      onChanged: vm.setChartVisible,
-                      title: Text(context.tr('show_chart')),
+                      value: vm.columnFiltersVisible,
+                      onChanged: hasPreview
+                          ? (_) => vm.toggleColumnFiltersVisible()
+                          : null,
+                      title: Text(context.tr('filter')),
                     ),
-                  SizedBox(height: InSpacing.lg(context)),
-                  _ColumnsField(vm: vm, enabled: hasPreview),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    value: vm.columnFiltersVisible,
-                    onChanged: hasPreview
-                        ? (_) => vm.toggleColumnFiltersVisible()
-                        : null,
-                    title: Text(context.tr('filter')),
-                  ),
-                  if (!hasPreview)
-                    Padding(
-                      padding: EdgeInsets.only(top: InSpacing.sm),
-                      child: Text(
-                        context.tr('run_report_to_configure'),
-                        style: Theme.of(context).textTheme.labelMedium
-                            ?.copyWith(color: context.inTheme.ink3),
+                    if (!hasPreview)
+                      Padding(
+                        padding: EdgeInsets.only(top: InSpacing.sm),
+                        child: Text(
+                          context.tr('run_report_to_configure'),
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(color: context.inTheme.ink3),
+                        ),
                       ),
-                    ),
+                  ],
                   SizedBox(height: InSpacing.lg(context)),
                   _FiltersSection(vm: vm),
                   if (vm.run.error != null &&
@@ -469,8 +478,6 @@ String _reportPresetKey(ReportDatePreset p) {
       return 'last_7_days';
     case ReportDatePreset.last30:
       return 'last_30_days';
-    case ReportDatePreset.last90:
-      return 'last_90_days';
     case ReportDatePreset.last365:
       return 'last_365_days';
     case ReportDatePreset.thisMonth:
@@ -1217,8 +1224,13 @@ class _PanelFooterActions extends StatelessWidget {
             Expanded(child: _EmailButton(vm: vm)),
           ],
         ),
-        SizedBox(height: InSpacing.sm),
-        _ScheduleButton(vm: vm),
+        // Schedule is offered only for reports the server's email_report
+        // exporter actually handles; the rest are cancelSchedule()'d on first
+        // run (see isReportSchedulable).
+        if (isReportSchedulable(vm.reportIdentifier)) ...[
+          SizedBox(height: InSpacing.sm),
+          _ScheduleButton(vm: vm),
+        ],
         if (vm.columnFilters.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -1667,15 +1679,22 @@ class _DrillBreadcrumb extends StatelessWidget {
       ),
       child: Row(
         children: [
-          InputChip(
-            avatar: const Icon(Icons.filter_alt_outlined, size: 16),
-            label: Text(vm.selectedGroup ?? ''),
-            // Tap anywhere on the chip — body or delete icon — clears the
-            // drill. The breadcrumb is the only exit affordance for the
-            // drilled view, so make the whole control feel like a button.
-            onPressed: () => vm.setSelectedGroup(null),
-            onDeleted: () => vm.setSelectedGroup(null),
-            deleteIcon: const Icon(Icons.close, size: 16),
+          // Flexible + ellipsis so a long group name can't overflow the row.
+          Flexible(
+            child: InputChip(
+              avatar: const Icon(Icons.filter_alt_outlined, size: 16),
+              label: Text(
+                vm.selectedGroup ?? '',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              // Tap anywhere on the chip — body or delete icon — clears the
+              // drill. The breadcrumb is the only exit affordance for the
+              // drilled view, so make the whole control feel like a button.
+              onPressed: () => vm.setSelectedGroup(null),
+              onDeleted: () => vm.setSelectedGroup(null),
+              deleteIcon: const Icon(Icons.close, size: 16),
+            ),
           ),
         ],
       ),
@@ -1815,7 +1834,7 @@ class _ReportDataTable extends StatelessWidget {
           itemBuilder: (context, index) {
             if (index == 0) return _HeaderRow(view: view);
             if (showFilters && index == 1) {
-              return _ColumnFilterRow(view: view, vm: vm);
+              return _ColumnFilterRow(view: view, vm: vm, formatter: formatter);
             }
             final i = index - headerCount;
             if (view.groups.isNotEmpty) {
@@ -1855,10 +1874,15 @@ class _ReportDataTable extends StatelessWidget {
 /// Client-side only — drives `vm.setColumnFilter` (the engine applies it);
 /// debounced so typing doesn't recompute the view on every keystroke.
 class _ColumnFilterRow extends StatelessWidget {
-  const _ColumnFilterRow({required this.view, required this.vm});
+  const _ColumnFilterRow({
+    required this.view,
+    required this.vm,
+    required this.formatter,
+  });
 
   final ReportView view;
   final ReportsViewModel vm;
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
@@ -1880,7 +1904,9 @@ class _ColumnFilterRow extends StatelessWidget {
                 padding: EdgeInsets.symmetric(horizontal: InSpacing.sm),
                 child: _ColumnFilterCell(
                   key: ValueKey('cf_${col.identifier}'),
+                  column: col,
                   initial: vm.columnFilters[col.identifier] ?? '',
+                  formatter: formatter,
                   onChanged: (v) => vm.setColumnFilter(col.identifier, v),
                 ),
               ),
@@ -1891,15 +1917,25 @@ class _ColumnFilterRow extends StatelessWidget {
   }
 }
 
+/// Per-column header filter, shaped to the column's [ReportColumnType] so the
+/// user doesn't have to know the engine's token syntax: age and boolean become
+/// dropdowns, date columns get a range picker, numeric columns a `min..max`
+/// field, and strings a free-text substring field. The tokens each control
+/// emits are exactly what `ReportEngine` matches on. Mirrors admin-portal's
+/// type-aware filter row.
 class _ColumnFilterCell extends StatefulWidget {
   const _ColumnFilterCell({
+    required this.column,
     required this.initial,
     required this.onChanged,
+    this.formatter,
     super.key,
   });
 
+  final ReportColumn column;
   final String initial;
   final ValueChanged<String> onChanged;
+  final Formatter? formatter;
 
   @override
   State<_ColumnFilterCell> createState() => _ColumnFilterCellState();
@@ -1918,22 +1954,168 @@ class _ColumnFilterCellState extends State<_ColumnFilterCell> {
     super.dispose();
   }
 
+  void _emitDebounced(String v) {
+    _debounce?.cancel();
+    _debounce = Timer(
+      const Duration(milliseconds: 250),
+      () => widget.onChanged(v),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    switch (widget.column.type) {
+      case ReportColumnType.age:
+        return _dropdown(_ageItems(context));
+      case ReportColumnType.boolean:
+        return _dropdown(_boolItems(context));
+      case ReportColumnType.date:
+      case ReportColumnType.dateTime:
+        return _DateRangeFilterButton(
+          value: widget.initial,
+          formatter: widget.formatter,
+          onChanged: widget.onChanged,
+        );
+      case ReportColumnType.number:
+      case ReportColumnType.money:
+      case ReportColumnType.duration:
+        return _textField(hint: context.tr('column_filter_range_hint'));
+      case ReportColumnType.string:
+        return _textField();
+    }
+  }
+
+  Widget _textField({String? hint}) {
     return TextField(
       controller: _controller,
+      decoration: InputDecoration(
+        isDense: true,
+        border: const OutlineInputBorder(),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        hintText: hint,
+        hintStyle: const TextStyle(fontSize: 12),
+      ),
+      style: const TextStyle(fontSize: 12),
+      onChanged: _emitDebounced,
+    );
+  }
+
+  Widget _dropdown(List<DropdownMenuItem<String>> items) {
+    final current = items.any((i) => i.value == widget.initial)
+        ? widget.initial
+        : '';
+    return DropdownButtonFormField<String>(
+      initialValue: current,
+      isDense: true,
+      isExpanded: true,
+      style: const TextStyle(fontSize: 12),
       decoration: const InputDecoration(
         isDense: true,
         border: OutlineInputBorder(),
         contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       ),
-      style: const TextStyle(fontSize: 12),
-      onChanged: (v) {
-        _debounce?.cancel();
-        _debounce = Timer(
-          const Duration(milliseconds: 250),
-          () => widget.onChanged(v),
-        );
+      items: items,
+      onChanged: (v) => widget.onChanged(v ?? ''),
+    );
+  }
+
+  List<DropdownMenuItem<String>> _ageItems(BuildContext context) {
+    // Tokens are the bucket upper bounds the engine's `_matchAge` accepts.
+    return [
+      DropdownMenuItem(value: '', child: Text(context.tr('all'))),
+      DropdownMenuItem(value: 'paid', child: Text(context.tr('paid'))),
+      const DropdownMenuItem(value: '30', child: Text('1 - 30')),
+      const DropdownMenuItem(value: '60', child: Text('31 - 60')),
+      const DropdownMenuItem(value: '90', child: Text('61 - 90')),
+      const DropdownMenuItem(value: '120', child: Text('91 - 120')),
+      const DropdownMenuItem(value: '120+', child: Text('120+')),
+    ];
+  }
+
+  List<DropdownMenuItem<String>> _boolItems(BuildContext context) {
+    return [
+      DropdownMenuItem(value: '', child: Text(context.tr('all'))),
+      DropdownMenuItem(value: 'true', child: Text(context.tr('yes'))),
+      DropdownMenuItem(value: 'false', child: Text(context.tr('no'))),
+    ];
+  }
+}
+
+/// Compact date-range filter for a date/dateTime column header. Opens the
+/// shared range picker and stores the resolved bounds as `startIso..endIso`
+/// (what `ReportEngine._matchDateRange` expects); the trailing × clears it.
+class _DateRangeFilterButton extends StatelessWidget {
+  const _DateRangeFilterButton({
+    required this.value,
+    required this.onChanged,
+    this.formatter,
+  });
+
+  final String value; // 'startIso..endIso' or ''
+  final ValueChanged<String> onChanged;
+  final Formatter? formatter;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final hasValue = value.contains('..');
+    final String label;
+    if (hasValue) {
+      final parts = value.split('..');
+      String fmt(String iso) => iso.trim().isEmpty
+          ? '—'
+          : (formatter?.date(iso.trim()) ?? iso.trim());
+      label = '${fmt(parts[0])} → ${fmt(parts.length > 1 ? parts[1] : '')}';
+    } else {
+      label = context.tr('date_range');
+    }
+    return OutlinedButton(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(0, 38),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        alignment: Alignment.centerLeft,
+      ),
+      onPressed: () => _open(context),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12),
+            ),
+          ),
+          if (hasValue)
+            GestureDetector(
+              onTap: () => onChanged(''),
+              child: Icon(Icons.close, size: 14, color: tokens.ink3),
+            )
+          else
+            Icon(Icons.date_range, size: 14, color: tokens.ink3),
+        ],
+      ),
+    );
+  }
+
+  void _open(BuildContext context) {
+    DashboardDateRange current = const DashboardPresetRange(
+      DashboardDatePreset.thisYear,
+    );
+    if (value.contains('..')) {
+      final parts = value.split('..');
+      final s = Date.tryParse(parts[0].trim());
+      final e = parts.length > 1 ? Date.tryParse(parts[1].trim()) : null;
+      if (s != null && e != null) {
+        current = DashboardCustomRange(start: s, end: e);
+      }
+    }
+    openDateRangePicker(
+      context,
+      current: current,
+      formatter: formatter,
+      onChange: (r) {
+        final (start, end) = r.resolve();
+        onChanged('${start.toIso()}..${end.toIso()}');
       },
     );
   }

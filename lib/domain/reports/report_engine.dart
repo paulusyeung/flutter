@@ -433,8 +433,6 @@ class ReportEngine {
   }
 
   bool _matchRange(ReportCell cell, String filter) {
-    final lower = _parseDecimalFromRange(filter, isStart: true);
-    final upper = _parseDecimalFromRange(filter, isStart: false);
     Decimal? value;
     if (cell is ReportNumberCell) {
       value = cell.value;
@@ -442,21 +440,27 @@ class ReportEngine {
       value = Decimal.fromInt(cell.seconds!);
     }
     if (value == null) return false;
+    final (lower, upper) = _parseNumericRange(filter);
     if (lower != null && value < lower) return false;
     if (upper != null && value > upper) return false;
     return true;
   }
 
-  Decimal? _parseDecimalFromRange(String filter, {required bool isStart}) {
-    final parts = filter.split('-');
-    if (parts.length == 1) {
-      // Single value — both bounds equal.
-      final v = Decimal.tryParse(parts.first.trim());
-      return v;
+  /// Parse a `min..max` range, either side optional (`100..`, `..500`,
+  /// `100..500`). A bare number with no `..` is a lower bound (`>=`), matching
+  /// admin-portal's numeric filter. Using `..` (not `-`) keeps negative bounds
+  /// such as `-100..0` unambiguous (the old `-`-split mangled them).
+  (Decimal?, Decimal?) _parseNumericRange(String filter) {
+    final i = filter.indexOf('..');
+    if (i < 0) {
+      return (Decimal.tryParse(filter.trim()), null);
     }
-    final raw = (isStart ? parts.first : parts.last).trim();
-    if (raw.isEmpty) return null;
-    return Decimal.tryParse(raw);
+    final lo = filter.substring(0, i).trim();
+    final hi = filter.substring(i + 2).trim();
+    return (
+      lo.isEmpty ? null : Decimal.tryParse(lo),
+      hi.isEmpty ? null : Decimal.tryParse(hi),
+    );
   }
 
   bool _matchAge(ReportCell cell, String filter) {

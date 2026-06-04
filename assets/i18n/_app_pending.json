@@ -797,6 +797,8 @@
   "run_to_refresh": "Run to refresh",
   "run_report_to_load_hint": "Run to load :report for the selected date range. Pick a different report or date range above to change the query.",
   "run_report_to_configure": "Run the report to choose columns and grouping.",
+  "column_filters_preview_only": "Column filters apply to the preview only — exports include all rows.",
+  "column_filter_range_hint": "min..max",
   "report_timed_out": "Report timed out — try a narrower date range or fewer entities.",
   "keep_waiting": "Keep waiting",
   "date_column": "Date column",

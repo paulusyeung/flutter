@@ -276,24 +276,47 @@ class RecurringExpenseRepository
     return SaveResult(entity: recurringExpense, outboxRowId: rowId);
   }
 
-  /// `MutationKind.start` — Draft / Paused → Active.
-  Future<void> start({required String companyId, required String id}) {
-    return enqueueMutation(
+  /// `MutationKind.start` — Draft / Paused → Active. Captures the full entity
+  /// as the outbox payload so the start PUT sends the same body the references
+  /// do (see [_startStopPayload]).
+  Future<void> start({required String companyId, required String id}) async {
+    await enqueueMutation(
       companyId: companyId,
       entityId: id,
       kind: MutationKind.start,
-      payload: {'id': id},
+      payload: await _startStopPayload(companyId, id),
     );
   }
 
   /// `MutationKind.stop` — Active / Pending → Paused.
-  Future<void> stop({required String companyId, required String id}) {
-    return enqueueMutation(
+  Future<void> stop({required String companyId, required String id}) async {
+    await enqueueMutation(
       companyId: companyId,
       entityId: id,
       kind: MutationKind.stop,
-      payload: {'id': id},
+      payload: await _startStopPayload(companyId, id),
     );
+  }
+
+  /// Body for a start/stop PUT: the full entity (`toApiJson`), matching
+  /// admin-portal + React. Falls back to a bare `{'id': id}` if the row isn't
+  /// in the cache — start/stop act on synced records, so that's defensive only.
+  ///
+  /// `preserveTempId: true` keeps the `id` key even for an unsynced (`tmp_`)
+  /// row (e.g. a Draft created offline then bulk-started) so the outbox drain's
+  /// `rewriteTempIdInPayloads` can rewrite it tmp→real before dispatch — same
+  /// reason [save] preserves it. Omitting it would leave the handler's
+  /// `payload['id']` null and fail the row on every drain.
+  Future<Map<String, dynamic>> _startStopPayload(
+    String companyId,
+    String id,
+  ) async {
+    final row = await db.recurringExpenseDao
+        .watchById(companyId: companyId, id: id)
+        .first;
+    return row == null
+        ? {'id': id}
+        : _fromRow(row).toApiJson(preserveTempId: true);
   }
 
   Future<void> addComment({

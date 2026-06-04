@@ -291,7 +291,16 @@ class _Body extends StatelessWidget {
     if (pickedColumn == null) {
       return _EmptyHint(message: context.tr('no_numeric_values_to_chart'));
     }
-    final values = _bars(view, pickedColumn!.identifier, currency);
+    // A date/dateTime grouping renders as a chronological line (the engine
+    // emits date buckets in ascending order); everything else is a
+    // value-sorted bar chart. Mirrors admin-portal's bar-vs-time-series split.
+    final isTimeSeries =
+        groupColumn != null &&
+        (groupColumn!.type == ReportColumnType.date ||
+            groupColumn!.type == ReportColumnType.dateTime);
+    final values = isTimeSeries
+        ? _series(view, pickedColumn!.identifier, currency)
+        : _bars(view, pickedColumn!.identifier, currency);
     if (values.isEmpty) {
       return _EmptyHint(message: context.tr('no_numeric_values_to_chart'));
     }
@@ -317,108 +326,182 @@ class _Body extends StatelessWidget {
           ),
         Semantics(
           label:
-              'Bar chart, ${values.length} groups by '
-              '${pickedColumn!.displayLabel}',
+              '${isTimeSeries ? 'Line chart' : 'Bar chart'}, '
+              '${values.length} groups by ${pickedColumn!.displayLabel}',
           child: SizedBox(
             height: 240,
-            child: BarChart(
-              BarChartData(
-                alignment: BarChartAlignment.spaceAround,
-                maxY: yMax,
-                minY: 0,
-                barTouchData: BarTouchData(
-                  enabled: true,
-                  touchTooltipData: BarTouchTooltipData(
-                    getTooltipItem: (group, _, rod, _) {
-                      final bar = values[group.x];
-                      return BarTooltipItem(
-                        '${bar.key}\n${_formatValue(bar.value, isMoney)}',
-                        TextStyle(color: context.inTheme.surface),
-                      );
-                    },
-                  ),
-                  touchCallback: (event, response) {
-                    if (!event.isInterestedForInteractions) return;
-                    final spot = response?.spot;
-                    if (spot == null) return;
-                    final idx = spot.touchedBarGroupIndex;
-                    if (idx < 0 || idx >= values.length) return;
-                    context.read<ReportsViewModel>().setSelectedGroup(
-                      values[idx].key,
-                    );
-                  },
-                ),
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 56,
-                      getTitlesWidget: (v, _) => Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: Text(
-                          _formatValue(Decimal.parse(v.toString()), isMoney),
-                          style: axisLabelStyle,
-                          textAlign: TextAlign.right,
-                        ),
-                      ),
-                    ),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: rotateLabels ? 72 : 36,
-                      getTitlesWidget: (v, _) {
-                        final i = v.toInt();
-                        if (i < 0 || i >= values.length) {
-                          return const SizedBox.shrink();
-                        }
-                        final label = values[i].key;
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: rotateLabels
-                              ? RotatedBox(
-                                  quarterTurns: -1,
-                                  child: Text(label, style: axisLabelStyle),
-                                )
-                              : Text(
-                                  label,
-                                  style: axisLabelStyle,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                        );
-                      },
-                    ),
-                  ),
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                ),
-                gridData: const FlGridData(show: false),
-                borderData: FlBorderData(show: false),
-                barGroups: [
-                  for (var i = 0; i < values.length; i++)
-                    BarChartGroupData(
-                      x: i,
-                      barRods: [
-                        BarChartRodData(
-                          toY: values[i].value.toDouble(),
-                          color: accent,
-                          width: 18,
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(InRadii.r1),
-                          ),
-                        ),
-                      ],
-                    ),
-                ],
-              ),
-            ),
+            child: isTimeSeries
+                ? _lineChart(context, values, yMax, rotateLabels, isMoney)
+                : _barChart(context, values, yMax, rotateLabels, isMoney),
           ),
         ),
       ],
+    );
+  }
+
+  /// Shared left (value) + bottom (group label) axis config. The bottom axis
+  /// only labels integer x positions (line charts may sample fractional x).
+  FlTitlesData _axisTitles(List<_Bar> values, bool isMoney, bool rotateLabels) {
+    return FlTitlesData(
+      leftTitles: AxisTitles(
+        sideTitles: SideTitles(
+          showTitles: true,
+          reservedSize: 56,
+          getTitlesWidget: (v, _) => Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: Text(
+              _formatValue(Decimal.parse(v.toString()), isMoney),
+              style: axisLabelStyle,
+              textAlign: TextAlign.right,
+            ),
+          ),
+        ),
+      ),
+      bottomTitles: AxisTitles(
+        sideTitles: SideTitles(
+          showTitles: true,
+          reservedSize: rotateLabels ? 72 : 36,
+          interval: 1,
+          getTitlesWidget: (v, _) {
+            if (v != v.roundToDouble()) return const SizedBox.shrink();
+            final i = v.toInt();
+            if (i < 0 || i >= values.length) {
+              return const SizedBox.shrink();
+            }
+            final label = values[i].key;
+            return Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: rotateLabels
+                  ? RotatedBox(
+                      quarterTurns: -1,
+                      child: Text(label, style: axisLabelStyle),
+                    )
+                  : Text(
+                      label,
+                      style: axisLabelStyle,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+            );
+          },
+        ),
+      ),
+      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+    );
+  }
+
+  Widget _barChart(
+    BuildContext context,
+    List<_Bar> values,
+    double yMax,
+    bool rotateLabels,
+    bool isMoney,
+  ) {
+    return BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.spaceAround,
+        maxY: yMax,
+        minY: 0,
+        barTouchData: BarTouchData(
+          enabled: true,
+          touchTooltipData: BarTouchTooltipData(
+            getTooltipItem: (group, _, rod, _) {
+              final bar = values[group.x];
+              return BarTooltipItem(
+                '${bar.key}\n${_formatValue(bar.value, isMoney)}',
+                TextStyle(color: context.inTheme.surface),
+              );
+            },
+          ),
+          touchCallback: (event, response) {
+            if (!event.isInterestedForInteractions) return;
+            final spot = response?.spot;
+            if (spot == null) return;
+            final idx = spot.touchedBarGroupIndex;
+            if (idx < 0 || idx >= values.length) return;
+            context.read<ReportsViewModel>().setSelectedGroup(values[idx].key);
+          },
+        ),
+        titlesData: _axisTitles(values, isMoney, rotateLabels),
+        gridData: const FlGridData(show: false),
+        borderData: FlBorderData(show: false),
+        barGroups: [
+          for (var i = 0; i < values.length; i++)
+            BarChartGroupData(
+              x: i,
+              barRods: [
+                BarChartRodData(
+                  toY: values[i].value.toDouble(),
+                  color: accent,
+                  width: 18,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(InRadii.r1),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _lineChart(
+    BuildContext context,
+    List<_Bar> values,
+    double yMax,
+    bool rotateLabels,
+    bool isMoney,
+  ) {
+    final tokens = context.inTheme;
+    return LineChart(
+      LineChartData(
+        maxY: yMax,
+        minY: 0,
+        minX: 0,
+        maxX: (values.length - 1).clamp(0, double.infinity).toDouble(),
+        lineTouchData: LineTouchData(
+          enabled: true,
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (_) => tokens.ink,
+            getTooltipItems: (spots) => [
+              for (final s in spots)
+                if (s.x.toInt() >= 0 && s.x.toInt() < values.length)
+                  LineTooltipItem(
+                    '${values[s.x.toInt()].key}\n'
+                    '${_formatValue(values[s.x.toInt()].value, isMoney)}',
+                    TextStyle(color: tokens.surface),
+                  ),
+            ],
+          ),
+          touchCallback: (event, response) {
+            if (!event.isInterestedForInteractions) return;
+            final spots = response?.lineBarSpots;
+            if (spots == null || spots.isEmpty) return;
+            final idx = spots.first.x.toInt();
+            if (idx < 0 || idx >= values.length) return;
+            context.read<ReportsViewModel>().setSelectedGroup(values[idx].key);
+          },
+        ),
+        titlesData: _axisTitles(values, isMoney, rotateLabels),
+        gridData: const FlGridData(show: false),
+        borderData: FlBorderData(show: false),
+        lineBarsData: [
+          LineChartBarData(
+            spots: [
+              for (var i = 0; i < values.length; i++)
+                FlSpot(i.toDouble(), values[i].value.toDouble()),
+            ],
+            color: accent,
+            barWidth: 2,
+            isCurved: false,
+            dotData: const FlDotData(show: true),
+            belowBarData: BarAreaData(
+              show: true,
+              color: accent.withValues(alpha: 0.12),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -441,6 +524,19 @@ class _Body extends StatelessWidget {
     }
     out.sort((a, b) => b.value.compareTo(a.value));
     return out;
+  }
+
+  /// Time-series points in the engine's group order (date buckets are emitted
+  /// ascending), so the line reads left-to-right in time. Unlike [_bars] it
+  /// keeps every bucket — including zero totals — so the timeline has no gaps.
+  List<_Bar> _series(ReportView view, String columnId, String currency) {
+    return [
+      for (final g in view.groups)
+        _Bar(
+          key: g.key,
+          value: g.numericTotals[columnId]?[currency] ?? Decimal.zero,
+        ),
+    ];
   }
 }
 

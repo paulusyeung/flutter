@@ -110,7 +110,17 @@ class _ClientPicker extends StatelessWidget {
               ? (c.name.isEmpty ? c.id : c.name)
               : c.displayName,
           idOf: (c) => c.id,
-          onChanged: (c) => vm.setClientId(c?.id ?? ''),
+          onChanged: (c) {
+            vm.setClientId(c?.id ?? '');
+            // Seed the invoice currency from the client's currency when none
+            // is set yet — mirrors ExpenseEditIdentitySection + admin-portal
+            // (the expense is invoiced to the client in their currency).
+            if (c != null &&
+                c.currencyId.isNotEmpty &&
+                vm.draft.invoiceCurrencyId.isEmpty) {
+              vm.setInvoiceCurrencyId(c.currencyId);
+            }
+          },
           errorText: vm.fieldErrorFor('client_id'),
         );
       },

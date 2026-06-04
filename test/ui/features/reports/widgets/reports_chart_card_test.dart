@@ -110,6 +110,11 @@ const _countCol = ReportColumn(
   displayLabel: 'Count',
   type: ReportColumnType.number,
 );
+const _dateCol = ReportColumn(
+  identifier: 'invoice.date',
+  displayLabel: 'Date',
+  type: ReportColumnType.date,
+);
 
 ReportView _viewWith({
   required List<GroupTotals> groups,
@@ -382,5 +387,42 @@ void main() {
       ),
       findsNothing,
     );
+  });
+
+  testWidgets('date grouping renders a chronological line chart, not bars', (
+    tester,
+  ) async {
+    final vm = await _seedVm(
+      tester,
+      const ReportPreview(columns: [_dateCol, _amountCol], rows: []),
+      activeGroupId: 'invoice.date',
+    );
+
+    // Groups keyed by ISO date buckets, deliberately NOT in value order, to
+    // prove the line follows chronological (group) order rather than the
+    // bar chart's value-descending sort.
+    final view = _viewWith(
+      visibleColumns: const [_dateCol, _amountCol],
+      groups: [
+        _group('2026-01-01', {
+          'invoice.amount': {'1': Decimal.fromInt(300)},
+        }),
+        _group('2026-02-01', {
+          'invoice.amount': {'1': Decimal.fromInt(100)},
+        }),
+        _group('2026-03-01', {
+          'invoice.amount': {'1': Decimal.fromInt(200)},
+        }),
+      ],
+    );
+    await _pump(tester, vm: vm, view: view, formatter: _testFormatter());
+
+    expect(find.byType(LineChart), findsOneWidget);
+    expect(find.byType(BarChart), findsNothing);
+
+    final chart = tester.widget<LineChart>(find.byType(LineChart));
+    final spots = chart.data.lineBarsData.first.spots;
+    // Chronological order preserved (300, 100, 200) — NOT value-sorted.
+    expect(spots.map((s) => s.y).toList(), [300.0, 100.0, 200.0]);
   });
 }

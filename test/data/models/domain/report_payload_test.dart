@@ -14,10 +14,11 @@ void main() {
       expect(json.containsKey('clients'), isFalse);
     });
 
-    test('date_range uses React reports short-form tokens, not long form', () {
-      // The reports endpoint expects `all`/`last7`/… (React reports `ranges`),
-      // NOT the dashboard/scheduler `all_time`/`last7_days` form. Stricter
-      // servers return an empty report for the long form. Regression guard.
+    test('date_range tokens match the server BaseExport switch', () {
+      // Verified against invoiceninja `app/Export/CSV/BaseExport.php`: the
+      // 365-day window is `last365_days` (NOT `last365`) and there is no
+      // `last90` case (an unknown token silently widens to all-time). Other
+      // tokens are short-form (`all`/`last7`/`last30`). Regression guard.
       String wireFor(ReportDatePreset p) =>
           const ReportPayload()
                   .copyWith(datePreset: p)
@@ -27,12 +28,20 @@ void main() {
       expect(wireFor(ReportDatePreset.allTime), 'all');
       expect(wireFor(ReportDatePreset.last7), 'last7');
       expect(wireFor(ReportDatePreset.last30), 'last30');
-      expect(wireFor(ReportDatePreset.last90), 'last90');
-      expect(wireFor(ReportDatePreset.last365), 'last365');
-      // Unchanged forms (already matched React).
+      expect(wireFor(ReportDatePreset.last365), 'last365_days');
       expect(wireFor(ReportDatePreset.thisMonth), 'this_month');
       expect(wireFor(ReportDatePreset.lastQuarter), 'last_quarter');
       expect(wireFor(ReportDatePreset.thisYear), 'this_year');
+    });
+
+    test('template id serializes as template_id (server wire key)', () {
+      // The server + React expect `template_id`; sending `template` silently
+      // drops the design-template filter. Regression guard.
+      final json = const ReportPayload(
+        templateId: 'design-123',
+      ).toJson(reportIdentifier: 'invoice');
+      expect(json['template_id'], 'design-123');
+      expect(json.containsKey('template'), isFalse);
     });
 
     test('default payload date_range is all-time (short form)', () {

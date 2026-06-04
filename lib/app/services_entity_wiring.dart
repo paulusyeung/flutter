@@ -585,6 +585,7 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
       MutationKind.start: ({required row, required payload}) async {
         final response = await recurringExpensesApi.start(
           id: payload['id'] as String,
+          payload: payload,
           idempotencyKey: row.idempotencyKey,
         );
         return response.data;
@@ -592,6 +593,7 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
       MutationKind.stop: ({required row, required payload}) async {
         final response = await recurringExpensesApi.stop(
           id: payload['id'] as String,
+          payload: payload,
           idempotencyKey: row.idempotencyKey,
         );
         return response.data;

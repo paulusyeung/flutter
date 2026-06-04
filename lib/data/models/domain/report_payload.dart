@@ -1,16 +1,17 @@
 import 'package:admin/data/models/value/date.dart';
 
-/// Date-range presets accepted by the server's report endpoints. Wire format
-/// matches React's reports `ranges` (`react/src/pages/reports/index/Reports.tsx`):
-/// short-form tokens (`all`, `last7`, `last30`, …), NOT the long-form
-/// `all_time`/`last7_days` tokens the dashboard + schedulers use. Stricter
-/// servers reject the long form and return an empty report. See
-/// `ReportDatePreset.wire`; the dashboard keeps its own `DashboardDatePreset`.
+/// Date-range presets accepted by the server's report endpoints. Wire tokens
+/// are verified against the server's own `BaseExport::date_range` switch
+/// (`invoiceninja/app/Export/CSV/BaseExport.php`): it accepts `all`, `last7`,
+/// `last30`, `this_month`, `last_month`, `this_quarter`, `last_quarter`,
+/// `last365_days`, `this_year`, `last_year`, `custom`. NOTE the 365-day window
+/// is `last365_days` (NOT `last365`), and there is **no** `last90` case — an
+/// unrecognized token silently widens to all-time, so we only expose tokens the
+/// server actually honors. The dashboard keeps its own `DashboardDatePreset`.
 enum ReportDatePreset {
   allTime,
   last7,
   last30,
-  last90,
   last365,
   thisMonth,
   lastMonth,
@@ -28,10 +29,8 @@ enum ReportDatePreset {
         return 'last7';
       case ReportDatePreset.last30:
         return 'last30';
-      case ReportDatePreset.last90:
-        return 'last90';
       case ReportDatePreset.last365:
-        return 'last365';
+        return 'last365_days';
       case ReportDatePreset.thisMonth:
         return 'this_month';
       case ReportDatePreset.lastMonth:
@@ -202,7 +201,8 @@ class ReportPayload {
         'activity_type_id': activityTypeId,
       if (productKey != null && productKey!.isNotEmpty)
         'product_key': productKey,
-      if (templateId != null && templateId!.isNotEmpty) 'template': templateId,
+      if (templateId != null && templateId!.isNotEmpty)
+        'template_id': templateId,
       if (documentEmailAttachment) 'document_email_attachment': true,
       if (pdfEmailAttachment) 'pdf_email_attachment': true,
       if (includeDeleted) 'include_deleted': true,
