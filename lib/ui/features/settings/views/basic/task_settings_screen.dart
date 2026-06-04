@@ -10,6 +10,7 @@ import 'package:admin/ui/features/settings/view_models/task_settings_view_model.
 import 'package:admin/ui/features/settings/widgets/cascade_settings_scaffold.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_dropdown_field.dart';
+import 'package:admin/ui/features/settings/widgets/overridable_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_switch_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_text_field.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
@@ -249,16 +250,15 @@ class _TaskSettingsBody extends StatelessWidget {
 
 /// Rounding card — gated UX (matches old Flutter).
 ///
-/// **Cascade design**: `task_round_to_nearest` is one logical field. To
-/// avoid presenting three override checkboxes for one field at non-company
-/// scope, only the granularity dropdown carries an `OverridableField`
-/// wrapper. The enable bool + custom seconds field bind to the same
-/// `taskRoundToNearest` key via plain widgets — any edit implicitly turns
-/// the override on by writing a non-null value to the draft. At
-/// non-company scope these plain widgets are `enabled: isOverridden`, so
-/// the user has to opt into the override (via the granularity checkbox)
-/// before they can edit. `task_round_up` is a separate field with its own
-/// override checkbox.
+/// **Cascade design**: enable + granularity + custom-seconds are one logical
+/// field (`task_round_to_nearest`), so they share a single override checkbox
+/// at client/group scope. That checkbox lives on the **enable dropdown**
+/// (wrapped in `OverridableField`), which is always visible — so a client can
+/// opt into overriding rounding even when the inherited value is "off". The
+/// granularity dropdown and custom-seconds field are plain widgets
+/// `enabled: isOverridden`; they become editable only once the override is on
+/// (and only render when rounding is enabled). `task_round_up` (direction) is
+/// a separate field with its own override checkbox.
 class _RoundingSection extends StatefulWidget {
   const _RoundingSection();
 
@@ -291,39 +291,64 @@ class _RoundingSectionState extends State<_RoundingSection> {
     final isOverridden =
         isCompanyScope || host.isOverridden('task_round_to_nearest');
 
+    // Granularity value shown when rounding is enabled (always one of the
+    // dropdown items: a preset, or 0 for "Custom").
+    final granularitySeconds = isCustomValue
+        ? 0
+        : (asInt ?? _lastEnabledSeconds);
+    // Server-side validation for the rounding field surfaces under the
+    // granularity dropdown (where it did before this field's checkbox moved
+    // to the enable dropdown).
+    final roundErrors = host.fieldErrors['task_round_to_nearest'];
+    final roundErrorText = (roundErrors != null && roundErrors.isNotEmpty)
+        ? roundErrors.first
+        : null;
+
     return FormSection(
       title: context.tr('rounding'),
       children: [
-        // Plain enable bool dropdown — NOT wrapped in OverridableField so
-        // only the granularity dropdown owns the override checkbox.
-        DropdownButtonFormField<bool>(
-          key: ValueKey('round-enable-$enabled-$isOverridden'),
-          initialValue: enabled,
-          decoration: InputDecoration(
-            labelText: context.tr('round_tasks'),
-            helperText: context.tr('round_tasks_help'),
-            enabled: isOverridden,
-          ),
-          items: [
-            DropdownMenuItem(value: true, child: Text(context.tr('enabled'))),
-            DropdownMenuItem(value: false, child: Text(context.tr('disabled'))),
-          ],
-          onChanged: isOverridden
-              ? (v) {
-                  if (v == null) return;
-                  host.updateSettings((s) {
-                    if (v) {
-                      // Re-enable: restore previous granularity, not a
-                      // hardcoded default — preserves the user's choice
-                      // across an off/on flip.
-                      return s.copyWith(
-                        taskRoundToNearest: _lastEnabledSeconds.toDouble(),
-                      );
-                    }
-                    return s.copyWith(taskRoundToNearest: 1);
-                  });
+        // Enable on/off — carries the canonical `task_round_to_nearest`
+        // override checkbox at client/group scope. It's always visible (unlike
+        // the granularity dropdown, which only renders when rounding is on), so
+        // a client can opt into overriding rounding even when the inherited
+        // value is "off". Renders unwrapped (no checkbox) at company scope.
+        OverridableField.bind(
+          apiKey: 'task_round_to_nearest',
+          label: context.tr('round_tasks'),
+          // Seed with the inherited seconds; coalesce null → 1 (the "disabled"
+          // sentinel) so the override registers even when nothing was set
+          // upstream — a null numeric seed parses back to null and wouldn't
+          // stick.
+          cascadedValueOnEnable: () =>
+              (host.settings.taskRoundToNearest?.toInt() ?? 1).toString(),
+          child: DropdownButtonFormField<bool>(
+            key: ValueKey('round-enable-$enabled'),
+            initialValue: enabled,
+            decoration: InputDecoration(
+              labelText: context.tr('round_tasks'),
+              helperText: context.tr('round_tasks_help'),
+            ),
+            items: [
+              DropdownMenuItem(value: true, child: Text(context.tr('enabled'))),
+              DropdownMenuItem(
+                value: false,
+                child: Text(context.tr('disabled')),
+              ),
+            ],
+            onChanged: (v) {
+              if (v == null) return;
+              host.updateSettings((s) {
+                if (v) {
+                  // Re-enable: restore previous granularity, not a hardcoded
+                  // default — preserves the user's choice across an off/on flip.
+                  return s.copyWith(
+                    taskRoundToNearest: _lastEnabledSeconds.toDouble(),
+                  );
                 }
-              : null,
+                return s.copyWith(taskRoundToNearest: 1);
+              });
+            },
+          ),
         ),
         if (enabled) ...[
           OverridableDropdownField<bool>(
@@ -343,12 +368,23 @@ class _RoundingSectionState extends State<_RoundingSection> {
             onChanged: (v) =>
                 host.updateSettings((s) => s.copyWith(taskRoundUp: v)),
           ),
-          // Canonical override checkbox for `task_round_to_nearest`.
-          OverridableDropdownField<int>(
-            label: context.tr('task_round_to_nearest'),
-            apiKey: 'task_round_to_nearest',
-            helperText: context.tr('task_round_to_nearest_help'),
-            value: isCustomValue ? 0 : (asInt ?? _lastEnabledSeconds),
+          // Granularity — plain dropdown; the enable dropdown above owns the
+          // `task_round_to_nearest` override checkbox. Editable only once the
+          // override is on (mirrors `_CustomSecondsField` below).
+          DropdownButtonFormField<int>(
+            key: ValueKey('round-granularity-$granularitySeconds'),
+            initialValue:
+                (granularitySeconds == 0 ||
+                    _kPresetSeconds.contains(granularitySeconds))
+                ? granularitySeconds
+                : null,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: context.tr('task_round_to_nearest'),
+              helperText: context.tr('task_round_to_nearest_help'),
+              errorText: roundErrorText,
+              enabled: isOverridden,
+            ),
             items: [
               DropdownMenuItem(value: 60, child: Text(context.tr('1_minute'))),
               DropdownMenuItem(
@@ -367,15 +403,16 @@ class _RoundingSectionState extends State<_RoundingSection> {
               DropdownMenuItem(value: 86400, child: Text(context.tr('1_day'))),
               DropdownMenuItem(value: 0, child: Text(context.tr('custom'))),
             ],
-            onChanged: (v) {
-              if (v == null) return;
-              // Always write — picking "Custom" (sentinel 0) flips
-              // `isCustomValue` true so the seconds field appears.
-              // Mirrors admin-portal behavior.
-              host.updateSettings(
-                (s) => s.copyWith(taskRoundToNearest: v.toDouble()),
-              );
-            },
+            onChanged: isOverridden
+                ? (v) {
+                    if (v == null) return;
+                    // Picking "Custom" (sentinel 0) flips isCustomValue so the
+                    // seconds field appears. Mirrors admin-portal behavior.
+                    host.updateSettings(
+                      (s) => s.copyWith(taskRoundToNearest: v.toDouble()),
+                    );
+                  }
+                : null,
           ),
           if (isCustomValue)
             _CustomSecondsField(
@@ -401,8 +438,8 @@ class _RoundingSectionState extends State<_RoundingSection> {
 }
 
 /// Plain integer-seconds input for the Custom rounding case. Not wrapped
-/// in `OverridableField` to avoid a duplicate checkbox — the granularity
-/// dropdown above is the canonical override for `task_round_to_nearest`.
+/// in `OverridableField` to avoid a duplicate checkbox — the enable dropdown
+/// above is the canonical override for `task_round_to_nearest`.
 class _CustomSecondsField extends StatefulWidget {
   const _CustomSecondsField({
     required this.host,

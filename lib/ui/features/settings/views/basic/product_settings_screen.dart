@@ -10,6 +10,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/features/settings/view_models/product_settings_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
+import 'package:admin/ui/features/settings/widgets/plain_radio_field.dart';
 import 'package:admin/ui/features/settings/widgets/settings_company_scoped_host.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_page_scaffold.dart';
@@ -181,7 +182,19 @@ class _ProductSettingsBody extends StatelessWidget {
                   vm.updateCompany((c) => c.copyWith(convertProducts: v)),
             ),
             if (draft.convertProducts)
-              _NestedChild(child: _ConvertToRadio(vm: vm)),
+              _NestedChild(
+                child: PlainRadioField<bool>(
+                  label: context.tr('convert_to'),
+                  value: vm.draft?.convertRateToClient ?? false,
+                  options: [
+                    (value: true, label: context.tr('client_currency')),
+                    (value: false, label: context.tr('company_currency')),
+                  ],
+                  onChanged: (v) => vm.updateCompany(
+                    (c) => c.copyWith(convertRateToClient: v),
+                  ),
+                ),
+              ),
           ],
         ),
       ],
@@ -276,64 +289,6 @@ class _ThresholdFieldState extends State<_ThresholdField> {
         );
       },
       onSubmitted: (_) => scope?.trySubmit(),
-    );
-  }
-}
-
-/// Convert To selector — true → client currency, false → company currency.
-/// Two choices, so a radio group (both options visible) per the design system
-/// — not a dropdown. Top-level `company.*` field, so a plain `RadioGroup` (no
-/// cascade/override binding, unlike `OverridableRadioField`). Conditional on
-/// `convert_products` so the value isn't editable when the surrounding feature
-/// is disabled.
-class _ConvertToRadio extends StatelessWidget {
-  const _ConvertToRadio({required this.vm});
-
-  final ProductSettingsViewModel vm;
-
-  @override
-  Widget build(BuildContext context) {
-    final value = vm.draft?.convertRateToClient ?? false;
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 8, bottom: 4),
-          child: Text(
-            context.tr('convert_to'),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-        RadioGroup<bool>(
-          groupValue: value,
-          onChanged: (v) {
-            if (v == null) return;
-            vm.updateCompany((c) => c.copyWith(convertRateToClient: v));
-          },
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              RadioListTile<bool>(
-                value: true,
-                title: Text(context.tr('client_currency')),
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-              ),
-              RadioListTile<bool>(
-                value: false,
-                title: Text(context.tr('company_currency')),
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

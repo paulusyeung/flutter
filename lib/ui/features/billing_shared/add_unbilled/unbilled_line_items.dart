@@ -48,3 +48,25 @@ LineItem expenseToLineItem(Expense expense) {
     expenseId: expense.id,
   );
 }
+
+/// Line items for the "Invoice Project" action: pending (uninvoiced, billable)
+/// project expenses first, then stopped + uninvoiced tasks that have logged
+/// billable time — mirroring admin-portal's project→invoice conversion. Skips
+/// unsynced (`tmp_`) rows. Callers pass the project's active tasks/expenses
+/// (e.g. via `watchForProject`, which already excludes archived/deleted).
+List<LineItem> projectInvoiceLineItems({
+  required List<Task> tasks,
+  required List<Expense> expenses,
+  DateTime? now,
+}) {
+  return <LineItem>[
+    for (final e in expenses)
+      if (!e.id.startsWith('tmp_') && e.isPending) expenseToLineItem(e),
+    for (final t in tasks)
+      if (!t.id.startsWith('tmp_') &&
+          !t.isRunning &&
+          !t.isInvoiced &&
+          t.totalDuration(now).inSeconds > 0)
+        taskToLineItem(t, now: now),
+  ];
+}

@@ -23,6 +23,7 @@ import 'package:admin/ui/features/settings/view_models/client_settings_draft_vie
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/view_models/task_settings_view_model.dart';
 import 'package:admin/ui/features/settings/views/basic/task_settings_screen.dart';
+import 'package:admin/ui/features/settings/widgets/overridable_field.dart';
 import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 
 import '../../../../../_localization_helper.dart';
@@ -200,6 +201,76 @@ void main() {
       final bound = hostOf(tester);
       expect(bound, isA<ClientSettingsDraftViewModel>());
       expect(bound, isNot(isA<TaskSettingsViewModel>()));
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    },
+  );
+
+  // Fix 5: with the company's rounding turned off, a client must still be able
+  // to opt into a per-client rounding override. The override checkbox now
+  // lives on the always-visible enable dropdown (it used to live on the
+  // granularity dropdown, which is hidden while rounding is off).
+  testWidgets(
+    'at client scope with company rounding off, the rounding override is '
+    'reachable',
+    (tester) async {
+      await db.companiesDao.upsertAll([
+        CompaniesCompanion.insert(
+          id: 'co-A',
+          name: 'Acme',
+          // No task_round_to_nearest → rounding is inherited "off".
+          settings: '{}',
+          permissions: '',
+          accountId: 'acct',
+          token: 'tok',
+          updatedAt: 1700000000,
+          enabledModules: const Value(32767),
+        ),
+      ]);
+      final level = SettingsLevelController()
+        ..setLevel(
+          SettingsLevel.client,
+          targetId: 'client-1',
+          targetName: 'Client One',
+        );
+      final services = _FakeServices(
+        auth: _FakeAuth(ValueNotifier(_sessionWith('co-A'))),
+        company: companyRepo,
+        clients: clientRepo,
+        db: db,
+        settingsLevel: level,
+        unsavedChangesGuard: UnsavedChangesGuard(),
+      );
+
+      await tester.pumpWidget(host(services));
+      await tester.pumpAndSettle();
+
+      // The enable dropdown renders even with rounding off, wrapped in an
+      // OverridableField that exposes the task_round_to_nearest checkbox.
+      final enableDropdown = find.byKey(const ValueKey('round-enable-false'));
+      expect(enableDropdown, findsOneWidget);
+      final roundingCheckbox = find.descendant(
+        of: find
+            .ancestor(
+              of: enableDropdown,
+              matching: find.byType(OverridableField),
+            )
+            .first,
+        matching: find.byType(Checkbox),
+      );
+      expect(
+        roundingCheckbox,
+        findsOneWidget,
+        reason:
+            'the rounding override must be reachable when company '
+            'rounding is off',
+      );
+
+      // Opting in registers the override on the client (not a no-op).
+      await tester.tap(roundingCheckbox);
+      await tester.pump();
+      expect(hostOf(tester).isOverridden('task_round_to_nearest'), isTrue);
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();

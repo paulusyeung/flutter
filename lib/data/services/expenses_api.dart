@@ -23,18 +23,20 @@ class ExpensesApi extends BaseEntityApi<ExpenseListApi, ExpenseItemApi> {
   ExpenseItemApi parseItem(Object json) =>
       ExpenseItemApi.fromJson(json as Map<String, dynamic>);
 
-  /// `POST /api/v1/expenses/{id}/template` — apply a design or email
-  /// template. Payload carries `template_id`. Mirrors
-  /// `InvoicesApi.runTemplate`.
+  /// `POST /api/v1/expenses/bulk {action:'template', ids:[id], template_id}` —
+  /// apply a design/email template. `template` is a bulk-only action: the
+  /// per-id `POST /{id}/template` route 404s (see [BaseEntityApi.bulkActionOne]).
+  /// The server dispatches an async job and returns a `{message}` (no entity),
+  /// so [bulkActionOne] yields null. Mirrors `InvoicesApi.runTemplate`.
   Future<ExpenseItemApi?> runTemplate({
     required String id,
     required String templateId,
     required String idempotencyKey,
-  }) => action(
+  }) => bulkActionOne(
     id: id,
     action: 'template',
     idempotencyKey: idempotencyKey,
-    payload: {'template_id': templateId},
+    extra: {'template_id': templateId},
   );
 
   /// Upload a document attachment to an expense. Returns the refreshed

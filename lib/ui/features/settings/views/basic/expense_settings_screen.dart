@@ -11,6 +11,7 @@ import 'package:admin/ui/features/settings/view_models/settings_draft_view_model
 import 'package:admin/ui/features/settings/widgets/cascade_settings_scaffold.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_searchable_dropdown_field.dart';
+import 'package:admin/ui/features/settings/widgets/plain_radio_field.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_switch_tile.dart';
 import 'package:admin/ui/features/settings/widgets/settings_text_field.dart';
@@ -225,9 +226,16 @@ class _ExpenseSettingsBody extends StatelessWidget {
           FormSection(
             title: context.tr('tax_settings'),
             children: [
-              _EnterTaxesRadio(
-                host: host,
+              PlainRadioField<bool>(
+                label: context.tr('enter_taxes'),
                 value: draft.calculateExpenseTaxByAmount,
+                options: [
+                  (value: false, label: context.tr('by_rate')),
+                  (value: true, label: context.tr('by_amount')),
+                ],
+                onChanged: (v) => host.updateCompany(
+                  (c) => c.copyWith(calculateExpenseTaxByAmount: v),
+                ),
               ),
               SettingsSwitchTile(
                 label: context.tr('inclusive_taxes'),
@@ -248,6 +256,7 @@ class _ExpenseSettingsBody extends StatelessWidget {
             alignment: AlignmentDirectional.centerStart,
             child: OutlinedButton.icon(
               onPressed: () => context.go('/settings/expense_categories'),
+              style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
               icon: const Icon(Icons.category_outlined, size: 18),
               label: Text(context.tr('configure_categories')),
             ),
