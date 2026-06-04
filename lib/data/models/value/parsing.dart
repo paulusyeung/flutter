@@ -20,6 +20,15 @@ DateTime? epochSecondsToUtcOrNull(int seconds) =>
 /// lose precision. Money goes through `parseMoney` in `money.dart`.
 Decimal numToDecimal(num n) => Decimal.parse(n.toString());
 
+/// The literal placeholder the server returns for a contact's `password`
+/// when one is set — it never sends the real hash (see
+/// `ClientContactTransformer`/`VendorContactTransformer`). It must never be
+/// written back: echoing it fails the backend's password validation
+/// (`min:7` + lower/upper/digit regexes) with a 422 the user can't see or
+/// clear. Treat it as "no change" — blanked on the way in (`fromApi`), never
+/// serialized on the way out (`toApiJson`).
+const String kMaskedPassword = '**********';
+
 /// Lift the optional API `documents` list into the non-nullable domain
 /// list. The DTO is nullable so it can distinguish JSON-omitted from
 /// JSON-empty; the domain model is non-nullable so the UI never has to

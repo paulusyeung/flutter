@@ -70,7 +70,9 @@ class VendorEditContactsSection extends StatelessWidget {
                 onLastName: (v) => vm.setContactLastNameAt(i, v),
                 onEmail: (v) => vm.setContactEmailAt(i, v),
                 onPhone: (v) => vm.setContactPhoneAt(i, v),
+                onSendEmail: (v) => vm.setContactSendEmailAt(i, v),
                 onCcOnly: (v) => vm.setContactCcOnlyAt(i, v),
+                onPassword: (v) => vm.setContactPasswordAt(i, v),
                 onCustomValue1: (v) => vm.setContactCustomValue1At(i, v),
                 onCustomValue2: (v) => vm.setContactCustomValue2At(i, v),
                 onCustomValue3: (v) => vm.setContactCustomValue3At(i, v),
@@ -116,7 +118,9 @@ class _ContactEditor extends StatelessWidget {
     required this.onLastName,
     required this.onEmail,
     required this.onPhone,
+    required this.onSendEmail,
     required this.onCcOnly,
+    required this.onPassword,
     required this.onCustomValue1,
     required this.onCustomValue2,
     required this.onCustomValue3,
@@ -134,7 +138,9 @@ class _ContactEditor extends StatelessWidget {
   final ValueChanged<String> onLastName;
   final ValueChanged<String> onEmail;
   final ValueChanged<String> onPhone;
+  final ValueChanged<bool> onSendEmail;
   final ValueChanged<bool> onCcOnly;
+  final ValueChanged<String> onPassword;
   final ValueChanged<String> onCustomValue1;
   final ValueChanged<String> onCustomValue2;
   final ValueChanged<String> onCustomValue3;
@@ -212,6 +218,13 @@ class _ContactEditor extends StatelessWidget {
           onChanged: onPhone,
           keyboardType: TextInputType.phone,
         ),
+        // Portal password. `fromApi` blanks the server's `**********` mask, so
+        // an empty field means "unchanged" and is never sent (see kMaskedPassword).
+        EntityEditField(
+          label: context.tr('password'),
+          initial: contact.password,
+          onChanged: onPassword,
+        ),
         // Per-contact custom fields (vendor_contact1..4). Renders inline,
         // gated by the company's configured labels — invisible when none set.
         EntityCustomFieldsSection(
@@ -234,6 +247,13 @@ class _ContactEditor extends StatelessWidget {
         ),
         LabeledSwitchGroup(
           items: [
+            LabeledSwitchItem(
+              label: context.tr('add_to_invoices'),
+              value: contact.sendEmail,
+              // CC-only and send_email are mutually exclusive; greyed out
+              // (onChanged: null) while CC-only is on.
+              onChanged: contact.ccOnly ? null : onSendEmail,
+            ),
             LabeledSwitchItem(
               label: context.tr('cc_only'),
               value: contact.ccOnly,

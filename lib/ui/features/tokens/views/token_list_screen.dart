@@ -10,7 +10,9 @@ import 'package:admin/data/models/domain/token.dart';
 import 'package:admin/data/repositories/token_repository.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 import 'package:admin/ui/features/settings/widgets/settings_entity_list_scaffold.dart';
+import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 import 'package:admin/ui/features/tokens/widgets/token_created_dialog.dart';
 
 const kTokensListSearchKeys = <String>['api_tokens', 'token', 'new_token'];
@@ -56,6 +58,21 @@ class _TokenListScreenState extends State<TokenListScreen> {
   @override
   Widget build(BuildContext context) {
     final services = context.read<Services>();
+    // API Tokens is a Pro / self-hosted feature (parity with React + the old
+    // app). Gate at the destination — mirrors quickbooks_screen — so the
+    // Integrations tile stays visible (no orphaned section title) while free
+    // hosted users hit the upgrade banner here. Trial-aware via hasProAccess.
+    final session = services.auth.session.value;
+    final allowed =
+        session != null && (session.isSelfHosted || session.hasProAccess);
+    if (!allowed) {
+      return SettingsScreenScaffold(
+        titleKey: 'api_tokens',
+        body: const SingleChildScrollView(
+          child: PlanGateBanner(style: PlanGateStyle.inset),
+        ),
+      );
+    }
     final companyId = services.auth.session.value?.currentCompanyId ?? '';
     final repo = services.tokens;
 

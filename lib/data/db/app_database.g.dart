@@ -21867,28 +21867,6 @@ class $VendorsTable extends Vendors with TableInfo<$VendorsTable, VendorRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _balanceMeta = const VerificationMeta(
-    'balance',
-  );
-  @override
-  late final GeneratedColumn<String> balance = GeneratedColumn<String>(
-    'balance',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _paidToDateMeta = const VerificationMeta(
-    'paidToDate',
-  );
-  @override
-  late final GeneratedColumn<String> paidToDate = GeneratedColumn<String>(
-    'paid_to_date',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
   static const VerificationMeta _phoneMeta = const VerificationMeta('phone');
   @override
   late final GeneratedColumn<String> phone = GeneratedColumn<String>(
@@ -21932,8 +21910,6 @@ class $VendorsTable extends Vendors with TableInfo<$VendorsTable, VendorRow> {
     city,
     countryId,
     currencyId,
-    balance,
-    paidToDate,
     phone,
     displayName,
   ];
@@ -22106,25 +22082,6 @@ class $VendorsTable extends Vendors with TableInfo<$VendorsTable, VendorRow> {
     } else if (isInserting) {
       context.missing(_currencyIdMeta);
     }
-    if (data.containsKey('balance')) {
-      context.handle(
-        _balanceMeta,
-        balance.isAcceptableOrUnknown(data['balance']!, _balanceMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_balanceMeta);
-    }
-    if (data.containsKey('paid_to_date')) {
-      context.handle(
-        _paidToDateMeta,
-        paidToDate.isAcceptableOrUnknown(
-          data['paid_to_date']!,
-          _paidToDateMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_paidToDateMeta);
-    }
     if (data.containsKey('phone')) {
       context.handle(
         _phoneMeta,
@@ -22237,14 +22194,6 @@ class $VendorsTable extends Vendors with TableInfo<$VendorsTable, VendorRow> {
         DriftSqlType.string,
         data['${effectivePrefix}currency_id'],
       )!,
-      balance: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}balance'],
-      )!,
-      paidToDate: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}paid_to_date'],
-      )!,
       phone: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}phone'],
@@ -22284,11 +22233,6 @@ class VendorRow extends DataClass implements Insertable<VendorRow> {
   final String city;
   final String countryId;
   final String currencyId;
-
-  /// Decimal stored as TEXT — round-trips precisely without IEEE-754 loss.
-  /// Sort the column numerically via `CAST(balance AS REAL)` in the DAO.
-  final String balance;
-  final String paidToDate;
   final String phone;
 
   /// Pre-resolved display string: vendor `name` (falls back to the first
@@ -22318,8 +22262,6 @@ class VendorRow extends DataClass implements Insertable<VendorRow> {
     required this.city,
     required this.countryId,
     required this.currencyId,
-    required this.balance,
-    required this.paidToDate,
     required this.phone,
     required this.displayName,
   });
@@ -22353,8 +22295,6 @@ class VendorRow extends DataClass implements Insertable<VendorRow> {
     map['city'] = Variable<String>(city);
     map['country_id'] = Variable<String>(countryId);
     map['currency_id'] = Variable<String>(currencyId);
-    map['balance'] = Variable<String>(balance);
-    map['paid_to_date'] = Variable<String>(paidToDate);
     map['phone'] = Variable<String>(phone);
     map['display_name'] = Variable<String>(displayName);
     return map;
@@ -22389,8 +22329,6 @@ class VendorRow extends DataClass implements Insertable<VendorRow> {
       city: Value(city),
       countryId: Value(countryId),
       currencyId: Value(currencyId),
-      balance: Value(balance),
-      paidToDate: Value(paidToDate),
       phone: Value(phone),
       displayName: Value(displayName),
     );
@@ -22423,8 +22361,6 @@ class VendorRow extends DataClass implements Insertable<VendorRow> {
       city: serializer.fromJson<String>(json['city']),
       countryId: serializer.fromJson<String>(json['countryId']),
       currencyId: serializer.fromJson<String>(json['currencyId']),
-      balance: serializer.fromJson<String>(json['balance']),
-      paidToDate: serializer.fromJson<String>(json['paidToDate']),
       phone: serializer.fromJson<String>(json['phone']),
       displayName: serializer.fromJson<String>(json['displayName']),
     );
@@ -22454,8 +22390,6 @@ class VendorRow extends DataClass implements Insertable<VendorRow> {
       'city': serializer.toJson<String>(city),
       'countryId': serializer.toJson<String>(countryId),
       'currencyId': serializer.toJson<String>(currencyId),
-      'balance': serializer.toJson<String>(balance),
-      'paidToDate': serializer.toJson<String>(paidToDate),
       'phone': serializer.toJson<String>(phone),
       'displayName': serializer.toJson<String>(displayName),
     };
@@ -22483,8 +22417,6 @@ class VendorRow extends DataClass implements Insertable<VendorRow> {
     String? city,
     String? countryId,
     String? currencyId,
-    String? balance,
-    String? paidToDate,
     String? phone,
     String? displayName,
   }) => VendorRow(
@@ -22509,8 +22441,6 @@ class VendorRow extends DataClass implements Insertable<VendorRow> {
     city: city ?? this.city,
     countryId: countryId ?? this.countryId,
     currencyId: currencyId ?? this.currencyId,
-    balance: balance ?? this.balance,
-    paidToDate: paidToDate ?? this.paidToDate,
     phone: phone ?? this.phone,
     displayName: displayName ?? this.displayName,
   );
@@ -22549,10 +22479,6 @@ class VendorRow extends DataClass implements Insertable<VendorRow> {
       currencyId: data.currencyId.present
           ? data.currencyId.value
           : this.currencyId,
-      balance: data.balance.present ? data.balance.value : this.balance,
-      paidToDate: data.paidToDate.present
-          ? data.paidToDate.value
-          : this.paidToDate,
       phone: data.phone.present ? data.phone.value : this.phone,
       displayName: data.displayName.present
           ? data.displayName.value
@@ -22584,8 +22510,6 @@ class VendorRow extends DataClass implements Insertable<VendorRow> {
           ..write('city: $city, ')
           ..write('countryId: $countryId, ')
           ..write('currencyId: $currencyId, ')
-          ..write('balance: $balance, ')
-          ..write('paidToDate: $paidToDate, ')
           ..write('phone: $phone, ')
           ..write('displayName: $displayName')
           ..write(')'))
@@ -22615,8 +22539,6 @@ class VendorRow extends DataClass implements Insertable<VendorRow> {
     city,
     countryId,
     currencyId,
-    balance,
-    paidToDate,
     phone,
     displayName,
   ]);
@@ -22645,8 +22567,6 @@ class VendorRow extends DataClass implements Insertable<VendorRow> {
           other.city == this.city &&
           other.countryId == this.countryId &&
           other.currencyId == this.currencyId &&
-          other.balance == this.balance &&
-          other.paidToDate == this.paidToDate &&
           other.phone == this.phone &&
           other.displayName == this.displayName);
 }
@@ -22673,8 +22593,6 @@ class VendorsCompanion extends UpdateCompanion<VendorRow> {
   final Value<String> city;
   final Value<String> countryId;
   final Value<String> currencyId;
-  final Value<String> balance;
-  final Value<String> paidToDate;
   final Value<String> phone;
   final Value<String> displayName;
   final Value<int> rowid;
@@ -22700,8 +22618,6 @@ class VendorsCompanion extends UpdateCompanion<VendorRow> {
     this.city = const Value.absent(),
     this.countryId = const Value.absent(),
     this.currencyId = const Value.absent(),
-    this.balance = const Value.absent(),
-    this.paidToDate = const Value.absent(),
     this.phone = const Value.absent(),
     this.displayName = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -22728,8 +22644,6 @@ class VendorsCompanion extends UpdateCompanion<VendorRow> {
     required String city,
     required String countryId,
     required String currencyId,
-    required String balance,
-    required String paidToDate,
     required String phone,
     required String displayName,
     this.rowid = const Value.absent(),
@@ -22744,8 +22658,6 @@ class VendorsCompanion extends UpdateCompanion<VendorRow> {
        city = Value(city),
        countryId = Value(countryId),
        currencyId = Value(currencyId),
-       balance = Value(balance),
-       paidToDate = Value(paidToDate),
        phone = Value(phone),
        displayName = Value(displayName);
   static Insertable<VendorRow> custom({
@@ -22770,8 +22682,6 @@ class VendorsCompanion extends UpdateCompanion<VendorRow> {
     Expression<String>? city,
     Expression<String>? countryId,
     Expression<String>? currencyId,
-    Expression<String>? balance,
-    Expression<String>? paidToDate,
     Expression<String>? phone,
     Expression<String>? displayName,
     Expression<int>? rowid,
@@ -22798,8 +22708,6 @@ class VendorsCompanion extends UpdateCompanion<VendorRow> {
       if (city != null) 'city': city,
       if (countryId != null) 'country_id': countryId,
       if (currencyId != null) 'currency_id': currencyId,
-      if (balance != null) 'balance': balance,
-      if (paidToDate != null) 'paid_to_date': paidToDate,
       if (phone != null) 'phone': phone,
       if (displayName != null) 'display_name': displayName,
       if (rowid != null) 'rowid': rowid,
@@ -22828,8 +22736,6 @@ class VendorsCompanion extends UpdateCompanion<VendorRow> {
     Value<String>? city,
     Value<String>? countryId,
     Value<String>? currencyId,
-    Value<String>? balance,
-    Value<String>? paidToDate,
     Value<String>? phone,
     Value<String>? displayName,
     Value<int>? rowid,
@@ -22856,8 +22762,6 @@ class VendorsCompanion extends UpdateCompanion<VendorRow> {
       city: city ?? this.city,
       countryId: countryId ?? this.countryId,
       currencyId: currencyId ?? this.currencyId,
-      balance: balance ?? this.balance,
-      paidToDate: paidToDate ?? this.paidToDate,
       phone: phone ?? this.phone,
       displayName: displayName ?? this.displayName,
       rowid: rowid ?? this.rowid,
@@ -22930,12 +22834,6 @@ class VendorsCompanion extends UpdateCompanion<VendorRow> {
     if (currencyId.present) {
       map['currency_id'] = Variable<String>(currencyId.value);
     }
-    if (balance.present) {
-      map['balance'] = Variable<String>(balance.value);
-    }
-    if (paidToDate.present) {
-      map['paid_to_date'] = Variable<String>(paidToDate.value);
-    }
     if (phone.present) {
       map['phone'] = Variable<String>(phone.value);
     }
@@ -22972,8 +22870,6 @@ class VendorsCompanion extends UpdateCompanion<VendorRow> {
           ..write('city: $city, ')
           ..write('countryId: $countryId, ')
           ..write('currencyId: $currencyId, ')
-          ..write('balance: $balance, ')
-          ..write('paidToDate: $paidToDate, ')
           ..write('phone: $phone, ')
           ..write('displayName: $displayName, ')
           ..write('rowid: $rowid')
@@ -53238,8 +53134,6 @@ typedef $$VendorsTableCreateCompanionBuilder =
       required String city,
       required String countryId,
       required String currencyId,
-      required String balance,
-      required String paidToDate,
       required String phone,
       required String displayName,
       Value<int> rowid,
@@ -53267,8 +53161,6 @@ typedef $$VendorsTableUpdateCompanionBuilder =
       Value<String> city,
       Value<String> countryId,
       Value<String> currencyId,
-      Value<String> balance,
-      Value<String> paidToDate,
       Value<String> phone,
       Value<String> displayName,
       Value<int> rowid,
@@ -53385,16 +53277,6 @@ class $$VendorsTableFilterComposer
 
   ColumnFilters<String> get currencyId => $composableBuilder(
     column: $table.currencyId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get balance => $composableBuilder(
-    column: $table.balance,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get paidToDate => $composableBuilder(
-    column: $table.paidToDate,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -53523,16 +53405,6 @@ class $$VendorsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get balance => $composableBuilder(
-    column: $table.balance,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get paidToDate => $composableBuilder(
-    column: $table.paidToDate,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get phone => $composableBuilder(
     column: $table.phone,
     builder: (column) => ColumnOrderings(column),
@@ -53628,14 +53500,6 @@ class $$VendorsTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<String> get balance =>
-      $composableBuilder(column: $table.balance, builder: (column) => column);
-
-  GeneratedColumn<String> get paidToDate => $composableBuilder(
-    column: $table.paidToDate,
-    builder: (column) => column,
-  );
-
   GeneratedColumn<String> get phone =>
       $composableBuilder(column: $table.phone, builder: (column) => column);
 
@@ -53694,8 +53558,6 @@ class $$VendorsTableTableManager
                 Value<String> city = const Value.absent(),
                 Value<String> countryId = const Value.absent(),
                 Value<String> currencyId = const Value.absent(),
-                Value<String> balance = const Value.absent(),
-                Value<String> paidToDate = const Value.absent(),
                 Value<String> phone = const Value.absent(),
                 Value<String> displayName = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -53721,8 +53583,6 @@ class $$VendorsTableTableManager
                 city: city,
                 countryId: countryId,
                 currencyId: currencyId,
-                balance: balance,
-                paidToDate: paidToDate,
                 phone: phone,
                 displayName: displayName,
                 rowid: rowid,
@@ -53750,8 +53610,6 @@ class $$VendorsTableTableManager
                 required String city,
                 required String countryId,
                 required String currencyId,
-                required String balance,
-                required String paidToDate,
                 required String phone,
                 required String displayName,
                 Value<int> rowid = const Value.absent(),
@@ -53777,8 +53635,6 @@ class $$VendorsTableTableManager
                 city: city,
                 countryId: countryId,
                 currencyId: currencyId,
-                balance: balance,
-                paidToDate: paidToDate,
                 phone: phone,
                 displayName: displayName,
                 rowid: rowid,

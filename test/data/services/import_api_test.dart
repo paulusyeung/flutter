@@ -141,7 +141,10 @@ void main() {
       expect(path, '/api/v1/import');
       expect(msg, 'Import queued');
       expect(body!['hash'], 'abc');
-      expect(body!['import_type'], 'client');
+      // `import_type` is the literal format the server's bootEngine switches
+      // on ('csv'), NOT the entity — the entity is carried by the column_map
+      // key below. Sending the entity here null-engines the server import job.
+      expect(body!['import_type'], 'csv');
       expect(body!['skip_header'], true);
       final mapping = (body!['column_map'] as Map)['client']['mapping'] as Map;
       // Empty selections are dropped; keys are stringified indices.

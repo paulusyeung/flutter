@@ -24,6 +24,24 @@ class VendorsApi extends BaseEntityApi<VendorListApi, VendorItemApi> {
   VendorItemApi parseItem(Object json) =>
       VendorItemApi.fromJson(json as Map<String, dynamic>);
 
+  /// Merge two vendors: absorb [mergeFromId] into [mergeIntoId] (the
+  /// survivor). `POST /api/v1/vendors/{into}/{from}/merge`, no body.
+  /// Password-gated server-side. Mirrors `ClientsApi.merge`.
+  Future<VendorApi> merge({
+    required String mergeIntoId,
+    required String mergeFromId,
+    required String idempotencyKey,
+    bool requiresPassword = true,
+  }) async {
+    final raw = await client.mutate(
+      method: 'POST',
+      path: '$basePath/$mergeIntoId/$mergeFromId/merge',
+      idempotencyKey: idempotencyKey,
+      requiresPassword: requiresPassword,
+    );
+    return parseItem(raw as Object).data;
+  }
+
   /// Upload a document attachment to a vendor. Returns the refreshed vendor
   /// envelope with the new document in its `documents` array. Mirrors the
   /// `ClientsApi.uploadDocument` shape — same multipart field name.

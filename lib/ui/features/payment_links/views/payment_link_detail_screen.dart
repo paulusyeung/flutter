@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/data/models/domain/payment_link.dart';
+import 'package:admin/data/models/domain/recurring_invoice.dart';
 import 'package:admin/domain/recurring_frequency.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/invoices/widgets/invoice_status_pill.dart';
 import 'package:admin/ui/features/payment_links/view_models/payment_link_detail_view_model.dart';
 import 'package:admin/ui/features/payment_links/widgets/detail/payment_link_detail_actions_row.dart';
 import 'package:admin/ui/features/payment_links/widgets/detail/payment_link_detail_header.dart';
+import 'package:admin/ui/features/recurring_invoices/widgets/recurring_invoice_status_pill.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/utils/formatting.dart';
@@ -72,6 +77,21 @@ class _PaymentLinkDetailScreenState extends State<PaymentLinkDetailScreen>
               ),
               SizedBox(height: InSpacing.xl),
               _OverviewCard(paymentLink: paymentLink, formatter: formatter),
+              // Each related card owns its own leading gap and renders
+              // nothing when empty, so a payment link with no invoices shows
+              // no placeholder card (and no stray spacer).
+              _RelatedInvoicesCard(
+                services: _services,
+                companyId: _companyId,
+                subscriptionId: paymentLink.id,
+                formatter: formatter,
+              ),
+              _RelatedRecurringInvoicesCard(
+                services: _services,
+                companyId: _companyId,
+                subscriptionId: paymentLink.id,
+                formatter: formatter,
+              ),
             ],
           ),
         );
@@ -181,6 +201,150 @@ class _PurchasePageRow extends StatelessWidget {
               },
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Embedded "Invoices" card — invoices this payment link generated, filtered
+/// locally by `subscription_id`. Mirrors admin-portal's subscription view,
+/// which surfaced the same related lists. Reads local Drift (no extra fetch),
+/// same as the Client detail invoices card.
+class _RelatedInvoicesCard extends StatelessWidget {
+  const _RelatedInvoicesCard({
+    required this.services,
+    required this.companyId,
+    required this.subscriptionId,
+    required this.formatter,
+  });
+
+  final Services services;
+  final String companyId;
+  final String subscriptionId;
+  final Formatter? formatter;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<Invoice>>(
+      stream: services.invoices.watchForSubscription(
+        companyId: companyId,
+        subscriptionId: subscriptionId,
+      ),
+      builder: (context, snapshot) {
+        final invoices = snapshot.data ?? const <Invoice>[];
+        if (invoices.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: EdgeInsets.only(top: InSpacing.lg(context)),
+          child: FormSection(
+            title: context.tr('invoices'),
+            spacing: 0,
+            children: [
+              for (final inv in invoices)
+                _RelatedEntityRow(
+                  number: inv.number,
+                  amountText: formatter?.money(inv.amount) ?? '—',
+                  statusPill: InvoiceStatusPill(
+                    statusId: inv.calculatedStatusId,
+                    hasBounce: inv.hasBouncedInvitation,
+                  ),
+                  onTap: () => context.go('/invoices/${inv.id}'),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Embedded "Recurring Invoices" card — recurring invoices belonging to the
+/// payment link (filtered locally by `subscription_id`).
+class _RelatedRecurringInvoicesCard extends StatelessWidget {
+  const _RelatedRecurringInvoicesCard({
+    required this.services,
+    required this.companyId,
+    required this.subscriptionId,
+    required this.formatter,
+  });
+
+  final Services services;
+  final String companyId;
+  final String subscriptionId;
+  final Formatter? formatter;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<RecurringInvoice>>(
+      stream: services.recurringInvoices.watchForSubscription(
+        companyId: companyId,
+        subscriptionId: subscriptionId,
+      ),
+      builder: (context, snapshot) {
+        final items = snapshot.data ?? const <RecurringInvoice>[];
+        if (items.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: EdgeInsets.only(top: InSpacing.lg(context)),
+          child: FormSection(
+            title: context.tr('recurring_invoices'),
+            spacing: 0,
+            children: [
+              for (final ri in items)
+                _RelatedEntityRow(
+                  number: ri.number,
+                  amountText: formatter?.money(ri.amount) ?? '—',
+                  statusPill: RecurringInvoiceStatusPill(
+                    statusId: ri.calculatedStatusId,
+                  ),
+                  onTap: () => context.go('/recurring_invoices/${ri.id}'),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// One tappable row inside a related-entity card — number on the left, an
+/// optional status pill, and the amount on the right. Tapping opens the
+/// entity's detail screen.
+class _RelatedEntityRow extends StatelessWidget {
+  const _RelatedEntityRow({
+    required this.number,
+    required this.amountText,
+    required this.onTap,
+    this.statusPill,
+  });
+
+  final String number;
+  final String amountText;
+  final VoidCallback onTap;
+  final Widget? statusPill;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: InSpacing.sm),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                number.isEmpty ? '—' : number,
+                style: theme.textTheme.bodyMedium,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (statusPill != null) ...[
+              SizedBox(width: InSpacing.md(context)),
+              statusPill!,
+            ],
+            SizedBox(width: InSpacing.md(context)),
+            Text(amountText, style: theme.textTheme.bodyMedium),
+          ],
+        ),
       ),
     );
   }

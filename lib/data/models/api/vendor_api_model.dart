@@ -7,10 +7,10 @@ part 'vendor_api_model.g.dart';
 
 /// Raw JSON shape of `/api/v1/vendors/{id}` as returned by the server.
 ///
-/// Field names mirror the server keys via `@JsonKey`. Numeric monetary
-/// fields stay as `Object` here because the server is inconsistent
-/// (sometimes `"100.00"`, sometimes `100`) — they get parsed via
-/// `parseMoney` in `Vendor.fromApi`.
+/// Field names mirror the server keys via `@JsonKey`. The vendor resource has
+/// no server-side `balance`/`paid_to_date` (unlike clients) — a vendor's spend
+/// is derived locally from its expenses. Unlike clients, `currency_id` /
+/// `language_id` / `classification` live top-level here, not under `settings`.
 @freezed
 abstract class VendorApi with _$VendorApi {
   const factory VendorApi({
@@ -27,9 +27,11 @@ abstract class VendorApi with _$VendorApi {
     @Default('') String state,
     @JsonKey(name: 'postal_code') @Default('') String postalCode,
     @JsonKey(name: 'country_id') @Default('') String countryId,
-    @JsonKey(name: 'balance') @Default('0') Object balance,
-    @JsonKey(name: 'paid_to_date') @Default('0') Object paidToDate,
     @JsonKey(name: 'currency_id') @Default('') String currencyId,
+    @JsonKey(name: 'language_id') @Default('') String languageId,
+    @Default('') String classification,
+    @JsonKey(name: 'is_tax_exempt') @Default(false) bool isTaxExempt,
+    @JsonKey(name: 'routing_id') @Default('') String routingId,
     @JsonKey(name: 'private_notes') @Default('') String privateNotes,
     @JsonKey(name: 'public_notes') @Default('') String publicNotes,
     @JsonKey(name: 'custom_value1') @Default('') String customValue1,
@@ -41,6 +43,7 @@ abstract class VendorApi with _$VendorApi {
     @JsonKey(name: 'created_at') @Default(0) int createdAt,
     @JsonKey(name: 'updated_at') @Default(0) int updatedAt,
     @JsonKey(name: 'archived_at') @Default(0) int archivedAt,
+    @JsonKey(name: 'last_login') @Default(0) int lastLogin,
     @JsonKey(name: 'is_deleted') @Default(false) bool isDeleted,
     @Default(<VendorContactApi>[]) List<VendorContactApi> contacts,
     // Nullable on purpose: the IN list endpoint omits `documents` unless
@@ -58,10 +61,10 @@ abstract class VendorApi with _$VendorApi {
 
 /// Raw JSON shape of a `vendor.contacts[]` entry as returned by the server.
 ///
-/// Mirrors the same set of fields admin-portal's `VendorContactEntity` ships
-/// (id + name + email + phone + send_email + password + custom_value1..4).
-/// Vendor contacts don't get an `is_primary` flag — the server doesn't
-/// expose one and the legacy entity didn't model one either.
+/// Field names mirror the server keys via `@JsonKey`. Vendor contacts carry
+/// the same shape as client contacts minus `contact_key`: identity + email +
+/// phone + password + `send_email`/`cc_only`/`is_primary`/`can_sign` flags +
+/// portal `link` + `last_login` + `custom_value1..4`.
 @freezed
 abstract class VendorContactApi with _$VendorContactApi {
   const factory VendorContactApi({
@@ -74,6 +77,8 @@ abstract class VendorContactApi with _$VendorContactApi {
     @JsonKey(name: 'send_email') @Default(true) bool sendEmail,
     @JsonKey(name: 'cc_only') @Default(false) bool ccOnly,
     @JsonKey(name: 'is_primary') @Default(false) bool isPrimary,
+    @JsonKey(name: 'can_sign') @Default(false) bool canSign,
+    @Default('') String link,
     @JsonKey(name: 'custom_value1') @Default('') String customValue1,
     @JsonKey(name: 'custom_value2') @Default('') String customValue2,
     @JsonKey(name: 'custom_value3') @Default('') String customValue3,
@@ -81,6 +86,7 @@ abstract class VendorContactApi with _$VendorContactApi {
     @JsonKey(name: 'created_at') @Default(0) int createdAt,
     @JsonKey(name: 'updated_at') @Default(0) int updatedAt,
     @JsonKey(name: 'archived_at') @Default(0) int archivedAt,
+    @JsonKey(name: 'last_login') @Default(0) int lastLogin,
     @JsonKey(name: 'is_deleted') @Default(false) bool isDeleted,
   }) = _VendorContactApi;
 

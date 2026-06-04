@@ -49,7 +49,9 @@ abstract class Contact with _$Contact {
     ccOnly: a.ccOnly,
     isLocked: a.isLocked,
     canSign: a.canSign,
-    password: a.password,
+    // Server sends `**********` when a password is set; treat it as "no
+    // password entered" so it's never echoed back (see [kMaskedPassword]).
+    password: a.password == kMaskedPassword ? '' : a.password,
     updatedAt: epochSecondsToUtc(a.updatedAt),
     isDeleted: a.isDeleted,
     link: a.link,
@@ -73,7 +75,8 @@ extension ContactCopy on Contact {
     'send_email': sendEmail,
     'cc_only': ccOnly,
     'can_sign': canSign,
-    if (password.isNotEmpty) 'password': password,
+    if (password.isNotEmpty && password != kMaskedPassword)
+      'password': password,
     if (contactKey.isNotEmpty) 'contact_key': contactKey,
     'link': link,
     'custom_value1': customValue1,

@@ -1,5 +1,3 @@
-import 'package:decimal/decimal.dart';
-
 import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/data/models/domain/vendor_contact.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
@@ -80,6 +78,14 @@ class VendorEditViewModel extends GenericEditViewModel<Vendor> {
       updateDraft(draft.copyWith(countryId: value));
   void setCurrencyId(String value) =>
       updateDraft(draft.copyWith(currencyId: value));
+  void setLanguageId(String value) =>
+      updateDraft(draft.copyWith(languageId: value));
+  void setClassification(String value) =>
+      updateDraft(draft.copyWith(classification: value));
+  void setRoutingId(String value) =>
+      updateDraft(draft.copyWith(routingId: value));
+  void setIsTaxExempt(bool value) =>
+      updateDraft(draft.copyWith(isTaxExempt: value));
   void setPrivateNotes(String value) =>
       updateDraft(draft.copyWith(privateNotes: value));
   void setPublicNotes(String value) =>
@@ -136,6 +142,12 @@ class VendorEditViewModel extends GenericEditViewModel<Vendor> {
       _updateContactAt(i, (c) => c.copyWith(phone: v));
   void setContactCcOnlyAt(int i, bool v) =>
       _updateContactAt(i, (c) => c.copyWith(ccOnly: v));
+  void setContactSendEmailAt(int i, bool v) =>
+      _updateContactAt(i, (c) => c.copyWith(sendEmail: v));
+  void setContactCanSignAt(int i, bool v) =>
+      _updateContactAt(i, (c) => c.copyWith(canSign: v));
+  void setContactPasswordAt(int i, String v) =>
+      _updateContactAt(i, (c) => c.copyWith(password: v));
   void setContactCustomValue1At(int i, String v) =>
       _updateContactAt(i, (c) => c.copyWith(customValue1: v));
   void setContactCustomValue2At(int i, String v) =>
@@ -167,8 +179,6 @@ Vendor _emptyVendor() => Vendor(
   state: '',
   postalCode: '',
   countryId: '',
-  balance: Decimal.zero,
-  paidToDate: Decimal.zero,
   currencyId: '',
   privateNotes: '',
   publicNotes: '',

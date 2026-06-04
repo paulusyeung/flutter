@@ -376,7 +376,10 @@ the honest default.
 | Vendor — comments / internal notes | ✅ | ✅ | ✅ | ✅ | |
 | Vendor — documents / attachments | ✅ | ✅ | ✅ | ✅ | |
 | Vendor — activities | ✅ | ✅ | ✅ | ✅ | |
-| Vendor — "New expense" shortcut (prefills vendor) | ✅ | ✅ | ✅ | ✅ | |
+| Vendor — "New expense / purchase order / recurring expense" shortcuts (prefill vendor) | ✅ | ✅ | ✅ | ✅ | |
+| Vendor — merge into another vendor | ✅ | ✅ | ✅ | ✅ | |
+| Vendor — portal link (open primary contact portal) | ✅ | ✅ | ✅ | ✅ | |
+| Vendor — currency / language / classification / tax-exempt / routing id | ✅ | ✅ | ✅ | ✅ | |
 | Vendor — custom fields | ✅ | ✅ | ✅ | ✅ | |
 | Vendor — view vendor expenses / POs / recurring expenses | ✅ | ✅ | ✅ | ✅ | |
 | Vendor — archive / restore / delete / purge | ✅ | ✅ | ✅ | ✅ | |
@@ -986,8 +989,10 @@ Field-level breakdown of every option under each settings panel. Source of truth
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Import (action) | ✅ | 🟡 | ✅ | ✅ | |
-| Export (action) | ✅ | ✅ | ✅ | ✅ | |
+| Import — CSV (per-entity column mapping) | ✅ | 🟡 | ✅ | ✅ | |
+| Import — third-party (FreshBooks / Invoice2Go / Invoicely / Wave / Zoho / QuickBooks) | ✅ | ✅ | ✅ | ✅ | |
+| Import — company migration (.zip / .json) | ✅ | ✅ | ✅ | ✅ | |
+| Export — CSV (per-entity, date-range filter) | ✅ | ✅ | ✅ | ✅ | |
 
 ### Device Settings
 

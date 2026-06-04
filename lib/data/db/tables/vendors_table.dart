@@ -29,11 +29,6 @@ class Vendors extends Table
   TextColumn get city => text()();
   TextColumn get countryId => text().named('country_id')();
   TextColumn get currencyId => text().named('currency_id')();
-
-  /// Decimal stored as TEXT — round-trips precisely without IEEE-754 loss.
-  /// Sort the column numerically via `CAST(balance AS REAL)` in the DAO.
-  TextColumn get balance => text()();
-  TextColumn get paidToDate => text().named('paid_to_date')();
   TextColumn get phone => text()();
 
   /// Pre-resolved display string: vendor `name` (falls back to the first

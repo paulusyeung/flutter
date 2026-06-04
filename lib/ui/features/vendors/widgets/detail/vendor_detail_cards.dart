@@ -107,9 +107,9 @@ class VendorDetailCardsGrid extends StatelessWidget {
   }
 }
 
-// Aggregate KPI strip extracted to `vendor_detail_kpi_strip.dart` — grew
-// from 2 cells (balance + paid_to_date) to 4 cells (+ total_expenses +
-// last_expense_date computed from the local Drift store).
+// Aggregate KPI strip extracted to `vendor_detail_kpi_strip.dart` — vendors
+// have no server-side balance, so it shows locally-derived expense aggregates
+// (total + last expense date) computed from the local Drift store.
 
 // ───────────────────────── Details ─────────────────────────
 
@@ -149,6 +149,17 @@ class VendorDetailDetailsCard extends StatelessWidget {
           yes: yes,
           no: no,
         );
+        final statics = services.statics;
+        final currencyName = vendor.currencyId.isEmpty
+            ? ''
+            : (statics.currency(vendor.currencyId)?.name ?? '');
+        final languageName = vendor.languageId.isEmpty
+            ? ''
+            : (statics.language(vendor.languageId)?.name ?? '');
+        final lastLoginText = vendor.lastLogin == null
+            ? ''
+            : (formatter?.date(vendor.lastLogin!.toIso8601String()) ??
+                  vendor.lastLogin!.toIso8601String());
         final rows = <Widget?>[
           DetailInfoRow(
             label: context.tr('website'),
@@ -173,6 +184,29 @@ class VendorDetailDetailsCard extends StatelessWidget {
             value: orDash(vendor.idNumber),
             valueColor: dimIfEmpty(vendor.idNumber),
           ),
+          DetailInfoRow(
+            label: context.tr('classification'),
+            value: vendor.classification.isEmpty
+                ? '—'
+                : context.tr(vendor.classification),
+            valueColor: dimIfEmpty(vendor.classification),
+          ),
+          DetailInfoRow(
+            label: context.tr('routing_id'),
+            value: orDash(vendor.routingId),
+            valueColor: dimIfEmpty(vendor.routingId),
+          ),
+          if (vendor.isTaxExempt)
+            DetailInfoRow(label: context.tr('tax_exempt'), value: yes),
+          if (currencyName.isNotEmpty)
+            DetailInfoRow(label: context.tr('currency'), value: currencyName),
+          if (languageName.isNotEmpty)
+            DetailInfoRow(label: context.tr('language'), value: languageName),
+          if (lastLoginText.isNotEmpty)
+            DetailInfoRow(
+              label: context.tr('last_login'),
+              value: lastLoginText,
+            ),
           for (final r in customRows)
             DetailInfoRow(label: r.label, value: r.value),
         ];

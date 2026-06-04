@@ -1,5 +1,5 @@
-import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
@@ -14,6 +14,10 @@ import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/notify_async.dart';
 import 'package:admin/ui/features/clients/widgets/detail/add_comment_dialog.dart';
 import 'package:admin/ui/features/expenses/view_models/expense_edit_view_model.dart';
+import 'package:admin/ui/features/purchase_orders/view_models/purchase_order_edit_view_model.dart';
+import 'package:admin/ui/features/recurring_expenses/view_models/recurring_expense_edit_view_model.dart';
+import 'package:admin/ui/features/vendors/widgets/detail/merge_vendor_dialog.dart';
+import 'package:admin/ui/features/vendors/widgets/vendor_portal.dart';
 
 /// Full action set surfaced for a vendor. Mirrors the actions exposed in
 /// admin-portal's `vendor_model.dart#getActions`. Consumed by both the
@@ -21,9 +25,13 @@ import 'package:admin/ui/features/expenses/view_models/expense_edit_view_model.d
 /// in sync — see [VendorActions.itemsFor].
 enum VendorAction {
   edit,
+  vendorPortal,
   addComment,
   clone,
   newExpense,
+  newPurchaseOrder,
+  newRecurringExpense,
+  merge,
   archive,
   restore,
   delete,
@@ -59,13 +67,34 @@ class VendorActions {
     final canArchive = vendor.archivedAt == null && !vendor.isDeleted;
     final canRestore = vendor.archivedAt != null || vendor.isDeleted;
     final me = context.read<Services>().auth.session.value?.currentCompany;
-    // Purge is admin/owner-only — matches React's `isAdmin || isOwner` gate.
+    final isAdminOrOwner = (me?.isAdmin ?? false) || (me?.isOwner ?? false);
+
+    // The primary contact (falling back to the first) carries the portal
+    // link. A `tmp_` vendor's contacts have no server link yet, so the action
+    // disables itself rather than opening a dead URL.
+    final portalContact = vendor.contacts.isEmpty
+        ? null
+        : vendor.contacts.firstWhere(
+            (c) => c.isPrimary,
+            orElse: () => vendor.contacts.first,
+          );
+    final hasPortalLink =
+        (portalContact?.link.isNotEmpty ?? false) &&
+        !vendor.id.startsWith('tmp_');
 
     return [
       editActionItem(
         context: context,
         kind: VendorAction.edit,
         onTap: () => onTap(VendorAction.edit),
+      ),
+      EntityActionItem(
+        kind: VendorAction.vendorPortal,
+        icon: Icons.cloud_outlined,
+        label: context.tr('vendor_portal'),
+        // Opens the primary contact's portal with silent auto-login.
+        enabled: hasPortalLink,
+        onTap: () => onTap(VendorAction.vendorPortal),
       ),
       EntityActionItem(
         kind: VendorAction.addComment,
@@ -88,6 +117,31 @@ class VendorActions {
           label: context.tr('new_expense'),
           enabled: true,
           onTap: () => onTap(VendorAction.newExpense),
+        ),
+      if (me?.moduleEnabled(EntityType.purchaseOrder) ?? false)
+        EntityActionItem(
+          kind: VendorAction.newPurchaseOrder,
+          icon: Icons.shopping_bag_outlined,
+          label: context.tr('new_purchase_order'),
+          enabled: true,
+          onTap: () => onTap(VendorAction.newPurchaseOrder),
+        ),
+      if (me?.moduleEnabled(EntityType.recurringExpense) ?? false)
+        EntityActionItem(
+          kind: VendorAction.newRecurringExpense,
+          icon: Icons.event_repeat_outlined,
+          label: context.tr('new_recurring_expense'),
+          enabled: true,
+          onTap: () => onTap(VendorAction.newRecurringExpense),
+        ),
+      if (isAdminOrOwner && !vendor.isDeleted)
+        EntityActionItem(
+          kind: VendorAction.merge,
+          icon: Icons.merge_type,
+          label: context.tr('merge'),
+          // Destructive + server round-trip: only on a synced, active vendor.
+          enabled: vendor.archivedAt == null && !vendor.id.startsWith('tmp_'),
+          onTap: () => onTap(VendorAction.merge),
         ),
       ?archiveActionItem(
         context: context,
@@ -160,8 +214,6 @@ class VendorActions {
         final draft = vendor.copyWith(
           id: '',
           number: '',
-          balance: Decimal.zero,
-          paidToDate: Decimal.zero,
           archivedAt: null,
           isDeleted: false,
           isDirty: false,
@@ -187,6 +239,74 @@ class VendorActions {
           '/expenses',
           extra: emptyExpense().copyWith(vendorId: vendor.id),
         );
+      case VendorAction.newPurchaseOrder:
+        if (vendor.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        goEntityCreateFullWidth(
+          context,
+          '/purchase_orders',
+          extra: emptyPurchaseOrder().copyWith(vendorId: vendor.id),
+        );
+      case VendorAction.newRecurringExpense:
+        if (vendor.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        goEntityCreateFullWidth(
+          context,
+          '/recurring_expenses',
+          extra: emptyRecurringExpense().copyWith(vendorId: vendor.id),
+        );
+      case VendorAction.vendorPortal:
+        if (vendor.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        // Open the primary contact's portal (falling back to the first). The
+        // item is disabled in itemsFor when no link exists, so the empty-url
+        // guard here is just defensive.
+        final portalContact = vendor.contacts.isEmpty
+            ? null
+            : vendor.contacts.firstWhere(
+                (c) => c.isPrimary,
+                orElse: () => vendor.contacts.first,
+              );
+        final portalUrl = portalContact == null
+            ? ''
+            : vendorPortalUrl(contactLink: portalContact.link);
+        if (portalUrl.isEmpty) return;
+        await launchVendorPortal(context, portalUrl);
+      case VendorAction.merge:
+        if (vendor.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        final survivor = await showMergeVendorDialog(
+          context,
+          services: services,
+          companyId: companyId,
+          source: vendor,
+        );
+        if (survivor == null || !context.mounted) return;
+        try {
+          // Password-gated server-side; the outbox 412 gate surfaces the
+          // ConfirmPasswordSheet exactly as it does for delete/purge.
+          await services.vendors.merge(
+            companyId: companyId,
+            mergeIntoId: survivor.id,
+            mergeFromId: vendor.id,
+          );
+          if (!context.mounted) return;
+          Notify.success(context, context.tr('merged_vendors'));
+          // The absorbed vendor's detail route is now dead — leave it.
+          context.go('/vendors');
+        } catch (e) {
+          if (context.mounted) {
+            Notify.error(context, context.tr('could_not_save'), error: e);
+          }
+        }
       case VendorAction.delete:
         if (vendor.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));

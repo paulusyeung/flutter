@@ -11,19 +11,13 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/utils/formatting.dart';
 
-/// 4-cell KPI strip at the top of the vendor detail body. Replaces the
-/// legacy 2-cell `VendorDetailAggregateCard` — adds locally-derived
-/// expense aggregates (total + last activity date) so the strip carries
-/// the same shape as the other entities' detail KPIs.
-///
-/// Cells:
-///   1. **balance** — `vendor.balance`
-///   2. **paid_to_date** — `vendor.paidToDate`
-///   3. **total_expenses** — sum of `expense.amount` for non-deleted
-///      expenses linked to this vendor (computed from the local Drift
-///      store via `ExpenseRepository.watchForVendor` — no network call).
-///   4. **last_expense_date** — most recent `expense.date` from the same
-///      set; `—` when no expenses.
+/// KPI strip at the top of the vendor detail body. The vendor resource has no
+/// server-side `balance`/`paid_to_date`, so the figures are derived locally
+/// from the vendor's expenses (Drift watch via `ExpenseRepository.watchForVendor`
+/// — no network call):
+///   1. **total_expenses** — sum of `expense.amount` for non-deleted expenses
+///      in the vendor's currency.
+///   2. **last_expense_date** — most recent `expense.date`; `—` when none.
 ///
 /// Layout switches at 1100 px (mirrors `ExpenseDetailKpiStrip`).
 class VendorDetailKpiStrip extends StatelessWidget {
@@ -96,23 +90,6 @@ class _Strip extends StatelessWidget {
 
     final cells = <Widget>[
       _KpiCell(
-        label: context.tr('balance'),
-        amount: vendor.balance,
-        currencyId: vendor.currencyId,
-        tokens: tokens,
-        theme: theme,
-        formatter: formatter,
-        highlightWhenPositive: tokens.overdue,
-      ),
-      _KpiCell(
-        label: context.tr('paid_to_date'),
-        amount: vendor.paidToDate,
-        currencyId: vendor.currencyId,
-        tokens: tokens,
-        theme: theme,
-        formatter: formatter,
-      ),
-      _KpiCell(
         label: context.tr('total_expenses'),
         amount: totalExpenses,
         currencyId: vendor.currencyId,
@@ -175,34 +152,34 @@ class _HorizontalStrip extends StatelessWidget {
   }
 }
 
+/// Narrow layout: cells laid out two-per-row. Handles any cell count (an odd
+/// final cell takes the left slot and the right slot stays empty).
 class _Grid2x2 extends StatelessWidget {
   const _Grid2x2({required this.cells});
   final List<Widget> cells;
 
   @override
   Widget build(BuildContext context) {
+    final rows = <Widget>[];
+    for (var i = 0; i < cells.length; i += 2) {
+      if (rows.isNotEmpty) rows.add(SizedBox(height: InSpacing.md(context)));
+      rows.add(
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: cells[i]),
+            SizedBox(width: InSpacing.md(context)),
+            Expanded(
+              child: i + 1 < cells.length ? cells[i + 1] : const SizedBox(),
+            ),
+          ],
+        ),
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: cells[0]),
-            SizedBox(width: InSpacing.md(context)),
-            Expanded(child: cells[1]),
-          ],
-        ),
-        SizedBox(height: InSpacing.md(context)),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: cells[2]),
-            SizedBox(width: InSpacing.md(context)),
-            Expanded(child: cells[3]),
-          ],
-        ),
-      ],
+      children: rows,
     );
   }
 }
@@ -215,7 +192,6 @@ class _KpiCell extends StatelessWidget {
     required this.tokens,
     required this.theme,
     required this.formatter,
-    this.highlightWhenPositive,
   });
 
   final String label;
@@ -224,7 +200,6 @@ class _KpiCell extends StatelessWidget {
   final InTheme tokens;
   final ThemeData theme;
   final Formatter? formatter;
-  final Color? highlightWhenPositive;
 
   @override
   Widget build(BuildContext context) {
@@ -232,11 +207,7 @@ class _KpiCell extends StatelessWidget {
     final formatted =
         formatter?.money(amount, clientCurrencyId: currencyId) ?? '';
     final value = (isZero || formatted.isEmpty) ? '—' : formatted;
-    final valueColor = isZero
-        ? tokens.ink3
-        : (highlightWhenPositive != null && amount > Decimal.zero
-              ? highlightWhenPositive!
-              : tokens.ink);
+    final valueColor = isZero ? tokens.ink3 : tokens.ink;
     return _Cell(
       label: label,
       tokens: tokens,

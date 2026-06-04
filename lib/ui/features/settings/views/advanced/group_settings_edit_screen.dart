@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -61,73 +63,116 @@ class GroupSettingsEditScreen extends StatelessWidget {
       // (a no-op save would still enqueue an outbox row and bump
       // `updated_at`).
       canSave: (vm) => !vm.isSaving && vm.isDirty,
-      customBodyBuilder: (context, vm) => _buildBody(context, vm, companyId),
+      // Create mode: the Overview form alone (width-capped). Edit mode: the
+      // 3-tab shell, which needs a saved group id (Clients/Documents).
+      customBodyBuilder: (context, vm) => vm.isCreate
+          ? SettingsFormShell(sections: _overviewSections(context, vm))
+          : _GroupEditTabs(
+              vm: vm,
+              companyId: companyId,
+              groupId: vm.original!.id,
+            ),
     );
   }
-
-  /// Create mode: the Overview form alone (width-capped). Edit mode: a
-  /// 3-tab shell. The Clients/Documents tabs need a saved group id, so they
-  /// only appear once [GroupSettingEditViewModel.isCreate] is false.
-  Widget _buildBody(
-    BuildContext context,
-    GroupSettingEditViewModel vm,
-    String companyId,
-  ) {
-    if (vm.isCreate) {
-      return SettingsFormShell(sections: _overviewSections(context, vm));
-    }
-    final id = vm.original!.id;
-    final services = context.read<Services>();
-    return EntityDetailTabs(
-      tabs: [
-        EntityDetailTab(
-          label: context.tr('overview'),
-          icon: Icons.tune_outlined,
-          bodyBuilder: (_) =>
-              SettingsFormShell(sections: _overviewSections(context, vm)),
-        ),
-        EntityDetailTab(
-          label: context.tr('clients'),
-          icon: Icons.people_outline,
-          bodyBuilder: (_) =>
-              ClientListScreen(groupSettingsId: id, embedded: true),
-        ),
-        buildStandardDocumentsTab(
-          context: context,
-          companyId: companyId,
-          entityId: id,
-          documents: vm.draft.documents,
-          repo: services.groupSettings,
-        ),
-      ],
-    );
-  }
-
-  List<Widget> _overviewSections(
-    BuildContext context,
-    GroupSettingEditViewModel vm,
-  ) => [
-    FormSection(
-      title: context.tr('group'),
-      children: [
-        SettingsTextField(
-          initialValue: vm.draft.name,
-          labelKey: 'name',
-          onChanged: vm.setName,
-          errorText: vm.fieldErrorFor('name'),
-          textInputAction: TextInputAction.next,
-          externalSyncKey: vm.original?.id,
-        ),
-        _CurrencyField(vm: vm),
-        _LanguageField(vm: vm),
-        _CountryField(vm: vm),
-      ],
-    ),
-    // Edit mode only — entering group-scope cascade editing needs a saved
-    // group (the cascade VM reads `group.settings` from Drift).
-    if (vm.original != null) _ConfigureSettingsSection(vm: vm),
-  ];
 }
+
+/// Edit-mode body: the Overview / Clients / Documents tab shell. A
+/// `StatefulWidget` so it can (a) fire a one-time documents refresh on open
+/// and (b) feed the Documents tab from a **live** Drift watch rather than the
+/// frozen edit-VM `draft` — uploads/deletes must appear immediately.
+class _GroupEditTabs extends StatefulWidget {
+  const _GroupEditTabs({
+    required this.vm,
+    required this.companyId,
+    required this.groupId,
+  });
+
+  final GroupSettingEditViewModel vm;
+  final String companyId;
+  final String groupId;
+
+  @override
+  State<_GroupEditTabs> createState() => _GroupEditTabsState();
+}
+
+class _GroupEditTabsState extends State<_GroupEditTabs> {
+  @override
+  void initState() {
+    super.initState();
+    // Documents aren't carried by the /login+/refresh bundle, and the list's
+    // delta refresh skips already-synced groups — a full refresh
+    // (include=documents) is what pulls this group's attachments into Drift.
+    // Fire-and-forget; also covers a deep-link / app-restart-restore here.
+    unawaited(
+      context.read<Services>().groupSettings.refreshAll(
+        companyId: widget.companyId,
+        full: true,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    final vm = widget.vm;
+    final id = widget.groupId;
+    return StreamBuilder<GroupSetting?>(
+      stream: services.groupSettings.watch(companyId: widget.companyId, id: id),
+      initialData: vm.original,
+      builder: (context, snapshot) {
+        final documents = (snapshot.data ?? vm.original!).documents;
+        return EntityDetailTabs(
+          tabs: [
+            EntityDetailTab(
+              label: context.tr('overview'),
+              icon: Icons.tune_outlined,
+              bodyBuilder: (_) =>
+                  SettingsFormShell(sections: _overviewSections(context, vm)),
+            ),
+            EntityDetailTab(
+              label: context.tr('clients'),
+              icon: Icons.people_outline,
+              bodyBuilder: (_) =>
+                  ClientListScreen(groupSettingsId: id, embedded: true),
+            ),
+            buildStandardDocumentsTab(
+              context: context,
+              companyId: widget.companyId,
+              entityId: id,
+              documents: documents,
+              repo: services.groupSettings,
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+List<Widget> _overviewSections(
+  BuildContext context,
+  GroupSettingEditViewModel vm,
+) => [
+  FormSection(
+    title: context.tr('group'),
+    children: [
+      SettingsTextField(
+        initialValue: vm.draft.name,
+        labelKey: 'name',
+        onChanged: vm.setName,
+        errorText: vm.fieldErrorFor('name'),
+        textInputAction: TextInputAction.next,
+        externalSyncKey: vm.original?.id,
+      ),
+      _CurrencyField(vm: vm),
+      _LanguageField(vm: vm),
+      _CountryField(vm: vm),
+    ],
+  ),
+  // Edit mode only — entering group-scope cascade editing needs a saved
+  // group (the cascade VM reads `group.settings` from Drift).
+  if (vm.original != null) _ConfigureSettingsSection(vm: vm),
+];
 
 /// "Configure Settings" affordance — switches the settings shell into
 /// group scope and lands on Localization, mirroring the per-client

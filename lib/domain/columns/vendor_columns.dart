@@ -3,6 +3,7 @@ import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/data/models/domain/vendor_contact.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/l10n/localization.dart';
 
 // Re-export the shared min width so vendor-screen code keeps the same
 // single source as clients/products.
@@ -20,7 +21,7 @@ const List<String> kDefaultVendorColumns = <String>[
   VendorFieldIds.name,
   VendorFieldIds.number,
   VendorFieldIds.city,
-  VendorFieldIds.balance,
+  VendorFieldIds.phone,
 ];
 
 /// Wire ids — must match the snake_case constants in admin-portal's
@@ -29,8 +30,6 @@ const List<String> kDefaultVendorColumns = <String>[
 class VendorFieldIds {
   static const String name = 'name';
   static const String number = 'number';
-  static const String balance = 'balance';
-  static const String paidToDate = 'paid_to_date';
   static const String contactName = 'contact_name';
   static const String contactEmail = 'contact_email';
   static const String contactPhone = 'contact_phone';
@@ -44,6 +43,9 @@ class VendorFieldIds {
   static const String phone = 'phone';
   static const String website = 'website';
   static const String currencyId = 'currency_id';
+  static const String classification = 'classification';
+  static const String routingId = 'routing_id';
+  static const String lastLogin = 'last_login';
   static const String publicNotes = 'public_notes';
   static const String privateNotes = 'private_notes';
   static const String custom1 = 'custom1';
@@ -79,32 +81,6 @@ final List<VendorColumn> kAllVendorColumns = <VendorColumn>[
         cellText(v.name.isNotEmpty ? v.name : _fallbackName(v), bold: true),
     valueBuilder: (v) =>
         cellNonZeroString(v.name.isNotEmpty ? v.name : _fallbackName(v)),
-  ),
-  VendorColumn(
-    id: VendorFieldIds.balance,
-    labelKey: 'balance',
-    width: 120,
-    align: ColumnAlign.end,
-    cellBuilder: (v, context) => cellMoney(
-      v.balance,
-      context,
-      cents: true,
-      vendorCurrencyId: v.currencyId,
-    ),
-    valueBuilder: (v) => cellMoneyValue(v.balance),
-  ),
-  VendorColumn(
-    id: VendorFieldIds.paidToDate,
-    labelKey: 'paid_to_date',
-    width: 120,
-    align: ColumnAlign.end,
-    cellBuilder: (v, context) => cellMoney(
-      v.paidToDate,
-      context,
-      cents: false,
-      vendorCurrencyId: v.currencyId,
-    ),
-    valueBuilder: (v) => cellMoneyValue(v.paidToDate),
   ),
   VendorColumn(
     id: VendorFieldIds.contactName,
@@ -206,6 +182,29 @@ final List<VendorColumn> kAllVendorColumns = <VendorColumn>[
     width: 160,
     cellBuilder: (v, _) => cellText(v.website),
     valueBuilder: (v) => cellNonZeroString(v.website),
+  ),
+  VendorColumn(
+    id: VendorFieldIds.classification,
+    labelKey: 'classification',
+    width: 130,
+    cellBuilder: (v, ctx) =>
+        cellText(v.classification.isEmpty ? '' : ctx.tr(v.classification)),
+    valueBuilder: (v) => cellNonZeroString(v.classification),
+  ),
+  VendorColumn(
+    id: VendorFieldIds.routingId,
+    labelKey: 'routing_id',
+    width: 120,
+    cellBuilder: (v, _) => cellText(v.routingId),
+    valueBuilder: (v) => cellNonZeroString(v.routingId),
+  ),
+  VendorColumn(
+    id: VendorFieldIds.lastLogin,
+    labelKey: 'last_login',
+    width: 120,
+    cellBuilder: (v, ctx) =>
+        v.lastLogin == null ? cellEmpty() : cellDate(v.lastLogin!, ctx),
+    valueBuilder: (v) => v.lastLogin?.toIso8601String(),
   ),
   VendorColumn(
     id: VendorFieldIds.publicNotes,

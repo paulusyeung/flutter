@@ -3032,6 +3032,14 @@ class GroupSettings extends Table with TableInfo {
     $customConstraints: 'NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1))',
     defaultValue: const CustomExpression('0'),
   );
+  late final GeneratedColumn<String> documents = GeneratedColumn<String>(
+    'documents',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
   late final GeneratedColumn<String> payload = GeneratedColumn<String>(
     'payload',
     aliasedName,
@@ -3062,6 +3070,7 @@ class GroupSettings extends Table with TableInfo {
     customValue4,
     isDirty,
     isDeleted,
+    documents,
     payload,
     name,
   ];
@@ -4527,22 +4536,6 @@ class Vendors extends Table with TableInfo {
     requiredDuringInsert: true,
     $customConstraints: 'NOT NULL',
   );
-  late final GeneratedColumn<String> balance = GeneratedColumn<String>(
-    'balance',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
-  );
-  late final GeneratedColumn<String> paidToDate = GeneratedColumn<String>(
-    'paid_to_date',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
-  );
   late final GeneratedColumn<String> phone = GeneratedColumn<String>(
     'phone',
     aliasedName,
@@ -4582,8 +4575,6 @@ class Vendors extends Table with TableInfo {
     city,
     countryId,
     currencyId,
-    balance,
-    paidToDate,
     phone,
     displayName,
   ];
@@ -5945,6 +5936,15 @@ class Invoices extends Table with TableInfo {
     $customConstraints: 'NOT NULL DEFAULT \'\'',
     defaultValue: const CustomExpression('\'\''),
   );
+  late final GeneratedColumn<String> subscriptionId = GeneratedColumn<String>(
+    'subscription_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'\'',
+    defaultValue: const CustomExpression('\'\''),
+  );
   late final GeneratedColumn<String> date = GeneratedColumn<String>(
     'date',
     aliasedName,
@@ -6073,6 +6073,7 @@ class Invoices extends Table with TableInfo {
     clientId,
     vendorId,
     projectId,
+    subscriptionId,
     date,
     dueDate,
     partialDueDate,
@@ -7188,6 +7189,15 @@ class RecurringInvoices extends Table with TableInfo {
     $customConstraints: 'NOT NULL DEFAULT \'\'',
     defaultValue: const CustomExpression('\'\''),
   );
+  late final GeneratedColumn<String> subscriptionId = GeneratedColumn<String>(
+    'subscription_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'\'',
+    defaultValue: const CustomExpression('\'\''),
+  );
   late final GeneratedColumn<String> date = GeneratedColumn<String>(
     'date',
     aliasedName,
@@ -7308,6 +7318,7 @@ class RecurringInvoices extends Table with TableInfo {
     clientId,
     vendorId,
     projectId,
+    subscriptionId,
     date,
     dueDate,
     amount,

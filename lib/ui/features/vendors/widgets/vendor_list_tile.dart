@@ -1,6 +1,4 @@
-import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/vendor.dart';
@@ -24,8 +22,8 @@ import 'package:admin/utils/formatting.dart';
 ///
 /// Mirrors `ClientListTile` structurally; differs only in the data
 /// accessors (Vendor has no displayName cascade beyond name → contact
-/// fallback, and no paid_to_date credit-balance line on the narrow
-/// secondary row).
+/// fallback, and no money column at all — vendors have no server-side
+/// balance).
 class VendorListTile extends StatefulWidget {
   const VendorListTile({
     super.key,
@@ -51,9 +49,8 @@ class VendorListTile extends StatefulWidget {
   /// that transient state money columns render as `—`.
   final Formatter? formatter;
 
-  /// Columns to render in wide mode. Empty list falls back to the legacy
-  /// balance-only layout. The narrow layout ignores this — mobile keeps the
-  /// rich identity card.
+  /// Columns to render in wide mode. The narrow layout ignores this — mobile
+  /// shows the rich identity card only.
   final List<VendorColumn> columns;
 
   final VoidCallback onTap;
@@ -90,41 +87,18 @@ class _VendorListTileState extends State<VendorListTile> {
     final tokens = context.inTheme;
     final displayName = _displayName(w.vendor);
     final state = _stateFor(w.vendor);
-    final balancePositive = w.vendor.balance > Decimal.zero;
-    final formattedBalance =
-        w.formatter?.money(
-          w.vendor.balance,
-          clientCurrencyId: w.vendor.currencyId,
-        ) ??
-        '';
-    final formattedPaid =
-        w.formatter?.money(
-          w.vendor.paidToDate,
-          clientCurrencyId: w.vendor.currencyId,
-        ) ??
-        '';
 
     final content = Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14),
       child: w.wide
           ? _wide(context, tokens, displayName: displayName, state: state)
-          : _narrow(
-              context,
-              tokens,
-              displayName: displayName,
-              state: state,
-              formattedBalance: formattedBalance,
-              formattedPaid: formattedPaid,
-              balancePositive: balancePositive,
-            ),
+          : _narrow(context, tokens, displayName: displayName, state: state),
     );
 
     return Semantics(
       button: true,
       label: _semanticsLabel(
         displayName: displayName,
-        balance: formattedBalance,
-        balancePositive: balancePositive,
         state: state,
         selecting: w.selecting,
         selected: w.selected,
@@ -145,9 +119,6 @@ class _VendorListTileState extends State<VendorListTile> {
     InTheme tokens, {
     required String displayName,
     required _RowState? state,
-    required String formattedBalance,
-    required String formattedPaid,
-    required bool balancePositive,
   }) {
     final w = widget;
     return Row(
@@ -156,26 +127,6 @@ class _VendorListTileState extends State<VendorListTile> {
         _leading(displayName),
         const SizedBox(width: 12),
         Expanded(child: _identity(context, tokens, displayName)),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _money(
-              formattedBalance,
-              isZero: !balancePositive,
-              bold: balancePositive,
-              color: balancePositive ? tokens.overdue : tokens.ink3,
-            ),
-            const SizedBox(height: 2),
-            _money(
-              formattedPaid,
-              isZero: w.vendor.paidToDate == Decimal.zero,
-              color: tokens.ink3,
-              fontSize: 11,
-            ),
-          ],
-        ),
         if (state != null) ...[
           const SizedBox(width: 8),
           _Pill(state: state, tokens: tokens),
@@ -262,25 +213,6 @@ class _VendorListTileState extends State<VendorListTile> {
         const SizedBox(height: 2),
         _SubtitleLine(vendor: widget.vendor, tokens: tokens),
       ],
-    );
-  }
-
-  Widget _money(
-    String text, {
-    required bool isZero,
-    Color? color,
-    bool bold = false,
-    double fontSize = 13,
-  }) {
-    return Text(
-      isZero ? '—' : text,
-      style: GoogleFonts.jetBrainsMono(
-        fontSize: fontSize,
-        fontWeight: bold ? FontWeight.w500 : FontWeight.w400,
-        color: color,
-        height: 1.2,
-        fontFeatures: const [FontFeature.tabularFigures()],
-      ),
     );
   }
 }
@@ -463,8 +395,6 @@ String _contactLabel(VendorContact? c) {
 
 String _semanticsLabel({
   required String displayName,
-  required String balance,
-  required bool balancePositive,
   required _RowState? state,
   required bool selecting,
   required bool selected,
@@ -474,11 +404,6 @@ String _semanticsLabel({
     parts.add(selected ? 'selected' : 'not selected');
   }
   parts.add(displayName);
-  if (balancePositive) {
-    parts.add('balance $balance');
-  } else {
-    parts.add('no balance');
-  }
   switch (state) {
     case _RowState.deleted:
       parts.add('deleted');

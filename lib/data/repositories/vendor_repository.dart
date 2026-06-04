@@ -41,6 +41,7 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi>
            MutationKind.delete,
            MutationKind.purge,
            MutationKind.documentDelete,
+           MutationKind.merge,
          },
        );
 
@@ -315,6 +316,24 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi>
     );
   }
 
+  /// Merge [mergeFromId] (absorbed, deleted) into [mergeIntoId] (survivor).
+  /// Enqueued as a password-gated mutation (the 412 gate, same as
+  /// delete/purge). The dispatcher's `customActions[merge]` handler hits
+  /// `POST /vendors/{into}/{from}/merge`, drops the absorbed row locally, and
+  /// upserts the survivor. Mirrors `ClientRepository.merge`.
+  Future<void> merge({
+    required String companyId,
+    required String mergeIntoId,
+    required String mergeFromId,
+  }) async {
+    await enqueueMutation(
+      companyId: companyId,
+      entityId: mergeFromId,
+      kind: MutationKind.merge,
+      payload: {'merge_into_id': mergeIntoId, 'merge_from_id': mergeFromId},
+    );
+  }
+
   @override
   Future<void> deleteLocalById({
     required String companyId,
@@ -375,8 +394,6 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi>
       city: a.city,
       countryId: a.countryId,
       currencyId: a.currencyId,
-      balance: _moneyString(a.balance),
-      paidToDate: _moneyString(a.paidToDate),
       phone: a.phone,
       displayName: _displayNameFor(name: a.name, contacts: a.contacts),
       updatedAt: a.updatedAt,
@@ -413,8 +430,6 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi>
       city: v.city,
       countryId: v.countryId,
       currencyId: v.currencyId,
-      balance: v.balance.toString(),
-      paidToDate: v.paidToDate.toString(),
       phone: v.phone,
       displayName: _displayNameForDomain(name: v.name, contacts: v.contacts),
       updatedAt: dateToEpochSeconds(v.updatedAt),
@@ -527,12 +542,4 @@ String _displayNameForDomain({
   final composed = ('${c.firstName} ${c.lastName}').trim();
   if (composed.isNotEmpty) return composed;
   return c.email as String;
-}
-
-/// The server sometimes returns money as a number, sometimes as a string;
-/// normalize to a string for stable storage. Mirrors `_moneyString` in
-/// `product_repository.dart`.
-String _moneyString(Object raw) {
-  if (raw is String) return raw;
-  return raw.toString();
 }

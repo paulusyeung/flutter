@@ -1,19 +1,19 @@
-import 'package:decimal/decimal.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:admin/data/models/api/vendor_api_model.dart';
 import 'package:admin/data/models/domain/document.dart';
 import 'package:admin/data/models/domain/vendor_contact.dart';
-import 'package:admin/data/models/value/money.dart';
 import 'package:admin/data/models/value/parsing.dart';
 
 part 'vendor.freezed.dart';
 
 /// Clean domain shape for a Vendor.
 ///
-/// Money is [Decimal] (never `double`). Timestamps are UTC [DateTime].
-/// Mirror of [Client] minus the invoicing-specific bits — Vendor has no
-/// statement, no merge, no group assignment, no credit balance.
+/// Timestamps are UTC [DateTime]. Mirror of [Client] minus the
+/// invoicing-specific bits — Vendor has no statement and no group assignment,
+/// and there is no server-side balance (a vendor's spend is derived locally
+/// from its expenses). Like a client it carries currency / language /
+/// classification and supports merge.
 @freezed
 abstract class Vendor with _$Vendor {
   const factory Vendor({
@@ -30,9 +30,11 @@ abstract class Vendor with _$Vendor {
     required String state,
     required String postalCode,
     required String countryId,
-    required Decimal balance,
-    required Decimal paidToDate,
     required String currencyId,
+    @Default('') String languageId,
+    @Default('') String classification,
+    @Default(false) bool isTaxExempt,
+    @Default('') String routingId,
     required String privateNotes,
     required String publicNotes,
     required String userId,
@@ -46,6 +48,8 @@ abstract class Vendor with _$Vendor {
     required String customValue3,
     required String customValue4,
     required List<VendorContact> contacts,
+    // Last portal login (read-only, display-only); null when never signed in.
+    DateTime? lastLogin,
     @Default(<Document>[]) List<Document> documents,
     // Local-only — never sent to the server. Populated by the repository
     // from the Drift row's `is_dirty` column so the UI can render an
@@ -67,9 +71,11 @@ abstract class Vendor with _$Vendor {
     state: a.state,
     postalCode: a.postalCode,
     countryId: a.countryId,
-    balance: parseMoney(a.balance),
-    paidToDate: parseMoney(a.paidToDate),
     currencyId: a.currencyId,
+    languageId: a.languageId,
+    classification: a.classification,
+    isTaxExempt: a.isTaxExempt,
+    routingId: a.routingId,
     privateNotes: a.privateNotes,
     publicNotes: a.publicNotes,
     userId: a.userId,
@@ -83,6 +89,7 @@ abstract class Vendor with _$Vendor {
     customValue3: a.customValue3,
     customValue4: a.customValue4,
     contacts: a.contacts.map(VendorContact.fromApi).toList(growable: false),
+    lastLogin: epochSecondsToUtcOrNull(a.lastLogin),
     documents: mapDocuments(a.documents),
   );
 }
@@ -112,9 +119,11 @@ extension VendorPayload on Vendor {
     'state': state,
     'postal_code': postalCode,
     'country_id': countryId,
-    'balance': balance.toString(),
-    'paid_to_date': paidToDate.toString(),
     'currency_id': currencyId,
+    'language_id': languageId,
+    'classification': classification,
+    'is_tax_exempt': isTaxExempt,
+    'routing_id': routingId,
     'private_notes': privateNotes,
     'public_notes': publicNotes,
     'user_id': userId,
@@ -123,6 +132,10 @@ extension VendorPayload on Vendor {
     'custom_value2': customValue2,
     'custom_value3': customValue3,
     'custom_value4': customValue4,
+    // Read-only, but included so the local Drift payload round-trip
+    // (`_domainToCompanion`) preserves it; the server ignores it on save.
+    if (lastLogin != null)
+      'last_login': lastLogin!.millisecondsSinceEpoch ~/ 1000,
     'contacts': contacts
         .map((c) => c.toApiJson(preserveTempId: preserveTempId))
         .toList(),

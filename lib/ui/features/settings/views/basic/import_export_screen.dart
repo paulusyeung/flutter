@@ -9,10 +9,12 @@ import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/data/models/domain/bank_account.dart';
 import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/data/models/domain/import_preview.dart';
+import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/import_api.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/file_drop_zone.dart';
+import 'package:admin/ui/core/widgets/in_date_field.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
@@ -27,6 +29,60 @@ const kImportExportSearchKeys = <String>[
 ];
 
 enum _Step { pick, map, done }
+
+/// CSV-export entity → the `date_key`s the server accepts for date filtering
+/// (empty = no date filter offered). Ported from React `Export.tsx`.
+const _kExportDates = <String, List<String>>{
+  'clients': ['created_at'],
+  'client_contacts': ['created_at'],
+  'invoices': ['date', 'due_date', 'partial_due_date'],
+  'invoice_items': ['date', 'due_date', 'partial_due_date'],
+  'quotes': ['date', 'due_date', 'partial_due_date'],
+  'quote_items': ['date', 'due_date', 'partial_due_date'],
+  'credits': ['date', 'due_date', 'partial_due_date'],
+  'recurring_invoices': ['date', 'due_date', 'partial_due_date'],
+  'expenses': ['date', 'payment_date'],
+  'payments': ['date'],
+  'documents': ['created_at'],
+  'products': ['created_at'],
+  'tasks': ['created_at'],
+  'activities': <String>[],
+  'purchase_orders': <String>[],
+  'purchase_order_items': <String>[],
+  'vendors': <String>[],
+};
+
+/// `date_range` identifier → localization key. Ported from React `Export.tsx`.
+const _kDateRanges = <(String, String)>[
+  ('last7', 'last_7_days'),
+  ('last30', 'last_30_days'),
+  ('this_month', 'this_month'),
+  ('last_month', 'last_month'),
+  ('this_quarter', 'this_quarter'),
+  ('last_quarter', 'last_quarter'),
+  ('this_year', 'this_year'),
+  ('last_year', 'last_year'),
+  ('custom', 'custom'),
+];
+
+/// Third-party importer → required upload groups. Ported from React `Import.tsx`.
+const _kThirdPartyImports = <String, List<String>>{
+  'freshbooks': ['clients', 'invoices'],
+  'invoice2go': ['invoices'],
+  'invoicely': ['clients', 'invoices'],
+  'waveaccounting': ['clients', 'accounting'],
+  'zoho': ['contacts', 'invoices'],
+  'quickbooks': ['backup'],
+};
+
+/// Upload group → the multipart `files[<key>]` name the server expects.
+const _kThirdPartyFileKey = <String, String>{
+  'clients': 'client',
+  'invoices': 'invoice',
+  'accounting': 'invoice',
+  'contacts': 'client',
+  'backup': 'backup',
+};
 
 /// `/settings/import_export` — CSV data import. Three-stage flow mirroring
 /// React/admin-portal: pick entity + file → `/api/v1/preimport` → map each
@@ -68,7 +124,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
   String _exportType = 'clients';
   bool _exporting = false;
   String? _fileName;
-  List<int>? _bytes;
+  Uint8List? _bytes;
   bool _busy = false;
   bool _skipHeader = true;
   // Required only when [_entity] == 'bank_transaction' — the server needs a
@@ -84,6 +140,18 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
   String? _migrationFileName;
   bool _migrationImportSettings = true;
   bool _migrationBusy = false;
+
+  // CSV-export date filter (mirrors React Export.tsx). Null key = no filter.
+  String? _exportDateKey;
+  String _exportDateRange = 'last7';
+  DateTime? _exportStart;
+  DateTime? _exportEnd;
+
+  // Third-party importer state (freshbooks / wave / zoho / …). Each required
+  // group holds the bytes + display name of one picked file.
+  String _thirdPartyType = 'freshbooks';
+  final Map<String, ({Uint8List bytes, String name})> _thirdPartyFiles = {};
+  bool _thirdPartyBusy = false;
 
   ImportApi get _api => ImportApi(context.read<Services>().apiClient);
 
@@ -104,6 +172,10 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     final source = sources.first;
     final bytes = await source.readRange(0, await source.length());
     if (!mounted) return;
+    if (bytes.isEmpty) {
+      Notify.warning(context, context.tr('dropzone_invalid_file_type'));
+      return;
+    }
     setState(() {
       _fileName = source.fileName;
       _bytes = bytes;
@@ -111,6 +183,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
   }
 
   Future<void> _runPreImport() async {
+    if (_busy) return;
     final bytes = _bytes;
     if (bytes == null) return;
     setState(() => _busy = true);
@@ -118,7 +191,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       final preview = await _api.preImport(
         entity: _entity,
         fileName: _fileName ?? 'import.csv',
-        bytes: Uint8List.fromList(bytes),
+        bytes: bytes,
       );
       if (!mounted) return;
       _map.clear();
@@ -143,6 +216,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
   }
 
   Future<void> _runImport() async {
+    if (_busy) return;
     final preview = _preview;
     if (preview == null) return;
     setState(() => _busy = true);
@@ -193,14 +267,29 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
   /// `Export.tsx` (`send_email: true`, no `report_keys` filter = all rows,
   /// no date filter = all-time). Same email-link contract as Backup.
   Future<void> _runExport() async {
+    if (_exporting) return;
     final services = context.read<Services>();
     final messenger = ScaffoldMessenger.maybeOf(context);
     final tr = context.tr;
     setState(() => _exporting = true);
     try {
+      // Date filter (mirrors React Export.tsx): omit entirely when no date key
+      // is chosen → server defaults to an all-time export.
+      final body = <String, dynamic>{
+        'send_email': true,
+        'report_keys': <String>[],
+        if (_exportDateKey != null) ...{
+          'date_key': _exportDateKey,
+          'date_range': _exportDateRange,
+          if (_exportDateRange == 'custom') ...{
+            'start_date': _isoOrEmpty(_exportStart),
+            'end_date': _isoOrEmpty(_exportEnd),
+          },
+        },
+      };
       await services.apiClient.postJson(
         '/api/v1/reports/$_exportType',
-        body: const {'send_email': true, 'report_keys': <String>[]},
+        body: body,
       );
       if (!mounted) return;
       Notify.success(context, tr('exported_data'), messenger: messenger);
@@ -213,9 +302,29 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     }
   }
 
+  String _isoOrEmpty(DateTime? d) =>
+      d == null ? '' : Date(d.year, d.month, d.day).toIso();
+
   Future<void> _onMigrationFiles(List<UploadSource> sources) async {
     if (sources.isEmpty) return;
     final source = sources.first;
+    final name = source.fileName.toLowerCase();
+    if (!name.endsWith('.zip') && !name.endsWith('.json')) {
+      if (!mounted) return;
+      Notify.warning(context, context.tr('dropzone_invalid_file_type'));
+      return;
+    }
+    int length = 0;
+    try {
+      length = await source.length();
+    } catch (_) {
+      length = 0;
+    }
+    if (!mounted) return;
+    if (length <= 0) {
+      Notify.warning(context, context.tr('dropzone_invalid_file_type'));
+      return;
+    }
     setState(() {
       _migrationSource = source;
       _migrationFileName = source.fileName;
@@ -223,6 +332,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
   }
 
   Future<void> _runMigration() async {
+    if (_migrationBusy) return;
     final source = _migrationSource;
     if (source == null) return;
     setState(() => _migrationBusy = true);
@@ -295,6 +405,10 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
   }
 
   Widget _exportSection(BuildContext context) {
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    final formatter = services.formatterIfReady(companyId);
+    final dateKeys = _kExportDates[_exportType] ?? const <String>[];
     return FormSection(
       title: context.tr('export'),
       children: [
@@ -308,13 +422,81 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
           ),
           onChanged: _exporting
               ? null
-              : (v) => setState(() => _exportType = v ?? _exportType),
+              : (v) => setState(() {
+                  _exportType = v ?? _exportType;
+                  // Reset the date filter when the entity changes (React parity).
+                  _exportDateKey = null;
+                  _exportDateRange = 'last7';
+                  _exportStart = null;
+                  _exportEnd = null;
+                }),
           items: [
             for (final t in _exportTypes)
               if (isWireModuleEnabledForCompany(t, _enabledModules(context)))
                 DropdownMenuItem(value: t, child: Text(context.tr(t))),
           ],
         ),
+        if (dateKeys.isNotEmpty) ...[
+          SizedBox(height: InSpacing.md(context)),
+          DropdownButtonFormField<String?>(
+            initialValue: _exportDateKey,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: context.tr('date'),
+              border: const OutlineInputBorder(),
+              isDense: true,
+            ),
+            onChanged: _exporting
+                ? null
+                : (v) => setState(() {
+                    _exportDateKey = v;
+                    if (v != null) _exportDateRange = 'last7';
+                  }),
+            items: [
+              DropdownMenuItem(value: null, child: Text(context.tr('all'))),
+              for (final k in dateKeys)
+                DropdownMenuItem(value: k, child: Text(context.tr(k))),
+            ],
+          ),
+        ],
+        if (_exportDateKey != null) ...[
+          SizedBox(height: InSpacing.md(context)),
+          DropdownButtonFormField<String>(
+            initialValue: _exportDateRange,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: context.tr('date_range'),
+              border: const OutlineInputBorder(),
+              isDense: true,
+            ),
+            onChanged: _exporting
+                ? null
+                : (v) =>
+                      setState(() => _exportDateRange = v ?? _exportDateRange),
+            items: [
+              for (final (id, label) in _kDateRanges)
+                DropdownMenuItem(value: id, child: Text(context.tr(label))),
+            ],
+          ),
+        ],
+        if (_exportDateKey != null && _exportDateRange == 'custom') ...[
+          SizedBox(height: InSpacing.md(context)),
+          InDateField(
+            value: _exportStart,
+            formatter: formatter,
+            labelText: context.tr('start_date'),
+            clearable: true,
+            onChanged: (d) => setState(() => _exportStart = d),
+          ),
+          SizedBox(height: InSpacing.md(context)),
+          InDateField(
+            value: _exportEnd,
+            formatter: formatter,
+            labelText: context.tr('end_date'),
+            clearable: true,
+            onChanged: (d) => setState(() => _exportEnd = d),
+          ),
+        ],
         Align(
           alignment: Alignment.centerRight,
           child: FilledButton.icon(
@@ -334,6 +516,119 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     );
   }
 
+  /// Direct third-party importers (FreshBooks / Wave / Zoho / …). Fixed-schema
+  /// formats → no preimport/column-map; a multipart POST straight to
+  /// `/api/v1/import`. Mirrors React `Import.tsx`.
+  Widget _thirdPartySection(BuildContext context) {
+    final groups = _kThirdPartyImports[_thirdPartyType] ?? const <String>[];
+    final ready = groups.every(_thirdPartyFiles.containsKey);
+    return FormSection(
+      title: context.tr('import'),
+      children: [
+        DropdownButtonFormField<String>(
+          initialValue: _thirdPartyType,
+          isExpanded: true,
+          decoration: InputDecoration(
+            labelText: context.tr('import_type'),
+            border: const OutlineInputBorder(),
+            isDense: true,
+          ),
+          onChanged: _thirdPartyBusy
+              ? null
+              : (v) => setState(() {
+                  _thirdPartyType = v ?? _thirdPartyType;
+                  _thirdPartyFiles.clear();
+                }),
+          items: [
+            for (final t in _kThirdPartyImports.keys)
+              DropdownMenuItem(value: t, child: Text(context.tr(t))),
+          ],
+        ),
+        for (final group in groups) ...[
+          SizedBox(height: InSpacing.md(context)),
+          Text(
+            context.tr(group),
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: InSpacing.sm),
+          FileDropZone(
+            allowedExtensions: group == 'backup'
+                ? const ['zip']
+                : const ['csv'],
+            enabled: !_thirdPartyBusy,
+            onFiles: (sources) => _onThirdPartyFiles(group, sources),
+          ),
+          if (_thirdPartyFiles[group] != null) ...[
+            const SizedBox(height: InSpacing.sm),
+            Text(
+              _thirdPartyFiles[group]!.name,
+              style: TextStyle(fontSize: 13, color: context.inTheme.ink2),
+            ),
+          ],
+        ],
+        SizedBox(height: InSpacing.md(context)),
+        Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton(
+            style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
+            onPressed: (!ready || _thirdPartyBusy) ? null : _runThirdParty,
+            child: _thirdPartyBusy
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(context.tr('import')),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _onThirdPartyFiles(
+    String group,
+    List<UploadSource> sources,
+  ) async {
+    if (sources.isEmpty) return;
+    final source = sources.first;
+    final bytes = await source.readRange(0, await source.length());
+    if (!mounted) return;
+    if (bytes.isEmpty) {
+      Notify.warning(context, context.tr('dropzone_invalid_file_type'));
+      return;
+    }
+    setState(() {
+      _thirdPartyFiles[group] = (bytes: bytes, name: source.fileName);
+    });
+  }
+
+  Future<void> _runThirdParty() async {
+    if (_thirdPartyBusy) return;
+    final groups = _kThirdPartyImports[_thirdPartyType] ?? const <String>[];
+    setState(() => _thirdPartyBusy = true);
+    try {
+      await _api.runThirdPartyImport(
+        importType: _thirdPartyType,
+        files: [
+          for (final group in groups)
+            if (_thirdPartyFiles[group] != null)
+              (
+                key: _kThirdPartyFileKey[group] ?? group,
+                bytes: _thirdPartyFiles[group]!.bytes,
+                fileName: _thirdPartyFiles[group]!.name,
+              ),
+        ],
+      );
+      if (!mounted) return;
+      Notify.success(context, context.tr('import_started'));
+      setState(() => _thirdPartyFiles.clear());
+    } on Object catch (e) {
+      if (mounted) Notify.error(context, _msg(context, e));
+    } finally {
+      if (mounted) setState(() => _thirdPartyBusy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SettingsScreenScaffold(
@@ -345,6 +640,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
             _Step.map => _mapSection(context),
             _Step.done => _doneSection(context),
           },
+          if (_step == _Step.pick) _thirdPartySection(context),
           if (_step == _Step.pick) _migrationSection(context),
           if (_step == _Step.pick) _exportSection(context),
         ],

@@ -6,12 +6,13 @@ import 'package:admin/ui/features/vendors/widgets/edit/vendor_edit_address_secti
 import 'package:admin/ui/features/vendors/widgets/edit/vendor_edit_contacts_section.dart';
 import 'package:admin/ui/features/vendors/widgets/edit/vendor_edit_details_section.dart';
 import 'package:admin/ui/features/vendors/widgets/edit/vendor_edit_notes_section.dart';
+import 'package:admin/ui/features/vendors/widgets/edit/vendor_edit_settings_section.dart';
 
-/// Lays out the four edit-screen cards (Details, Address, Notes, Contacts)
-/// using the same v2 mockup pattern as `ClientEditLayout`:
+/// Lays out the edit-screen cards (Details, Address, Settings, Contacts,
+/// Notes) using the same v2 mockup pattern as `ClientEditLayout`:
 ///
-/// - ≥1100 px: two columns. Left (`Expanded`) holds Details + Address; right
-///   (`_sidebarWidth` 360 px) holds Contacts + Notes.
+/// - ≥1100 px: two columns. Left (`Expanded`) holds Details + Address +
+///   Settings; right (`_sidebarWidth` 360 px) holds Contacts + Notes.
 /// - <1100 px: single scrolling column with all cards stacked.
 class VendorEditLayout extends StatelessWidget {
   const VendorEditLayout({super.key, required this.vm});
@@ -45,6 +46,8 @@ class VendorEditLayout extends StatelessWidget {
               VendorEditDetailsSection(vm: vm),
               SizedBox(height: InSpacing.md(context)),
               VendorEditAddressSection(vm: vm),
+              SizedBox(height: InSpacing.md(context)),
+              VendorEditSettingsSection(vm: vm),
             ],
           ),
         ),
@@ -71,6 +74,8 @@ class VendorEditLayout extends StatelessWidget {
         VendorEditDetailsSection(vm: vm),
         SizedBox(height: InSpacing.md(context)),
         VendorEditAddressSection(vm: vm),
+        SizedBox(height: InSpacing.md(context)),
+        VendorEditSettingsSection(vm: vm),
         SizedBox(height: InSpacing.md(context)),
         VendorEditContactsSection(vm: vm),
         SizedBox(height: InSpacing.md(context)),

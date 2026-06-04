@@ -384,8 +384,19 @@ class ApiClient {
       ..headers.addAll(
         _buildHeaders(creds: creds, idempotencyKey: idempotencyKey),
       );
-    final streamed = await _http.send(req).timeout(timeout);
-    final response = await http.Response.fromStream(streamed);
+    final http.Response response;
+    try {
+      final streamed = await _http.send(req).timeout(timeout);
+      response = await http.Response.fromStream(streamed).timeout(timeout);
+    } on TimeoutException {
+      // Map transport failures to NetworkException (an ApiException) so
+      // callers that only catch ApiException — e.g. the Restore tab — surface
+      // a proper error instead of an uncaught async error. Mirrors
+      // `_sendNoRedirect`.
+      throw NetworkException('Upload timed out after ${timeout.inSeconds}s');
+    } on http.ClientException catch (e) {
+      throw NetworkException(e.message);
+    }
     if (response.statusCode >= 300 && response.statusCode < 400) {
       // Same defense as `_sendNoRedirect`: refuse redirects so the
       // multipart body + auth headers can't leak to a redirect target.
@@ -492,8 +503,22 @@ class ApiClient {
         ..headers.addAll(
           _buildHeaders(creds: creds, idempotencyKey: idempotencyKey),
         );
-      final streamed = await _http.send(req).timeout(timeoutPerChunk);
-      final response = await http.Response.fromStream(streamed);
+      final http.Response response;
+      try {
+        final streamed = await _http.send(req).timeout(timeoutPerChunk);
+        response = await http.Response.fromStream(
+          streamed,
+        ).timeout(timeoutPerChunk);
+      } on TimeoutException {
+        // Transport failure mid-restore → NetworkException (an ApiException)
+        // so the Restore tab's `on ApiException` shows an error toast instead
+        // of dead-ending on an uncaught async error. Mirrors `_sendNoRedirect`.
+        throw NetworkException(
+          'Upload timed out after ${timeoutPerChunk.inSeconds}s',
+        );
+      } on http.ClientException catch (e) {
+        throw NetworkException(e.message);
+      }
       if (response.statusCode >= 300 && response.statusCode < 400) {
         throw ServerException(
           response.statusCode,

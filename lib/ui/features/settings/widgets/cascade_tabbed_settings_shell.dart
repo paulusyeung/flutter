@@ -22,8 +22,9 @@ import 'package:admin/ui/features/settings/widgets/tabbed_settings_shell.dart';
 ///   * splits its content across tabs (Localization today; Templates &
 ///     Reminders / Client Portal will be next).
 ///
-/// Picks the right VM for the active [SettingsLevel] (company → caller's
-/// factory; client → shared `ClientSettingsDraftViewModel`) and owns the
+/// Picks the right VM for the active [SettingsLevel] via `resolveCascadeDraftVm`
+/// (company → caller's factory; group → shared `GroupSettingsDraftViewModel`;
+/// client → shared `ClientSettingsDraftViewModel`) and owns the
 /// [TabController] + URL ↔ tab-index sync. The tabs themselves are scope-
 /// agnostic because they read [SettingsDraftHost] off Provider just like a
 /// non-tabbed cascade screen.

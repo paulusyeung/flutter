@@ -102,13 +102,6 @@ class VendorDao extends BaseEntityDao<$VendorsTable, VendorRow>
         return v.name;
       case VendorFieldIds.number:
         return v.number;
-      // Balance / paid_to_date are stored as text (Decimal.toString());
-      // sorting them as text puts "9" after "1000". Cast to REAL so the
-      // ordering is numeric.
-      case VendorFieldIds.balance:
-        return const CustomExpression<double>('CAST(balance AS REAL)');
-      case VendorFieldIds.paidToDate:
-        return const CustomExpression<double>('CAST(paid_to_date AS REAL)');
       case VendorFieldIds.updatedAt:
         return v.updatedAt;
       case VendorFieldIds.createdAt:

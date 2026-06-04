@@ -347,6 +347,38 @@ void main() {
       expect(group.documents.map((d) => d.id).toList(), ['d2']);
     });
 
+    test('domain save preserves the documents column (no clobber)', () async {
+      final repo = makeRepo();
+      await repo.applyCreateResponse(
+        companyId: 'co',
+        tempId: 'g_1',
+        serverResponse: const GroupSettingApi(
+          id: 'g_1',
+          name: 'Docs',
+          updatedAt: 1700000000,
+          documents: [DocumentApi(id: 'd1', name: 'Contract.pdf')],
+        ),
+      );
+      // Mirror the frozen edit-VM: a domain copy with no documents (the
+      // default empty list) — saving name/currency must NOT wipe the column.
+      final stale = GroupSetting.fromApi(
+        const GroupSettingApi(
+          id: 'g_1',
+          name: 'Renamed',
+          updatedAt: 1700000000,
+        ),
+      );
+      expect(stale.documents, isEmpty);
+      await repo.save(companyId: 'co', group: stale);
+      final after = (await repo.watchAll(companyId: 'co').first).single;
+      expect(after.name, 'Renamed');
+      expect(
+        after.documents.map((d) => d.id).toList(),
+        ['d1'],
+        reason: '_domainToCompanion must leave documents untouched',
+      );
+    });
+
     test('applyBundle preserves the local payload of an is_dirty row '
         'so an offline edit is not clobbered by a re-bundle', () async {
       final repo = makeRepo();

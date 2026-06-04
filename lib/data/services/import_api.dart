@@ -78,7 +78,14 @@ class ImportApi {
     };
     final body = <String, dynamic>{
       'hash': hash,
-      'import_type': entity,
+      // Server `CSVIngest::bootEngine()` switches on `import_type` to choose
+      // the provider — for a column-mapped CSV it must be the literal 'csv',
+      // NOT the entity name (an entity name hits `default` → null engine →
+      // the queued import job fatals). The entity is carried by the
+      // `column_map` key below. `preImport()` deliberately still sends the
+      // entity (the server keys its file cache off `files[<entity>]` there).
+      // Mirrors React's `/api/v1/import` call.
+      'import_type': 'csv',
       'skip_header': skipHeader,
       'column_map': {
         entity: {'mapping': mapping},
@@ -118,5 +125,34 @@ class ImportApi {
       commonQueryTrue: const {'import_data': 'true'},
       idempotencyKey: _uuid.v4(),
     );
+  }
+
+  /// Direct import from a third-party system (FreshBooks / Invoice2Go /
+  /// Invoicely / Wave / Zoho / QuickBooks). These formats have fixed schemas,
+  /// so there's NO preimport / column-map step — just a multipart `POST
+  /// /api/v1/import` with `import_type` = the provider name (the server's
+  /// `CSVIngest::bootEngine()` switches on it) plus one `files[<key>]` per
+  /// uploaded group. Mirrors React's `Import.tsx`. Returns the server message.
+  Future<String> runThirdPartyImport({
+    required String importType,
+    required List<({String key, Uint8List bytes, String fileName})> files,
+  }) async {
+    final raw = await client.uploadMultipart(
+      path: '/api/v1/import',
+      fields: {'import_type': importType},
+      files: [
+        for (final f in files)
+          http.MultipartFile.fromBytes(
+            'files[${f.key}]',
+            f.bytes,
+            filename: f.fileName,
+          ),
+      ],
+      idempotencyKey: _uuid.v4(),
+    );
+    if (raw is Map && raw['message'] is String) {
+      return raw['message'] as String;
+    }
+    return '';
   }
 }

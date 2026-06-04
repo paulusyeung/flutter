@@ -499,6 +499,23 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         );
         return null;
       },
+      // POST /vendors/{into}/{from}/merge — absorb `from` into `into`.
+      // Password-gated; the absorbed vendor is gone server-side, so drop its
+      // local row and return the survivor for the dispatcher to upsert.
+      // Mirrors the Client merge handler.
+      MutationKind.merge: ({required row, required payload}) async {
+        final survivor = await vendorsApi.merge(
+          mergeIntoId: payload['merge_into_id'] as String,
+          mergeFromId: payload['merge_from_id'] as String,
+          idempotencyKey: row.idempotencyKey,
+          requiresPassword: row.requiresPassword,
+        );
+        await vendorRepo.applyDeleteResponse(
+          companyId: row.companyId,
+          id: payload['merge_from_id'] as String,
+        );
+        return survivor;
+      },
       ...documentMutationHandlers<VendorApi>(
         documentsApi: ctx.documentsApi,
         upload: vendorsApi.uploadDocument,

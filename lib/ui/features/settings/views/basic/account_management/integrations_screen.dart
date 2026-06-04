@@ -114,7 +114,6 @@ class _AccountManagementIntegrationsScreenState
   Widget build(BuildContext context) {
     super.build(context); // AutomaticKeepAliveClientMixin contract.
     final services = context.read<Services>();
-    final session = services.auth.session.value;
     final companyId = services.auth.session.value?.currentCompanyId;
     final canSave = _dirty && !_saving;
 
@@ -195,17 +194,14 @@ class _AccountManagementIntegrationsScreenState
               title: context.tr('api_tokens'),
               spacing: 0,
               children: [
-                // API Tokens is Pro+/self-hosted only — mirrors React, which
-                // hides the tile for free hosted accounts. Webhooks / docs /
-                // Zapier / QuickBooks stay ungated.
-                if (session != null &&
-                    (session.isSelfHosted || session.hasProAccess))
-                  _IntegrationTile(
-                    icon: Icons.lock_outline,
-                    labelKey: 'api_tokens',
-                    onTap: () =>
-                        context.go('/settings/integrations/api_tokens'),
-                  ),
+                // API Tokens tile stays visible for everyone (like the sibling
+                // QuickBooks tile); the Pro / self-hosted gate lives at the
+                // destination (TokenListScreen → PlanGateBanner).
+                _IntegrationTile(
+                  icon: Icons.lock_outline,
+                  labelKey: 'api_tokens',
+                  onTap: () => context.go('/settings/integrations/api_tokens'),
+                ),
                 _IntegrationTile(
                   icon: Icons.webhook_outlined,
                   labelKey: 'api_webhooks',

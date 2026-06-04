@@ -402,9 +402,14 @@ class GroupSettingRepository
       customValue4: Value(g.customValue4),
       isDirty: Value(isDirty),
       isDeleted: Value(g.isDeleted),
-      documents: Value(
-        jsonEncode(g.documents.map((d) => d.toApi().toJson()).toList()),
-      ),
+      // Never write documents on a domain save. Unlike Client/Product (whose
+      // edit/detail screens watch a live row), the group edit screen reuses a
+      // frozen-snapshot edit VM — `g.documents` here can be stale, so writing
+      // it would clobber docs uploaded since the screen opened. Documents are
+      // owned solely by `_apiToCompanion` (server/upload responses) and
+      // `applyDocumentChanged`/`applyDocumentDeleted`. `Value.absent()`
+      // preserves the existing column on the UPDATE path.
+      documents: const Value.absent(),
       payload: jsonEncode(g.toApiJson(preserveTempId: true)),
     );
   }

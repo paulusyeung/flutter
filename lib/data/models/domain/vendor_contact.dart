@@ -22,16 +22,22 @@ abstract class VendorContact with _$VendorContact {
     required String phone,
     required String password,
     required bool sendEmail,
-    // Lone non-`required` field: a server-managed boolean defaulting false,
-    // mirrors `Contact.isLocked` so call sites that don't care can omit it.
+    // Server-managed / optional flags default so call sites that don't care
+    // can omit them; mirror the optional fields on `Contact`.
     @Default(false) bool ccOnly,
     required bool isPrimary,
+    // "Authorized to sign" — portal e-signature permission (React parity).
+    @Default(false) bool canSign,
+    // Server-generated portal auto-login URL. Read-only; echoed back on save.
+    @Default('') String link,
     required String customValue1,
     required String customValue2,
     required String customValue3,
     required String customValue4,
     required DateTime updatedAt,
     required bool isDeleted,
+    // Last portal login (read-only, display-only); null when never signed in.
+    DateTime? lastLogin,
   }) = _VendorContact;
 
   factory VendorContact.fromApi(VendorContactApi a) => VendorContact(
@@ -40,16 +46,21 @@ abstract class VendorContact with _$VendorContact {
     lastName: a.lastName,
     email: a.email,
     phone: a.phone,
-    password: a.password,
+    // Server sends `**********` when a password is set; treat it as "no
+    // password entered" so it's never echoed back (see [kMaskedPassword]).
+    password: a.password == kMaskedPassword ? '' : a.password,
     sendEmail: a.sendEmail,
     ccOnly: a.ccOnly,
     isPrimary: a.isPrimary,
+    canSign: a.canSign,
+    link: a.link,
     customValue1: a.customValue1,
     customValue2: a.customValue2,
     customValue3: a.customValue3,
     customValue4: a.customValue4,
     updatedAt: epochSecondsToUtc(a.updatedAt),
     isDeleted: a.isDeleted,
+    lastLogin: epochSecondsToUtcOrNull(a.lastLogin),
   );
 }
 
@@ -66,10 +77,13 @@ extension VendorContactPayload on VendorContact {
     'last_name': lastName,
     'email': email,
     'phone': phone,
-    if (password.isNotEmpty) 'password': password,
+    if (password.isNotEmpty && password != kMaskedPassword)
+      'password': password,
     'send_email': sendEmail,
     'cc_only': ccOnly,
     'is_primary': isPrimary,
+    'can_sign': canSign,
+    'link': link,
     'custom_value1': customValue1,
     'custom_value2': customValue2,
     'custom_value3': customValue3,

@@ -120,6 +120,85 @@ void main() {
     });
 
     test(
+      'masked contact password is blanked on read and never re-sent — '
+      'echoing `**********` would 422 against the backend password regex',
+      () {
+        final api = VendorApi.fromJson({
+          'id': 'v_1',
+          'name': 'Acme Co',
+          'contacts': [
+            {'id': 'vc_1', 'email': 'a@acme.test', 'password': kMaskedPassword},
+            {'id': 'vc_2', 'email': 'b@acme.test', 'password': 'Real1Pass'},
+          ],
+        });
+        final domain = Vendor.fromApi(api);
+        // Masked sentinel → treated as "no password entered".
+        expect(domain.contacts[0].password, isEmpty);
+        expect(
+          domain.contacts[0].toApiJson().containsKey('password'),
+          isFalse,
+          reason: 'the masked sentinel must never be written back',
+        );
+        // A genuine password the user typed still round-trips.
+        expect(domain.contacts[1].password, 'Real1Pass');
+        expect(domain.contacts[1].toApiJson()['password'], 'Real1Pass');
+        // Defense-in-depth: even if the mask reaches toApiJson directly.
+        expect(
+          domain.contacts[1]
+              .copyWith(password: kMaskedPassword)
+              .toApiJson()
+              .containsKey('password'),
+          isFalse,
+        );
+      },
+    );
+
+    test(
+      'vendor + contact extended fields round-trip through fromApi/toApiJson — '
+      'including read-only last_login so the local Drift payload preserves it',
+      () {
+        final api = VendorApi.fromJson({
+          'id': 'v_1',
+          'name': 'Acme Co',
+          'currency_id': '3',
+          'language_id': '5',
+          'classification': 'business',
+          'is_tax_exempt': true,
+          'routing_id': 'RT-9',
+          'last_login': 1700000000,
+          'contacts': [
+            {
+              'id': 'vc_1',
+              'email': 'a@acme.test',
+              'can_sign': true,
+              'link': 'https://portal/x',
+              'last_login': 1699999999,
+            },
+          ],
+        });
+        final v = Vendor.fromApi(api);
+        expect(v.languageId, '5');
+        expect(v.classification, 'business');
+        expect(v.isTaxExempt, isTrue);
+        expect(v.routingId, 'RT-9');
+        expect(v.lastLogin, isNotNull);
+        expect(v.contacts.single.canSign, isTrue);
+        expect(v.contacts.single.link, 'https://portal/x');
+        expect(v.contacts.single.lastLogin, isNotNull);
+
+        final json = v.toApiJson();
+        expect(json['language_id'], '5');
+        expect(json['classification'], 'business');
+        expect(json['is_tax_exempt'], true);
+        expect(json['routing_id'], 'RT-9');
+        expect(json['last_login'], 1700000000);
+        final c = (json['contacts'] as List).single as Map;
+        expect(c['can_sign'], true);
+        expect(c['link'], 'https://portal/x');
+      },
+    );
+
+    test(
       'VendorContact.toApiJson omits tmp_ ids by default but keeps them with '
       'preserveTempId — the create flow needs the server to allocate the id, '
       'local Drift persistence needs to keep watching the tmp row',

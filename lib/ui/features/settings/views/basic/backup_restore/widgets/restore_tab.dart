@@ -476,6 +476,11 @@ class _QueuedBanner extends StatelessWidget {
             ],
           );
           final action = FilledButton.tonal(
+            // In the wide branch this sits directly in a Row; without an
+            // explicit minimumSize the filledButtonTheme default
+            // (Size.fromHeight(44) = infinite width) overflows the Row (and
+            // stretches full-width in the narrow Align branch). See theme.dart.
+            style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
             onPressed: onRestoreAnother,
             child: Text(context.tr('restore_another')),
           );

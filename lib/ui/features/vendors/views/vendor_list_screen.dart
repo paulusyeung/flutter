@@ -41,7 +41,6 @@ class VendorListScreen extends StatelessWidget {
       sortOptions: (context) => [
         SortOption(id: VendorFieldIds.name, label: context.tr('name')),
         SortOption(id: VendorFieldIds.number, label: context.tr('number')),
-        SortOption(id: VendorFieldIds.balance, label: context.tr('balance')),
         SortOption(
           id: VendorFieldIds.updatedAt,
           label: context.tr('last_updated'),

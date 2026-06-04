@@ -38,7 +38,8 @@ const _kTabSlugs = <String>['', 'defaults', 'emails'];
 ///
 /// Cascade behavior is preserved at both widths — the shell composes
 /// `SettingsCompanyScopedHost` with the same VM selection the cascade
-/// scaffold does (company VM at company scope; `ClientSettingsDraftViewModel`
+/// scaffold does (via `resolveCascadeDraftVm`: company VM at company scope;
+/// `GroupSettingsDraftViewModel` at group scope; `ClientSettingsDraftViewModel`
 /// at client scope) so the `Overridable*` widgets render the override
 /// checkbox at group/client scope and bind to a real draft at company scope.
 class OnlinePaymentsShell extends StatefulWidget {

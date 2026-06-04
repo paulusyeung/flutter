@@ -265,6 +265,10 @@ class _PromoDiscountRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final typeField = DropdownButtonFormField<bool>(
+      // Fill the constrained 140px slot and ellipsize rather than sizing to
+      // content (which overflows the slot — the amount/percent value + arrow
+      // don't fit the narrow width without this).
+      isExpanded: true,
       initialValue: vm.draft.isAmountDiscount,
       items: [
         DropdownMenuItem(value: true, child: Text(context.tr('amount'))),
