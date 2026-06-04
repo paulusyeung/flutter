@@ -7,6 +7,7 @@ import 'package:admin/data/models/domain/recurring_date.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/models/value/money.dart';
 import 'package:admin/data/models/value/parsing.dart';
+import 'package:admin/domain/expense_tax_math.dart';
 import 'package:admin/domain/recurring_expense_status.dart';
 
 part 'recurring_expense.freezed.dart';
@@ -172,7 +173,33 @@ extension RecurringExpenseStatus on RecurringExpense {
   Decimal get effectiveExchangeRate =>
       exchangeRate == Decimal.zero ? Decimal.one : exchangeRate;
 
-  Decimal get taxAmountSum => taxAmount1 + taxAmount2 + taxAmount3;
+  /// Per-tier tax amount, computed from the rate — parity with [Expense]
+  /// (`taxAmount1Computed`). In `calculateTaxByAmount` mode the stored
+  /// `tax_amount*` is authoritative.
+  Decimal get taxAmount1Computed => calculateTaxByAmount
+      ? taxAmount1
+      : expenseTierTaxAmount(
+          amount: amount,
+          rate: taxRate1,
+          usesInclusiveTaxes: usesInclusiveTaxes,
+        );
+  Decimal get taxAmount2Computed => calculateTaxByAmount
+      ? taxAmount2
+      : expenseTierTaxAmount(
+          amount: amount,
+          rate: taxRate2,
+          usesInclusiveTaxes: usesInclusiveTaxes,
+        );
+  Decimal get taxAmount3Computed => calculateTaxByAmount
+      ? taxAmount3
+      : expenseTierTaxAmount(
+          amount: amount,
+          rate: taxRate3,
+          usesInclusiveTaxes: usesInclusiveTaxes,
+        );
+
+  Decimal get taxAmountSum =>
+      taxAmount1Computed + taxAmount2Computed + taxAmount3Computed;
 
   Decimal get netAmount => usesInclusiveTaxes ? amount - taxAmountSum : amount;
 

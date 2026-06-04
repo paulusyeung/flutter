@@ -42,6 +42,8 @@ void main() {
           ),
       delete: (repo, {required companyId, required id}) =>
           (repo as WebhookRepository).delete(companyId: companyId, id: id),
+      // WebhookController applies no `password_protected` middleware.
+      deleteRequiresPassword: false,
     ),
   );
 
@@ -82,6 +84,19 @@ void main() {
       final domain = Webhook.fromApi(api);
       expect(domain.format, kWebhookDefaultFormat);
       expect(domain.restMethod, kWebhookDefaultRestMethod);
+    });
+
+    test('fromApi normalizes a legacy uppercase rest_method to lowercase', () {
+      // A row created before the server's lowercase `in:post,put` rule was
+      // honored could carry 'POST'; the canonical domain value must be lowercase
+      // so the edit screen's SegmentedButton highlights the right segment.
+      const api = WebhookApi(
+        id: 'w_1',
+        eventId: '1',
+        targetUrl: 'x',
+        restMethod: 'POST',
+      );
+      expect(Webhook.fromApi(api).restMethod, 'post');
     });
 
     test('toApiJson emits id only for real ids, never for tmp_ ids', () {

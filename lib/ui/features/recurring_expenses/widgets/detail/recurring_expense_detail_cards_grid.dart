@@ -218,15 +218,20 @@ class _Row extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    // Tighten the label column on narrow phones so the value keeps a usable
+    // width (a fixed 160px would eat ~half a 360px screen).
+    final labelWidth = MediaQuery.sizeOf(context).width < 480 ? 100.0 : 160.0;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 160,
+            width: labelWidth,
             child: Text(
               label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 13, color: tokens.ink3),
             ),
           ),
@@ -435,17 +440,17 @@ class _TaxBreakdownCard extends StatelessWidget {
           if (e.taxName1.isNotEmpty || e.taxRate1 != Decimal.zero)
             _Row(
               label: e.taxName1.isEmpty ? context.tr('tax_rate1') : e.taxName1,
-              value: Text('${e.taxRate1}% · ${_fmt(e.taxAmount1)}'),
+              value: Text('${e.taxRate1}% · ${_fmt(e.taxAmount1Computed)}'),
             ),
           if (e.taxName2.isNotEmpty || e.taxRate2 != Decimal.zero)
             _Row(
               label: e.taxName2.isEmpty ? context.tr('tax_rate2') : e.taxName2,
-              value: Text('${e.taxRate2}% · ${_fmt(e.taxAmount2)}'),
+              value: Text('${e.taxRate2}% · ${_fmt(e.taxAmount2Computed)}'),
             ),
           if (e.taxName3.isNotEmpty || e.taxRate3 != Decimal.zero)
             _Row(
               label: e.taxName3.isEmpty ? context.tr('tax_rate3') : e.taxName3,
-              value: Text('${e.taxRate3}% · ${_fmt(e.taxAmount3)}'),
+              value: Text('${e.taxRate3}% · ${_fmt(e.taxAmount3Computed)}'),
             ),
           _Row(
             label: context.tr('inclusive_taxes'),

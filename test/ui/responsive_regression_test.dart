@@ -15,8 +15,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/system_log.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_cards_grid.dart';
+import 'package:admin/ui/features/settings/widgets/system_log_row.dart';
 
 import '../_responsive_helper.dart';
 
@@ -37,6 +39,32 @@ void main() {
           tester,
           width,
           ClientDetailCardsGrid(client: client, formatter: null),
+        );
+        expectNoOverflow(tester);
+      });
+
+      testWidgets('SystemLogRow @ ${width.toInt()}px', (tester) async {
+        // Shared by Settings → System Logs, the gateway-detail card, and the
+        // client-detail tab. Collapsed JSON preview + responsive left-column /
+        // stacked layout must not overflow at any width.
+        await pumpAt(
+          tester,
+          width,
+          SystemLogRow(
+            log: SystemLog(
+              id: 's1',
+              companyId: 'c1',
+              userId: 'u1',
+              clientId: 'cli_1',
+              eventId: 32,
+              categoryId: 2,
+              typeId: 301,
+              log: '{"error":"missing from header","code":422}',
+              createdAt: DateTime.utc(2026, 5, 1),
+              updatedAt: DateTime.utc(2026, 5, 1),
+            ),
+            isWide: width >= 600,
+          ),
         );
         expectNoOverflow(tester);
       });

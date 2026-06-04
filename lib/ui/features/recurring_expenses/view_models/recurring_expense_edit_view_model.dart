@@ -64,8 +64,25 @@ class RecurringExpenseEditViewModel
   void setProjectId(String v) => updateDraft(draft.copyWith(projectId: v));
   void setCategoryId(String v) => updateDraft(draft.copyWith(categoryId: v));
   void setCurrencyId(String v) => updateDraft(draft.copyWith(currencyId: v));
-  void setInvoiceCurrencyId(String v) =>
-      updateDraft(draft.copyWith(invoiceCurrencyId: v));
+
+  /// See `ExpenseEditViewModel.setInvoiceCurrencyId` — clearing resets the
+  /// conversion (rate → 1, foreign → 0); setting recomputes the foreign
+  /// amount from the current rate.
+  void setInvoiceCurrencyId(String v) {
+    if (v.isEmpty) {
+      updateDraft(
+        draft.copyWith(
+          invoiceCurrencyId: '',
+          exchangeRate: Decimal.one,
+          foreignAmount: Decimal.zero,
+        ),
+      );
+      return;
+    }
+    final d = draft.copyWith(invoiceCurrencyId: v);
+    updateDraft(d.copyWith(foreignAmount: d.amount * d.exchangeRate));
+  }
+
   void setAssignedUserId(String v) =>
       updateDraft(draft.copyWith(assignedUserId: v));
   void setNumber(String v) => updateDraft(draft.copyWith(number: v));
@@ -103,17 +120,39 @@ class RecurringExpenseEditViewModel
 
   // ── Money / tax ────────────────────────────────────────────────────
 
-  void setAmount(String input) => updateDraft(
-    draft.copyWith(amount: Decimal.tryParse(input.trim()) ?? Decimal.zero),
-  );
-  void setForeignAmount(String input) => updateDraft(
-    draft.copyWith(
-      foreignAmount: Decimal.tryParse(input.trim()) ?? Decimal.zero,
-    ),
-  );
-  void setExchangeRate(String input) => updateDraft(
-    draft.copyWith(exchangeRate: Decimal.tryParse(input.trim()) ?? Decimal.one),
-  );
+  void setAmount(String input) {
+    final amount = Decimal.tryParse(input.trim()) ?? Decimal.zero;
+    var d = draft.copyWith(amount: amount);
+    if (d.invoiceCurrencyId.isNotEmpty) {
+      d = d.copyWith(foreignAmount: amount * d.exchangeRate);
+    }
+    updateDraft(d);
+  }
+
+  /// Editing the foreign amount back-computes the exchange rate
+  /// (`foreign / amount`) — mirrors React's `foreign_amount` onChange.
+  void setForeignAmount(String input) {
+    final foreign = Decimal.tryParse(input.trim()) ?? Decimal.zero;
+    var d = draft.copyWith(foreignAmount: foreign);
+    if (d.amount != Decimal.zero) {
+      d = d.copyWith(
+        exchangeRate: (foreign / d.amount).toDecimal(
+          scaleOnInfinitePrecision: 10,
+        ),
+      );
+    }
+    updateDraft(d);
+  }
+
+  void setExchangeRate(String input) {
+    final rate = Decimal.tryParse(input.trim()) ?? Decimal.one;
+    var d = draft.copyWith(exchangeRate: rate);
+    if (d.invoiceCurrencyId.isNotEmpty) {
+      d = d.copyWith(foreignAmount: d.amount * rate);
+    }
+    updateDraft(d);
+  }
+
   void setTaxName1(String v) => updateDraft(draft.copyWith(taxName1: v));
   void setTaxName2(String v) => updateDraft(draft.copyWith(taxName2: v));
   void setTaxName3(String v) => updateDraft(draft.copyWith(taxName3: v));

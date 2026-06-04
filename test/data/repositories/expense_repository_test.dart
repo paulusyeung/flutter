@@ -151,6 +151,84 @@ void main() {
       expect(row.payload, contains('tmpl_7'));
     });
   });
+
+  // The expense status filter (`client_status`) is applied as a local Drift
+  // predicate over the denormalized invoice_id / should_be_invoiced / is_paid
+  // columns. Mirrors admin-portal `Expense.matchesStatuses`, including the
+  // intentional paid/logged overlap (paid-but-not-invoiced is both).
+  group('ExpenseRepository — status filter', () {
+    const co = 'co';
+    late AppDatabase db;
+
+    setUp(() {
+      db = AppDatabase(NativeDatabase.memory());
+    });
+    tearDown(() async {
+      await db.close();
+    });
+
+    Future<void> seed(ExpenseRepository repo) async {
+      await repo.create(
+        companyId: co,
+        draft: Expense.fromApi(const ExpenseApi(id: 'tmp_l', number: 'L')),
+      );
+      await repo.create(
+        companyId: co,
+        draft: Expense.fromApi(
+          const ExpenseApi(id: 'tmp_p', number: 'P', shouldBeInvoiced: true),
+        ),
+      );
+      await repo.create(
+        companyId: co,
+        draft: Expense.fromApi(
+          const ExpenseApi(id: 'tmp_i', number: 'I', invoiceId: 'inv_1'),
+        ),
+      );
+      await repo.create(
+        companyId: co,
+        draft: Expense.fromApi(
+          const ExpenseApi(id: 'tmp_d', number: 'D', paymentDate: '2026-06-01'),
+        ),
+      );
+    }
+
+    Future<Set<String>> numbersFor(
+      ExpenseRepository repo,
+      Set<String> statuses,
+    ) async {
+      final rows = await repo
+          .watchPage(companyId: co, extraFilters: {'client_status': statuses})
+          .first;
+      return rows.map((e) => e.number).toSet();
+    }
+
+    test('each status narrows to the matching expenses', () async {
+      final repo = ExpenseRepository(db: db, api: _FakeExpensesApi());
+      await seed(repo);
+
+      expect(await numbersFor(repo, {'invoiced'}), {'I'});
+      expect(await numbersFor(repo, {'pending'}), {'P'});
+      expect(await numbersFor(repo, {'paid'}), {'D'});
+      // Logged = not-invoiced & not-should-be-invoiced — also matches the
+      // paid-but-not-invoiced row (admin-portal overlap).
+      expect(await numbersFor(repo, {'logged'}), {'L', 'D'});
+      // Unpaid = is_paid false → everything except the paid row.
+      expect(await numbersFor(repo, {'unpaid'}), {'L', 'P', 'I'});
+    });
+
+    test('multiple statuses union (OR)', () async {
+      final repo = ExpenseRepository(db: db, api: _FakeExpensesApi());
+      await seed(repo);
+      expect(await numbersFor(repo, {'invoiced', 'paid'}), {'I', 'D'});
+    });
+
+    test('empty status set returns all', () async {
+      final repo = ExpenseRepository(db: db, api: _FakeExpensesApi());
+      await seed(repo);
+      final all = await repo.watchPage(companyId: co).first;
+      expect(all.map((e) => e.number).toSet(), {'L', 'P', 'I', 'D'});
+    });
+  });
 }
 
 class _FakeExpensesApi implements ExpensesApi {

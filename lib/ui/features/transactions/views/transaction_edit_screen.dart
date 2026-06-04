@@ -39,6 +39,7 @@ class TransactionEditScreen extends StatelessWidget {
           repo: services.bankTransactions,
           companyId: companyId,
           existing: existing,
+          bankAccountRequiredMessage: ctx.tr('please_select_a_bank_account'),
           sync: services.sync,
           connectivity: services.connectivity,
         );
@@ -167,6 +168,7 @@ class _TransactionEditBody extends StatelessWidget {
                 displayString: (a) => a.name.isEmpty ? a.id : a.name,
                 onChanged: (a) => vm.setBankAccountId(a?.id ?? ''),
                 emptyHintKey: 'connect_a_bank_account_first',
+                errorText: vm.fieldErrorFor('bank_integration_id'),
               );
             },
           ),

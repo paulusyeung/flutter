@@ -8,6 +8,7 @@ import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/expense.dart';
 import 'package:admin/data/models/domain/expense_category.dart';
+import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/l10n/localization.dart';
@@ -126,7 +127,20 @@ class ExpenseDetailCardsGrid extends StatelessWidget {
       );
     }
     if (e.invoiceId.isNotEmpty) {
-      cards.add(_InvoiceLinkPlaceholder(invoiceId: e.invoiceId));
+      cards.add(
+        EntityLinkCard<Invoice>(
+          titleKey: 'invoice',
+          icon: Icons.receipt_long_outlined,
+          entityId: e.invoiceId,
+          routePath: '/invoices/${e.invoiceId}',
+          permissionKey: 'view_invoice',
+          watchBuilder: () => context.read<Services>().invoices.watch(
+            companyId: companyId,
+            id: e.invoiceId,
+          ),
+          displayNameOf: (inv) => inv.number.isEmpty ? e.invoiceId : inv.number,
+        ),
+      );
     }
     if (e.projectId.isNotEmpty) {
       cards.add(
@@ -214,15 +228,20 @@ class _Row extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    // Tighten the label column on narrow phones so the value keeps a usable
+    // width (a fixed 160px would eat ~half a 360px screen).
+    final labelWidth = MediaQuery.sizeOf(context).width < 480 ? 100.0 : 160.0;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 160,
+            width: labelWidth,
             child: Text(
               label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 13, color: tokens.ink3),
             ),
           ),
@@ -257,6 +276,17 @@ class _SummaryCard extends StatelessWidget {
     final grossText = f == null
         ? e.grossAmount.toString()
         : f.money(e.grossAmount, clientCurrencyId: e.currencyId);
+    final netText = f == null
+        ? e.netAmount.toString()
+        : f.money(e.netAmount, clientCurrencyId: e.currencyId);
+    // Converted total in the invoice currency — only meaningful when an
+    // invoice currency is set and the rate isn't a no-op.
+    final hasConversion =
+        e.invoiceCurrencyId.isNotEmpty &&
+        e.effectiveExchangeRate != Decimal.one;
+    final convertedText = f == null
+        ? e.convertedAmount.toString()
+        : f.money(e.convertedAmount, clientCurrencyId: e.invoiceCurrencyId);
     return DashboardCardShell(
       title: context.tr('details'),
       child: Column(
@@ -271,8 +301,17 @@ class _SummaryCard extends StatelessWidget {
           ),
           _Row(label: context.tr('date'), value: Text(dateText)),
           _Row(label: context.tr('amount'), value: Text(amountText)),
+          // Net (amount minus tax) is only distinct from amount for inclusive
+          // taxes; gross (amount plus tax) for exclusive.
+          if (e.usesInclusiveTaxes && e.taxAmountSum != Decimal.zero)
+            _Row(label: context.tr('net_amount'), value: Text(netText)),
           if (e.taxAmountSum != Decimal.zero)
             _Row(label: context.tr('gross_amount'), value: Text(grossText)),
+          if (hasConversion)
+            _Row(
+              label: context.tr('converted_amount'),
+              value: Text(convertedText),
+            ),
         ],
       ),
     );
@@ -380,17 +419,17 @@ class _TaxBreakdownCard extends StatelessWidget {
           if (e.taxName1.isNotEmpty || e.taxRate1 != Decimal.zero)
             _Row(
               label: e.taxName1.isEmpty ? context.tr('tax_rate1') : e.taxName1,
-              value: Text('${e.taxRate1}% · ${_fmt(e.taxAmount1)}'),
+              value: Text('${e.taxRate1}% · ${_fmt(e.taxAmount1Computed)}'),
             ),
           if (e.taxName2.isNotEmpty || e.taxRate2 != Decimal.zero)
             _Row(
               label: e.taxName2.isEmpty ? context.tr('tax_rate2') : e.taxName2,
-              value: Text('${e.taxRate2}% · ${_fmt(e.taxAmount2)}'),
+              value: Text('${e.taxRate2}% · ${_fmt(e.taxAmount2Computed)}'),
             ),
           if (e.taxName3.isNotEmpty || e.taxRate3 != Decimal.zero)
             _Row(
               label: e.taxName3.isEmpty ? context.tr('tax_rate3') : e.taxName3,
-              value: Text('${e.taxRate3}% · ${_fmt(e.taxAmount3)}'),
+              value: Text('${e.taxRate3}% · ${_fmt(e.taxAmount3Computed)}'),
             ),
           _Row(
             label: context.tr('inclusive_taxes'),
@@ -416,6 +455,11 @@ class _PaymentMetadataCard extends StatelessWidget {
     final dateText = e.paymentDate == null
         ? '—'
         : (f == null ? e.paymentDate!.toIso() : f.date(e.paymentDate!.toIso()));
+    // Resolve the payment type id to its human name (e.g. "1" → "Credit
+    // Card") via the statics bundle, the same lookup the edit form uses.
+    final paymentTypeName =
+        context.read<Services>().statics.paymentType(e.paymentTypeId)?.name ??
+        e.paymentTypeId;
     return DashboardCardShell(
       title: context.tr('payment'),
       child: Column(
@@ -424,7 +468,7 @@ class _PaymentMetadataCard extends StatelessWidget {
           if (e.paymentTypeId.isNotEmpty)
             _Row(
               label: context.tr('payment_type'),
-              value: Text(e.paymentTypeId),
+              value: Text(paymentTypeName),
             ),
           if (e.transactionReference.isNotEmpty)
             _Row(
@@ -478,41 +522,6 @@ class _CustomFieldsCard extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _InvoiceLinkPlaceholder extends StatelessWidget {
-  const _InvoiceLinkPlaceholder({required this.invoiceId});
-  final String invoiceId;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    return DashboardCardShell(
-      title: context.tr('invoice'),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          children: [
-            Icon(Icons.receipt_long_outlined, size: 16, color: tokens.ink3),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                invoiceId,
-                style: TextStyle(color: tokens.ink),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              context.tr('coming_soon'),
-              style: TextStyle(color: tokens.ink3, fontStyle: FontStyle.italic),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

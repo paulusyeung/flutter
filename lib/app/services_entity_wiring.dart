@@ -1201,21 +1201,34 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         return response.data.isEmpty ? null : response.data.first;
       },
       MutationKind.convertMatched: ({required row, required payload}) async {
-        await bankTransactionsApi.bulkAction(
+        final response = await bankTransactionsApi.bulkAction(
           action: 'convert_matched',
           ids: (payload['ids'] as List).cast<String>(),
           idempotencyKey: row.idempotencyKey,
         );
-        // Bulk response carries the updated rows but the list screen
-        // already watches Drift; the next list refresh re-syncs.
+        // Apply every returned row so local status updates immediately —
+        // no global refreshAll. Return null so the dispatcher doesn't also
+        // try to apply a single response (this is a multi-row bulk action).
+        for (final tx in response.data) {
+          await bankTransactionRepo.applyUpdateResponse(
+            companyId: row.companyId,
+            serverResponse: tx,
+          );
+        }
         return null;
       },
       MutationKind.unlinkTransaction: ({required row, required payload}) async {
-        await bankTransactionsApi.bulkAction(
+        final response = await bankTransactionsApi.bulkAction(
           action: 'unlink',
           ids: (payload['ids'] as List).cast<String>(),
           idempotencyKey: row.idempotencyKey,
         );
+        for (final tx in response.data) {
+          await bankTransactionRepo.applyUpdateResponse(
+            companyId: row.companyId,
+            serverResponse: tx,
+          );
+        }
         return null;
       },
     },

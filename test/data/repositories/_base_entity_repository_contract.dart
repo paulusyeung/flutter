@@ -59,6 +59,7 @@ abstract class EntityRepositoryContractFixture<TDomain, TApi> {
     })
     delete,
     bool createRequiresPassword,
+    bool deleteRequiresPassword,
   }) = _ClosureContractFixture<TDomain, TApi>;
 
   /// Concrete subclasses that need extra plumbing keep the inheritance
@@ -75,6 +76,13 @@ abstract class EntityRepositoryContractFixture<TDomain, TApi> {
   /// overrides to `true` because `POST /api/v1/users` is server-side
   /// password-gated — mirrors React's edit flow.
   bool get createRequiresPassword => false;
+
+  /// Whether `MutationKind.delete` outbox rows should carry
+  /// `requiresPassword=true` for this entity. Default `true` matches the
+  /// historic pattern (delete/purge are password-gated so `ConfirmPasswordSheet`
+  /// fires). Webhooks override to `false` — the server applies no password
+  /// middleware to webhooks.
+  bool get deleteRequiresPassword => true;
 
   /// Build the repository under test. Called once per `setUp`; the fixture
   /// can rely on a fresh in-memory database each time.
@@ -170,6 +178,7 @@ class _ClosureContractFixture<TDomain, TApi>
     })
     delete,
     bool createRequiresPassword = false,
+    bool deleteRequiresPassword = true,
   }) : _buildRepo = buildRepo,
        _buildApiModel = buildApiModel,
        _fromApi = fromApi,
@@ -179,14 +188,19 @@ class _ClosureContractFixture<TDomain, TApi>
        _create = create,
        _save = save,
        _delete = delete,
-       _createRequiresPassword = createRequiresPassword;
+       _createRequiresPassword = createRequiresPassword,
+       _deleteRequiresPassword = deleteRequiresPassword;
 
   @override
   final String entityType;
   final bool _createRequiresPassword;
+  final bool _deleteRequiresPassword;
 
   @override
   bool get createRequiresPassword => _createRequiresPassword;
+
+  @override
+  bool get deleteRequiresPassword => _deleteRequiresPassword;
   final BaseEntityRepository<TDomain, TApi> Function(AppDatabase) _buildRepo;
   final TApi Function({required String id, String? displayValue, int updatedAt})
   _buildApiModel;
@@ -389,7 +403,7 @@ void runEntityRepositoryContract<TDomain, TApi>(
     );
 
     test(
-      'delete enqueues with requiresPassword=true (server policy)',
+      'delete enqueues with requiresPassword matching server policy',
       () async {
         await fixture.delete(repo, companyId: 'co', id: 'any_id');
 
@@ -400,8 +414,10 @@ void runEntityRepositoryContract<TDomain, TApi>(
         expect(pending.single.mutationKind, MutationKind.delete.wireName);
         expect(
           pending.single.requiresPassword,
-          isTrue,
-          reason: 'delete must surface ConfirmPasswordSheet',
+          equals(fixture.deleteRequiresPassword),
+          reason: fixture.deleteRequiresPassword
+              ? 'delete must surface ConfirmPasswordSheet'
+              : 'delete is not password-gated server-side for this entity',
         );
       },
     );

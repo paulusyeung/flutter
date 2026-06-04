@@ -37,6 +37,8 @@ void main() {
           (repo as TokenRepository).save(companyId: companyId, token: entity),
       delete: (repo, {required companyId, required id}) =>
           (repo as TokenRepository).delete(companyId: companyId, id: id),
+      // Server applies `password_protected` to token store/update/destroy.
+      createRequiresPassword: true,
     ),
   );
 
@@ -231,6 +233,54 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 50));
       expect(emitted, 0);
     });
+
+    test('applyCreateResponse buffers the raw secret for a late subscriber; '
+        'takePendingSecrets drains and clears it', () async {
+      final repo = makeRepo();
+
+      // No live listener on newSecrets — mimics the create completing while
+      // the app-wide shell listener isn't mounted yet (cold start) or is
+      // between screens. The broadcast alone would drop it; the buffer keeps it.
+      await repo.applyCreateResponse(
+        companyId: 'co',
+        tempId: 'tmp_late',
+        serverResponse: const TokenApi(
+          id: 't_late',
+          name: 'Late',
+          token: 'raw-secret-for-a-late-subscriber',
+          userId: 'u_1',
+          updatedAt: 1700000300,
+        ),
+      );
+
+      final pending = repo.takePendingSecrets();
+      expect(pending, hasLength(1));
+      expect(pending.single.tempId, 'tmp_late');
+      expect(pending.single.secret, 'raw-secret-for-a-late-subscriber');
+
+      // Draining clears the buffer so the dialog never re-shows.
+      expect(repo.takePendingSecrets(), isEmpty);
+    });
+
+    test(
+      'takePendingSecrets stays empty for a masked (no-secret) response',
+      () async {
+        final repo = makeRepo();
+
+        await repo.applyCreateResponse(
+          companyId: 'co',
+          tempId: 'tmp_masked',
+          serverResponse: const TokenApi(
+            id: 't_masked2',
+            name: 'Masked',
+            token: 'abc1234567xxxxxxxxxxx',
+            updatedAt: 1700000400,
+          ),
+        );
+
+        expect(repo.takePendingSecrets(), isEmpty);
+      },
+    );
 
     test(
       '_fromRow overlays is_dirty so an offline create reads as dirty',

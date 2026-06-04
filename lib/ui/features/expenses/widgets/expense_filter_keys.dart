@@ -35,10 +35,87 @@ List<FilterKey> buildExpenseFilterKeys({
     companyId: companyId,
     nameForClientId: nameForClientId,
   ),
+  const ExpenseStatusFilterKey(),
   ExpenseCategoryFilterKey(categories: categories, companyId: companyId),
   ExpenseProjectFilterKey(projects: projects, companyId: companyId),
   ExpenseVendorFilterKey(vendors: vendors, companyId: companyId),
 ];
+
+/// `status:logged|pending|invoiced|paid|unpaid` — multi-valued. Expense status
+/// is computed client-side (`Expense.calculatedStatusId` + `isPaid`), so it's
+/// applied as a LOCAL Drift predicate (`ExpenseDao.watchPage`) built from the
+/// denormalized `invoice_id` / `should_be_invoiced` / `is_paid` columns. The
+/// wire values match Invoice Ninja's `ExpenseFilters::client_status`, so the
+/// same set is forwarded to the server (best-effort) under `client_status`.
+class ExpenseStatusFilterKey extends MembershipFilterKey {
+  const ExpenseStatusFilterKey();
+
+  /// `(wire value, localization key)` — mirrors `kExpenseStatusLabels`.
+  static const List<(String, String)> _statuses = [
+    ('logged', 'logged'),
+    ('pending', 'pending'),
+    ('invoiced', 'invoiced'),
+    ('paid', 'paid'),
+    ('unpaid', 'unpaid'),
+  ];
+
+  static String _labelKeyFor(String wire) {
+    for (final (value, labelKey) in _statuses) {
+      if (value == wire) return labelKey;
+    }
+    return wire;
+  }
+
+  @override
+  String get id => 'status';
+
+  @override
+  String get serverKey => 'client_status';
+
+  @override
+  bool get checkboxMultiSelect => true;
+
+  @override
+  String displayLabel(BuildContext context) => context.tr('status');
+
+  // Localize the chip label (the base's `displayValueFor` has no context).
+  @override
+  Iterable<FilterToken> tokensFrom(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+  ) {
+    final values = vm.extraFilters[serverKey] ?? const <String>{};
+    return [
+      for (final v in values)
+        FilterToken(
+          keyId: id,
+          displayKey: displayLabel(context),
+          rawValue: v,
+          displayValue: context.tr(_labelKeyFor(v)),
+        ),
+    ];
+  }
+
+  @override
+  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) {
+    final q = query.trim().toLowerCase();
+    final all = [
+      for (final (value, labelKey) in _statuses)
+        FilterValueSuggestion(
+          rawValue: value,
+          displayLabel: context.tr(labelKey),
+        ),
+    ];
+    final filtered = q.isEmpty
+        ? all
+        : all.where((s) => s.displayLabel.toLowerCase().contains(q)).toList();
+    return Stream.value(filtered);
+  }
+}
 
 /// `category:foo` — multi-valued, resolved through the expense-category
 /// repository. `serverKey` is `categories` (`ExpenseFilters::categories` —

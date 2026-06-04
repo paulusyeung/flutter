@@ -14,6 +14,7 @@ class TransactionEditViewModel extends GenericEditViewModel<BankTransaction> {
   TransactionEditViewModel({
     required this.repo,
     required this.companyId,
+    required this.bankAccountRequiredMessage,
     BankTransaction? existing,
     super.sync,
     super.connectivity,
@@ -25,6 +26,19 @@ class TransactionEditViewModel extends GenericEditViewModel<BankTransaction> {
 
   final BankTransactionRepository repo;
   final String companyId;
+
+  /// Localized message surfaced inline (via [fieldErrorFor]) when no bank
+  /// account is selected. The server requires `bank_integration_id` on both
+  /// create and update, and an offline create enqueues optimistically (the
+  /// form closes before the drain), so a 422 would never reach this screen —
+  /// validate client-side instead.
+  final String bankAccountRequiredMessage;
+
+  @override
+  Map<String, List<String>> validate() => {
+    if (draft.bankAccountId.isEmpty)
+      'bank_integration_id': [bankAccountRequiredMessage],
+  };
 
   @override
   bool draftIsNonEmpty() =>

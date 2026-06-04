@@ -69,6 +69,7 @@ class ExpenseDao extends BaseEntityDao<$ExpensesTable, ExpenseRow>
     Set<String> categoryIds = const {},
     Set<String> projectIds = const {},
     Set<String> vendorIds = const {},
+    Set<String> statuses = const {},
   }) {
     final q = select(expenses)..where((e) => e.companyId.equals(companyId));
 
@@ -106,6 +107,35 @@ class ExpenseDao extends BaseEntityDao<$ExpensesTable, ExpenseRow>
     }
     if (vendorIds.isNotEmpty) {
       q.where((e) => e.vendorId.isIn(vendorIds.toList()));
+    }
+
+    if (statuses.isNotEmpty) {
+      // Computed expense status — mirror admin-portal `Expense.matchesStatuses`
+      // over the denormalized columns: invoiced = invoice_id set; pending =
+      // not-invoiced + should_be_invoiced; logged = not-invoiced + not-pending;
+      // paid / unpaid = the `is_paid` triple. Selecting multiple ORs, so the
+      // paid/unpaid overlap with the lifecycle statuses is intentional.
+      q.where((e) {
+        final notInvoiced = e.invoiceId.equals('');
+        Expression<bool>? clause;
+        void add(Expression<bool> p) =>
+            clause = clause == null ? p : clause! | p;
+        for (final s in statuses) {
+          switch (s) {
+            case 'invoiced':
+              add(notInvoiced.not());
+            case 'pending':
+              add(notInvoiced & e.shouldBeInvoiced.equals(true));
+            case 'logged':
+              add(notInvoiced & e.shouldBeInvoiced.equals(false));
+            case 'paid':
+              add(e.isPaid.equals(true));
+            case 'unpaid':
+              add(e.isPaid.equals(false));
+          }
+        }
+        return clause ?? const Constant(true);
+      });
     }
 
     if (states.isNotEmpty) {

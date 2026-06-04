@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart';
 import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/app_database.dart';
@@ -27,6 +28,13 @@ String textScaleLabelKey(double scale) {
   if (scale >= kTextScaleLarge) return 'large';
   return 'normal';
 }
+
+/// Compose the device-local [factor] with the platform/OS text scaler [os] so
+/// accessibility scaling is respected: at the default factor (1.0) this returns
+/// the OS scale unchanged (pure passthrough); otherwise it multiplies. Applied
+/// app-wide by `MaterialApp`'s builder in `main.dart`.
+TextScaler composeTextScaler(TextScaler os, double factor) =>
+    TextScaler.linear(os.scale(1.0) * factor);
 
 /// Owns the user's UI text-scale preference and persists it to
 /// `nav_state.text_scale`. `null` in the DB means "default" (1.0).

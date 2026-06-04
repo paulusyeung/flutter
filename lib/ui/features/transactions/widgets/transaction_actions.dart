@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/router.dart';
@@ -90,11 +88,10 @@ class TransactionActions {
     ];
   }
 
-  /// Dispatch the picked action. Convert and Unlink fire-and-forget a
-  /// `refreshAll` after the mutation enqueues because the underlying
-  /// custom-action dispatchers return `null` (no `applyUpdateResponse`
-  /// runs) and the local row's `status_id` would otherwise stay stale
-  /// until the next pull-to-refresh.
+  /// Dispatch the picked action. Convert and Unlink enqueue a bulk mutation
+  /// whose custom-action dispatcher applies every returned row via
+  /// `applyUpdateResponse`, so the local `status_id` updates reactively —
+  /// no manual `refreshAll` (which raced the drain and could revert status).
   static Future<void> dispatch(
     BuildContext context,
     Services services,
@@ -118,7 +115,6 @@ class TransactionActions {
           companyId: companyId,
           transactionIds: [transaction.id],
         );
-        unawaited(services.bankTransactions.refreshAll(companyId: companyId));
         if (context.mounted) {
           Notify.success(context, context.tr('converted_transaction'));
           // Linear-style auto-advance: if we're inside a slide-over
@@ -135,7 +131,6 @@ class TransactionActions {
           companyId: companyId,
           transactionIds: [transaction.id],
         );
-        unawaited(services.bankTransactions.refreshAll(companyId: companyId));
         if (context.mounted) {
           Notify.success(context, context.tr('unlinked_transaction'));
         }

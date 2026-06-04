@@ -89,7 +89,11 @@ class TransactionListViewModel extends GenericListViewModel<BankTransaction> {
         ? extraFilters
         : {
             ...extraFilters,
-            'bank_integration_id': {bankAccountId!},
+            // Server filter is `bank_integration_ids` (plural) — see
+            // `BankTransactionFilters::bank_integration_ids`, which decodes the
+            // comma list via `transformKeys`. The singular form is silently
+            // ignored, so a single id still goes through the plural key.
+            'bank_integration_ids': {bankAccountId!},
           };
     return repo.ensurePageLoaded(
       companyId: companyId,

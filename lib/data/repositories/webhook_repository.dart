@@ -30,7 +30,9 @@ class WebhookRepository extends BaseEntityRepository<Webhook, WebhookApi> {
     this.pageSize = 50,
   }) : super(
          entityType: EntityType.webhook,
-         requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
+         // WebhookController applies no `password_protected` middleware (unlike
+         // TokenController), so no webhook mutation is password-gated.
+         requiresPasswordFor: const {},
        );
 
   final WebhooksApi api;

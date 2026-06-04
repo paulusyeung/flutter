@@ -6,18 +6,22 @@ import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
+import 'package:admin/data/repositories/token_repository.dart';
 import 'package:admin/domain/sync/sync_event.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/confirm_password_sheet.dart';
 import 'package:admin/ui/core/widgets/conflict_resolution_sheet.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/tokens/widgets/token_created_dialog.dart';
 
 final _log = Logger('SyncEventListener');
 
 /// Wraps the shell's subtree and listens to `services.sync.events`. When a
 /// [PasswordRequiredEvent] arrives, opens [ConfirmPasswordSheet]; when a
 /// [ConflictEvent] arrives, opens [ConflictResolutionSheet] and routes the
-/// user's choice to the appropriate repo action.
+/// user's choice to the appropriate repo action. Also surfaces one-time API
+/// token secrets ([TokenCreatedDialog]) app-wide, so a create that drains
+/// while the user is off the Tokens screen still shows its raw secret.
 ///
 /// One listener per app — install once at the top of the authenticated
 /// shell. Multiple instances would race to show duplicate dialogs.
@@ -32,7 +36,9 @@ class SyncEventListener extends StatefulWidget {
 
 class _SyncEventListenerState extends State<SyncEventListener> {
   StreamSubscription<SyncEvent>? _sub;
+  StreamSubscription<FreshTokenSecret>? _secretSub;
   bool _dialogOpen = false;
+  bool _secretDialogShowing = false;
 
   @override
   void initState() {
@@ -44,12 +50,25 @@ class _SyncEventListenerState extends State<SyncEventListener> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _sub ??= context.read<Services>().sync.events.listen(_onEvent);
+    final services = context.read<Services>();
+    _sub ??= services.sync.events.listen(_onEvent);
+    // Newly-minted API token secrets are shown app-wide (not tied to the
+    // Tokens list screen) so they survive an offline create that drains while
+    // the user is elsewhere. The broadcast is just a wake signal; the repo's
+    // buffer is the source of truth. Drain once on mount to catch any secret
+    // emitted before this listener subscribed (cold-start drain).
+    if (_secretSub == null) {
+      _secretSub = services.tokens.newSecrets.listen(
+        (_) => _drainTokenSecrets(),
+      );
+      unawaited(_drainTokenSecrets());
+    }
   }
 
   @override
   void dispose() {
     _sub?.cancel();
+    _secretSub?.cancel();
     super.dispose();
   }
 
@@ -232,6 +251,28 @@ class _SyncEventListenerState extends State<SyncEventListener> {
       _log.warning('Conflict resolution failed', e, st);
     } finally {
       _dialogOpen = false;
+    }
+  }
+
+  /// Show a one-time copy dialog for every freshly-minted token secret the
+  /// repo has buffered, in order, re-checking after each (a secret can arrive
+  /// while a dialog is open). The `_secretDialogShowing` guard keeps the
+  /// broadcast listener and the mount-time drain from overlapping.
+  Future<void> _drainTokenSecrets() async {
+    if (_secretDialogShowing || !mounted) return;
+    _secretDialogShowing = true;
+    try {
+      final tokens = context.read<Services>().tokens;
+      var pending = tokens.takePendingSecrets();
+      while (pending.isNotEmpty && mounted) {
+        for (final secret in pending) {
+          if (!mounted) break;
+          await TokenCreatedDialog.show(context, secret.secret);
+        }
+        pending = mounted ? tokens.takePendingSecrets() : const [];
+      }
+    } finally {
+      _secretDialogShowing = false;
     }
   }
 

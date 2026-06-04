@@ -145,9 +145,9 @@ void main() {
         401: 'Upstream failure',
         500: 'Webhook response',
         600: 'PDF Failure',
-        // Sic: preserve React's typo intentionally so the user-visible label
-        // matches the React app pixel-for-pixel.
-        601: 'PDF Sucess',
+        // Deliberately corrected: React ships the typo 'PDF Sucess'
+        // (SystemLog.tsx:125); we diverge to show the user the right word.
+        601: 'PDF Success',
         701: 'Modified',
         702: 'Deleted',
         800: 'Login Success',

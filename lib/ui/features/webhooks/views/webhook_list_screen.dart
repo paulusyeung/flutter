@@ -7,7 +7,9 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/webhook.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 import 'package:admin/ui/features/settings/widgets/settings_entity_list_scaffold.dart';
+import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 
 /// `/settings/integrations/api_webhooks` — list every webhook. Tap a row to
 /// edit; tap "+ New Webhook" to create.
@@ -17,6 +19,22 @@ class WebhookListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final services = context.read<Services>();
+    // Webhooks require the API feature, which the server grants only to
+    // self-hosted or paid plans (Account::FEATURE_API). Gate at the
+    // destination — mirrors TokenListScreen — so the Integrations tile stays
+    // visible while a free hosted user hits the upgrade banner instead of a
+    // 403 dead-end on save. Trial-aware via hasProAccess.
+    final session = services.auth.session.value;
+    final allowed =
+        session != null && (session.isSelfHosted || session.hasProAccess);
+    if (!allowed) {
+      return SettingsScreenScaffold(
+        titleKey: 'api_webhooks',
+        body: const SingleChildScrollView(
+          child: PlanGateBanner(style: PlanGateStyle.inset),
+        ),
+      );
+    }
     final companyId = services.auth.session.value?.currentCompanyId ?? '';
     final repo = services.webhooks;
 

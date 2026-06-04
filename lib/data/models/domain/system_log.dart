@@ -55,6 +55,8 @@ abstract class SystemLog with _$SystemLog {
         return 'pdf';
       case 5:
         return 'security';
+      case 6:
+        return 'log';
       default:
         return 'unknown';
     }
@@ -93,6 +95,8 @@ abstract class SystemLog with _$SystemLog {
         return 'webhook_response';
       case 41:
         return 'webhook_success';
+      case 42:
+        return 'webhook_failure';
       case 50:
         return 'pdf';
       case 60:
@@ -118,6 +122,7 @@ abstract class SystemLog with _$SystemLog {
       case 22:
       case 32:
       case 33:
+      case 42:
       case 60:
         return SystemLogTone.failure;
       case 23:
@@ -182,7 +187,7 @@ extension SystemLogType on SystemLog {
       case 600:
         return (isKey: false, value: 'PDF Failure');
       case 601:
-        return (isKey: false, value: 'PDF Sucess');
+        return (isKey: false, value: 'PDF Success');
       case 701:
         return (isKey: false, value: 'Modified');
       case 702:

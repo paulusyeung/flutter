@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -7,13 +5,11 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/token.dart';
-import 'package:admin/data/repositories/token_repository.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 import 'package:admin/ui/features/settings/widgets/settings_entity_list_scaffold.dart';
 import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
-import 'package:admin/ui/features/tokens/widgets/token_created_dialog.dart';
 
 const kTokensListSearchKeys = <String>['api_tokens', 'token', 'new_token'];
 
@@ -21,39 +17,12 @@ const kTokensListSearchKeys = <String>['api_tokens', 'token', 'new_token'];
 /// to rename; tap "+ New Token" to create. System tokens (`is_system`)
 /// render as locked rows that can't be edited or deleted.
 ///
-/// Subscribes to [TokenRepository.newSecrets] on mount: when a freshly-
-/// minted secret arrives (after an outbox-driven `POST /tokens`
-/// completes), shows a one-time [TokenCreatedDialog] with the raw
-/// bearer secret. The user can copy it before dismissal; afterwards the
-/// local row carries only the masked form.
-class TokenListScreen extends StatefulWidget {
+/// The one-time raw bearer secret minted on create is surfaced app-wide by
+/// the shell `SyncEventListener` (which drains `services.tokens.newSecrets`),
+/// so it shows even if the create finishes while the user is on another
+/// screen — there is no per-screen subscription here.
+class TokenListScreen extends StatelessWidget {
   const TokenListScreen({super.key});
-
-  @override
-  State<TokenListScreen> createState() => _TokenListScreenState();
-}
-
-class _TokenListScreenState extends State<TokenListScreen> {
-  StreamSubscription<FreshTokenSecret>? _secretSub;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final repo = context.read<Services>().tokens;
-      _secretSub = repo.newSecrets.listen((event) async {
-        if (!mounted) return;
-        await TokenCreatedDialog.show(context, event.secret);
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _secretSub?.cancel();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {

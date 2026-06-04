@@ -91,31 +91,76 @@ class SystemLogRepository {
       );
       _lastFetchedFallback[companyId] = _now().toUtc();
       return SystemLogRefreshResult.ok;
-    } on PasswordRequiredException {
-      // 412 — server demands password to view; we treat this the same as 403
-      // since the System Logs feed has no password prompt UI of its own.
-      _log.info('System logs gated (412 password required) for $companyId');
+    } catch (e) {
+      final result = _classifyError(e, companyId);
+      if (result == null) rethrow;
+      // Cache terminal (permission / disabled) outcomes so we don't re-pull a
+      // known-gated endpoint on every screen open or company switch. The cache
+      // is empty in these cases, so without this `lastFetchedAt` stays null and
+      // the auto-refresh fires every visit. Transient network errors are left
+      // uncached so the next visit retries.
+      if (result == SystemLogRefreshResult.forbidden ||
+          result == SystemLogRefreshResult.notFound) {
+        _lastFetchedFallback[companyId] = _now().toUtc();
+      }
+      return result;
+    }
+  }
+
+  /// Fetch this client's system logs directly from the server, scoped via the
+  /// server-side `client_id` filter, and return them **without** touching the
+  /// company-wide Drift cache. Mirrors the read-only fetch-into-state pattern
+  /// the client Activity tab uses — the per-client feed is ancillary detail
+  /// data, not a watched/paginated entity list. Returns the typed outcome plus
+  /// the logs (empty on any non-`ok` outcome).
+  Future<(SystemLogRefreshResult, List<SystemLog>)> fetchForClient(
+    String clientId,
+  ) async {
+    if (clientId.isEmpty) {
+      return (SystemLogRefreshResult.ok, const <SystemLog>[]);
+    }
+    try {
+      final list = await _api.fetchPage(clientId: clientId);
+      final logs = list.data.map(SystemLog.fromApi).toList(growable: false);
+      return (SystemLogRefreshResult.ok, logs);
+    } catch (e) {
+      final result = _classifyError(e, clientId);
+      if (result == null) rethrow;
+      return (result, const <SystemLog>[]);
+    }
+  }
+
+  /// Maps a read-path exception to a [SystemLogRefreshResult], or null for an
+  /// exception we don't recognize (the caller rethrows — only known API
+  /// failures are swallowed). [scope] is a company or client id, for logging.
+  SystemLogRefreshResult? _classifyError(Object e, String scope) {
+    if (e is PasswordRequiredException) {
+      // 412 — server demands password to view; treated like 403 since the
+      // System Logs feed has no password prompt UI of its own.
+      _log.info('System logs gated (412 password required) for $scope');
       return SystemLogRefreshResult.forbidden;
-    } on ServerException catch (e) {
+    }
+    if (e is ServerException) {
       if (e.statusCode == 403) {
-        _log.info('System logs forbidden (403) for $companyId');
+        _log.info('System logs forbidden (403) for $scope');
         return SystemLogRefreshResult.forbidden;
       }
       if (e.statusCode == 404) {
-        _log.info('System logs endpoint not found (404) for $companyId');
+        _log.info('System logs endpoint not found (404) for $scope');
         return SystemLogRefreshResult.notFound;
       }
-      _log.warning(
-        'System logs refresh failed (${e.statusCode}): ${e.message}',
-      );
-      return SystemLogRefreshResult.networkError;
-    } on NetworkException catch (e) {
-      _log.warning('System logs refresh: network error', e);
-      return SystemLogRefreshResult.networkError;
-    } on ApiException catch (e) {
-      _log.warning('System logs refresh: api exception', e);
+      _log.warning('System logs fetch failed (${e.statusCode}): ${e.message}');
       return SystemLogRefreshResult.networkError;
     }
+    if (e is NetworkException) {
+      _log.warning('System logs fetch: network error', e);
+      return SystemLogRefreshResult.networkError;
+    }
+    if (e is ApiException) {
+      _log.warning('System logs fetch: api exception', e);
+      return SystemLogRefreshResult.networkError;
+    }
+    return null;
   }
 
   SystemLog _fromRow(SystemLogRow row) => SystemLog(

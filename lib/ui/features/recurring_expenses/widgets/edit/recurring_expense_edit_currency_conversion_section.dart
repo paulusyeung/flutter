@@ -41,7 +41,19 @@ class RecurringExpenseEditCurrencyConversionSection extends StatelessWidget {
           initialValue: selected,
           displayString: (c) => '${c.code} · ${c.name}',
           idOf: (c) => c.id,
-          onChanged: (c) => vm.setInvoiceCurrencyId(c?.id ?? ''),
+          onChanged: (c) {
+            vm.setInvoiceCurrencyId(c?.id ?? '');
+            // Seed the exchange rate from the two currencies' base rates
+            // (React parity); the VM recomputes the foreign amount.
+            if (c != null) {
+              final rate = crossCurrencyRate(
+                services.statics.currencies,
+                fromExpenseCurrencyId: vm.draft.currencyId,
+                toInvoiceCurrencyId: c.id,
+              );
+              if (rate != null) vm.setExchangeRate(rate.toString());
+            }
+          },
           errorText: vm.fieldErrorFor('invoice_currency_id'),
         ),
         EntityEditField(

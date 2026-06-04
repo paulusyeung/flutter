@@ -109,4 +109,28 @@ void main() {
     expect(textScaleLabelKey(kTextScaleLarge), 'large');
     expect(textScaleLabelKey(kTextScaleExtraLarge), 'extra_large');
   });
+
+  test('composeTextScaler multiplies the OS factor by the user factor', () {
+    // Default factor → pure OS passthrough (the accessibility-regression guard).
+    expect(
+      composeTextScaler(
+        const TextScaler.linear(1.3),
+        kTextScaleNormal,
+      ).scale(10),
+      closeTo(13, 1e-9),
+      reason: 'Normal must respect the OS scale, not force 1.0',
+    );
+    // Explicit factor scales relative to the OS baseline.
+    expect(
+      composeTextScaler(
+        const TextScaler.linear(1.0),
+        kTextScaleLarge,
+      ).scale(10),
+      closeTo(12, 1e-9),
+    );
+    expect(
+      composeTextScaler(TextScaler.noScaling, kTextScaleSmall).scale(10),
+      closeTo(8, 1e-9),
+    );
+  });
 }

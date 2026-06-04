@@ -98,7 +98,10 @@ class _FontSizeRow extends StatelessWidget {
               for (final option in kTextScaleOptions)
                 ButtonSegment(
                   value: option,
-                  label: segmentLabel(context, textScaleLabelKey(option)),
+                  // Natural width rather than the fixed-80px `segmentLabel`:
+                  // these 4 size labels don't column-align with the 3-segment
+                  // theme rows above, and "Extra Large" clips in 80px.
+                  label: Text(context.tr(textScaleLabelKey(option))),
                 ),
             ],
             selected: {scale},

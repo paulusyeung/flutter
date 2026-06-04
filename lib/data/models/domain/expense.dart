@@ -7,6 +7,7 @@ import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/models/value/money.dart';
 import 'package:admin/data/models/value/parsing.dart';
 import 'package:admin/domain/expense_status.dart';
+import 'package:admin/domain/expense_tax_math.dart';
 
 part 'expense.freezed.dart';
 
@@ -140,19 +141,17 @@ extension ExpenseStatus on Expense {
   bool get isPending => !isInvoiced && shouldBeInvoiced;
 
   /// Status discriminator (`'1'..'5'`). Mirrors admin-portal
-  /// `expense_model.dart:820-833`:
-  ///   * Invoiced → '3' (and '4' if invoiced but no payment_date)
-  ///   * Pending  → '2'
+  /// `expense_model.dart:837-845` and React `ExpenseStatus.tsx`:
+  ///   * Invoiced → '3' (any invoiced expense, paid or not)
+  ///   * Pending  → '2' (flagged should-be-invoiced, not yet invoiced)
   ///   * Paid     → '5'
   ///   * Logged   → '1' (default)
+  ///
+  /// Both references always show "Invoiced" for an invoiced expense and never
+  /// surface "Unpaid" from the derived badge — `kExpenseStatusUnpaid` is a
+  /// list-filter value (invoiced-but-unpaid), not a badge state.
   String get calculatedStatusId {
-    if (isInvoiced) {
-      // When invoiced but the invoice hasn't been paid yet, surface "unpaid".
-      if (paymentDate == null && paymentTypeId.isEmpty) {
-        return kExpenseStatusUnpaid;
-      }
-      return kExpenseStatusInvoiced;
-    }
+    if (isInvoiced) return kExpenseStatusInvoiced;
     if (isPending) return kExpenseStatusPending;
     if (isPaid) return kExpenseStatusPaid;
     return kExpenseStatusLogged;
@@ -164,7 +163,38 @@ extension ExpenseStatus on Expense {
   Decimal get effectiveExchangeRate =>
       exchangeRate == Decimal.zero ? Decimal.one : exchangeRate;
 
-  Decimal get taxAmountSum => taxAmount1 + taxAmount2 + taxAmount3;
+  /// Per-tier tax amount, computed from the rate (mirrors admin-portal
+  /// `expense_model.dart` `calculateTaxAmountN`). In `calculateTaxByAmount`
+  /// mode the stored `tax_amount*` is authoritative and returned as-is.
+  ///
+  /// The edit form only collects the rate (or the amount, in by-amount mode),
+  /// so the stored `tax_amount*` stays 0 until a server round-trip — these
+  /// getters keep gross/net/tax correct offline and on web (where writes are
+  /// blocked) and immediately after editing a rate.
+  Decimal get taxAmount1Computed => calculateTaxByAmount
+      ? taxAmount1
+      : expenseTierTaxAmount(
+          amount: amount,
+          rate: taxRate1,
+          usesInclusiveTaxes: usesInclusiveTaxes,
+        );
+  Decimal get taxAmount2Computed => calculateTaxByAmount
+      ? taxAmount2
+      : expenseTierTaxAmount(
+          amount: amount,
+          rate: taxRate2,
+          usesInclusiveTaxes: usesInclusiveTaxes,
+        );
+  Decimal get taxAmount3Computed => calculateTaxByAmount
+      ? taxAmount3
+      : expenseTierTaxAmount(
+          amount: amount,
+          rate: taxRate3,
+          usesInclusiveTaxes: usesInclusiveTaxes,
+        );
+
+  Decimal get taxAmountSum =>
+      taxAmount1Computed + taxAmount2Computed + taxAmount3Computed;
 
   Decimal get netAmount => usesInclusiveTaxes ? amount - taxAmountSum : amount;
 

@@ -36,6 +36,7 @@ class SystemLogsScreen extends StatefulWidget {
 }
 
 class _SystemLogsScreenState extends State<SystemLogsScreen> {
+  late final Services _services;
   PackageInfo? _packageInfo;
   SystemLogRefreshResult? _lastRefresh;
   bool _refreshing = false;
@@ -44,11 +45,43 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
   // the `no_system_logs` empty state for one frame before the postFrame
   // callback flips `_refreshing`.
   bool _initialFetchAttempted = false;
+  // The company this screen's local refresh-state belongs to. The settings
+  // route is NOT remounted on a plain company switch (its KeyedSubtree key is
+  // `level:targetId`, unchanged), so we reset that state ourselves when the
+  // active company changes — mirroring SettingsCompanyScopedHost.
+  String _scopedCompanyId = '';
 
   @override
   void initState() {
     super.initState();
+    _services = context.read<Services>();
+    _scopedCompanyId = _services.auth.session.value?.currentCompanyId ?? '';
+    _services.auth.session.addListener(_onSession);
     _loadPackage();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeAutoRefresh());
+  }
+
+  @override
+  void dispose() {
+    _services.auth.session.removeListener(_onSession);
+    super.dispose();
+  }
+
+  // Reset the per-company refresh state and re-run the stale check when the
+  // user switches company while this screen stays mounted. The session
+  // notifier also fires on unrelated companies-table writes, so guard on the
+  // id to make those no-ops.
+  void _onSession() {
+    if (!mounted) return;
+    final id = _services.auth.session.value?.currentCompanyId ?? '';
+    if (id == _scopedCompanyId) return;
+    _scopedCompanyId = id;
+    setState(() {
+      _initialFetchAttempted = false;
+      _lastRefresh = null;
+      _lastFetchedAt = null;
+      _refreshing = false;
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeAutoRefresh());
   }
 
@@ -276,37 +309,21 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
     required String companyId,
   }) {
     final tokens = context.inTheme;
-    final lastFetchedLabel = _lastFetchedAt == null
-        ? null
-        : formatRelativeTime(
-            context,
-            DateTime.now().toUtc().difference(_lastFetchedAt!.toUtc()),
-          );
     return FormSection(
       title: context.tr('system_logs'),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (lastFetchedLabel != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Text(
-                '${context.tr('last_refreshed')}: $lastFetchedLabel',
-                style: TextStyle(fontSize: 12, color: tokens.ink3),
-              ),
-            ),
-          IconButton(
-            icon: _refreshing
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.refresh),
-            tooltip: context.tr('refresh'),
-            onPressed: _refreshing ? null : _refresh,
-          ),
-        ],
+      // Trailing stays icon-only so the header can't overflow on a narrow
+      // viewport; the "last refreshed" caption lives in the body above the
+      // rows (see _buildSectionBody).
+      trailing: IconButton(
+        icon: _refreshing
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.refresh),
+        tooltip: context.tr('refresh'),
+        onPressed: _refreshing ? null : _refresh,
       ),
       children: [
         StreamBuilder<List<SystemLog>>(
@@ -359,9 +376,27 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = Breakpoints.isWide(constraints);
+        final lastFetchedLabel = _lastFetchedAt == null
+            ? null
+            : formatRelativeTime(
+                context,
+                DateTime.now().toUtc().difference(_lastFetchedAt!.toUtc()),
+              );
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (lastFetchedLabel != null) ...[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '${context.tr('last_refreshed')}: $lastFetchedLabel',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: tokens.ink3),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
             for (var i = 0; i < rows.length; i++) ...[
               if (i > 0) Divider(height: 1, thickness: 1, color: tokens.border),
               SystemLogRow(log: rows[i], isWide: isWide),
@@ -374,7 +409,13 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
 
   Future<void> _copy(List<(String, String)> rows) async {
     final text = rows.map((r) => '${r.$1}: ${r.$2}').join('\n');
-    await Clipboard.setData(ClipboardData(text: text));
+    try {
+      await Clipboard.setData(ClipboardData(text: text));
+    } catch (_) {
+      if (!mounted) return;
+      Notify.error(context, context.tr('error'));
+      return;
+    }
     if (!mounted) return;
     Notify.success(context, context.tr('copied_to_clipboard'));
   }
@@ -384,10 +425,17 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
     required DiagnosticsLog diag,
     required String companyId,
   }) async {
-    final count = await diag.appendOutboxSnapshot(
-      db: services.db,
-      companyId: companyId,
-    );
+    final int count;
+    try {
+      count = await diag.appendOutboxSnapshot(
+        db: services.db,
+        companyId: companyId,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      Notify.error(context, context.tr('error'));
+      return;
+    }
     if (!mounted) return;
     Notify.success(
       context,
@@ -405,27 +453,37 @@ class _DiagnosticRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 180,
-          child: Text(
-            label,
-            style: TextStyle(
-              color: tokens.ink3,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-        Expanded(
-          child: SelectableText(
-            value,
-            style: TextStyle(color: tokens.ink, fontSize: 13),
-          ),
-        ),
-      ],
+    final labelWidget = Text(
+      label,
+      style: TextStyle(
+        color: tokens.ink3,
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
+      ),
+    );
+    final valueWidget = SelectableText(
+      value,
+      style: TextStyle(color: tokens.ink, fontSize: 13),
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Side-by-side on wide; stacked label-over-value on narrow so long
+        // values (server URL, account id, diagnostics path) aren't squeezed
+        // into a sliver on mobile.
+        if (Breakpoints.isWide(constraints)) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(width: 180, child: labelWidget),
+              Expanded(child: valueWidget),
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [labelWidget, const SizedBox(height: 2), valueWidget],
+        );
+      },
     );
   }
 }

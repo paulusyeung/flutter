@@ -153,7 +153,7 @@ class _LogBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final decoded = _tryDecode(raw);
-    final preview = _preview(raw, decoded);
+    final preview = _preview(context, raw, decoded);
 
     if (!expanded) {
       return InkWell(
@@ -244,12 +244,12 @@ class _LogBlock extends StatelessWidget {
     }
   }
 
-  String _preview(String raw, Object? decoded) {
+  String _preview(BuildContext context, String raw, Object? decoded) {
     if (decoded is Map) {
-      return '{ ${decoded.length} fields }';
+      return context.tr('json_field_count', {'count': '${decoded.length}'});
     }
     if (decoded is List) {
-      return '[ ${decoded.length} items ]';
+      return context.tr('json_item_count', {'count': '${decoded.length}'});
     }
     final cleaned = raw.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (cleaned.length <= 80) return cleaned;

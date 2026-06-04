@@ -12,6 +12,7 @@ import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_activity_tab.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_email_history_tab.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_locations_tab.dart';
+import 'package:admin/ui/features/clients/widgets/detail/client_system_logs_tab.dart';
 import 'package:admin/ui/features/credits/views/credit_list_screen.dart';
 import 'package:admin/ui/features/expenses/views/expense_list_screen.dart';
 import 'package:admin/ui/features/invoices/views/invoice_list_screen.dart';
@@ -146,6 +147,14 @@ class ClientDetailTabs extends StatelessWidget {
           bodyBuilder: (_) =>
               ClientEmailHistoryTab(client: client, formatter: formatter),
         ),
+        // System Logs (gateway/email/webhook events scoped to this client) —
+        // admin/owner only, matching the endpoint's 403 gate.
+        if (me?.isAdmin == true || me?.isOwner == true)
+          EntityDetailTab(
+            label: context.tr('system_logs'),
+            icon: Icons.terminal_outlined,
+            bodyBuilder: (_) => ClientSystemLogsTab(client: client),
+          ),
         EntityDetailTab(
           label: context.tr('activity'),
           icon: Icons.history,

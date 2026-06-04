@@ -1368,6 +1368,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Dead-letter count (display) | — | ✅ | ✅ | ✅ | |
 | Full-sync status (display) | — | ✅ | ✅ | ✅ | |
 | View system / error logs (server feed + local diagnostics) | ✅ | ✅ | ✅ | ✅ | |
+| Client system logs (detail tab) | ❌ | ✅ | ✅ | ✅ | |
 | API call logs | ✅ | ✅ | ✅ | ✅ | |
 | User action audit trail | ✅ | ✅ | ✅ | ✅ | |
 | Outbox / diagnostics snapshot export | — | 🟡 | ✅ | ✅ | |

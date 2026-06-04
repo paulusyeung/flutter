@@ -195,7 +195,8 @@ class _MetaRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
+            // Tighter label gutter on narrow phones so the value keeps room.
+            width: MediaQuery.sizeOf(context).width < 600 ? 96 : 120,
             child: Text(
               label,
               style: TextStyle(color: tokens.ink3, fontSize: 13),

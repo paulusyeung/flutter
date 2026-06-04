@@ -11,7 +11,7 @@ _WebhookApi _$WebhookApiFromJson(Map<String, dynamic> json) => _WebhookApi(
   eventId: json['event_id'] as String? ?? '',
   targetUrl: json['target_url'] as String? ?? '',
   format: json['format'] as String? ?? 'JSON',
-  restMethod: json['rest_method'] as String? ?? 'POST',
+  restMethod: json['rest_method'] as String? ?? 'post',
   headers: json['headers'] == null
       ? const <String, String>{}
       : _headersFromJson(json['headers']),

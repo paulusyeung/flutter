@@ -218,7 +218,7 @@ return $default(_that.id,_that.eventId,_that.targetUrl,_that.format,_that.restMe
 
 @JsonSerializable(includeIfNull: false)
 class _WebhookApi implements WebhookApi {
-  const _WebhookApi({this.id = '', @JsonKey(name: 'event_id') this.eventId = '', @JsonKey(name: 'target_url') this.targetUrl = '', this.format = 'JSON', @JsonKey(name: 'rest_method') this.restMethod = 'POST', @JsonKey(fromJson: _headersFromJson) final  Map<String, String> headers = const <String, String>{}, @JsonKey(name: 'is_deleted') this.isDeleted = false, @JsonKey(name: 'created_at') this.createdAt = 0, @JsonKey(name: 'updated_at') this.updatedAt = 0, @JsonKey(name: 'archived_at') this.archivedAt = 0}): _headers = headers;
+  const _WebhookApi({this.id = '', @JsonKey(name: 'event_id') this.eventId = '', @JsonKey(name: 'target_url') this.targetUrl = '', this.format = 'JSON', @JsonKey(name: 'rest_method') this.restMethod = 'post', @JsonKey(fromJson: _headersFromJson) final  Map<String, String> headers = const <String, String>{}, @JsonKey(name: 'is_deleted') this.isDeleted = false, @JsonKey(name: 'created_at') this.createdAt = 0, @JsonKey(name: 'updated_at') this.updatedAt = 0, @JsonKey(name: 'archived_at') this.archivedAt = 0}): _headers = headers;
   factory _WebhookApi.fromJson(Map<String, dynamic> json) => _$WebhookApiFromJson(json);
 
 @override@JsonKey() final  String id;

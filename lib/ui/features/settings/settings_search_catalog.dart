@@ -415,13 +415,12 @@ const kSettingsSearchCatalog = <String, List<String>>{
     'apply_license',
     // Enabled modules
     'enabled_modules',
-    // Integrations
-    'google_analytics_tracking_id',
-    'matomo_id',
-    'matomo_url',
+    // Integrations (hub tiles only; the GA / Matomo fields moved to the
+    // integrations/analytics route — see kSettingsSearchCatalog['integrations']).
     'api_tokens',
     'api_webhooks',
     'api_docs',
+    'analytics',
     'quickbooks',
     // Security
     'password_timeout',
@@ -574,7 +573,14 @@ const kSettingsSearchCatalog = <String, List<String>>{
     'resend_email',
     'remove_user',
   ],
-  'integrations': ['api_tokens', 'api_webhooks', 'analytics'],
+  'integrations': [
+    'api_tokens',
+    'api_webhooks',
+    'analytics',
+    'google_analytics_tracking_id',
+    'matomo_id',
+    'matomo_url',
+  ],
   'system_logs': ['system_logs', ...kDebugPanelSearchKeys],
 };
 

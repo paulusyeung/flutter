@@ -46,7 +46,15 @@ class TokenRepository extends BaseEntityRepository<Token, TokenApi> {
     this.pageSize = 50,
   }) : super(
          entityType: EntityType.token,
-         requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
+         // Server applies `password_protected` to token store/update/destroy
+         // (TokenController), so create + update are password-gated up-front,
+         // not just delete/purge.
+         requiresPasswordFor: const {
+           MutationKind.create,
+           MutationKind.update,
+           MutationKind.delete,
+           MutationKind.purge,
+         },
        );
 
   final TokensApi api;
@@ -54,10 +62,29 @@ class TokenRepository extends BaseEntityRepository<Token, TokenApi> {
 
   final _secretsController = StreamController<FreshTokenSecret>.broadcast();
 
+  /// Secrets emitted but not yet shown to the user. The broadcast stream alone
+  /// drops a secret minted before any listener subscribed (app cold start) or
+  /// while the only listener was between screens; this buffer lets the
+  /// always-mounted shell listener drain anything outstanding on (re)mount.
+  /// The server never re-returns a raw secret, so losing one is unrecoverable
+  /// — hence the buffer. Drained via [takePendingSecrets].
+  final List<FreshTokenSecret> _pendingSecrets = <FreshTokenSecret>[];
+
   /// Fires once per successful create with the **raw** server-minted secret.
   /// Subsequent updates / lists never re-emit — the masked form lives in
-  /// Drift and is what the list / detail screens read.
+  /// Drift and is what the list / detail screens read. A live signal only;
+  /// [_pendingSecrets] is the durable source of truth (see [takePendingSecrets]).
   Stream<FreshTokenSecret> get newSecrets => _secretsController.stream;
+
+  /// Return and clear every buffered secret not yet shown. Called by the
+  /// single app-wide shell listener on mount and after each broadcast event;
+  /// safe because there is exactly one consumer.
+  List<FreshTokenSecret> takePendingSecrets() {
+    if (_pendingSecrets.isEmpty) return const <FreshTokenSecret>[];
+    final out = List<FreshTokenSecret>.of(_pendingSecrets);
+    _pendingSecrets.clear();
+    return out;
+  }
 
   @override
   String get entityTypeName => 'token';
@@ -236,9 +263,12 @@ class TokenRepository extends BaseEntityRepository<Token, TokenApi> {
     // the create screen can dismiss its "waiting for secret…" state.
     final domain = Token.fromApi(serverResponse);
     if (!domain.isMasked && domain.token.isNotEmpty) {
-      _secretsController.add(
-        FreshTokenSecret(tempId: tempId, secret: domain.token),
-      );
+      final secret = FreshTokenSecret(tempId: tempId, secret: domain.token);
+      // Buffer first so a listener that isn't subscribed yet (cold start, or
+      // the create completed while the user was on another screen) still
+      // surfaces it via takePendingSecrets(); the broadcast wakes a live one.
+      _pendingSecrets.add(secret);
+      _secretsController.add(secret);
     }
     await applyCreateResponseTemplate(
       companyId: companyId,

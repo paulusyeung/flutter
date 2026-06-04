@@ -41,3 +41,22 @@ class Currency {
     exchangeRate: parseMoney(json['exchange_rate']),
   );
 }
+
+/// Cross-currency exchange rate derived from the two currencies' base (vs USD)
+/// rates: `invoice.exchangeRate / expense.exchangeRate`. Returns null when
+/// either currency is unknown or the expense currency's base rate is zero.
+/// Mirrors React's expense currency conversion (`AdditionalInfo`).
+Decimal? crossCurrencyRate(
+  Map<String, Currency> currencies, {
+  required String fromExpenseCurrencyId,
+  required String toInvoiceCurrencyId,
+}) {
+  final from = currencies[fromExpenseCurrencyId];
+  final to = currencies[toInvoiceCurrencyId];
+  if (from == null || to == null || from.exchangeRate == Decimal.zero) {
+    return null;
+  }
+  return (to.exchangeRate / from.exchangeRate).toDecimal(
+    scaleOnInfinitePrecision: 10,
+  );
+}

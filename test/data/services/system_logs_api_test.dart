@@ -107,5 +107,33 @@ void main() {
       expect(captured!.queryParameters['per_page'], '50');
       expect(captured!.queryParameters['sort'], 'updated_at|ASC');
     });
+
+    test(
+      'adds client_id when scoped to a client; omits it otherwise',
+      () async {
+        Uri? captured;
+        final fake = MockClient((req) async {
+          captured = req.url;
+          return http.Response(
+            jsonEncode({'data': <Object>[]}),
+            200,
+            headers: const {'content-type': 'application/json'},
+          );
+        });
+        final client = ApiClient(
+          credentials: _creds(),
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fake,
+        );
+        final api = SystemLogsApi(client);
+
+        await api.fetchPage(clientId: 'cli_42');
+        expect(captured!.queryParameters['client_id'], 'cli_42');
+
+        await api.fetchPage();
+        expect(captured!.queryParameters.containsKey('client_id'), isFalse);
+      },
+    );
   });
 }

@@ -114,7 +114,13 @@ abstract class Webhook with _$Webhook {
     eventId: a.eventId,
     targetUrl: a.targetUrl,
     format: a.format.isEmpty ? kWebhookDefaultFormat : a.format,
-    restMethod: a.restMethod.isEmpty ? kWebhookDefaultRestMethod : a.restMethod,
+    // Normalize to lowercase: the server only accepts/stores `post`/`put`, but
+    // a row created before that was enforced may carry a legacy uppercase
+    // value. Lowercasing keeps the domain value canonical so the edit screen's
+    // SegmentedButton highlights the right segment.
+    restMethod: a.restMethod.isEmpty
+        ? kWebhookDefaultRestMethod
+        : a.restMethod.toLowerCase(),
     headers: Map<String, String>.from(a.headers),
     isDeleted: a.isDeleted,
     updatedAt: epochSecondsToUtc(a.updatedAt),

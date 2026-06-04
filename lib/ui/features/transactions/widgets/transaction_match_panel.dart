@@ -202,8 +202,10 @@ class _CreditCreateTabState extends State<_CreditCreateTab> {
         transactionId: widget.transaction.id,
         invoiceIds: _selectedInvoiceIds.toList(),
       );
-      // Custom-action dispatchers don't apply server response → refresh.
-      unawaited(services.bankTransactions.refreshAll(companyId: companyId));
+      // The match dispatcher applies the server's updated transaction via
+      // applyUpdateResponse, so the detail + list refresh reactively. No
+      // manual refreshAll — it raced the outbox drain and a stale list GET
+      // could revert the freshly-matched (non-dirty) row to "unmatched".
       if (!mounted) return;
       Notify.success(context, context.tr('created_payment'));
     } finally {
@@ -325,8 +327,7 @@ class _CreditLinkTabState extends State<_CreditLinkTab> {
         transactionId: widget.transaction.id,
         paymentId: payment.id,
       );
-      // Custom-action dispatchers don't apply the server response → refresh.
-      unawaited(services.bankTransactions.refreshAll(companyId: companyId));
+      // Status flows in via applyUpdateResponse (see _CreditCreateTab).
       if (!mounted) return;
       Notify.success(context, context.tr('linked_payment'));
     } finally {
@@ -410,6 +411,13 @@ class _DebitCreateTabState extends State<_DebitCreateTab> {
   bool _submitting = false;
   bool _seededFromRule = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // Seed once on mount — `context.read` is valid in initState (no listen).
+    _seedFromRuleIfApplicable();
+  }
+
   /// Pre-fill from the matched transaction rule (if any). The rule already
   /// carries `vendorId` / `categoryId` server-side; resolve through the
   /// local repos so the user lands on a one-tap confirm.
@@ -458,7 +466,7 @@ class _DebitCreateTabState extends State<_DebitCreateTab> {
         vendorId: vendor?.id ?? '',
         categoryId: cat?.id ?? '',
       );
-      unawaited(services.bankTransactions.refreshAll(companyId: companyId));
+      // Status flows in via applyUpdateResponse (see _CreditCreateTab).
       if (!mounted) return;
       Notify.success(context, context.tr('created_expense'));
     } finally {
@@ -468,7 +476,6 @@ class _DebitCreateTabState extends State<_DebitCreateTab> {
 
   @override
   Widget build(BuildContext context) {
-    _seedFromRuleIfApplicable();
     final services = context.read<Services>();
     final companyId = services.auth.session.value?.currentCompanyId ?? '';
 
@@ -549,9 +556,10 @@ class _DebitLinkTabState extends State<_DebitLinkTab> {
   Future<void> _pickExpenses(BuildContext context) async {
     final services = context.read<Services>();
     final companyId = services.auth.session.value?.currentCompanyId ?? '';
-    // Watch one page of active expenses; filter to rows that aren't
-    // already linked to an invoice (a rough "unmatched" proxy until the
-    // server exposes a dedicated filter).
+    // Watch one page of active expenses; filter to rows not already linked
+    // to a bank transaction. `transactionId` is the expense's own
+    // back-reference to a matched bank transaction, so an empty value means
+    // it's still available to match (a closer proxy than "has no invoice").
     final expenses = await services.expenses
         .watchPage(
           companyId: companyId,
@@ -560,7 +568,7 @@ class _DebitLinkTabState extends State<_DebitLinkTab> {
         )
         .first;
     final candidates = expenses
-        .where((e) => e.invoiceId.isEmpty && !e.isDeleted)
+        .where((e) => e.transactionId.isEmpty && !e.isDeleted)
         .toList(growable: false);
     if (!context.mounted) return;
     final picked = await showMultiPickSheet<Expense>(
@@ -613,7 +621,8 @@ class _DebitLinkTabState extends State<_DebitLinkTab> {
             expenseId: id,
           ),
       ]);
-      unawaited(services.bankTransactions.refreshAll(companyId: companyId));
+      // Each linkToExpense applies its server response via applyUpdateResponse
+      // (see _CreditCreateTab) — no manual refreshAll.
       if (!mounted) return;
       Notify.success(context, context.tr('linked_expense'));
     } finally {

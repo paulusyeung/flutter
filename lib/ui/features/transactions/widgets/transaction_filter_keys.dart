@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:admin/data/models/domain/bank_transaction.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
+import 'package:admin/ui/core/list/search/date_column_filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_keys_common.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
@@ -309,10 +310,16 @@ class TransactionTypeFilterKey extends FilterKey {
 
 /// Default filter-key set for the transactions list. Includes the
 /// standard archive toggle plus transaction-specific status + type
-/// dimensions. Bank-account filter is wired via a query param on the
-/// route (`/transactions?bank_account_id=…`), not via the token search.
+/// dimensions and a transaction-date range. Bank-account filter is wired
+/// via a query param on the route (`/transactions?bank_account_id=…`), not
+/// via the token search.
+///
+/// `date` routes to the server's `date_range` param — `BankTransactionFilters`
+/// extends `QueryFilters`, which exposes `date_range` (`column,start,end`)
+/// against the `bank_transactions.date` column.
 List<FilterKey> buildTransactionFilterKeys() => const <FilterKey>[
   IsFilterKey(),
   TransactionStatusFilterKey(),
   TransactionTypeFilterKey(),
+  DateColumnFilterKey(id: 'date', serverKey: 'date', labelKey: 'date'),
 ];

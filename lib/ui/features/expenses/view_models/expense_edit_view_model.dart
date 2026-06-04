@@ -62,8 +62,27 @@ class ExpenseEditViewModel extends GenericEditViewModel<Expense> {
   void setProjectId(String v) => updateDraft(draft.copyWith(projectId: v));
   void setCategoryId(String v) => updateDraft(draft.copyWith(categoryId: v));
   void setCurrencyId(String v) => updateDraft(draft.copyWith(currencyId: v));
-  void setInvoiceCurrencyId(String v) =>
-      updateDraft(draft.copyWith(invoiceCurrencyId: v));
+
+  /// Set the invoice currency. Clearing it resets the conversion (rate → 1,
+  /// foreign → 0); setting it recomputes the foreign amount from the current
+  /// rate. Mirrors React `AdditionalInfo` useEffect on `invoice_currency_id`.
+  /// The edit screen separately seeds the exchange rate from the two
+  /// currencies' base rates via [setExchangeRate].
+  void setInvoiceCurrencyId(String v) {
+    if (v.isEmpty) {
+      updateDraft(
+        draft.copyWith(
+          invoiceCurrencyId: '',
+          exchangeRate: Decimal.one,
+          foreignAmount: Decimal.zero,
+        ),
+      );
+      return;
+    }
+    final d = draft.copyWith(invoiceCurrencyId: v);
+    updateDraft(d.copyWith(foreignAmount: d.amount * d.exchangeRate));
+  }
+
   void setAssignedUserId(String v) =>
       updateDraft(draft.copyWith(assignedUserId: v));
   void setNumber(String v) => updateDraft(draft.copyWith(number: v));
@@ -76,17 +95,40 @@ class ExpenseEditViewModel extends GenericEditViewModel<Expense> {
   void setTransactionId(String v) =>
       updateDraft(draft.copyWith(transactionId: v));
   void setBankId(String v) => updateDraft(draft.copyWith(bankId: v));
-  void setAmount(String input) => updateDraft(
-    draft.copyWith(amount: Decimal.tryParse(input.trim()) ?? Decimal.zero),
-  );
-  void setForeignAmount(String input) => updateDraft(
-    draft.copyWith(
-      foreignAmount: Decimal.tryParse(input.trim()) ?? Decimal.zero,
-    ),
-  );
-  void setExchangeRate(String input) => updateDraft(
-    draft.copyWith(exchangeRate: Decimal.tryParse(input.trim()) ?? Decimal.one),
-  );
+  void setAmount(String input) {
+    final amount = Decimal.tryParse(input.trim()) ?? Decimal.zero;
+    var d = draft.copyWith(amount: amount);
+    // Keep the converted (foreign) amount in step with the entered amount.
+    if (d.invoiceCurrencyId.isNotEmpty) {
+      d = d.copyWith(foreignAmount: amount * d.exchangeRate);
+    }
+    updateDraft(d);
+  }
+
+  /// Editing the foreign amount back-computes the exchange rate
+  /// (`foreign / amount`) — mirrors React's `foreign_amount` onChange.
+  void setForeignAmount(String input) {
+    final foreign = Decimal.tryParse(input.trim()) ?? Decimal.zero;
+    var d = draft.copyWith(foreignAmount: foreign);
+    if (d.amount != Decimal.zero) {
+      d = d.copyWith(
+        exchangeRate: (foreign / d.amount).toDecimal(
+          scaleOnInfinitePrecision: 10,
+        ),
+      );
+    }
+    updateDraft(d);
+  }
+
+  void setExchangeRate(String input) {
+    final rate = Decimal.tryParse(input.trim()) ?? Decimal.one;
+    var d = draft.copyWith(exchangeRate: rate);
+    if (d.invoiceCurrencyId.isNotEmpty) {
+      d = d.copyWith(foreignAmount: d.amount * rate);
+    }
+    updateDraft(d);
+  }
+
   void setTaxName1(String v) => updateDraft(draft.copyWith(taxName1: v));
   void setTaxName2(String v) => updateDraft(draft.copyWith(taxName2: v));
   void setTaxName3(String v) => updateDraft(draft.copyWith(taxName3: v));
@@ -131,8 +173,9 @@ class ExpenseEditViewModel extends GenericEditViewModel<Expense> {
 
 /// Empty draft for new expenses. Defaults match admin-portal's create
 /// factory: `exchange_rate = 1`, `date = today`, and the rest are zero /
-/// empty until the user picks values. Currency / vendor / client cascade
-/// is handled in the edit screen by reading the active company settings.
+/// empty until the user picks values. Currency cascades are seeded in the
+/// edit screen's identity section: the vendor's currency → `currencyId` and
+/// the client's currency → `invoiceCurrencyId` (each only when still empty).
 Expense emptyExpense() => Expense(
   id: '',
   userId: '',

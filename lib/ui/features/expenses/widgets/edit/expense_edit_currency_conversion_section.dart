@@ -38,7 +38,21 @@ class ExpenseEditCurrencyConversionSection extends StatelessWidget {
           initialValue: selected,
           displayString: (c) => '${c.code} · ${c.name}',
           idOf: (c) => c.id,
-          onChanged: (c) => vm.setInvoiceCurrencyId(c?.id ?? ''),
+          onChanged: (c) {
+            vm.setInvoiceCurrencyId(c?.id ?? '');
+            // Seed the exchange rate from the two currencies' base rates so
+            // the user doesn't have to look it up (React parity). The VM then
+            // recomputes the foreign amount. Leaves the rate untouched when it
+            // can't be resolved (unknown currency / no expense currency yet).
+            if (c != null) {
+              final rate = crossCurrencyRate(
+                services.statics.currencies,
+                fromExpenseCurrencyId: vm.draft.currencyId,
+                toInvoiceCurrencyId: c.id,
+              );
+              if (rate != null) vm.setExchangeRate(rate.toString());
+            }
+          },
           errorText: vm.fieldErrorFor('invoice_currency_id'),
         ),
         EntityEditField(

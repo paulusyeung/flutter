@@ -22,6 +22,7 @@ import 'package:admin/app/nav_state_persister.dart';
 import 'package:admin/app/router.dart';
 import 'package:admin/app/sentry_gate.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/app/text_scale_controller.dart';
 import 'package:admin/app/theme.dart';
 import 'package:admin/app/version.dart';
 import 'package:admin/data/db/app_database.dart';
@@ -508,13 +509,16 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
                 });
               }
               // Apply the device-local UI text-scale override app-wide
-              // (Settings → Device Settings). `TextScaler.linear` overrides the
-              // OS scale, matching the legacy app; `copyWith` keeps the rest of
-              // the MediaQuery. The controller is in this builder's merged
-              // listenable, so a change rebuilds here.
+              // (Settings → Device Settings), composed with the OS/accessibility
+              // scaler so a larger system font is respected — at the default
+              // factor (1.0) this is a pure OS passthrough. `copyWith` keeps the
+              // rest of the MediaQuery. The controller is in this builder's
+              // merged listenable, so a change rebuilds here.
+              final mq = MediaQuery.of(context);
               return MediaQuery(
-                data: MediaQuery.of(context).copyWith(
-                  textScaler: TextScaler.linear(
+                data: mq.copyWith(
+                  textScaler: composeTextScaler(
+                    mq.textScaler,
                     widget.services.textScale.value,
                   ),
                 ),

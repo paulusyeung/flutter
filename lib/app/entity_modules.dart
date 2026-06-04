@@ -935,7 +935,9 @@ final kWiredEntityModules = <EntityModuleSpec>[
     labelKey: 'api_webhooks',
     sidebarSection: SidebarSection.none,
     sidebarOrder: 257,
-    requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
+    // WebhookController applies no `password_protected` middleware (unlike
+    // TokenController), so no webhook mutation is password-gated.
+    requiresPasswordFor: const {},
   ),
   // DI: wire<TokenItemApi, TokenApi>(...) in services_entity_wiring.dart.
   // Settings-only entity reached via Settings → Integrations → API Tokens.
@@ -950,7 +952,15 @@ final kWiredEntityModules = <EntityModuleSpec>[
     labelKey: 'api_tokens',
     sidebarSection: SidebarSection.none,
     sidebarOrder: 258,
-    requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
+    // Server applies `password_protected` to token store/update/destroy
+    // (TokenController), so create + update are gated up-front too — not just
+    // delete/purge.
+    requiresPasswordFor: const {
+      MutationKind.create,
+      MutationKind.update,
+      MutationKind.delete,
+      MutationKind.purge,
+    },
   ),
 ];
 

@@ -120,6 +120,14 @@ class _ClientPicker extends StatelessWidget {
           idOf: (c) => c.id,
           onChanged: (c) {
             vm.setClientId(c?.id ?? '');
+            // Mirror admin-portal: seed the invoice currency from the
+            // client's currency when the form hasn't picked one yet (the
+            // expense is invoiced to the client in their currency).
+            if (c != null &&
+                c.currencyId.isNotEmpty &&
+                vm.draft.invoiceCurrencyId.isEmpty) {
+              vm.setInvoiceCurrencyId(c.currencyId);
+            }
             // If the user picks a client, narrow the project picker
             // automatically. The project picker re-evaluates against the
             // new clientId via its `watchForClient` stream below.

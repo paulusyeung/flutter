@@ -64,6 +64,14 @@ bool parseOverdueFilter(Map<String, Set<String>> extraFilters) =>
 Set<String> parseExpenseCategoryFilter(Map<String, Set<String>> extraFilters) =>
     extraFilters['categories'] ?? const <String>{};
 
+/// Expense `client_status` — computed-status wire labels
+/// (`logged|pending|invoiced|paid|unpaid`). Expense status is derived
+/// client-side, so `ExpenseDao.watchPage` turns these into a single OR
+/// predicate over the denormalized `invoice_id` / `should_be_invoiced` /
+/// `is_paid` columns, mirroring admin-portal `Expense.matchesStatuses`.
+Set<String> parseExpenseStatusFilter(Map<String, Set<String>> extraFilters) =>
+    extraFilters['client_status'] ?? const <String>{};
+
 /// Quote `client_status` — wire labels (`draft|sent|approved|expired|
 /// upcoming|converted`). Passed through verbatim; `QuoteDao.watchPage`
 /// turns the enumerated + computed members into a single OR predicate

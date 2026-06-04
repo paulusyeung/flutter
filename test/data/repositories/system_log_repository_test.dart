@@ -14,13 +14,16 @@ class _FakeApi implements SystemLogsApi {
   /// or an `Object` to throw.
   final List<Object> _scripted;
   int calls = 0;
+  String? lastClientId;
 
   @override
   Future<SystemLogListApi> fetchPage({
     int perPage = 200,
     String sort = 'created_at|DESC',
+    String? clientId,
   }) async {
     calls++;
+    lastClientId = clientId;
     if (_scripted.isEmpty) {
       throw StateError('no scripted response');
     }
@@ -196,10 +199,78 @@ void main() {
       expect(await repo.refresh('c1'), SystemLogRefreshResult.networkError);
     });
 
+    test(
+      'forbidden stamps lastFetchedAt (gated endpoint not re-hit)',
+      () async {
+        final now = DateTime.utc(2026, 5, 15, 12, 0, 0);
+        final api = _FakeApi([const ServerException(403, 'forbidden')]);
+        final repo = SystemLogRepository(db: db, api: api, now: () => now);
+        expect(await repo.refresh('c1'), SystemLogRefreshResult.forbidden);
+        // Without the stamp lastFetchedAt would stay null and the auto-refresh
+        // would re-pull the 403 on every visit / company switch.
+        expect(await repo.lastFetchedAt('c1'), now);
+      },
+    );
+
+    test('notFound stamps lastFetchedAt', () async {
+      final now = DateTime.utc(2026, 5, 15, 12, 0, 0);
+      final api = _FakeApi([const ServerException(404, 'gone')]);
+      final repo = SystemLogRepository(db: db, api: api, now: () => now);
+      expect(await repo.refresh('c1'), SystemLogRefreshResult.notFound);
+      expect(await repo.lastFetchedAt('c1'), now);
+    });
+
+    test(
+      'networkError leaves lastFetchedAt null so the next visit retries',
+      () async {
+        final api = _FakeApi([const NetworkException('offline')]);
+        final repo = SystemLogRepository(db: db, api: api);
+        expect(await repo.refresh('c1'), SystemLogRefreshResult.networkError);
+        expect(await repo.lastFetchedAt('c1'), isNull);
+      },
+    );
+
     test('empty companyId is a no-op', () async {
       final api = _FakeApi([]);
       final repo = SystemLogRepository(db: db, api: api);
       expect(await repo.refresh(''), SystemLogRefreshResult.ok);
+      expect(api.calls, 0);
+    });
+  });
+
+  group('SystemLogRepository — fetchForClient', () {
+    test('returns mapped logs without writing the company cache', () async {
+      final api = _FakeApi([
+        SystemLogListApi(
+          data: [row('a', createdAt: 2000), row('b', createdAt: 1000)],
+        ),
+      ]);
+      final repo = SystemLogRepository(db: db, api: api);
+
+      final (result, logs) = await repo.fetchForClient('cli_1');
+      expect(result, SystemLogRefreshResult.ok);
+      expect(logs.map((l) => l.id).toList(), ['a', 'b']);
+      // The server-side client_id filter is what scopes the result.
+      expect(api.lastClientId, 'cli_1');
+      // Per-client fetch is read-only — the company-wide Drift cache stays
+      // empty so it can't clobber the global System Logs screen's cache.
+      expect(await repo.watch('c1').first, isEmpty);
+    });
+
+    test('forbidden → (forbidden, empty)', () async {
+      final api = _FakeApi([const ServerException(403, 'no')]);
+      final repo = SystemLogRepository(db: db, api: api);
+      final (result, logs) = await repo.fetchForClient('cli_1');
+      expect(result, SystemLogRefreshResult.forbidden);
+      expect(logs, isEmpty);
+    });
+
+    test('empty clientId is a no-op', () async {
+      final api = _FakeApi([]);
+      final repo = SystemLogRepository(db: db, api: api);
+      final (result, logs) = await repo.fetchForClient('');
+      expect(result, SystemLogRefreshResult.ok);
+      expect(logs, isEmpty);
       expect(api.calls, 0);
     });
   });
