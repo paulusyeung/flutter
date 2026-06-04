@@ -163,6 +163,37 @@ void main() {
       expect(restoreRow.requiresPassword, isTrue);
     });
 
+    test('applyUpdateResponse preserves company_user when the bulk echo omits '
+        'it (archive/restore include guard)', () async {
+      final repo = makeRepo();
+      await repo.applyApiResponse(
+        companyId: 'co_1',
+        api: const UserApi(
+          id: 'u_arch',
+          firstName: 'Arch',
+          email: 'arch@example.com',
+          updatedAt: 1700000000,
+          companyUser: CompanyUserApi(permissions: 'create_all', isAdmin: true),
+        ),
+      );
+      // Simulate a /users/bulk archive echo: archived user, no company_user.
+      await repo.applyUpdateResponse(
+        companyId: 'co_1',
+        serverResponse: const UserApi(
+          id: 'u_arch',
+          firstName: 'Arch',
+          email: 'arch@example.com',
+          updatedAt: 1700000100,
+          archivedAt: 1700000100,
+        ),
+      );
+      final user = await repo.get(companyId: 'co_1', userId: 'u_arch');
+      expect(user, isNotNull);
+      expect(user!.companyUser.isAdmin, isTrue);
+      expect(user.companyUser.permissions, 'create_all');
+      expect(user.archivedAt, 1700000100); // the archive still landed
+    });
+
     test('applyPurgeResponse hard-deletes the local row', () async {
       final repo = makeRepo();
       await repo.applyApiResponse(

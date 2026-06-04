@@ -94,6 +94,7 @@ import 'package:admin/app/diagnostics_log.dart';
 import 'package:admin/app/locale_controller.dart';
 import 'package:admin/app/recently_viewed_controller.dart';
 import 'package:admin/app/sidebar_controller.dart';
+import 'package:admin/app/text_scale_controller.dart';
 import 'package:admin/app/theme_controller.dart';
 
 final Logger _servicesLog = Logger('Services');
@@ -250,6 +251,7 @@ class Services implements SidebarBadgeContext {
     required this.theme,
     required this.accentColor,
     required this.locale,
+    required this.textScale,
     required this.appLocale,
     required this.sidebar,
     required this.recentlyViewed,
@@ -516,6 +518,11 @@ class Services implements SidebarBadgeContext {
   /// Device-local app-language override (Settings → User Details →
   /// Preferences). Drives [appLocale] as the top-priority input.
   final LocaleController locale;
+
+  /// Device-local UI text-scale override (Settings → Device Settings). Merged
+  /// into `MaterialApp`'s theme [Listenable] so a change rebuilds the app-wide
+  /// `MediaQuery` `textScaler`.
+  final TextScaleController textScale;
 
   /// The locale `MaterialApp.locale` actually binds to — resolves the device
   /// override over the active company's `settings.language_id` (React parity).
@@ -924,6 +931,7 @@ class Services implements SidebarBadgeContext {
     final theme = ThemeController(db: db);
     final accentColor = AccentColorController(auth: auth, users: userRepo);
     final locale = LocaleController(db: db);
+    final textScale = TextScaleController(db: db);
     // Resolves the UI locale: device override → active company's
     // settings.language_id → English. Listens to the override + auth.session,
     // and is recomputed on settings save via the onSettingsWritten hook above.
@@ -1036,6 +1044,7 @@ class Services implements SidebarBadgeContext {
       theme: theme,
       accentColor: accentColor,
       locale: locale,
+      textScale: textScale,
       appLocale: appLocale,
       sidebar: sidebar,
       recentlyViewed: recentlyViewed,

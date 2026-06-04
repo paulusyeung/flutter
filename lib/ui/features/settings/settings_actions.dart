@@ -50,17 +50,21 @@ class SettingsActions {
   /// Reports success / failure via SnackBar. Caller surfaces the in-flight
   /// state — `await`ing this returns when the work is done (success or
   /// caught failure).
-  static Future<void> forceResync(BuildContext context) async {
+  static Future<void> forceResync(
+    BuildContext context, {
+    String successKey = 'resync_complete',
+    String failureKey = 'resync_failed',
+  }) async {
     final services = context.read<Services>();
     final companyId = services.auth.session.value?.currentCompanyId;
     if (companyId == null) return;
     try {
       await services.clients.refreshAll(companyId: companyId, full: true);
       if (!context.mounted) return;
-      Notify.success(context, context.tr('resync_complete'));
+      Notify.success(context, context.tr(successKey));
     } catch (e) {
       if (!context.mounted) return;
-      Notify.error(context, context.tr('resync_failed'), error: e);
+      Notify.error(context, context.tr(failureKey), error: e);
     }
   }
 }

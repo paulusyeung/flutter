@@ -7,8 +7,8 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/widgets/accent_swatch_grid.dart';
 import 'package:admin/ui/features/settings/widgets/theme_tile.dart';
 
-/// Collapsible "Customize colors" section — five device-local colour
-/// overrides (background / surface / text / border / paid) layered on the
+/// Collapsible "Customize colors" section — four device-local colour
+/// overrides (background / surface / text / border) layered on the
 /// selected preset for the brightness currently in effect. Pure
 /// [ThemeController]: no save bar, persists immediately. Accent lives
 /// elsewhere (it's the server-synced per-user setting on User Details).

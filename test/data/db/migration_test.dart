@@ -55,7 +55,11 @@ void main() {
 
         expect(
           await columnsOf('nav_state'),
-          containsAll(<String>{'custom_theme_json', 'recent_entities_json'}),
+          containsAll(<String>{
+            'custom_theme_json',
+            'recent_entities_json',
+            'text_scale',
+          }),
         );
         expect(await columnsOf('saved_views'), contains('icon'));
         expect(await columnsOf('companies'), contains('first_day_of_week'));

@@ -3,14 +3,17 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/app/text_scale_controller.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/settings_actions.dart';
 import 'package:admin/ui/features/settings/widgets/biometric_toggle_tile.dart';
 import 'package:admin/ui/features/settings/widgets/customize_colors_section.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
+import 'package:admin/ui/features/settings/widgets/segmented_setting_row.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 import 'package:admin/ui/features/settings/widgets/theme_tile.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Top-level "Device Settings" page. Holds the device-local, no-save controls:
 /// theme (mode + palette), the per-preset colour overrides, biometric
@@ -53,6 +56,7 @@ class _DeviceSettingsScreenState extends State<DeviceSettingsScreen> {
                 spacing: 0,
                 children: [
                   ThemeTile(controller: services.theme),
+                  _FontSizeRow(controller: services.textScale),
                   const Divider(height: 1),
                   CustomizeColorsSection(controller: services.theme),
                 ],
@@ -71,6 +75,41 @@ class _DeviceSettingsScreenState extends State<DeviceSettingsScreen> {
   }
 }
 
+/// Device-local UI text-scale picker (Small / Normal / Large / Extra Large).
+/// Same responsive [SegmentedSettingRow] shape as the theme mode/palette rows,
+/// so it lines up under them in the Theme section.
+class _FontSizeRow extends StatelessWidget {
+  const _FontSizeRow({required this.controller});
+
+  final TextScaleController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<double>(
+      valueListenable: controller,
+      builder: (context, scale, _) {
+        return SegmentedSettingRow(
+          leading: const Icon(Icons.format_size_outlined),
+          title: context.tr('font_size'),
+          subtitle: context.tr(textScaleLabelKey(scale)),
+          control: SegmentedButton<double>(
+            showSelectedIcon: false,
+            segments: [
+              for (final option in kTextScaleOptions)
+                ButtonSegment(
+                  value: option,
+                  label: segmentLabel(context, textScaleLabelKey(option)),
+                ),
+            ],
+            selected: {scale},
+            onSelectionChanged: (s) => controller.set(s.first),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _DataSection extends StatefulWidget {
   const _DataSection();
 
@@ -80,28 +119,72 @@ class _DataSection extends StatefulWidget {
 
 class _DataSectionState extends State<_DataSection> {
   bool _running = false;
+  int? _lastSyncAt;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLastSync();
+  }
+
+  /// Read the active company's last-sync high-water mark so the user can see
+  /// how stale their local cache is. One-shot (re-read after a download) — the
+  /// value only moves on sync.
+  Future<void> _loadLastSync() async {
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId;
+    if (companyId == null) return;
+    final row = await services.db.companiesDao.byId(companyId);
+    if (mounted) setState(() => _lastSyncAt = row?.lastSyncAt);
+  }
 
   Future<void> _run() async {
     setState(() => _running = true);
-    await SettingsActions.forceResync(context);
+    await SettingsActions.forceResync(
+      context,
+      successKey: 'download_complete',
+      failureKey: 'download_failed',
+    );
     if (mounted) setState(() => _running = false);
+    await _loadLastSync();
   }
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    final lastSync = _lastSyncAt;
     return FormSection(
       title: context.tr('data'),
       children: [
-        Text(
-          context.tr('download_data'),
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: tokens.ink2),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.tr('download_data'),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: tokens.ink2),
+            ),
+            if (lastSync != null && lastSync > 0) ...[
+              SizedBox(height: InSpacing.sm),
+              Text(
+                '${context.tr('last_updated')}: '
+                '${formatRelativeTime(context, DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(lastSync)))}',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: tokens.ink3),
+              ),
+            ],
+          ],
         ),
         Align(
           alignment: Alignment.centerRight,
           child: FilledButton.icon(
+            // Compact, content-sized button. Without this the themed
+            // `Size.fromHeight(44)` default (= infinite min-width) would make
+            // the button fill the stretched FormSection column, defeating the
+            // centerRight alignment and rendering edge-to-edge.
+            style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
             onPressed: _running ? null : _run,
             icon: _running
                 ? const SizedBox(

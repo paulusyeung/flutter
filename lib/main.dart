@@ -138,6 +138,7 @@ Future<void> _bootstrap() async {
     services.auth.restore(),
     services.theme.restore(),
     services.locale.restore(),
+    services.textScale.restore(),
     services.sidebar.restore(),
     services.recentlyViewed.restore(),
   ]);
@@ -452,7 +453,11 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
         ),
       ],
       child: ListenableBuilder(
-        listenable: Listenable.merge([theme, widget.services.accentColor]),
+        listenable: Listenable.merge([
+          theme,
+          widget.services.accentColor,
+          widget.services.textScale,
+        ]),
         builder: (context, _) => ValueListenableBuilder<Locale?>(
           // Resolved locale: device override → active company's
           // settings.language_id → English (see AppLocaleResolver). The device
@@ -502,20 +507,32 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
                   );
                 });
               }
-              // Feed user activity to the idle-timeout enforcer. Translucent
-              // so it never intercepts gestures; `poke()` is a cheap clock
-              // stamp read by the controller's periodic check.
-              return Listener(
-                behavior: HitTestBehavior.translucent,
-                onPointerDown: (_) => _idleTimeout.poke(),
-                onPointerMove: (_) => _idleTimeout.poke(),
-                onPointerSignal: (_) => _idleTimeout.poke(),
-                onPointerHover: (_) => _idleTimeout.poke(),
-                // iOS: layer an animated splash overlay above all routes so
-                // the storyboard → Flutter handoff has a gentle exit instead
-                // of a hard cut. Passthrough on every other platform.
-                child: NativeSplash.wrap(
-                  child: child ?? const SizedBox.shrink(),
+              // Apply the device-local UI text-scale override app-wide
+              // (Settings → Device Settings). `TextScaler.linear` overrides the
+              // OS scale, matching the legacy app; `copyWith` keeps the rest of
+              // the MediaQuery. The controller is in this builder's merged
+              // listenable, so a change rebuilds here.
+              return MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  textScaler: TextScaler.linear(
+                    widget.services.textScale.value,
+                  ),
+                ),
+                // Feed user activity to the idle-timeout enforcer. Translucent
+                // so it never intercepts gestures; `poke()` is a cheap clock
+                // stamp read by the controller's periodic check.
+                child: Listener(
+                  behavior: HitTestBehavior.translucent,
+                  onPointerDown: (_) => _idleTimeout.poke(),
+                  onPointerMove: (_) => _idleTimeout.poke(),
+                  onPointerSignal: (_) => _idleTimeout.poke(),
+                  onPointerHover: (_) => _idleTimeout.poke(),
+                  // iOS: layer an animated splash overlay above all routes so
+                  // the storyboard → Flutter handoff has a gentle exit instead
+                  // of a hard cut. Passthrough on every other platform.
+                  child: NativeSplash.wrap(
+                    child: child ?? const SizedBox.shrink(),
+                  ),
                 ),
               );
             },

@@ -398,10 +398,14 @@ the honest default.
 | Purchase order — create | ✅ | ✅ | ✅ | ✅ | |
 | Purchase order — clone | ✅ | ✅ | ✅ | ✅ | |
 | Purchase order — convert to expense | ✅ | ✅ | ✅ | ✅ | |
+| Purchase order — view linked expense | ✅ | ✅ | ✅ | ✅ | |
+| Purchase order — add to inventory (→ received) | ✅ | ✅ | ✅ | ✅ | |
 | Purchase order — email to vendor | ✅ | ✅ | ✅ | ✅ | |
 | Purchase order — schedule email | ✅ | ❌ | ✅ | ✅ | |
 | Purchase order — mark sent | ✅ | ✅ | ✅ | ✅ | |
-| Purchase order — accept (vendor side) | ✅ | ❌ | ✅ | ✅ | |
+| Purchase order — accept (vendor-portal only; no admin action) | ✅ | ❌ | — | ✅ | |
+| Purchase order — vendor portal link | ✅ | ✅ | ✅ | ✅ | |
+| Purchase order — download e-purchase-order (e-invoice) | ✅ | ❌ | ❌ | ✅ | |
 | Purchase order — change template / design | ✅ | ✅ | ✅ | ✅ | |
 | Purchase order — view / download PDF | ✅ | ✅ | ✅ | ✅ | |
 | Purchase order — activities | ✅ | ✅ | ✅ | ✅ | |

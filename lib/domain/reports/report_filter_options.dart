@@ -77,7 +77,10 @@ List<ReportFilterOption>? reportStatusOptions(String reportIdentifier) {
         (id: 'paused', labelKey: 'paused'),
         (id: 'completed', labelKey: 'completed'),
       ];
+    // `task` is the reports-screen identifier; `tasks` is the scheduler's
+    // email_report name for the same report (server `EmailReport` exporter).
     case 'task':
+    case 'tasks':
       return const [
         (id: 'invoiced', labelKey: 'invoiced'),
         (id: 'uninvoiced', labelKey: 'uninvoiced'),

@@ -1045,6 +1045,16 @@
             "dsl_features": []
           },
           {
+            "name": "text_scale",
+            "getter_name": "textScale",
+            "moor_type": "double",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
             "name": "filters_json",
             "getter_name": "filtersJson",
             "moor_type": "string",
@@ -9055,7 +9065,7 @@
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TABLE IF NOT EXISTS \"nav_state\" (\"id\" INTEGER NOT NULL DEFAULT 0, \"current_route\" TEXT NULL, \"selected_company_id\" TEXT NULL, \"locale\" TEXT NULL, \"theme_mode\" TEXT NULL, \"light_variant\" TEXT NULL, \"dark_variant\" TEXT NULL, \"custom_theme_json\" TEXT NULL, \"filters_json\" TEXT NULL, \"recent_entities_json\" TEXT NULL, \"sidebar_collapsed\" INTEGER NOT NULL DEFAULT 0 CHECK (\"sidebar_collapsed\" IN (0, 1)), \"updated_at\" INTEGER NOT NULL, PRIMARY KEY (\"id\"));"
+          "sql": "CREATE TABLE IF NOT EXISTS \"nav_state\" (\"id\" INTEGER NOT NULL DEFAULT 0, \"current_route\" TEXT NULL, \"selected_company_id\" TEXT NULL, \"locale\" TEXT NULL, \"theme_mode\" TEXT NULL, \"light_variant\" TEXT NULL, \"dark_variant\" TEXT NULL, \"custom_theme_json\" TEXT NULL, \"text_scale\" REAL NULL, \"filters_json\" TEXT NULL, \"recent_entities_json\" TEXT NULL, \"sidebar_collapsed\" INTEGER NOT NULL DEFAULT 0 CHECK (\"sidebar_collapsed\" IN (0, 1)), \"updated_at\" INTEGER NOT NULL, PRIMARY KEY (\"id\"));"
         }
       ]
     },

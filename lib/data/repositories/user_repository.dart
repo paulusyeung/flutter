@@ -371,8 +371,23 @@ class UserRepository extends BaseEntityRepository<User, UserApi> {
     required String companyId,
     required UserApi serverResponse,
   }) async {
+    var response = serverResponse;
+    // A `/users/bulk` archive/restore echo can omit `company_user` (it's an
+    // opt-in include). Don't let that blank the permissions / is_admin
+    // columns — carry the last-known company_user forward. `existing.toApi()`
+    // reconstructs the full block (permissions + flags + notifications +
+    // settings), so the payload's notifications/settings survive too.
+    if (response.companyUser == null) {
+      final existing = await get(
+        companyId: companyId,
+        userId: serverResponse.id,
+      );
+      if (existing != null) {
+        response = response.copyWith(companyUser: existing.toApi().companyUser);
+      }
+    }
     await db.userDao.upsert(
-      _apiToCompanion(serverResponse, companyId, isDirty: false),
+      _apiToCompanion(response, companyId, isDirty: false),
     );
   }
 

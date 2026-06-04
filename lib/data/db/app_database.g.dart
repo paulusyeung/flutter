@@ -4941,6 +4941,17 @@ class $NavStateTable extends NavState
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _textScaleMeta = const VerificationMeta(
+    'textScale',
+  );
+  @override
+  late final GeneratedColumn<double> textScale = GeneratedColumn<double>(
+    'text_scale',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _filtersJsonMeta = const VerificationMeta(
     'filtersJson',
   );
@@ -4999,6 +5010,7 @@ class $NavStateTable extends NavState
     lightVariant,
     darkVariant,
     customThemeJson,
+    textScale,
     filtersJson,
     recentEntitiesJson,
     sidebarCollapsed,
@@ -5074,6 +5086,12 @@ class $NavStateTable extends NavState
           data['custom_theme_json']!,
           _customThemeJsonMeta,
         ),
+      );
+    }
+    if (data.containsKey('text_scale')) {
+      context.handle(
+        _textScaleMeta,
+        textScale.isAcceptableOrUnknown(data['text_scale']!, _textScaleMeta),
       );
     }
     if (data.containsKey('filters_json')) {
@@ -5152,6 +5170,10 @@ class $NavStateTable extends NavState
         DriftSqlType.string,
         data['${effectivePrefix}custom_theme_json'],
       ),
+      textScale: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}text_scale'],
+      ),
       filtersJson: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}filters_json'],
@@ -5186,6 +5208,11 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
   final String? lightVariant;
   final String? darkVariant;
   final String? customThemeJson;
+
+  /// Device-local UI text-scale factor (Small 0.8 / Normal 1.0 / Large 1.2 /
+  /// Extra Large 1.4). Null = follow the default (1.0). Applied app-wide via a
+  /// `MediaQuery` `textScaler` override in `main.dart`.
+  final double? textScale;
   final String? filtersJson;
 
   /// JSON array of the most-recently-viewed entity records for the active
@@ -5204,6 +5231,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
     this.lightVariant,
     this.darkVariant,
     this.customThemeJson,
+    this.textScale,
     this.filtersJson,
     this.recentEntitiesJson,
     required this.sidebarCollapsed,
@@ -5233,6 +5261,9 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
     }
     if (!nullToAbsent || customThemeJson != null) {
       map['custom_theme_json'] = Variable<String>(customThemeJson);
+    }
+    if (!nullToAbsent || textScale != null) {
+      map['text_scale'] = Variable<double>(textScale);
     }
     if (!nullToAbsent || filtersJson != null) {
       map['filters_json'] = Variable<String>(filtersJson);
@@ -5269,6 +5300,9 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
       customThemeJson: customThemeJson == null && nullToAbsent
           ? const Value.absent()
           : Value(customThemeJson),
+      textScale: textScale == null && nullToAbsent
+          ? const Value.absent()
+          : Value(textScale),
       filtersJson: filtersJson == null && nullToAbsent
           ? const Value.absent()
           : Value(filtersJson),
@@ -5296,6 +5330,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
       lightVariant: serializer.fromJson<String?>(json['lightVariant']),
       darkVariant: serializer.fromJson<String?>(json['darkVariant']),
       customThemeJson: serializer.fromJson<String?>(json['customThemeJson']),
+      textScale: serializer.fromJson<double?>(json['textScale']),
       filtersJson: serializer.fromJson<String?>(json['filtersJson']),
       recentEntitiesJson: serializer.fromJson<String?>(
         json['recentEntitiesJson'],
@@ -5316,6 +5351,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
       'lightVariant': serializer.toJson<String?>(lightVariant),
       'darkVariant': serializer.toJson<String?>(darkVariant),
       'customThemeJson': serializer.toJson<String?>(customThemeJson),
+      'textScale': serializer.toJson<double?>(textScale),
       'filtersJson': serializer.toJson<String?>(filtersJson),
       'recentEntitiesJson': serializer.toJson<String?>(recentEntitiesJson),
       'sidebarCollapsed': serializer.toJson<bool>(sidebarCollapsed),
@@ -5332,6 +5368,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
     Value<String?> lightVariant = const Value.absent(),
     Value<String?> darkVariant = const Value.absent(),
     Value<String?> customThemeJson = const Value.absent(),
+    Value<double?> textScale = const Value.absent(),
     Value<String?> filtersJson = const Value.absent(),
     Value<String?> recentEntitiesJson = const Value.absent(),
     bool? sidebarCollapsed,
@@ -5349,6 +5386,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
     customThemeJson: customThemeJson.present
         ? customThemeJson.value
         : this.customThemeJson,
+    textScale: textScale.present ? textScale.value : this.textScale,
     filtersJson: filtersJson.present ? filtersJson.value : this.filtersJson,
     recentEntitiesJson: recentEntitiesJson.present
         ? recentEntitiesJson.value
@@ -5376,6 +5414,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
       customThemeJson: data.customThemeJson.present
           ? data.customThemeJson.value
           : this.customThemeJson,
+      textScale: data.textScale.present ? data.textScale.value : this.textScale,
       filtersJson: data.filtersJson.present
           ? data.filtersJson.value
           : this.filtersJson,
@@ -5400,6 +5439,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
           ..write('lightVariant: $lightVariant, ')
           ..write('darkVariant: $darkVariant, ')
           ..write('customThemeJson: $customThemeJson, ')
+          ..write('textScale: $textScale, ')
           ..write('filtersJson: $filtersJson, ')
           ..write('recentEntitiesJson: $recentEntitiesJson, ')
           ..write('sidebarCollapsed: $sidebarCollapsed, ')
@@ -5418,6 +5458,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
     lightVariant,
     darkVariant,
     customThemeJson,
+    textScale,
     filtersJson,
     recentEntitiesJson,
     sidebarCollapsed,
@@ -5435,6 +5476,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
           other.lightVariant == this.lightVariant &&
           other.darkVariant == this.darkVariant &&
           other.customThemeJson == this.customThemeJson &&
+          other.textScale == this.textScale &&
           other.filtersJson == this.filtersJson &&
           other.recentEntitiesJson == this.recentEntitiesJson &&
           other.sidebarCollapsed == this.sidebarCollapsed &&
@@ -5450,6 +5492,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
   final Value<String?> lightVariant;
   final Value<String?> darkVariant;
   final Value<String?> customThemeJson;
+  final Value<double?> textScale;
   final Value<String?> filtersJson;
   final Value<String?> recentEntitiesJson;
   final Value<bool> sidebarCollapsed;
@@ -5463,6 +5506,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
     this.lightVariant = const Value.absent(),
     this.darkVariant = const Value.absent(),
     this.customThemeJson = const Value.absent(),
+    this.textScale = const Value.absent(),
     this.filtersJson = const Value.absent(),
     this.recentEntitiesJson = const Value.absent(),
     this.sidebarCollapsed = const Value.absent(),
@@ -5477,6 +5521,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
     this.lightVariant = const Value.absent(),
     this.darkVariant = const Value.absent(),
     this.customThemeJson = const Value.absent(),
+    this.textScale = const Value.absent(),
     this.filtersJson = const Value.absent(),
     this.recentEntitiesJson = const Value.absent(),
     this.sidebarCollapsed = const Value.absent(),
@@ -5491,6 +5536,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
     Expression<String>? lightVariant,
     Expression<String>? darkVariant,
     Expression<String>? customThemeJson,
+    Expression<double>? textScale,
     Expression<String>? filtersJson,
     Expression<String>? recentEntitiesJson,
     Expression<bool>? sidebarCollapsed,
@@ -5505,6 +5551,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
       if (lightVariant != null) 'light_variant': lightVariant,
       if (darkVariant != null) 'dark_variant': darkVariant,
       if (customThemeJson != null) 'custom_theme_json': customThemeJson,
+      if (textScale != null) 'text_scale': textScale,
       if (filtersJson != null) 'filters_json': filtersJson,
       if (recentEntitiesJson != null)
         'recent_entities_json': recentEntitiesJson,
@@ -5522,6 +5569,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
     Value<String?>? lightVariant,
     Value<String?>? darkVariant,
     Value<String?>? customThemeJson,
+    Value<double?>? textScale,
     Value<String?>? filtersJson,
     Value<String?>? recentEntitiesJson,
     Value<bool>? sidebarCollapsed,
@@ -5536,6 +5584,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
       lightVariant: lightVariant ?? this.lightVariant,
       darkVariant: darkVariant ?? this.darkVariant,
       customThemeJson: customThemeJson ?? this.customThemeJson,
+      textScale: textScale ?? this.textScale,
       filtersJson: filtersJson ?? this.filtersJson,
       recentEntitiesJson: recentEntitiesJson ?? this.recentEntitiesJson,
       sidebarCollapsed: sidebarCollapsed ?? this.sidebarCollapsed,
@@ -5570,6 +5619,9 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
     if (customThemeJson.present) {
       map['custom_theme_json'] = Variable<String>(customThemeJson.value);
     }
+    if (textScale.present) {
+      map['text_scale'] = Variable<double>(textScale.value);
+    }
     if (filtersJson.present) {
       map['filters_json'] = Variable<String>(filtersJson.value);
     }
@@ -5596,6 +5648,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
           ..write('lightVariant: $lightVariant, ')
           ..write('darkVariant: $darkVariant, ')
           ..write('customThemeJson: $customThemeJson, ')
+          ..write('textScale: $textScale, ')
           ..write('filtersJson: $filtersJson, ')
           ..write('recentEntitiesJson: $recentEntitiesJson, ')
           ..write('sidebarCollapsed: $sidebarCollapsed, ')
@@ -45664,6 +45717,7 @@ typedef $$NavStateTableCreateCompanionBuilder =
       Value<String?> lightVariant,
       Value<String?> darkVariant,
       Value<String?> customThemeJson,
+      Value<double?> textScale,
       Value<String?> filtersJson,
       Value<String?> recentEntitiesJson,
       Value<bool> sidebarCollapsed,
@@ -45679,6 +45733,7 @@ typedef $$NavStateTableUpdateCompanionBuilder =
       Value<String?> lightVariant,
       Value<String?> darkVariant,
       Value<String?> customThemeJson,
+      Value<double?> textScale,
       Value<String?> filtersJson,
       Value<String?> recentEntitiesJson,
       Value<bool> sidebarCollapsed,
@@ -45731,6 +45786,11 @@ class $$NavStateTableFilterComposer
 
   ColumnFilters<String> get customThemeJson => $composableBuilder(
     column: $table.customThemeJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get textScale => $composableBuilder(
+    column: $table.textScale,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -45804,6 +45864,11 @@ class $$NavStateTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get textScale => $composableBuilder(
+    column: $table.textScale,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get filtersJson => $composableBuilder(
     column: $table.filtersJson,
     builder: (column) => ColumnOrderings(column),
@@ -45868,6 +45933,9 @@ class $$NavStateTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<double> get textScale =>
+      $composableBuilder(column: $table.textScale, builder: (column) => column);
+
   GeneratedColumn<String> get filtersJson => $composableBuilder(
     column: $table.filtersJson,
     builder: (column) => column,
@@ -45926,6 +45994,7 @@ class $$NavStateTableTableManager
                 Value<String?> lightVariant = const Value.absent(),
                 Value<String?> darkVariant = const Value.absent(),
                 Value<String?> customThemeJson = const Value.absent(),
+                Value<double?> textScale = const Value.absent(),
                 Value<String?> filtersJson = const Value.absent(),
                 Value<String?> recentEntitiesJson = const Value.absent(),
                 Value<bool> sidebarCollapsed = const Value.absent(),
@@ -45939,6 +46008,7 @@ class $$NavStateTableTableManager
                 lightVariant: lightVariant,
                 darkVariant: darkVariant,
                 customThemeJson: customThemeJson,
+                textScale: textScale,
                 filtersJson: filtersJson,
                 recentEntitiesJson: recentEntitiesJson,
                 sidebarCollapsed: sidebarCollapsed,
@@ -45954,6 +46024,7 @@ class $$NavStateTableTableManager
                 Value<String?> lightVariant = const Value.absent(),
                 Value<String?> darkVariant = const Value.absent(),
                 Value<String?> customThemeJson = const Value.absent(),
+                Value<double?> textScale = const Value.absent(),
                 Value<String?> filtersJson = const Value.absent(),
                 Value<String?> recentEntitiesJson = const Value.absent(),
                 Value<bool> sidebarCollapsed = const Value.absent(),
@@ -45967,6 +46038,7 @@ class $$NavStateTableTableManager
                 lightVariant: lightVariant,
                 darkVariant: darkVariant,
                 customThemeJson: customThemeJson,
+                textScale: textScale,
                 filtersJson: filtersJson,
                 recentEntitiesJson: recentEntitiesJson,
                 sidebarCollapsed: sidebarCollapsed,

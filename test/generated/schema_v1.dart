@@ -1041,6 +1041,14 @@ class NavState extends Table with TableInfo {
     requiredDuringInsert: false,
     $customConstraints: 'NULL',
   );
+  late final GeneratedColumn<double> textScale = GeneratedColumn<double>(
+    'text_scale',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
   late final GeneratedColumn<String> filtersJson = GeneratedColumn<String>(
     'filters_json',
     aliasedName,
@@ -1086,6 +1094,7 @@ class NavState extends Table with TableInfo {
     lightVariant,
     darkVariant,
     customThemeJson,
+    textScale,
     filtersJson,
     recentEntitiesJson,
     sidebarCollapsed,

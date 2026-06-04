@@ -7,7 +7,6 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/data/models/domain/bank_account.dart';
-import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/data/models/domain/import_preview.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/services/api_exception.dart';
@@ -181,18 +180,6 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
   bool _thirdPartyBusy = false;
 
   ImportApi get _api => ImportApi(context.read<Services>().apiClient);
-
-  /// Active company's module bitmask — gates which entity types appear in the
-  /// import / export pickers.
-  int _enabledModules(BuildContext context) =>
-      context
-          .read<Services>()
-          .auth
-          .session
-          .value
-          ?.currentCompany
-          ?.enabledModules ??
-      0;
 
   Future<void> _onCsvFiles(List<UploadSource> sources) async {
     if (sources.isEmpty) return;
@@ -742,8 +729,14 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
               ),
             );
           }
+          // Guard against a stale id carried over from another company (this
+          // State persists across a company switch) — an `initialValue` absent
+          // from `items` trips DropdownButtonFormField's value-in-items assert.
+          final selected = accounts.any((a) => a.id == _bankIntegrationId)
+              ? _bankIntegrationId
+              : null;
           return DropdownButtonFormField<String>(
-            initialValue: _bankIntegrationId,
+            initialValue: selected,
             isExpanded: true,
             decoration: InputDecoration(
               labelText: context.tr('bank_account'),
@@ -785,9 +778,12 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                   _bankIntegrationId = null;
                 }),
           items: [
+            // List every importable entity unconditionally (no module filter):
+            // this State persists across a company switch, so a filtered list
+            // could omit the stale `_entity` and trip DropdownButtonFormField's
+            // value-in-items assertion. Mirrors the export picker above.
             for (final e in kImportableEntities)
-              if (isWireModuleEnabledForCompany(e, _enabledModules(context)))
-                DropdownMenuItem(value: e, child: Text(context.tr(e))),
+              DropdownMenuItem(value: e, child: Text(context.tr(e))),
           ],
         ),
         if (_entity == 'bank_transaction') _bankAccountField(context),

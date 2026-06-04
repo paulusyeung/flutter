@@ -710,7 +710,7 @@ class _EmailReportSectionState extends State<_EmailReportSection> {
       case EmailReportField.productKey:
         return _RepoSinglePicker<Product>(
           labelKey: 'product',
-          stream: services.products.watchPage(
+          streamFactory: () => services.products.watchPage(
             companyId: companyId,
             loadedPages: 100,
           ),
@@ -722,7 +722,7 @@ class _EmailReportSectionState extends State<_EmailReportSection> {
       case EmailReportField.clientIdSingular:
         return _RepoSinglePicker<Client>(
           labelKey: 'client',
-          stream: services.clients.watchPage(
+          streamFactory: () => services.clients.watchPage(
             companyId: companyId,
             loadedPages: 100,
           ),
@@ -739,7 +739,7 @@ class _EmailReportSectionState extends State<_EmailReportSection> {
       case EmailReportField.vendors:
         return _RepoMultiPicker<Vendor>(
           labelKey: 'vendors',
-          stream: services.vendors.watchPage(
+          streamFactory: () => services.vendors.watchPage(
             companyId: companyId,
             loadedPages: 100,
           ),
@@ -751,7 +751,7 @@ class _EmailReportSectionState extends State<_EmailReportSection> {
       case EmailReportField.projects:
         return _RepoMultiPicker<Project>(
           labelKey: 'projects',
-          stream: services.projects.watchPage(
+          streamFactory: () => services.projects.watchPage(
             companyId: companyId,
             loadedPages: 100,
           ),
@@ -763,7 +763,7 @@ class _EmailReportSectionState extends State<_EmailReportSection> {
       case EmailReportField.categories:
         return _RepoMultiPicker<ExpenseCategory>(
           labelKey: 'categories',
-          stream: services.expenseCategories.watchPage(
+          streamFactory: () => services.expenseCategories.watchPage(
             companyId: companyId,
             loadedPages: 100,
           ),
@@ -776,7 +776,7 @@ class _EmailReportSectionState extends State<_EmailReportSection> {
         return _RepoSinglePicker<Design>(
           labelKey: 'design',
           // Server requires a real template Design (is_template=true).
-          stream: services.designs
+          streamFactory: () => services.designs
               .watchAll(companyId: companyId)
               .map((list) => list.where((d) => d.isTemplate).toList()),
           selectedId: vm.draft.reportTemplateId,
@@ -902,7 +902,7 @@ class _PaymentScheduleSectionState extends State<_PaymentScheduleSection> {
         if (vm.isCreate)
           _RepoSinglePicker<Invoice>(
             labelKey: 'invoice',
-            stream: services.invoices.watchPage(
+            streamFactory: () => services.invoices.watchPage(
               companyId: companyId,
               loadedPages: 100,
             ),
@@ -1175,10 +1175,15 @@ String _clientLabel(Client c) => c.displayName.isEmpty ? c.name : c.displayName;
 /// name/number instead of the raw hashed id; the server validates the id on
 /// save. Loads one page + filters client-side — same trade-off as the
 /// payment-edit invoice picker.
-class _RepoSinglePicker<T extends Object> extends StatelessWidget {
+///
+/// The watch is memoized (resolved once) — the VM-backed edit scaffold
+/// rebuilds this whole subtree on every field edit, and an inline stream
+/// would cancel + resubscribe (flicker to "loading" + re-query) per
+/// keystroke. Mirrors `payment_edit_layout.dart`'s `_resolveStream`.
+class _RepoSinglePicker<T extends Object> extends StatefulWidget {
   const _RepoSinglePicker({
     required this.labelKey,
-    required this.stream,
+    required this.streamFactory,
     required this.selectedId,
     required this.idOf,
     required this.displayString,
@@ -1187,7 +1192,7 @@ class _RepoSinglePicker<T extends Object> extends StatelessWidget {
   });
 
   final String labelKey;
-  final Stream<List<T>> stream;
+  final Stream<List<T>> Function() streamFactory;
   final String selectedId;
   final String Function(T) idOf;
   final String Function(T) displayString;
@@ -1195,37 +1200,48 @@ class _RepoSinglePicker<T extends Object> extends StatelessWidget {
   final String? errorText;
 
   @override
+  State<_RepoSinglePicker<T>> createState() => _RepoSinglePickerState<T>();
+}
+
+class _RepoSinglePickerState<T extends Object>
+    extends State<_RepoSinglePicker<T>> {
+  Stream<List<T>>? _stream;
+
+  @override
   Widget build(BuildContext context) {
+    final stream = _stream ??= widget.streamFactory();
     return StreamBuilder<List<T>>(
       stream: stream,
       builder: (context, snapshot) {
         final items = snapshot.data ?? const [];
         T? selected;
         for (final it in items) {
-          if (idOf(it) == selectedId) {
+          if (widget.idOf(it) == widget.selectedId) {
             selected = it;
             break;
           }
         }
         return SearchableDropdownField<T>(
-          label: context.tr(labelKey),
+          label: context.tr(widget.labelKey),
           items: items,
           initialValue: selected,
-          displayString: displayString,
-          idOf: idOf,
-          onChanged: (it) => onChanged(it == null ? '' : idOf(it)),
-          errorText: errorText,
+          displayString: widget.displayString,
+          idOf: widget.idOf,
+          onChanged: (it) =>
+              widget.onChanged(it == null ? '' : widget.idOf(it)),
+          errorText: widget.errorText,
         );
       },
     );
   }
 }
 
-/// Multi-entity reference picker backed by a watched repo list.
-class _RepoMultiPicker<T extends Object> extends StatelessWidget {
+/// Multi-entity reference picker backed by a watched repo list. Memoizes the
+/// watch for the same reason as [_RepoSinglePicker].
+class _RepoMultiPicker<T extends Object> extends StatefulWidget {
   const _RepoMultiPicker({
     required this.labelKey,
-    required this.stream,
+    required this.streamFactory,
     required this.selectedIds,
     required this.idOf,
     required this.displayString,
@@ -1233,25 +1249,34 @@ class _RepoMultiPicker<T extends Object> extends StatelessWidget {
   });
 
   final String labelKey;
-  final Stream<List<T>> stream;
+  final Stream<List<T>> Function() streamFactory;
   final List<String> selectedIds;
   final String Function(T) idOf;
   final String Function(T) displayString;
   final ValueChanged<List<String>> onChanged;
 
   @override
+  State<_RepoMultiPicker<T>> createState() => _RepoMultiPickerState<T>();
+}
+
+class _RepoMultiPickerState<T extends Object>
+    extends State<_RepoMultiPicker<T>> {
+  Stream<List<T>>? _stream;
+
+  @override
   Widget build(BuildContext context) {
+    final stream = _stream ??= widget.streamFactory();
     return StreamBuilder<List<T>>(
       stream: stream,
       builder: (context, snapshot) {
         final items = snapshot.data ?? const [];
         return MultiEntityPicker<T>(
-          labelKey: labelKey,
-          selectedIds: selectedIds,
+          labelKey: widget.labelKey,
+          selectedIds: widget.selectedIds,
           items: items,
-          idOf: idOf,
-          displayString: displayString,
-          onChanged: onChanged,
+          idOf: widget.idOf,
+          displayString: widget.displayString,
+          onChanged: widget.onChanged,
         );
       },
     );
@@ -1272,10 +1297,8 @@ class _ClientsField extends StatelessWidget {
     final companyId = services.auth.session.value?.currentCompanyId ?? '';
     return _RepoMultiPicker<Client>(
       labelKey: 'clients',
-      stream: services.clients.watchPage(
-        companyId: companyId,
-        loadedPages: 100,
-      ),
+      streamFactory: () =>
+          services.clients.watchPage(companyId: companyId, loadedPages: 100),
       selectedIds: ids,
       idOf: (c) => c.id,
       displayString: _clientLabel,
@@ -1301,10 +1324,8 @@ class _RecordEntityField extends StatelessWidget {
       case 'quote':
         return _RepoSinglePicker<Quote>(
           labelKey: 'quote',
-          stream: services.quotes.watchPage(
-            companyId: companyId,
-            loadedPages: 100,
-          ),
+          streamFactory: () =>
+              services.quotes.watchPage(companyId: companyId, loadedPages: 100),
           selectedId: selectedId,
           idOf: (q) => q.id,
           displayString: (q) => q.number.isEmpty ? q.id : q.number,
@@ -1314,7 +1335,7 @@ class _RecordEntityField extends StatelessWidget {
       case 'credit':
         return _RepoSinglePicker<Credit>(
           labelKey: 'credit',
-          stream: services.credits.watchPage(
+          streamFactory: () => services.credits.watchPage(
             companyId: companyId,
             loadedPages: 100,
           ),
@@ -1327,7 +1348,7 @@ class _RecordEntityField extends StatelessWidget {
       case 'purchase_order':
         return _RepoSinglePicker<PurchaseOrder>(
           labelKey: 'purchase_order',
-          stream: services.purchaseOrders.watchPage(
+          streamFactory: () => services.purchaseOrders.watchPage(
             companyId: companyId,
             loadedPages: 100,
           ),
@@ -1341,7 +1362,7 @@ class _RecordEntityField extends StatelessWidget {
       default:
         return _RepoSinglePicker<Invoice>(
           labelKey: 'invoice',
-          stream: services.invoices.watchPage(
+          streamFactory: () => services.invoices.watchPage(
             companyId: companyId,
             loadedPages: 100,
           ),
@@ -1356,27 +1377,36 @@ class _RecordEntityField extends StatelessWidget {
 }
 
 /// Read-only invoice label (payment_schedule on edit — the invoice can't be
-/// changed). Resolves the id to the invoice number once loaded.
-class _InvoiceReadonlyField extends StatelessWidget {
+/// changed). Resolves the id to the invoice number once loaded. The watch is
+/// memoized so the surrounding rebuild-on-every-edit subtree doesn't churn it.
+class _InvoiceReadonlyField extends StatefulWidget {
   const _InvoiceReadonlyField({required this.invoiceId});
 
   final String invoiceId;
+
+  @override
+  State<_InvoiceReadonlyField> createState() => _InvoiceReadonlyFieldState();
+}
+
+class _InvoiceReadonlyFieldState extends State<_InvoiceReadonlyField> {
+  Stream<List<Invoice>>? _stream;
 
   @override
   Widget build(BuildContext context) {
     final services = context.read<Services>();
     final companyId = services.auth.session.value?.currentCompanyId ?? '';
     final theme = Theme.of(context);
+    final stream = _stream ??= services.invoices.watchPage(
+      companyId: companyId,
+      loadedPages: 100,
+    );
     return StreamBuilder<List<Invoice>>(
-      stream: services.invoices.watchPage(
-        companyId: companyId,
-        loadedPages: 100,
-      ),
+      stream: stream,
       builder: (context, snapshot) {
         final items = snapshot.data ?? const <Invoice>[];
-        var label = invoiceId;
+        var label = widget.invoiceId;
         for (final i in items) {
-          if (i.id == invoiceId && i.number.isNotEmpty) {
+          if (i.id == widget.invoiceId && i.number.isNotEmpty) {
             label = i.number;
             break;
           }
@@ -1472,7 +1502,7 @@ class _ReportStatusField extends StatelessWidget {
 /// Non-blocking "remaining" hint for the payment schedule. Percent mode:
 /// 100 − Σ%. Amount mode: invoice total − Σ amount (when the invoice is
 /// loaded). The server doesn't enforce the sum, so this is guidance only.
-class _PaymentRemainingHint extends StatelessWidget {
+class _PaymentRemainingHint extends StatefulWidget {
   const _PaymentRemainingHint({
     required this.invoiceId,
     required this.rows,
@@ -1484,10 +1514,17 @@ class _PaymentRemainingHint extends StatelessWidget {
   final bool isAmountMode;
 
   @override
+  State<_PaymentRemainingHint> createState() => _PaymentRemainingHintState();
+}
+
+class _PaymentRemainingHintState extends State<_PaymentRemainingHint> {
+  Stream<List<Invoice>>? _stream;
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = context.inTheme;
-    final allocated = rows.fold<Decimal>(
+    final allocated = widget.rows.fold<Decimal>(
       Decimal.zero,
       (sum, r) => sum + r.amount,
     );
@@ -1499,7 +1536,7 @@ class _PaymentRemainingHint extends StatelessWidget {
       ),
     );
 
-    if (!isAmountMode) {
+    if (!widget.isAmountMode) {
       final remaining = Decimal.fromInt(100) - allocated;
       return hint(
         '$remaining% ${context.tr('remaining')}',
@@ -1509,16 +1546,17 @@ class _PaymentRemainingHint extends StatelessWidget {
 
     final services = context.read<Services>();
     final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    final stream = _stream ??= services.invoices.watchPage(
+      companyId: companyId,
+      loadedPages: 100,
+    );
     return StreamBuilder<List<Invoice>>(
-      stream: services.invoices.watchPage(
-        companyId: companyId,
-        loadedPages: 100,
-      ),
+      stream: stream,
       builder: (context, snapshot) {
         final items = snapshot.data ?? const <Invoice>[];
         Invoice? invoice;
         for (final i in items) {
-          if (i.id == invoiceId) {
+          if (i.id == widget.invoiceId) {
             invoice = i;
             break;
           }

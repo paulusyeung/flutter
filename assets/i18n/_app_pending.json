@@ -332,6 +332,8 @@
   "resync_complete": "Resync complete",
   "resync_failed": "Resync failed",
   "resync_failed_with_error": "Resync failed: :error",
+  "download_complete": "Download complete",
+  "download_failed": "Download failed",
   "choose_language": "Choose language",
   "match_system": "Match system",
   "force_full_resync": "Force full resync",

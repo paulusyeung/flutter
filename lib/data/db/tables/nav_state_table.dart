@@ -16,6 +16,12 @@ class NavState extends Table {
   TextColumn get darkVariant => text().named('dark_variant').nullable()();
   TextColumn get customThemeJson =>
       text().named('custom_theme_json').nullable()();
+
+  /// Device-local UI text-scale factor (Small 0.8 / Normal 1.0 / Large 1.2 /
+  /// Extra Large 1.4). Null = follow the default (1.0). Applied app-wide via a
+  /// `MediaQuery` `textScaler` override in `main.dart`.
+  RealColumn get textScale => real().named('text_scale').nullable()();
+
   TextColumn get filtersJson => text().named('filters_json').nullable()();
 
   /// JSON array of the most-recently-viewed entity records for the active
