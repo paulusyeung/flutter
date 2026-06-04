@@ -101,7 +101,7 @@ class _RestMethodSelector extends StatelessWidget {
           child: SegmentedButton<String>(
             segments: [
               for (final m in kWebhookRestMethods)
-                ButtonSegment(value: m, label: Text(m)),
+                ButtonSegment(value: m, label: Text(m.toUpperCase())),
             ],
             selected: {vm.draft.restMethod},
             onSelectionChanged: (set) =>

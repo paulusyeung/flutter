@@ -7,11 +7,13 @@ part 'webhook.freezed.dart';
 
 /// Default values used when creating a new webhook.
 const String kWebhookDefaultFormat = 'JSON';
-const String kWebhookDefaultRestMethod = 'POST';
+const String kWebhookDefaultRestMethod = 'post';
 
 /// Allowed HTTP verbs the server accepts on `/api/v1/webhooks`. Drives the
-/// REST-method dropdown in the edit screen.
-const List<String> kWebhookRestMethods = <String>['POST', 'PUT', 'PATCH'];
+/// REST-method selector in the edit screen. Stored lowercase to match the
+/// server's case-sensitive `rest_method => required|in:post,put` validation
+/// (PATCH is not supported); the UI uppercases them for display only.
+const List<String> kWebhookRestMethods = <String>['post', 'put'];
 
 /// Server-side webhook event IDs and their human-readable wire names. The
 /// server stores `event_id` as the numeric string (e.g. `'1'`); the value

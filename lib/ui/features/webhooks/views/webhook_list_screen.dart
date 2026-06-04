@@ -66,7 +66,7 @@ class _WebhookRow extends StatelessWidget {
         : webhook.targetUrl;
     final eventName = kWebhookEventNames[webhook.eventId];
     final subtitle = <String>[
-      webhook.restMethod,
+      webhook.restMethod.toUpperCase(),
       if (eventName != null) context.tr(eventName),
     ].join(' · ');
 

@@ -64,7 +64,7 @@ void main() {
         eventId: '1',
         targetUrl: 'https://example.test/hook',
         format: 'JSON',
-        restMethod: 'POST',
+        restMethod: 'post',
         headers: {'X-Token': 'abc'},
         updatedAt: 1700000000,
       );
@@ -72,7 +72,7 @@ void main() {
       expect(domain.id, 'w_1');
       expect(domain.targetUrl, 'https://example.test/hook');
       expect(domain.eventId, '1');
-      expect(domain.restMethod, 'POST');
+      expect(domain.restMethod, 'post');
       expect(domain.headers, {'X-Token': 'abc'});
       expect(domain.isDirty, isFalse);
     });

@@ -1430,11 +1430,15 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         return response?.data;
       },
       MutationKind.convertToExpense: ({required row, required payload}) async {
-        await purchaseOrdersApi.expense(
+        // Server returns the updated purchase_order (with `expense_id` now
+        // set); applying it flips the menu to "View expense" as soon as the
+        // outbox drains, instead of leaving "Convert to expense" visible until
+        // the next sync (a second click would 400 `already_expensed`).
+        final response = await purchaseOrdersApi.expense(
           id: payload['id'] as String,
           idempotencyKey: row.idempotencyKey,
         );
-        return null;
+        return response?.data;
       },
       MutationKind.emailEntity: ({required row, required payload}) async {
         final response = await purchaseOrdersApi.email(

@@ -27,7 +27,7 @@ abstract class WebhookApi with _$WebhookApi {
     @JsonKey(name: 'event_id') @Default('') String eventId,
     @JsonKey(name: 'target_url') @Default('') String targetUrl,
     @Default('JSON') String format,
-    @JsonKey(name: 'rest_method') @Default('POST') String restMethod,
+    @JsonKey(name: 'rest_method') @Default('post') String restMethod,
     @JsonKey(fromJson: _headersFromJson)
     @Default(<String, String>{})
     Map<String, String> headers,

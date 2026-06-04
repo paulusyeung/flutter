@@ -1004,8 +1004,9 @@ Field-level breakdown of every option under each settings panel. Source of truth
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
 | Theme (light / dark / system, local) | — | ✅ | ✅ | ✅ | |
+| Font Size (text scale, local) | — | ✅ | ✅ | ✅ | |
 | Biometric Authentication toggle | — | ✅ | ✅ | ✅ | |
-| Refresh Data (force resync) | — | ✅ | ✅ | ✅ | ✅ |
+| Refresh Data (force resync, shows last-updated) | — | ✅ | ✅ | ✅ | ✅ |
 
 ---
 
