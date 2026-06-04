@@ -187,10 +187,9 @@ final Map<String, SettingsBinding> _bindings = <String, SettingsBinding>{
     read: (s) => s.inclusiveTaxes?.toString(),
     write: (s, v) => s.copyWith(inclusiveTaxes: _parseBool(v)),
   ),
-  'use_comma_as_decimal_place': (
-    read: (s) => s.useCommaAsDecimalPlace?.toString(),
-    write: (s, v) => s.copyWith(useCommaAsDecimalPlace: _parseBool(v)),
-  ),
+  // use_comma_as_decimal_place is a TOP-LEVEL company field, not a cascade
+  // setting — it's bound directly to the company draft on the Localization
+  // screen (host.updateCompany), so there's no settings binding for it.
   'payment_terms': (
     read: (s) => s.paymentTerms,
     write: (s, v) => s.copyWith(paymentTerms: v),

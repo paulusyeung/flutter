@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/value/date.dart';
+import 'package:admin/ui/core/widgets/in_date_field.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_field.dart';
 import 'package:admin/ui/features/settings/widgets/settings_field_bindings.dart';
@@ -15,6 +17,10 @@ import 'package:admin/utils/formatting.dart';
 /// The display uses [Formatter.date] so the user sees their company's
 /// configured format; the stored value stays ISO so the cascade stays
 /// portable across company date-format choices.
+///
+/// Wraps [InDateField] for typed entry + shortcuts (`today`, `+7`) with a
+/// calendar-picker fallback, per CLAUDE.md § Forms — single-date inputs use
+/// `InDateField`, not `showDatePicker` directly.
 class OverridableDateField extends StatelessWidget {
   const OverridableDateField({
     super.key,
@@ -52,36 +58,51 @@ class OverridableDateField extends StatelessWidget {
     final host = context.watch<SettingsDraftHost>();
     final raw = readFn(host.settings) ?? '';
     final parsed = Date.tryParse(raw);
-    final display = parsed == null ? '' : formatter.date(parsed.toIso());
     final errors = host.fieldErrors[apiKey];
     final errorText = (errors != null && errors.isNotEmpty)
         ? errors.first
         : null;
 
-    final field = InkWell(
-      onTap: !enabled
-          ? null
-          : () async {
-              final initial = parsed?.toDateTime() ?? DateTime.now();
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: initial,
-                firstDate: firstDate ?? DateTime(1900),
-                lastDate: lastDate ?? DateTime(2100),
-              );
-              if (picked == null) return;
-              final iso = Date(picked.year, picked.month, picked.day).toIso();
-              host.updateSettings((s) => writeFn(s, iso));
-            },
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          errorText: errorText,
-          suffixIcon: const Icon(Icons.calendar_today, size: 18),
-        ),
-        child: Text(display.isEmpty ? ' ' : display),
-      ),
+    final dateField = InDateField(
+      value: parsed?.toDateTime(),
+      formatter: formatter,
+      labelText: label,
+      enabled: enabled,
+      firstDate: firstDate,
+      lastDate: lastDate,
+      onChanged: (picked) {
+        final iso = picked == null
+            ? ''
+            : Date(picked.year, picked.month, picked.day).toIso();
+        host.updateSettings((s) => writeFn(s, iso));
+      },
     );
+
+    // InDateField has no `errorText` slot, so surface 422s in a standalone
+    // line below it — same style as OverridableSwitchField (12pt, error color).
+    final field = errorText == null
+        ? dateField
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              dateField,
+              Padding(
+                padding: EdgeInsets.only(
+                  left: InSpacing.md(context),
+                  top: InSpacing.xs,
+                ),
+                child: Text(
+                  errorText,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          );
+
     return OverridableField.bind(
       apiKey: apiKey,
       label: label,

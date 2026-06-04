@@ -140,10 +140,20 @@ class LocalizationSettingsBody extends StatelessWidget {
               apiKey: 'enable_rappen_rounding',
             ),
             if (isCompanyScope) ...[
-              OverridableSwitchField(
-                label: context.tr('decimal_comma'),
-                apiKey: 'use_comma_as_decimal_place',
-                subtitle: context.tr('use_comma_as_decimal_place'),
+              // Decimal Comma is a TOP-LEVEL company field (not a cascade
+              // setting) — the money formatter reads it off the company row via
+              // Services._buildFormatter. Bind it to the company draft like
+              // first_month/first_day below, NOT via OverridableSwitchField
+              // (which would write the dead settings.use_comma_as_decimal_place
+              // the server ignores). Company-scope only, same as before.
+              SwitchListTile(
+                title: Text(context.tr('decimal_comma')),
+                subtitle: Text(context.tr('use_comma_as_decimal_place')),
+                value: host.draft?.useCommaAsDecimalPlace ?? false,
+                onChanged: (v) => host.updateCompany(
+                  (c) => c.copyWith(useCommaAsDecimalPlace: v),
+                ),
+                contentPadding: EdgeInsets.zero,
               ),
               // first_month_of_year is a top-level company field, not a
               // settings-cascade value — a plain dropdown bound to the company

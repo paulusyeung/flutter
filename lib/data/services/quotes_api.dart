@@ -27,20 +27,27 @@ class QuotesApi extends BaseEntityApi<QuoteListApi, QuoteItemApi> {
   QuoteItemApi parseItem(Object json) =>
       QuoteItemApi.fromJson(json as Map<String, dynamic>);
 
+  // State transitions / conversions / clones ride `POST /quotes/bulk`
+  // ({action, ids:[id]}) — the per-id `/{id}/{action}` route is GET-only.
   Future<QuoteItemApi?> markSent({
     required String id,
     required String idempotencyKey,
-  }) => action(id: id, action: 'mark_sent', idempotencyKey: idempotencyKey);
+  }) => bulkActionOne(
+    id: id,
+    action: 'mark_sent',
+    idempotencyKey: idempotencyKey,
+  );
 
   Future<QuoteItemApi?> approve({
     required String id,
     required String idempotencyKey,
-  }) => action(id: id, action: 'approve', idempotencyKey: idempotencyKey);
+  }) =>
+      bulkActionOne(id: id, action: 'approve', idempotencyKey: idempotencyKey);
 
   Future<QuoteItemApi?> convertToInvoice({
     required String id,
     required String idempotencyKey,
-  }) => action(
+  }) => bulkActionOne(
     id: id,
     action: 'convert_to_invoice',
     idempotencyKey: idempotencyKey,
@@ -49,7 +56,7 @@ class QuotesApi extends BaseEntityApi<QuoteListApi, QuoteItemApi> {
   Future<QuoteItemApi?> convertToProject({
     required String id,
     required String idempotencyKey,
-  }) => action(
+  }) => bulkActionOne(
     id: id,
     action: 'convert_to_project',
     idempotencyKey: idempotencyKey,
@@ -62,16 +69,14 @@ class QuotesApi extends BaseEntityApi<QuoteListApi, QuoteItemApi> {
     String? body,
     String? ccEmail,
     required String idempotencyKey,
-  }) => action(
+  }) => sendEmail(
+    entity: 'quote',
     id: id,
-    action: 'email',
+    template: template,
+    subject: subject,
+    body: body,
+    ccEmail: ccEmail,
     idempotencyKey: idempotencyKey,
-    payload: {
-      'template': template,
-      if (subject != null) 'subject': subject,
-      if (body != null) 'body': body,
-      if (ccEmail != null) 'cc_email': ccEmail,
-    },
   );
 
   Future<QuoteItemApi?> scheduleEmail({
@@ -82,24 +87,22 @@ class QuotesApi extends BaseEntityApi<QuoteListApi, QuoteItemApi> {
     String? body,
     String? ccEmail,
     required String idempotencyKey,
-  }) => action(
-    id: id,
-    action: 'email',
-    idempotencyKey: idempotencyKey,
-    payload: {
-      'template': template,
-      'send_at': sendAt,
-      if (subject != null) 'subject': subject,
-      if (body != null) 'body': body,
-      if (ccEmail != null) 'cc_email': ccEmail,
-    },
-  );
+  }) async {
+    await scheduleEmailRecord(
+      entity: 'quote',
+      id: id,
+      template: template,
+      sendAt: sendAt,
+      idempotencyKey: idempotencyKey,
+    );
+    return null;
+  }
 
   Future<QuoteItemApi?> cloneTo({
     required String id,
     required String targetType,
     required String idempotencyKey,
-  }) => action(
+  }) => bulkActionOne(
     id: id,
     action: 'clone_to_$targetType',
     idempotencyKey: idempotencyKey,
@@ -108,17 +111,17 @@ class QuotesApi extends BaseEntityApi<QuoteListApi, QuoteItemApi> {
   Future<QuoteItemApi?> cancel({
     required String id,
     required String idempotencyKey,
-  }) => action(id: id, action: 'cancel', idempotencyKey: idempotencyKey);
+  }) => bulkActionOne(id: id, action: 'cancel', idempotencyKey: idempotencyKey);
 
   Future<QuoteItemApi?> runTemplate({
     required String id,
     required String templateId,
     required String idempotencyKey,
-  }) => action(
+  }) => bulkActionOne(
     id: id,
     action: 'template',
     idempotencyKey: idempotencyKey,
-    payload: {'template_id': templateId},
+    extra: {'template_id': templateId},
   );
 
   /// Server-rendered PDF via `POST /api/v1/live_preview?entity=quote
@@ -151,7 +154,9 @@ class QuotesApi extends BaseEntityApi<QuoteListApi, QuoteItemApi> {
     final file = await source.toMultipartFile('documents[]');
     final raw = await client.uploadMultipart(
       path: '$basePath/$entityId/upload',
-      fields: const {'_method': 'POST'},
+      // Server route is `Route::put('quotes/{quote}/upload')` — the multipart
+      // POST must spoof PUT via `_method`, else it 404s. (Matches companies.)
+      fields: const {'_method': 'PUT'},
       files: [file],
       idempotencyKey: idempotencyKey,
     );

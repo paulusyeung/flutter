@@ -153,13 +153,18 @@ class GeneratedNumbersShell extends StatelessWidget {
           slug: 'purchase_orders',
           patternKey: 'purchase_order_number_pattern',
           counterKey: 'purchase_order_number_counter',
-          showVendorTokens: true,
+          // No vendor tokens: the backend only substitutes {$vendor_*} for
+          // Expense entities (GeneratesCounter.applyNumberPattern gates on
+          // `instanceof Expense`), so they'd render literally on a PO number.
         ),
       if (isOn(EnabledModule.expenses))
         entityTab(
           slug: 'expenses',
           patternKey: 'expense_number_pattern',
           counterKey: 'expense_number_counter',
+          // Expenses are the only entity whose {$vendor_*} tokens the backend
+          // actually substitutes (the `instanceof Expense` branch in
+          // GeneratesCounter.applyNumberPattern), so only this tab shows them.
           showVendorTokens: true,
         ),
       if (isOn(EnabledModule.recurringExpenses))
@@ -167,7 +172,8 @@ class GeneratedNumbersShell extends StatelessWidget {
           slug: 'recurring_expenses',
           patternKey: 'recurring_expense_number_pattern',
           counterKey: 'recurring_expense_number_counter',
-          showVendorTokens: true,
+          // No vendor tokens — RecurringExpense isn't an Expense subclass, so
+          // the backend leaves {$vendor_*} literal (see the expenses tab above).
         ),
     ];
 

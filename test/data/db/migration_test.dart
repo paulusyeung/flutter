@@ -59,6 +59,10 @@ void main() {
         );
         expect(await columnsOf('saved_views'), contains('icon'));
         expect(await columnsOf('companies'), contains('first_day_of_week'));
+        expect(
+          await columnsOf('companies'),
+          contains('use_comma_as_decimal_place'),
+        );
         await db.close();
       },
     );

@@ -44,6 +44,7 @@ abstract class Company with _$Company {
     @Default('') String industryId,
     @Default('') String firstMonthOfYear,
     @Default('') String firstDayOfWeek,
+    @Default(false) bool useCommaAsDecimalPlace,
     @Default(0) int enabledModules,
     @Default(0) int legalEntityId,
     // Top-level e-invoice certificate state. The passphrase is the only field
@@ -166,6 +167,7 @@ abstract class Company with _$Company {
     industryId: api.industryId,
     firstMonthOfYear: api.firstMonthOfYear,
     firstDayOfWeek: api.firstDayOfWeek,
+    useCommaAsDecimalPlace: api.useCommaAsDecimalPlace,
     enabledModules: api.enabledModules,
     legalEntityId: api.legalEntityId,
     hasEInvoiceCertificate: api.hasEInvoiceCertificate,
@@ -270,6 +272,7 @@ abstract class Company with _$Company {
       industryId: industryId,
       firstMonthOfYear: firstMonthOfYear,
       firstDayOfWeek: firstDayOfWeek,
+      useCommaAsDecimalPlace: useCommaAsDecimalPlace,
       enabledModules: enabledModules,
       legalEntityId: legalEntityId,
       hasEInvoiceCertificate: hasEInvoiceCertificate,

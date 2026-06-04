@@ -132,6 +132,7 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
           industryId: Value(draft.industryId),
           firstMonthOfYear: Value(draft.firstMonthOfYear),
           firstDayOfWeek: Value(draft.firstDayOfWeek),
+          useCommaAsDecimalPlace: Value(draft.useCommaAsDecimalPlace),
           legalEntityId: Value(draft.legalEntityId),
           hasEInvoiceCertificate: Value(draft.hasEInvoiceCertificate),
           eInvoiceCertificatePassphrase: Value(
@@ -511,6 +512,7 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
         industryId: Value(serverResponse.industryId),
         firstMonthOfYear: Value(serverResponse.firstMonthOfYear),
         firstDayOfWeek: Value(serverResponse.firstDayOfWeek),
+        useCommaAsDecimalPlace: Value(serverResponse.useCommaAsDecimalPlace),
         legalEntityId: Value(serverResponse.legalEntityId),
         hasEInvoiceCertificate: Value(serverResponse.hasEInvoiceCertificate),
         eInvoiceCertificatePassphrase: Value(
@@ -686,6 +688,7 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
       industryId: row.industryId,
       firstMonthOfYear: row.firstMonthOfYear,
       firstDayOfWeek: row.firstDayOfWeek,
+      useCommaAsDecimalPlace: row.useCommaAsDecimalPlace,
       legalEntityId: row.legalEntityId,
       hasEInvoiceCertificate: row.hasEInvoiceCertificate,
       eInvoiceCertificatePassphrase: row.eInvoiceCertificatePassphrase,

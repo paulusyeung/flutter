@@ -12,6 +12,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/data/models/domain/invoice_status.dart';
 import 'package:admin/data/models/domain/payment.dart';
+import 'package:admin/data/models/value/date.dart';
 import 'package:admin/domain/billing/invoice_lock.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
@@ -23,6 +24,7 @@ import 'package:admin/ui/features/billing_shared/actions/add_comment_prompt.dart
 import 'package:admin/ui/features/invoices/widgets/detail/mark_paid_confirm_dialog.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_locked_dialog.dart';
+import 'package:admin/ui/features/billing_shared/billing_cross_clone.dart';
 import 'package:admin/ui/features/invoices/widgets/rectify_invoice.dart';
 import 'package:admin/ui/features/payments/view_models/payment_edit_view_model.dart';
 
@@ -194,10 +196,14 @@ class InvoiceActions {
         !invoice.isReversed;
     // Auto-bill → invoice must be payable + not already paid.
     final canAutoBill = canMarkPaid && invoice.statusId != InvoiceStatus.draft;
-    // Cancel → server-side rule: sent invoices only.
+    // Cancel → sent / partial only (NOT paid). `isSent` includes paid, so
+    // exclude it explicitly; matches v1 (`isSent && !isPaid`) and React
+    // (`Sent || Partial`). The server `cancel` path has no paid guard, so a
+    // missing `!isPaid` here would let a paid invoice be cancelled.
     final canCancel =
         canEditInvoice &&
         invoice.isSent &&
+        !invoice.isPaid &&
         !invoice.isCancelled &&
         !invoice.isReversed;
     // Enter Payment → record a (partial) payment against an unpaid, non-draft
@@ -600,13 +606,33 @@ class InvoiceActions {
       case InvoiceAction.cloneGroup:
         break; // Submenu parent — never dispatched; children carry the action.
       case InvoiceAction.clone:
+        // Reset everything that must not carry over to a fresh draft (React
+        // CloneOptionsModal parity). Critically `statusId` + `paidToDate`: a
+        // clone of a Paid invoice must open as an unpaid Draft, not inherit
+        // "paid" with a stale paid-to-date. Also drop dates (→ today / unset),
+        // exchange rate, partial, party links, and the e-invoice / backup
+        // blocks. (Documents aren't serialized on save, so they need no reset.)
         final draft = invoice.copyWith(
           id: '',
           number: '',
+          statusId: InvoiceStatus.draft,
+          date: Date.today(),
+          dueDate: null,
+          partialDueDate: null,
+          partial: Decimal.zero,
+          paidToDate: Decimal.zero,
+          taxAmount: Decimal.zero,
+          balance: invoice.amount,
+          exchangeRate: Decimal.one,
+          lastSentDate: null,
+          projectId: '',
+          vendorId: '',
+          subscriptionId: '',
+          eInvoice: null,
+          backup: null,
           archivedAt: null,
           isDeleted: false,
           isDirty: false,
-          balance: invoice.amount,
           updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
           createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
         );
@@ -694,6 +720,7 @@ class InvoiceActions {
         );
 
       case InvoiceAction.archive:
+        if (tmpGate()) return;
         await StandardEntityActions.archive(
           context: context,
           wireName: 'invoice',
@@ -702,6 +729,7 @@ class InvoiceActions {
         );
 
       case InvoiceAction.restore:
+        if (tmpGate()) return;
         await StandardEntityActions.restore(
           context: context,
           wireName: 'invoice',
@@ -728,35 +756,31 @@ class InvoiceActions {
         if (!context.mounted) return;
         Notify.success(context, context.tr('cloned_to_quote'));
 
+      // Cross-type clone is client-side: the server's bulk performAction only
+      // clones invoice→invoice/quote, so credit/recurring/PO are built here and
+      // opened in the target's create form (navigation IS the feedback — no
+      // toast, and no tmp_ gate since it never hits the server). Same-type
+      // "clone" above does the equivalent for invoices.
       case InvoiceAction.cloneToCredit:
-        if (tmpGate()) return;
-        await services.invoices.cloneTo(
-          companyId: companyId,
-          id: invoice.id,
-          targetType: 'credit',
+        goEntityCreateFullWidth(
+          context,
+          '/credits',
+          extra: cloneToCredit(billingCloneFromInvoice(invoice)),
         );
-        if (!context.mounted) return;
-        Notify.success(context, context.tr('cloned_to_credit'));
 
       case InvoiceAction.cloneToRecurring:
-        if (tmpGate()) return;
-        await services.invoices.cloneTo(
-          companyId: companyId,
-          id: invoice.id,
-          targetType: 'recurring_invoice',
+        goEntityCreateFullWidth(
+          context,
+          '/recurring_invoices',
+          extra: cloneToRecurringInvoice(billingCloneFromInvoice(invoice)),
         );
-        if (!context.mounted) return;
-        Notify.success(context, context.tr('cloned_to_recurring'));
 
       case InvoiceAction.cloneToPurchaseOrder:
-        if (tmpGate()) return;
-        await services.invoices.cloneTo(
-          companyId: companyId,
-          id: invoice.id,
-          targetType: 'purchase_order',
+        goEntityCreateFullWidth(
+          context,
+          '/purchase_orders',
+          extra: cloneToPurchaseOrder(billingCloneFromInvoice(invoice)),
         );
-        if (!context.mounted) return;
-        Notify.success(context, context.tr('cloned_to_purchase_order'));
 
       case InvoiceAction.runTemplate:
         if (tmpGate()) return;

@@ -87,18 +87,34 @@ abstract class GenericBillingDocEditViewModel<T>
   // only when the input actually changes.
   BillingTotalsInput? _cachedTotalsInput;
   BillingTotalsResult? _cachedTotalsResult;
+  int? _cachedPrecision;
 
-  /// Live totals, recomputed only when the totals input changes. Used by
-  /// the sticky-bottom `TotalsWidget` on each edit screen.
-  BillingTotalsResult get totals {
+  /// Live totals at the active currency's [precision]. The edit screens
+  /// resolve precision from the selected client's currency (the per-client →
+  /// company cascade via `Formatter.precisionFor`) and pass it here, so the
+  /// rounding matches what the server and PDF produce — a JPY (0-decimal) or
+  /// BHD/KWD (3-decimal) invoice no longer previews at a hardcoded 2 dp.
+  /// Recomputed only when the input OR the precision changes.
+  BillingTotalsResult totalsAt(int precision) {
     final input = totalsInputOf(draft);
     final cached = _cachedTotalsResult;
-    if (cached != null && input == _cachedTotalsInput) return cached;
-    final result = computeTotals(input, currencyPrecision);
+    if (cached != null &&
+        precision == _cachedPrecision &&
+        input == _cachedTotalsInput) {
+      return cached;
+    }
+    final result = computeTotals(input, precision);
     _cachedTotalsInput = input;
+    _cachedPrecision = precision;
     _cachedTotalsResult = result;
     return result;
   }
+
+  /// Totals at the construction-time fallback precision ([currencyPrecision],
+  /// default 2). Prefer [totalsAt] with the client-currency precision on
+  /// screens that render money; this is the currency-agnostic fallback used
+  /// by non-display callers (e.g. partial-amount validation).
+  BillingTotalsResult get totals => totalsAt(currencyPrecision);
 
   /// Replace the entire line-items list. Wraps in `List.unmodifiable` so
   /// downstream consumers can't mutate the draft's array out from under

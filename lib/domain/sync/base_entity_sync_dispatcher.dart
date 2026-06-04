@@ -118,7 +118,7 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
           id: row.entityId,
         );
       case MutationKind.archive:
-        final response = await api.action(
+        final response = await api.bulkActionOne(
           id: row.entityId,
           action: 'archive',
           idempotencyKey: row.idempotencyKey,
@@ -130,7 +130,7 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
           );
         }
       case MutationKind.restore:
-        final response = await api.action(
+        final response = await api.bulkActionOne(
           id: row.entityId,
           action: 'restore',
           idempotencyKey: row.idempotencyKey,

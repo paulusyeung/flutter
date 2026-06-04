@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
@@ -8,6 +9,8 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/recurring_invoice.dart';
+import 'package:admin/data/models/domain/recurring_invoice_status.dart';
+import 'package:admin/data/models/value/date.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
@@ -15,6 +18,7 @@ import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/billing_shared/actions/add_comment_prompt.dart';
+import 'package:admin/ui/features/billing_shared/billing_cross_clone.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
 
 /// RecurringInvoice action set. Mirrors invoice actions but drops markPaid
@@ -361,9 +365,30 @@ class RecurringInvoiceActions {
       case RecurringInvoiceAction.cloneGroup:
         break; // Submenu parent — never dispatched; children carry the action.
       case RecurringInvoiceAction.clone:
+        // Reset everything that must not carry over to a fresh draft (mirrors
+        // the invoice clone). Critically `statusId`: a clone of an Active/Paused
+        // recurring invoice must open as a Draft (un-started), not inherit
+        // "active". Also drop dates (→ today / unset), the last-sent marker,
+        // exchange rate, partial, party links, and the e-invoice block. The
+        // recurring template config (`frequencyId`, `nextSendDate`,
+        // `remainingCycles`) is intentionally kept. Recurring has no
+        // `paidToDate` field.
         final draft = ri.copyWith(
           id: '',
           number: '',
+          statusId: RecurringInvoiceStatus.draft,
+          date: Date.today(),
+          dueDate: null,
+          partialDueDate: null,
+          partial: Decimal.zero,
+          taxAmount: Decimal.zero,
+          balance: ri.amount,
+          exchangeRate: Decimal.one,
+          lastSentDate: null,
+          projectId: '',
+          vendorId: '',
+          subscriptionId: '',
+          eInvoice: null,
           archivedAt: null,
           isDeleted: false,
           isDirty: false,
@@ -372,45 +397,38 @@ class RecurringInvoiceActions {
         );
         goEntityCreateFullWidth(context, '/recurring_invoices', extra: draft);
 
+      // Cross-type clone is client-side (the server's bulk performAction has no
+      // recurring-invoice clone targets): all targets are built here and opened
+      // in the target's create form. Navigation IS the feedback — no toast, and
+      // no tmp_ gate since it never hits the server. Same-type "clone" above
+      // does the equivalent for recurring invoices.
       case RecurringInvoiceAction.cloneToInvoice:
-        if (tmpGate()) return;
-        await services.recurringInvoices.cloneTo(
-          companyId: companyId,
-          id: ri.id,
-          targetType: 'invoice',
+        goEntityCreateFullWidth(
+          context,
+          '/invoices',
+          extra: cloneToInvoice(billingCloneFromRecurringInvoice(ri)),
         );
-        if (!context.mounted) return;
-        Notify.success(context, context.tr('cloned_to_invoice'));
 
       case RecurringInvoiceAction.cloneToQuote:
-        if (tmpGate()) return;
-        await services.recurringInvoices.cloneTo(
-          companyId: companyId,
-          id: ri.id,
-          targetType: 'quote',
+        goEntityCreateFullWidth(
+          context,
+          '/quotes',
+          extra: cloneToQuote(billingCloneFromRecurringInvoice(ri)),
         );
-        if (!context.mounted) return;
-        Notify.success(context, context.tr('cloned_to_quote'));
 
       case RecurringInvoiceAction.cloneToCredit:
-        if (tmpGate()) return;
-        await services.recurringInvoices.cloneTo(
-          companyId: companyId,
-          id: ri.id,
-          targetType: 'credit',
+        goEntityCreateFullWidth(
+          context,
+          '/credits',
+          extra: cloneToCredit(billingCloneFromRecurringInvoice(ri)),
         );
-        if (!context.mounted) return;
-        Notify.success(context, context.tr('cloned_to_credit'));
 
       case RecurringInvoiceAction.cloneToPurchaseOrder:
-        if (tmpGate()) return;
-        await services.recurringInvoices.cloneTo(
-          companyId: companyId,
-          id: ri.id,
-          targetType: 'purchase_order',
+        goEntityCreateFullWidth(
+          context,
+          '/purchase_orders',
+          extra: cloneToPurchaseOrder(billingCloneFromRecurringInvoice(ri)),
         );
-        if (!context.mounted) return;
-        Notify.success(context, context.tr('cloned_to_purchase_order'));
 
       case RecurringInvoiceAction.addComment:
         if (tmpGate()) return;
@@ -423,6 +441,7 @@ class RecurringInvoiceActions {
         );
 
       case RecurringInvoiceAction.archive:
+        if (tmpGate()) return;
         await StandardEntityActions.archive(
           context: context,
           wireName: 'recurring_invoice',
@@ -433,6 +452,7 @@ class RecurringInvoiceActions {
         );
 
       case RecurringInvoiceAction.restore:
+        if (tmpGate()) return;
         await StandardEntityActions.restore(
           context: context,
           wireName: 'recurring_invoice',

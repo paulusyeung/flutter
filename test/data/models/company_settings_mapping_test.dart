@@ -29,7 +29,6 @@ void main() {
   "counter_padding": 4,
   "auto_archive_invoice": false,
   "send_reminders": true,
-  "use_comma_as_decimal_place": true,
   "invoice_terms": "Net 30",
   "purchase_order_terms": "POs settle in 14 days",
   "default_task_rate": 75.5,
@@ -47,7 +46,10 @@ void main() {
       expect(parsed.invoiceNumberCounter, 42);
       expect(parsed.autoArchiveInvoice, false);
       expect(parsed.sendReminders, true);
-      expect(parsed.useCommaAsDecimalPlace, true);
+      // NOTE: use_comma_as_decimal_place is intentionally NOT asserted here —
+      // it's a top-level company field, not a cascade setting (see CompanyApi /
+      // company_repository_test.dart's round-trip). The server never returns it
+      // inside `settings`.
       expect(parsed.invoiceTerms, 'Net 30');
       expect(parsed.purchaseOrderTerms, 'POs settle in 14 days');
       expect(parsed.defaultTaskRate, 75.5);

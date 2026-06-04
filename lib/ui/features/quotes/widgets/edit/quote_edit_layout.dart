@@ -26,7 +26,8 @@ import 'package:admin/ui/features/billing_shared/items/billing_doc_items_tabs.da
 import 'package:admin/ui/features/billing_shared/line_item_picker/line_item_picker_invoke.dart';
 import 'package:admin/ui/features/billing_shared/markdown_notes_section.dart';
 import 'package:admin/ui/features/billing_shared/pdf/billing_doc_pdf_view.dart';
-import 'package:admin/ui/features/billing_shared/totals_widget.dart';
+import 'package:admin/ui/features/billing_shared/billing_edit_totals.dart';
+import 'package:admin/ui/features/billing_shared/edit/billing_tax_surcharge_section.dart';
 import 'package:admin/ui/features/quotes/view_models/quote_edit_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 
@@ -49,7 +50,11 @@ class _QuoteEditLayoutState extends State<QuoteEditLayout>
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 5, vsync: this);
+    // 6 tabs: Details / Contacts / Items / Notes / Settings / PDF.
+    // Settings (project / vendor / user / exchange-rate) was desktop-only;
+    // mobile now gets it as its own tab so those fields are reachable on a
+    // phone.
+    _tab = TabController(length: 6, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final services = context.read<Services>();
@@ -83,23 +88,26 @@ class _QuoteEditLayoutState extends State<QuoteEditLayout>
 
   Widget _stickyTotals(BuildContext context) => Padding(
     padding: EdgeInsets.all(InSpacing.md(context)),
-    child: TotalsWidget(
-      totals: widget.vm.totals,
+    child: BillingEditTotals(
+      totalsAt: widget.vm.totalsAt,
+      clientId: widget.vm.draft.clientId,
       discount: widget.vm.draft.discount,
       discountIsAmount: widget.vm.draft.isAmountDiscount,
       dense: true,
     ),
   );
 
-  Widget _totalsCard(BuildContext context) => TotalsWidget(
-    totals: widget.vm.totals,
+  Widget _totalsCard(BuildContext context) => BillingEditTotals(
+    totalsAt: widget.vm.totalsAt,
+    clientId: widget.vm.draft.clientId,
     discount: widget.vm.draft.discount,
     discountIsAmount: widget.vm.draft.isAmountDiscount,
     bordered: false,
   );
 
-  Widget _slimTotals(BuildContext context) => TotalsWidget(
-    totals: widget.vm.totals,
+  Widget _slimTotals(BuildContext context) => BillingEditTotals(
+    totalsAt: widget.vm.totalsAt,
+    clientId: widget.vm.draft.clientId,
     discount: widget.vm.draft.discount,
     discountIsAmount: widget.vm.draft.isAmountDiscount,
     dense: true,
@@ -139,6 +147,7 @@ class _QuoteEditLayoutState extends State<QuoteEditLayout>
               Tab(text: context.tr('contacts')),
               Tab(text: context.tr('items')),
               Tab(text: context.tr('notes')),
+              Tab(text: context.tr('settings')),
               Tab(text: context.tr('pdf')),
             ],
           ),
@@ -152,6 +161,7 @@ class _QuoteEditLayoutState extends State<QuoteEditLayout>
               _ContactsTab(vm: widget.vm),
               _ItemsTab(vm: widget.vm, onPickItems: () => _openPicker(context)),
               _NotesTab(vm: widget.vm),
+              _SettingsTab(vm: widget.vm),
               _PdfTab(vm: widget.vm),
             ],
           ),
@@ -175,7 +185,13 @@ class _QuoteEditLayoutState extends State<QuoteEditLayout>
         onPickItems: () => _openPicker(context),
       ),
       notesTabsCard: _NotesTabsCardDesktop(vm: widget.vm),
-      totalsCard: _totalsCard(context),
+      totalsCard: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _TaxSurchargeSection(vm: widget.vm),
+          _totalsCard(context),
+        ],
+      ),
       pdfPane: _PdfPaneDesktop(vm: widget.vm),
       stickyTotals: _slimTotals(context),
     );
@@ -608,6 +624,78 @@ class _PdfPaneDesktop extends StatelessWidget {
   }
 }
 
+/// Document-level tax tiers + custom surcharges + inclusive-tax toggle.
+/// Self-collapses when the company has no enabled tax rates and no surcharge
+/// labels configured (so it adds no chrome when unused).
+class _TaxSurchargeSection extends StatelessWidget {
+  const _TaxSurchargeSection({required this.vm});
+  final QuoteEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = vm.draft;
+    return BillingTaxSurchargeSection(
+      companyId: vm.companyId,
+      taxRows: [
+        (
+          name: d.taxName1,
+          rate: d.taxRate1,
+          onName: vm.setTaxName1,
+          onRate: vm.setTaxRate1,
+        ),
+        (
+          name: d.taxName2,
+          rate: d.taxRate2,
+          onName: vm.setTaxName2,
+          onRate: vm.setTaxRate2,
+        ),
+        (
+          name: d.taxName3,
+          rate: d.taxRate3,
+          onName: vm.setTaxName3,
+          onRate: vm.setTaxRate3,
+        ),
+      ],
+      usesInclusiveTaxes: d.usesInclusiveTaxes,
+      onInclusiveChanged: vm.setUsesInclusiveTaxes,
+      surcharges: [
+        (amount: d.customSurcharge1, onAmount: vm.setCustomSurcharge1),
+        (amount: d.customSurcharge2, onAmount: vm.setCustomSurcharge2),
+        (amount: d.customSurcharge3, onAmount: vm.setCustomSurcharge3),
+        (amount: d.customSurcharge4, onAmount: vm.setCustomSurcharge4),
+      ],
+    );
+  }
+}
+
+/// Mobile "Settings" tab — Project / Vendor / User / Exchange-Rate (+ Design).
+/// Desktop renders these in a sub-tab of the notes card; mobile previously had
+/// no tab for them, so those fields were uneditable on a phone.
+class _SettingsTab extends StatelessWidget {
+  const _SettingsTab({required this.vm});
+  final QuoteEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(InSpacing.lg(context)),
+      child: BillingDocSettingsTab(
+        companyId: vm.companyId,
+        designId: vm.draft.designId,
+        onDesignChanged: vm.setDesignId,
+        userId: vm.draft.assignedUserId,
+        onUserChanged: vm.setAssignedUserId,
+        projectId: vm.draft.projectId,
+        onProjectChanged: vm.setProjectId,
+        vendorId: vm.draft.vendorId,
+        onVendorChanged: vm.setVendorId,
+        exchangeRate: vm.draft.exchangeRate.toString(),
+        onExchangeRateChanged: vm.setExchangeRate,
+      ),
+    );
+  }
+}
+
 class _DetailsTab extends StatefulWidget {
   const _DetailsTab({required this.vm});
   final QuoteEditViewModel vm;
@@ -743,6 +831,7 @@ class _DetailsTabState extends State<_DetailsTab> {
               ),
             ],
           ),
+          _TaxSurchargeSection(vm: vm),
           SizedBox(height: InSpacing.lg(context)),
           _DesignPicker(vm: vm),
           SizedBox(height: InSpacing.lg(context)),

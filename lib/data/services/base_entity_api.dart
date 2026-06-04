@@ -94,11 +94,14 @@ abstract class BaseEntityApi<TList, TItem> {
     );
   }
 
-  /// Open-ended entity actions: `/api/v1/clients/<id>/email`,
-  /// `/api/v1/invoices/<id>/mark_paid`, `/api/v1/invoices/bulk`, etc.
+  /// Per-id POST action: `POST /api/v1/{basePath}/<id>/<action>`.
   ///
-  /// `mutation_kind = 'action:<name>'` in the outbox, so adding new server
-  /// actions never requires a schema migration.
+  /// Use this ONLY for routes the server genuinely registers as POST on the
+  /// per-id path — today that is just `purge` (`POST /clients/{id}/purge`,
+  /// password-gated). State transitions (mark_sent / mark_paid / archive /
+  /// restore / cancel / auto_bill / …) must NOT use this: their per-id route
+  /// (`/{id}/{action}`) is registered GET-only on the server, so a POST 404s
+  /// and the outbox parks it as a bogus conflict. Use [bulkActionOne] for those.
   Future<TItem?> action({
     required String id,
     required String action,
@@ -114,5 +117,108 @@ abstract class BaseEntityApi<TList, TItem> {
       requiresPassword: requiresPassword,
     );
     return raw == null ? null : parseItem(raw as Object);
+  }
+
+  /// Bulk action: `POST /api/v1/{basePath}/bulk` with `{action, ids:[id]}`.
+  ///
+  /// This is how Invoice Ninja performs state transitions and lifecycle ops
+  /// (mark_sent, mark_paid, auto_bill, cancel, archive, restore, email,
+  /// template, clone_to_*). The per-id `/{id}/{action}` route is GET-only, so
+  /// these can only be driven via `/bulk` (or the GET route) — `POST /{id}/
+  /// {action}` 404s. Recurring invoices have ONLY a `/bulk` route, so this is
+  /// the single uniform path that works for every billing document.
+  ///
+  /// The server replies with a list envelope of the affected entities; we send
+  /// exactly one id, so the updated entity is `data.first` (or null when the
+  /// action filtered it out / returned a `{message}` body, e.g. `template`).
+  Future<TItem?> bulkActionOne({
+    required String id,
+    required String action,
+    required String idempotencyKey,
+    Map<String, dynamic>? extra,
+    bool requiresPassword = false,
+  }) async {
+    final raw = await client.mutate(
+      method: 'POST',
+      path: '$basePath/bulk',
+      idempotencyKey: idempotencyKey,
+      body: {
+        'action': action,
+        'ids': [id],
+        if (extra != null) ...extra,
+      },
+      requiresPassword: requiresPassword,
+    );
+    if (raw == null) return null;
+    final data = (raw as Map<String, dynamic>)['data'];
+    if (data is List && data.isNotEmpty) {
+      return parseItem(<String, dynamic>{'data': data.first});
+    }
+    return null;
+  }
+
+  /// Send a billing document by email **now** via `POST /api/v1/emails` (the
+  /// shared endpoint — there is no per-id `/{id}/email` route). [entity] is the
+  /// short name the server expects (`invoice`, `quote`, `credit`,
+  /// `recurring_invoice`, `purchase_order`); it transforms it to the model
+  /// class internally. The server wants the full `email_template_<name>`
+  /// settings key and replies with the refreshed entity (`itemResponse`).
+  /// Scheduled (future) sends go through [scheduleEmailRecord], not here —
+  /// `/emails` has no `send_at`.
+  Future<TItem?> sendEmail({
+    required String entity,
+    required String id,
+    required String template,
+    String? subject,
+    String? body,
+    String? ccEmail,
+    required String idempotencyKey,
+  }) async {
+    // The server's "endless reminder" template setting is `reminder_endless`.
+    final name = template == 'endless_reminder' ? 'reminder_endless' : template;
+    final raw = await client.mutate(
+      method: 'POST',
+      path: '/api/v1/emails',
+      idempotencyKey: idempotencyKey,
+      body: {
+        'entity': entity,
+        'entity_id': id,
+        'template': 'email_template_$name',
+        if (subject != null) 'subject': subject,
+        if (body != null) 'body': body,
+        if (ccEmail != null && ccEmail.isNotEmpty) 'cc_email': [ccEmail],
+      },
+    );
+    return raw == null ? null : parseItem(raw as Object);
+  }
+
+  /// Schedule a future email send via `POST /api/v1/task_schedulers` with the
+  /// `email_record` template (a one-time job, `frequency_id: 0`). This is the
+  /// real server mechanism for scheduled sends — `/emails` has no `send_at`
+  /// (React drives the identical task_scheduler). [sendAt] is any ISO-ish
+  /// date/datetime; only its `Y-m-d` date part is used (`next_run` is
+  /// date-only, must be ≥ today). [template] is the **bare** email template
+  /// name (not the `email_template_` settings key). The response is a
+  /// Scheduler, not the billing entity, so this returns void.
+  Future<void> scheduleEmailRecord({
+    required String entity,
+    required String id,
+    required String template,
+    required String sendAt,
+    required String idempotencyKey,
+  }) async {
+    final nextRun = sendAt.length >= 10 ? sendAt.substring(0, 10) : sendAt;
+    final name = template == 'endless_reminder' ? 'reminder_endless' : template;
+    await client.mutate(
+      method: 'POST',
+      path: '/api/v1/task_schedulers',
+      idempotencyKey: idempotencyKey,
+      body: {
+        'template': 'email_record',
+        'frequency_id': 0,
+        'next_run': nextRun,
+        'parameters': {'entity': entity, 'entity_id': id, 'template': name},
+      },
+    );
   }
 }

@@ -9,7 +9,9 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/credit.dart';
+import 'package:admin/data/models/domain/credit_status.dart';
 import 'package:admin/data/models/domain/payment.dart';
+import 'package:admin/data/models/value/date.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
@@ -17,6 +19,7 @@ import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/billing_shared/actions/add_comment_prompt.dart';
+import 'package:admin/ui/features/billing_shared/billing_cross_clone.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
 import 'package:admin/ui/features/payments/view_models/payment_edit_view_model.dart';
 
@@ -333,9 +336,25 @@ class CreditActions {
       case CreditAction.cloneGroup:
         break; // Submenu parent — never dispatched; children carry the action.
       case CreditAction.clone:
+        // Reset everything that must not carry over to a fresh draft (mirrors
+        // the invoice clone). Critically `statusId` + `paidToDate`: a clone of
+        // an Applied credit must open as an unapplied Draft, not inherit
+        // "applied" with a stale paid-to-date. Also drop dates (→ today /
+        // unset), exchange rate, party links, and the e-invoice block. Credits
+        // have no `partial` / `partialDueDate` / `subscriptionId` fields.
         final draft = credit.copyWith(
           id: '',
           number: '',
+          statusId: CreditStatus.draft,
+          date: Date.today(),
+          dueDate: null,
+          paidToDate: Decimal.zero,
+          taxAmount: Decimal.zero,
+          balance: credit.amount,
+          exchangeRate: Decimal.one,
+          projectId: '',
+          vendorId: '',
+          eInvoice: null,
           archivedAt: null,
           isDeleted: false,
           isDirty: false,
@@ -344,35 +363,31 @@ class CreditActions {
         );
         goEntityCreateFullWidth(context, '/credits', extra: draft);
 
+      // Cross-type clone is client-side (the server's bulk performAction only
+      // clones credit→credit): invoice/quote/PO are built here and opened in
+      // the target's create form. Navigation IS the feedback — no toast, and no
+      // tmp_ gate since it never hits the server. Same-type "clone" above does
+      // the equivalent for credits.
       case CreditAction.cloneToInvoice:
-        if (tmpGate()) return;
-        await services.credits.cloneTo(
-          companyId: companyId,
-          id: credit.id,
-          targetType: 'invoice',
+        goEntityCreateFullWidth(
+          context,
+          '/invoices',
+          extra: cloneToInvoice(billingCloneFromCredit(credit)),
         );
-        if (!context.mounted) return;
-        Notify.success(context, context.tr('cloned_to_invoice'));
 
       case CreditAction.cloneToQuote:
-        if (tmpGate()) return;
-        await services.credits.cloneTo(
-          companyId: companyId,
-          id: credit.id,
-          targetType: 'quote',
+        goEntityCreateFullWidth(
+          context,
+          '/quotes',
+          extra: cloneToQuote(billingCloneFromCredit(credit)),
         );
-        if (!context.mounted) return;
-        Notify.success(context, context.tr('cloned_to_quote'));
 
       case CreditAction.cloneToPurchaseOrder:
-        if (tmpGate()) return;
-        await services.credits.cloneTo(
-          companyId: companyId,
-          id: credit.id,
-          targetType: 'purchase_order',
+        goEntityCreateFullWidth(
+          context,
+          '/purchase_orders',
+          extra: cloneToPurchaseOrder(billingCloneFromCredit(credit)),
         );
-        if (!context.mounted) return;
-        Notify.success(context, context.tr('cloned_to_purchase_order'));
 
       case CreditAction.addComment:
         if (tmpGate()) return;
@@ -385,6 +400,7 @@ class CreditActions {
         );
 
       case CreditAction.archive:
+        if (tmpGate()) return;
         await StandardEntityActions.archive(
           context: context,
           wireName: 'credit',
@@ -393,6 +409,7 @@ class CreditActions {
         );
 
       case CreditAction.restore:
+        if (tmpGate()) return;
         await StandardEntityActions.restore(
           context: context,
           wireName: 'credit',

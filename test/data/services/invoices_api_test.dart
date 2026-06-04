@@ -136,4 +136,128 @@ void main() {
       },
     );
   });
+
+  // Regression guards for the launch-blocker where status/lifecycle/email
+  // actions hit the GET-only per-id `/{id}/{action}` route (→ 404) or the
+  // non-existent `/{id}/email` route. They must ride `POST /invoices/bulk`
+  // (and `POST /api/v1/emails` for email).
+  group('InvoicesApi custom actions → correct server endpoints', () {
+    http.Response bulkOk() => http.Response(
+      '{"data": []}',
+      200,
+      headers: {'content-type': 'application/json'},
+    );
+
+    test(
+      'markSent → POST /invoices/bulk {action: mark_sent, ids:[id]}',
+      () async {
+        http.BaseRequest? captured;
+        final fake = MockClient((req) async {
+          captured = req;
+          return bulkOk();
+        });
+        await InvoicesApi(
+          _client(fake),
+        ).markSent(id: 'inv_1', idempotencyKey: 'k');
+        expect(captured!.method, 'POST');
+        expect(captured!.url.path, '/api/v1/invoices/bulk');
+        final body =
+            jsonDecode((captured! as http.Request).body)
+                as Map<String, dynamic>;
+        expect(body['action'], 'mark_sent');
+        expect(body['ids'], ['inv_1']);
+      },
+    );
+
+    test(
+      'markPaid → POST /invoices/bulk {action: mark_paid, ids:[id]}',
+      () async {
+        http.BaseRequest? captured;
+        final fake = MockClient((req) async {
+          captured = req;
+          return bulkOk();
+        });
+        await InvoicesApi(
+          _client(fake),
+        ).markPaid(id: 'inv_1', idempotencyKey: 'k');
+        expect(captured!.url.path, '/api/v1/invoices/bulk');
+        final body =
+            jsonDecode((captured! as http.Request).body)
+                as Map<String, dynamic>;
+        expect(body['action'], 'mark_paid');
+        expect(body['ids'], ['inv_1']);
+      },
+    );
+
+    test(
+      'cloneTo(quote) → POST /invoices/bulk {action: clone_to_quote}',
+      () async {
+        http.BaseRequest? captured;
+        final fake = MockClient((req) async {
+          captured = req;
+          return bulkOk();
+        });
+        await InvoicesApi(
+          _client(fake),
+        ).cloneTo(id: 'inv_1', targetType: 'quote', idempotencyKey: 'k');
+        expect(captured!.url.path, '/api/v1/invoices/bulk');
+        final body =
+            jsonDecode((captured! as http.Request).body)
+                as Map<String, dynamic>;
+        expect(body['action'], 'clone_to_quote');
+        expect(body['ids'], ['inv_1']);
+      },
+    );
+
+    test(
+      'email → POST /api/v1/emails with entity + email_template_ prefix',
+      () async {
+        http.BaseRequest? captured;
+        final fake = MockClient((req) async {
+          captured = req;
+          return http.Response('', 200); // empty → mutate returns null
+        });
+        await InvoicesApi(
+          _client(fake),
+        ).email(id: 'inv_1', template: 'reminder1', idempotencyKey: 'k');
+        expect(captured!.method, 'POST');
+        expect(captured!.url.path, '/api/v1/emails');
+        final body =
+            jsonDecode((captured! as http.Request).body)
+                as Map<String, dynamic>;
+        expect(body['entity'], 'invoice');
+        expect(body['entity_id'], 'inv_1');
+        expect(body['template'], 'email_template_reminder1');
+      },
+    );
+
+    test(
+      'scheduleEmail → POST /api/v1/task_schedulers (email_record)',
+      () async {
+        http.BaseRequest? captured;
+        final fake = MockClient((req) async {
+          captured = req;
+          return http.Response('', 200); // scheduler response is ignored
+        });
+        await InvoicesApi(_client(fake)).scheduleEmail(
+          id: 'inv_1',
+          template: 'reminder1',
+          sendAt: '2030-01-15T10:00:00.000',
+          idempotencyKey: 'k',
+        );
+        expect(captured!.method, 'POST');
+        expect(captured!.url.path, '/api/v1/task_schedulers');
+        final body =
+            jsonDecode((captured! as http.Request).body)
+                as Map<String, dynamic>;
+        expect(body['template'], 'email_record');
+        expect(body['frequency_id'], 0);
+        expect(body['next_run'], '2030-01-15'); // date-only, from sendAt
+        final params = body['parameters'] as Map<String, dynamic>;
+        expect(params['entity'], 'invoice');
+        expect(params['entity_id'], 'inv_1');
+        expect(params['template'], 'reminder1');
+      },
+    );
+  });
 }

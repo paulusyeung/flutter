@@ -17,8 +17,9 @@ import 'package:admin/ui/features/settings/widgets/settings_field_bindings.dart'
 /// the switch.
 ///
 /// Use for `company.settings.*` bool fields: `military_time`,
-/// `enable_rappen_rounding`, `show_currency_code`, `use_comma_as_decimal_place`,
-/// etc.
+/// `enable_rappen_rounding`, `show_currency_code`, etc. (NOT
+/// `use_comma_as_decimal_place` — that's a top-level company field bound
+/// directly to the company draft, see the Localization screen.)
 class OverridableSwitchField extends StatelessWidget {
   const OverridableSwitchField({
     super.key,

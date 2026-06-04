@@ -51,10 +51,7 @@ class _OverridableNumberFieldState extends State<OverridableNumberField> {
     _write = widget.write ?? binding.write;
     final host = context.read<SettingsDraftHost>();
     _controller = TextEditingController(
-      text: _displayFor(
-        _read(host.settings),
-        useComma: host.settings.useCommaAsDecimalPlace ?? false,
-      ),
+      text: _displayFor(_read(host.settings), useComma: _useComma(host)),
     );
   }
 
@@ -63,6 +60,14 @@ class _OverridableNumberFieldState extends State<OverridableNumberField> {
     _controller.dispose();
     super.dispose();
   }
+
+  /// The company-global decimal-separator choice. `use_comma_as_decimal_place`
+  /// is a TOP-LEVEL company field (not a cascade setting), read off the company
+  /// draft. These numeric settings live at company scope, where `host.draft` is
+  /// the company; at client scope it's null → `false` (dot), which matches the
+  /// prior behaviour (the flag never reached the merged client view anyway).
+  bool _useComma(SettingsDraftHost host) =>
+      host.draft?.useCommaAsDecimalPlace ?? false;
 
   /// Empty-for-zero, no scientific notation. Mirrors `Formatter.inputAmount`
   /// without taking a dependency on the currency map.
@@ -80,7 +85,7 @@ class _OverridableNumberFieldState extends State<OverridableNumberField> {
   @override
   Widget build(BuildContext context) {
     final host = context.watch<SettingsDraftHost>();
-    final useComma = host.settings.useCommaAsDecimalPlace ?? false;
+    final useComma = _useComma(host);
     final hostValue = _displayFor(_read(host.settings), useComma: useComma);
     if (_controller.text != hostValue) {
       _controller.value = TextEditingValue(

@@ -344,8 +344,17 @@ class SyncRepository {
     final nowMs = _now().millisecondsSinceEpoch;
     final rows = await db.outboxDao.nextReady(companyId: companyId, now: nowMs);
     var successes = 0;
-    for (final row in rows) {
+    for (final snapshot in rows) {
       if (_cancelRequested) break;
+      // Re-read the row immediately before dispatch. An earlier CREATE in THIS
+      // same pass may have remapped a tmp_ id -> real id inside this row's
+      // payload/entityId (OutboxDao.rewriteTempIdInPayloads runs from
+      // applyCreateResponse). Our `nextReady` snapshot predates that write, so
+      // dispatching it as-is would send the stale tmp_ id — e.g. an offline
+      // create + edit drained together would `PUT /invoices/tmp_xxx` -> 404 and
+      // park the edit as a bogus conflict. byId() returns the post-remap row.
+      final row = await db.outboxDao.byId(snapshot.id);
+      if (row == null) continue; // deleted / superseded mid-pass
       final dispatched = await _attempt(row);
       if (dispatched) successes++;
     }

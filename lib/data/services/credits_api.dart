@@ -23,10 +23,16 @@ class CreditsApi extends BaseEntityApi<CreditListApi, CreditItemApi> {
   CreditItemApi parseItem(Object json) =>
       CreditItemApi.fromJson(json as Map<String, dynamic>);
 
+  // State transitions / clones ride `POST /credits/bulk` ({action, ids:[id]})
+  // — the per-id `/{id}/{action}` route is GET-only on the server.
   Future<CreditItemApi?> markSent({
     required String id,
     required String idempotencyKey,
-  }) => action(id: id, action: 'mark_sent', idempotencyKey: idempotencyKey);
+  }) => bulkActionOne(
+    id: id,
+    action: 'mark_sent',
+    idempotencyKey: idempotencyKey,
+  );
 
   Future<CreditItemApi?> email({
     required String id,
@@ -35,16 +41,14 @@ class CreditsApi extends BaseEntityApi<CreditListApi, CreditItemApi> {
     String? body,
     String? ccEmail,
     required String idempotencyKey,
-  }) => action(
+  }) => sendEmail(
+    entity: 'credit',
     id: id,
-    action: 'email',
+    template: template,
+    subject: subject,
+    body: body,
+    ccEmail: ccEmail,
     idempotencyKey: idempotencyKey,
-    payload: {
-      'template': template,
-      if (subject != null) 'subject': subject,
-      if (body != null) 'body': body,
-      if (ccEmail != null) 'cc_email': ccEmail,
-    },
   );
 
   Future<CreditItemApi?> scheduleEmail({
@@ -55,24 +59,22 @@ class CreditsApi extends BaseEntityApi<CreditListApi, CreditItemApi> {
     String? body,
     String? ccEmail,
     required String idempotencyKey,
-  }) => action(
-    id: id,
-    action: 'email',
-    idempotencyKey: idempotencyKey,
-    payload: {
-      'template': template,
-      'send_at': sendAt,
-      if (subject != null) 'subject': subject,
-      if (body != null) 'body': body,
-      if (ccEmail != null) 'cc_email': ccEmail,
-    },
-  );
+  }) async {
+    await scheduleEmailRecord(
+      entity: 'credit',
+      id: id,
+      template: template,
+      sendAt: sendAt,
+      idempotencyKey: idempotencyKey,
+    );
+    return null;
+  }
 
   Future<CreditItemApi?> cloneTo({
     required String id,
     required String targetType,
     required String idempotencyKey,
-  }) => action(
+  }) => bulkActionOne(
     id: id,
     action: 'clone_to_$targetType',
     idempotencyKey: idempotencyKey,
@@ -82,11 +84,11 @@ class CreditsApi extends BaseEntityApi<CreditListApi, CreditItemApi> {
     required String id,
     required String templateId,
     required String idempotencyKey,
-  }) => action(
+  }) => bulkActionOne(
     id: id,
     action: 'template',
     idempotencyKey: idempotencyKey,
-    payload: {'template_id': templateId},
+    extra: {'template_id': templateId},
   );
 
   /// Server-rendered PDF via `POST /api/v1/live_preview?entity=credit
@@ -119,7 +121,8 @@ class CreditsApi extends BaseEntityApi<CreditListApi, CreditItemApi> {
     final file = await source.toMultipartFile('documents[]');
     final raw = await client.uploadMultipart(
       path: '$basePath/$entityId/upload',
-      fields: const {'_method': 'POST'},
+      // Server route is `Route::put('credits/{credit}/upload')`.
+      fields: const {'_method': 'PUT'},
       files: [file],
       idempotencyKey: idempotencyKey,
     );

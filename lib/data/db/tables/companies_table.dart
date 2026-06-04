@@ -40,6 +40,13 @@ class Companies extends Table {
   // calendar grid via `lib/utils/date_ranges.dart`.
   TextColumn get firstDayOfWeek =>
       text().named('first_day_of_week').withDefault(const Constant(''))();
+  // Settings → Localization "Decimal Comma". Top-level company column (not
+  // inside `settings`) — like first_month/first_day it needs its own column or
+  // it's dropped on every login/refresh. The money formatter reads it via
+  // `Services._buildFormatter`'s row overlay.
+  BoolColumn get useCommaAsDecimalPlace => boolean()
+      .named('use_comma_as_decimal_place')
+      .withDefault(const Constant(false))();
   IntColumn get legalEntityId =>
       integer().named('legal_entity_id').withDefault(const Constant(0))();
   // E-Invoice certificate state. Edited by Settings → E-Invoice's

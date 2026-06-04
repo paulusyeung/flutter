@@ -65,7 +65,7 @@ class ClientsApi extends BaseEntityApi<ClientListApi, ClientItemApi> {
     final file = await source.toMultipartFile('documents[]');
     final raw = await client.uploadMultipart(
       path: '$basePath/$entityId/upload',
-      fields: const {'_method': 'POST'},
+      fields: const {'_method': 'PUT'},
       files: [file],
       idempotencyKey: idempotencyKey,
     );

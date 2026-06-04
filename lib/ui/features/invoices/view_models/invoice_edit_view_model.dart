@@ -23,6 +23,7 @@ class InvoiceEditViewModel extends GenericBillingDocEditViewModel<Invoice> {
     required this.companyId,
     required this.clientRequiredMessage,
     required this.crossClientLineItemsMessage,
+    required this.partialInvalidMessage,
     Invoice? existing,
     Invoice? cloneFrom,
     super.currencyPrecision,
@@ -45,11 +46,25 @@ class InvoiceEditViewModel extends GenericBillingDocEditViewModel<Invoice> {
   /// injected from the screen (same reason as `clientRequiredMessage`).
   final String crossClientLineItemsMessage;
 
+  /// Localized "must be greater than zero and less than the total" — the
+  /// inline error for an out-of-range partial-payment amount (`partial_value`).
+  final String partialInvalidMessage;
+
   @override
-  Map<String, List<String>> validate() => {
-    if (draft.clientId.isEmpty) 'client_id': [clientRequiredMessage],
-    ...validateCrossClient(crossClientLineItemsMessage),
-  };
+  Map<String, List<String>> validate() {
+    final errors = <String, List<String>>{
+      if (draft.clientId.isEmpty) 'client_id': [clientRequiredMessage],
+      ...validateCrossClient(crossClientLineItemsMessage),
+    };
+    // Partial-payment amount must sit within (0, total]. v1 rejects negative
+    // and partial > total; zero (no partial payment) is fine. Uses the
+    // fallback-precision total — adequate for an inequality guard.
+    final partial = draft.partial;
+    if (partial < Decimal.zero || partial > totals.total) {
+      errors['partial'] = [partialInvalidMessage];
+    }
+    return errors;
+  }
 
   @override
   bool draftIsNonEmpty() {

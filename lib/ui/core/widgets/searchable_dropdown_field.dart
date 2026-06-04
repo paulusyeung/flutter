@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
@@ -209,136 +211,154 @@ class _SearchableDropdownFieldState<T extends Object>
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: InSpacing.xs),
-      child: RawAutocomplete<T>(
-        textEditingController: _controller,
-        focusNode: _focusNode,
-        displayStringForOption: widget.displayString,
-        optionsBuilder: (value) {
-          final q = value.text.trim().toLowerCase();
-          if (q.isEmpty) return widget.items.take(widget.idleResults);
-          return widget.items
-              .where((it) => widget.displayString(it).toLowerCase().contains(q))
-              .take(widget.maxResults);
-        },
-        onSelected: (item) {
-          _committed = item;
-          widget.onChanged(item);
-        },
-        fieldViewBuilder:
-            (context, textController, focusNode, onFieldSubmitted) {
-              // Own Material — RawAutocomplete (unlike Autocomplete) wraps
-              // its field in none, so a host without a Material ancestor
-              // throws "No Material widget found". Transparency = no visual
-              // change.
-              return Material(
-                type: MaterialType.transparency,
-                child: TextField(
-                  controller: textController,
-                  focusNode: focusNode,
-                  onSubmitted: (_) => onFieldSubmitted(),
-                  decoration: InputDecoration(
-                    labelText: widget.label,
-                    errorText: widget.errorText,
-                    labelStyle: theme.textTheme.bodyMedium?.copyWith(
-                      color: tokens.ink3,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Size the options popover to the field's own width so it can't
+        // overflow a narrow phone; cap at 360 on wide screens (the original
+        // desktop max). `Align(topLeft)` anchors it to the field's left edge,
+        // so width <= field width never spills past the right edge.
+        final fieldWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : 360.0;
+        final popoverWidth = math.min(fieldWidth, 360.0);
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: InSpacing.xs),
+          child: RawAutocomplete<T>(
+            textEditingController: _controller,
+            focusNode: _focusNode,
+            displayStringForOption: widget.displayString,
+            optionsBuilder: (value) {
+              final q = value.text.trim().toLowerCase();
+              if (q.isEmpty) return widget.items.take(widget.idleResults);
+              return widget.items
+                  .where(
+                    (it) => widget.displayString(it).toLowerCase().contains(q),
+                  )
+                  .take(widget.maxResults);
+            },
+            onSelected: (item) {
+              _committed = item;
+              widget.onChanged(item);
+            },
+            fieldViewBuilder:
+                (context, textController, focusNode, onFieldSubmitted) {
+                  // Own Material — RawAutocomplete (unlike Autocomplete) wraps
+                  // its field in none, so a host without a Material ancestor
+                  // throws "No Material widget found". Transparency = no visual
+                  // change.
+                  return Material(
+                    type: MaterialType.transparency,
+                    child: TextField(
+                      controller: textController,
+                      focusNode: focusNode,
+                      onSubmitted: (_) => onFieldSubmitted(),
+                      decoration: InputDecoration(
+                        labelText: widget.label,
+                        errorText: widget.errorText,
+                        labelStyle: theme.textTheme.bodyMedium?.copyWith(
+                          color: tokens.ink3,
+                        ),
+                        floatingLabelStyle: theme.textTheme.bodySmall?.copyWith(
+                          color: tokens.ink2,
+                        ),
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: InSpacing.md(context),
+                          vertical: 14,
+                        ),
+                        border: border,
+                        enabledBorder: border,
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(InRadii.r1),
+                          borderSide: BorderSide(
+                            color: tokens.accent,
+                            width: 1.5,
+                          ),
+                        ),
+                        suffixIcon: textController.text.isEmpty
+                            ? Icon(Icons.search, size: 18, color: tokens.ink3)
+                            : IconButton(
+                                tooltip: context.tr('clear'),
+                                icon: Icon(
+                                  Icons.close,
+                                  size: 16,
+                                  color: tokens.ink3,
+                                ),
+                                onPressed: () {
+                                  textController.clear();
+                                  _committed = null;
+                                  widget.onChanged(null);
+                                },
+                              ),
+                      ),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: tokens.ink,
+                      ),
                     ),
-                    floatingLabelStyle: theme.textTheme.bodySmall?.copyWith(
-                      color: tokens.ink2,
+                  );
+                },
+            optionsViewBuilder: (context, onSelected, options) {
+              final highlightedIndex = AutocompleteHighlightedOption.of(
+                context,
+              );
+              _scrollHighlightedIntoView(highlightedIndex, options.length);
+              final footer = widget.footerBuilder?.call(context);
+              return Align(
+                alignment: Alignment.topLeft,
+                child: Material(
+                  elevation: 4,
+                  borderRadius: BorderRadius.circular(InRadii.r2),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: 280,
+                      maxWidth: popoverWidth,
                     ),
-                    isDense: true,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: InSpacing.md(context),
-                      vertical: 14,
-                    ),
-                    border: border,
-                    enabledBorder: border,
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(InRadii.r1),
-                      borderSide: BorderSide(color: tokens.accent, width: 1.5),
-                    ),
-                    suffixIcon: textController.text.isEmpty
-                        ? Icon(Icons.search, size: 18, color: tokens.ink3)
-                        : IconButton(
-                            tooltip: context.tr('clear'),
-                            icon: Icon(
-                              Icons.close,
-                              size: 16,
-                              color: tokens.ink3,
-                            ),
-                            onPressed: () {
-                              textController.clear();
-                              _committed = null;
-                              widget.onChanged(null);
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            padding: EdgeInsets.zero,
+                            controller: _optionsScrollController,
+                            itemExtent: _optionExtent,
+                            itemCount: options.length,
+                            itemBuilder: (context, i) {
+                              final item = options.elementAt(i);
+                              final isHighlighted = i == highlightedIndex;
+                              return Container(
+                                color: isHighlighted ? tokens.accentSoft : null,
+                                child: InkWell(
+                                  onTap: () => onSelected(item),
+                                  child: Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: InSpacing.md(context),
+                                      vertical: InSpacing.sm,
+                                    ),
+                                    child: Text(
+                                      widget.displayString(item),
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(color: tokens.ink),
+                                    ),
+                                  ),
+                                ),
+                              );
                             },
                           ),
-                  ),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: tokens.ink,
+                        ),
+                        if (footer != null) ...[
+                          Divider(height: 1, color: tokens.border),
+                          footer,
+                        ],
+                      ],
+                    ),
                   ),
                 ),
               );
             },
-        optionsViewBuilder: (context, onSelected, options) {
-          final highlightedIndex = AutocompleteHighlightedOption.of(context);
-          _scrollHighlightedIntoView(highlightedIndex, options.length);
-          final footer = widget.footerBuilder?.call(context);
-          return Align(
-            alignment: Alignment.topLeft,
-            child: Material(
-              elevation: 4,
-              borderRadius: BorderRadius.circular(InRadii.r2),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxHeight: 280,
-                  maxWidth: 360,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        padding: EdgeInsets.zero,
-                        controller: _optionsScrollController,
-                        itemExtent: _optionExtent,
-                        itemCount: options.length,
-                        itemBuilder: (context, i) {
-                          final item = options.elementAt(i);
-                          final isHighlighted = i == highlightedIndex;
-                          return Container(
-                            color: isHighlighted ? tokens.accentSoft : null,
-                            child: InkWell(
-                              onTap: () => onSelected(item),
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: InSpacing.md(context),
-                                  vertical: InSpacing.sm,
-                                ),
-                                child: Text(
-                                  widget.displayString(item),
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: tokens.ink,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    if (footer != null) ...[
-                      Divider(height: 1, color: tokens.border),
-                      footer,
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }

@@ -23,25 +23,33 @@ class RecurringInvoicesApi
   RecurringInvoiceItemApi parseItem(Object json) =>
       RecurringInvoiceItemApi.fromJson(json as Map<String, dynamic>);
 
+  // Recurring invoices have ONLY a `/bulk` route server-side (no per-id
+  // `/{id}/{action}` route at all), so every lifecycle action MUST ride
+  // `POST /recurring_invoices/bulk` ({action, ids:[id]}).
   Future<RecurringInvoiceItemApi?> markSent({
     required String id,
     required String idempotencyKey,
-  }) => action(id: id, action: 'mark_sent', idempotencyKey: idempotencyKey);
+  }) => bulkActionOne(
+    id: id,
+    action: 'mark_sent',
+    idempotencyKey: idempotencyKey,
+  );
 
   Future<RecurringInvoiceItemApi?> start({
     required String id,
     required String idempotencyKey,
-  }) => action(id: id, action: 'start', idempotencyKey: idempotencyKey);
+  }) => bulkActionOne(id: id, action: 'start', idempotencyKey: idempotencyKey);
 
   Future<RecurringInvoiceItemApi?> stop({
     required String id,
     required String idempotencyKey,
-  }) => action(id: id, action: 'stop', idempotencyKey: idempotencyKey);
+  }) => bulkActionOne(id: id, action: 'stop', idempotencyKey: idempotencyKey);
 
   Future<RecurringInvoiceItemApi?> sendNow({
     required String id,
     required String idempotencyKey,
-  }) => action(id: id, action: 'send_now', idempotencyKey: idempotencyKey);
+  }) =>
+      bulkActionOne(id: id, action: 'send_now', idempotencyKey: idempotencyKey);
 
   Future<RecurringInvoiceItemApi?> email({
     required String id,
@@ -50,16 +58,14 @@ class RecurringInvoicesApi
     String? body,
     String? ccEmail,
     required String idempotencyKey,
-  }) => action(
+  }) => sendEmail(
+    entity: 'recurring_invoice',
     id: id,
-    action: 'email',
+    template: template,
+    subject: subject,
+    body: body,
+    ccEmail: ccEmail,
     idempotencyKey: idempotencyKey,
-    payload: {
-      'template': template,
-      if (subject != null) 'subject': subject,
-      if (body != null) 'body': body,
-      if (ccEmail != null) 'cc_email': ccEmail,
-    },
   );
 
   Future<RecurringInvoiceItemApi?> scheduleEmail({
@@ -70,24 +76,26 @@ class RecurringInvoicesApi
     String? body,
     String? ccEmail,
     required String idempotencyKey,
-  }) => action(
-    id: id,
-    action: 'email',
-    idempotencyKey: idempotencyKey,
-    payload: {
-      'template': template,
-      'send_at': sendAt,
-      if (subject != null) 'subject': subject,
-      if (body != null) 'body': body,
-      if (ccEmail != null) 'cc_email': ccEmail,
-    },
-  );
+  }) {
+    // recurring_invoice is not a valid task_scheduler entity (the server's
+    // scheduler accepts invoice / quote / credit / purchase_order only), so a
+    // future send can't be scheduled — degrade to an immediate send.
+    return sendEmail(
+      entity: 'recurring_invoice',
+      id: id,
+      template: template,
+      subject: subject,
+      body: body,
+      ccEmail: ccEmail,
+      idempotencyKey: idempotencyKey,
+    );
+  }
 
   Future<RecurringInvoiceItemApi?> cloneTo({
     required String id,
     required String targetType,
     required String idempotencyKey,
-  }) => action(
+  }) => bulkActionOne(
     id: id,
     action: 'clone_to_$targetType',
     idempotencyKey: idempotencyKey,
@@ -97,11 +105,11 @@ class RecurringInvoicesApi
     required String id,
     required String templateId,
     required String idempotencyKey,
-  }) => action(
+  }) => bulkActionOne(
     id: id,
     action: 'template',
     idempotencyKey: idempotencyKey,
-    payload: {'template_id': templateId},
+    extra: {'template_id': templateId},
   );
 
   /// Server-rendered PDF via `POST /api/v1/live_preview?entity=recurring_invoice
@@ -134,7 +142,8 @@ class RecurringInvoicesApi
     final file = await source.toMultipartFile('documents[]');
     final raw = await client.uploadMultipart(
       path: '$basePath/$entityId/upload',
-      fields: const {'_method': 'POST'},
+      // Server route is PUT `recurring_invoices/{recurring_invoice}/upload`.
+      fields: const {'_method': 'PUT'},
       files: [file],
       idempotencyKey: idempotencyKey,
     );

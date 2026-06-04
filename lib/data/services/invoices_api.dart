@@ -65,24 +65,39 @@ class InvoicesApi extends BaseEntityApi<InvoiceListApi, InvoiceItemApi> {
   InvoiceItemApi parseItem(Object json) =>
       InvoiceItemApi.fromJson(json as Map<String, dynamic>);
 
-  /// `POST /api/v1/invoices/{id}/mark_sent` — Draft → Sent. Server returns
-  /// the updated invoice envelope.
+  /// `POST /api/v1/invoices/bulk {action:'mark_sent', ids:[id]}` — Draft →
+  /// Sent. (The per-id `/{id}/mark_sent` route is GET-only server-side, so
+  /// the action must ride the bulk endpoint.) Server returns the affected
+  /// invoices; [bulkActionOne] unwraps the single updated invoice.
   Future<InvoiceItemApi?> markSent({
     required String id,
     required String idempotencyKey,
-  }) => action(id: id, action: 'mark_sent', idempotencyKey: idempotencyKey);
+  }) => bulkActionOne(
+    id: id,
+    action: 'mark_sent',
+    idempotencyKey: idempotencyKey,
+  );
 
-  /// `POST /api/v1/invoices/{id}/mark_paid` — records a synthetic payment
-  /// for the outstanding balance.
+  /// `POST /api/v1/invoices/bulk {action:'mark_paid', ids:[id]}` — records a
+  /// synthetic payment for the outstanding balance.
   Future<InvoiceItemApi?> markPaid({
     required String id,
     required String idempotencyKey,
-  }) => action(id: id, action: 'mark_paid', idempotencyKey: idempotencyKey);
+  }) => bulkActionOne(
+    id: id,
+    action: 'mark_paid',
+    idempotencyKey: idempotencyKey,
+  );
 
-  /// `POST /api/v1/invoices/{id}/email` — send the invoice using a named
-  /// template (`invoice`, `reminder1`, `reminder2`, `reminder3`,
-  /// `endless_reminder`, `custom1..3`). Optional subject/body overrides
-  /// the company default for this send only.
+  /// `POST /api/v1/emails` — send the invoice using a named template
+  /// (`invoice`, `reminder1..3`, `endless_reminder`, `custom1..3`). Optional
+  /// subject/body/cc override the company default for this send only.
+  ///
+  /// There is **no** per-id `/{id}/email` route; email is sent via the
+  /// dedicated `/emails` endpoint (admin-portal parity), which is the only one
+  /// that carries the subject/body/cc overrides. The server expects the full
+  /// `email_template_<name>` settings key and replies with the refreshed
+  /// entity (`itemResponse`), so the dispatcher upserts the updated invoice.
   Future<InvoiceItemApi?> email({
     required String id,
     required String template,
@@ -90,20 +105,21 @@ class InvoicesApi extends BaseEntityApi<InvoiceListApi, InvoiceItemApi> {
     String? body,
     String? ccEmail,
     required String idempotencyKey,
-  }) => action(
+  }) => sendEmail(
+    entity: 'invoice',
     id: id,
-    action: 'email',
+    template: template,
+    subject: subject,
+    body: body,
+    ccEmail: ccEmail,
     idempotencyKey: idempotencyKey,
-    payload: {
-      'template': template,
-      if (subject != null) 'subject': subject,
-      if (body != null) 'body': body,
-      if (ccEmail != null) 'cc_email': ccEmail,
-    },
   );
 
-  /// `POST /api/v1/invoices/{id}/email` with a `send_at` future date —
-  /// queues the email for delivery later. Pro plan only on the server.
+  /// Schedule this invoice's email for a future date via a `email_record`
+  /// task_scheduler (`scheduleEmailRecord`). Custom subject/body/cc don't apply
+  /// to a scheduled send (the scheduler emails the named template), so they're
+  /// accepted for call-site parity but ignored. Returns null — the response is
+  /// a Scheduler, not the invoice.
   Future<InvoiceItemApi?> scheduleEmail({
     required String id,
     required String template,
@@ -112,59 +128,64 @@ class InvoicesApi extends BaseEntityApi<InvoiceListApi, InvoiceItemApi> {
     String? body,
     String? ccEmail,
     required String idempotencyKey,
-  }) => action(
-    id: id,
-    action: 'email',
-    idempotencyKey: idempotencyKey,
-    payload: {
-      'template': template,
-      'send_at': sendAt,
-      if (subject != null) 'subject': subject,
-      if (body != null) 'body': body,
-      if (ccEmail != null) 'cc_email': ccEmail,
-    },
-  );
+  }) async {
+    await scheduleEmailRecord(
+      entity: 'invoice',
+      id: id,
+      template: template,
+      sendAt: sendAt,
+      idempotencyKey: idempotencyKey,
+    );
+    return null;
+  }
 
-  /// `POST /api/v1/invoices/{id}/clone_to_<target>`. Target is one of
-  /// `invoice`, `quote`, `credit`, `recurring_invoice`, `purchase_order`.
-  /// Server returns the newly-created entity envelope; the caller (the
-  /// dispatcher's customActions handler) navigates to its edit screen.
+  /// `POST /api/v1/invoices/bulk {action:'clone_to_<target>', ids:[id]}`.
+  /// Only `invoice` and `quote` are server-side actions (`InvoiceController::
+  /// performAction`); `credit` / `recurring_invoice` / `purchase_order` are
+  /// NOT — those are produced client-side by pre-filling the target's create
+  /// screen (see invoice_actions). The bulk response returns the *source*
+  /// list, so the handler ignores it; the new entity lands on the next sync.
   Future<InvoiceItemApi?> cloneTo({
     required String id,
     required String targetType,
     required String idempotencyKey,
-  }) => action(
+  }) => bulkActionOne(
     id: id,
     action: 'clone_to_$targetType',
     idempotencyKey: idempotencyKey,
   );
 
-  /// `POST /api/v1/invoices/{id}/auto_bill` — charge the stored payment
-  /// token on the client. Server returns the updated invoice (status
-  /// flips to Partial / Paid on success).
+  /// `POST /api/v1/invoices/bulk {action:'auto_bill', ids:[id]}` — charge the
+  /// stored payment token on the client. Server returns the updated invoice
+  /// (status flips to Partial / Paid on success).
   Future<InvoiceItemApi?> autoBill({
     required String id,
     required String idempotencyKey,
-  }) => action(id: id, action: 'auto_bill', idempotencyKey: idempotencyKey);
+  }) => bulkActionOne(
+    id: id,
+    action: 'auto_bill',
+    idempotencyKey: idempotencyKey,
+  );
 
-  /// `POST /api/v1/invoices/{id}/cancel` — mark a sent invoice as
-  /// cancelled. Server returns the updated invoice.
+  /// `POST /api/v1/invoices/bulk {action:'cancel', ids:[id]}` — mark a sent
+  /// invoice as cancelled. Server returns the updated invoice.
   Future<InvoiceItemApi?> cancel({
     required String id,
     required String idempotencyKey,
-  }) => action(id: id, action: 'cancel', idempotencyKey: idempotencyKey);
+  }) => bulkActionOne(id: id, action: 'cancel', idempotencyKey: idempotencyKey);
 
-  /// `POST /api/v1/invoices/{id}/template` — apply a design or email
-  /// template. Payload carries `template_id`.
+  /// `POST /api/v1/invoices/bulk {action:'template', ids:[id], template_id}` —
+  /// apply a design/email template. The server dispatches an async job and
+  /// returns a `{message}` (no entity), so [bulkActionOne] yields null.
   Future<InvoiceItemApi?> runTemplate({
     required String id,
     required String templateId,
     required String idempotencyKey,
-  }) => action(
+  }) => bulkActionOne(
     id: id,
     action: 'template',
     idempotencyKey: idempotencyKey,
-    payload: {'template_id': templateId},
+    extra: {'template_id': templateId},
   );
 
   /// Fetch a server-rendered PDF for this invoice.
@@ -317,7 +338,9 @@ class InvoicesApi extends BaseEntityApi<InvoiceListApi, InvoiceItemApi> {
     final file = await source.toMultipartFile('documents[]');
     final raw = await client.uploadMultipart(
       path: '$basePath/$entityId/upload',
-      fields: const {'_method': 'POST'},
+      // Server route is `Route::put('invoices/{invoice}/upload')` — the
+      // multipart POST must spoof PUT via `_method`, else it 404s.
+      fields: const {'_method': 'PUT'},
       files: [file],
       idempotencyKey: idempotencyKey,
     );

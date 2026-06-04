@@ -27,7 +27,8 @@ import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_colu
 import 'package:admin/ui/features/billing_shared/line_item_picker/line_item_picker_invoke.dart';
 import 'package:admin/ui/features/billing_shared/markdown_notes_section.dart';
 import 'package:admin/ui/features/billing_shared/pdf/billing_doc_pdf_view.dart';
-import 'package:admin/ui/features/billing_shared/totals_widget.dart';
+import 'package:admin/ui/features/billing_shared/billing_edit_totals.dart';
+import 'package:admin/ui/features/billing_shared/edit/billing_tax_surcharge_section.dart';
 import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 
@@ -35,7 +36,7 @@ import 'package:admin/ui/features/settings/widgets/form_section.dart';
 ///
 /// Tabs: Details / Contacts / Items / Notes / PDF / E-Invoice (last tab
 /// surfaces only when company has eInvoice enabled — gated in M4).
-/// Sticky-bottom [TotalsWidget] sits below the tabs and updates live from
+/// Sticky-bottom [BillingEditTotals] sits below the tabs and updates live from
 /// `vm.totals` as the user edits.
 ///
 /// Per CLAUDE.md, this body lives under `/invoices/...` which is *not*
@@ -57,7 +58,11 @@ class _InvoiceEditLayoutState extends State<InvoiceEditLayout>
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 6, vsync: this);
+    // 7 tabs: Details / Contacts / Items / Notes / Settings / PDF / E-Invoice.
+    // Settings (project / vendor / user / exchange-rate / auto-bill) was
+    // desktop-only; mobile now gets it as its own tab so those fields are
+    // reachable on a phone.
+    _tab = TabController(length: 7, vsync: this);
     // Best-effort async fetch of any existing task/expense line items'
     // source clientIds so the cross-client save validator catches drift
     // on legacy / API-imported invoices. No-op when the draft has no
@@ -133,6 +138,7 @@ class _InvoiceEditLayoutState extends State<InvoiceEditLayout>
                 Tab(text: context.tr('contacts')),
                 Tab(text: context.tr('items')),
                 Tab(text: context.tr('notes')),
+                Tab(text: context.tr('settings')),
                 Tab(text: context.tr('pdf')),
                 Tab(text: context.tr('e_invoice')),
               ],
@@ -150,6 +156,7 @@ class _InvoiceEditLayoutState extends State<InvoiceEditLayout>
                   onPickItems: () => _openPicker(context),
                 ),
                 _NotesTab(vm: widget.vm),
+                _SettingsTab(vm: widget.vm),
                 _PdfTab(vm: widget.vm),
                 EInvoiceFieldsTab<Invoice>(
                   vm: widget.vm,
@@ -182,7 +189,13 @@ class _InvoiceEditLayoutState extends State<InvoiceEditLayout>
         onPickItems: () => _openPicker(context),
       ),
       notesTabsCard: _NotesTabsCardDesktop(vm: widget.vm),
-      totalsCard: _TotalsCardDesktop(vm: widget.vm),
+      totalsCard: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _TaxSurchargeSection(vm: widget.vm),
+          _TotalsCardDesktop(vm: widget.vm),
+        ],
+      ),
       pdfPane: _PdfPaneDesktop(vm: widget.vm),
       stickyTotals: _SlimTotalsBar(vm: widget.vm),
     );
@@ -345,6 +358,7 @@ class _DatesCardDesktopState extends State<_DatesCardDesktop> {
           decoration: billingFieldDecoration(
             context,
             label: context.tr('partial'),
+            errorText: vm.fieldErrorFor('partial'),
           ),
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           onChanged: vm.setPartial,
@@ -698,8 +712,9 @@ class _StickyTotals extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.all(InSpacing.md(context)),
-      child: TotalsWidget(
-        totals: vm.totals,
+      child: BillingEditTotals(
+        totalsAt: vm.totalsAt,
+        clientId: vm.draft.clientId,
         discount: vm.draft.discount,
         discountIsAmount: vm.draft.isAmountDiscount,
         partial: vm.draft.partial,
@@ -717,8 +732,9 @@ class _TotalsCardDesktop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TotalsWidget(
-      totals: vm.totals,
+    return BillingEditTotals(
+      totalsAt: vm.totalsAt,
+      clientId: vm.draft.clientId,
       discount: vm.draft.discount,
       discountIsAmount: vm.draft.isAmountDiscount,
       partial: vm.draft.partial,
@@ -736,13 +752,88 @@ class _SlimTotalsBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TotalsWidget(
-      totals: vm.totals,
+    return BillingEditTotals(
+      totalsAt: vm.totalsAt,
+      clientId: vm.draft.clientId,
       discount: vm.draft.discount,
       discountIsAmount: vm.draft.isAmountDiscount,
       partial: vm.draft.partial,
       dense: true,
       slim: true,
+    );
+  }
+}
+
+/// Document-level tax tiers + custom surcharges + inclusive-tax toggle.
+/// Self-collapses when the company has no enabled tax rates and no surcharge
+/// labels configured (so it adds no chrome when unused).
+class _TaxSurchargeSection extends StatelessWidget {
+  const _TaxSurchargeSection({required this.vm});
+  final InvoiceEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = vm.draft;
+    return BillingTaxSurchargeSection(
+      companyId: vm.companyId,
+      taxRows: [
+        (
+          name: d.taxName1,
+          rate: d.taxRate1,
+          onName: vm.setTaxName1,
+          onRate: vm.setTaxRate1,
+        ),
+        (
+          name: d.taxName2,
+          rate: d.taxRate2,
+          onName: vm.setTaxName2,
+          onRate: vm.setTaxRate2,
+        ),
+        (
+          name: d.taxName3,
+          rate: d.taxRate3,
+          onName: vm.setTaxName3,
+          onRate: vm.setTaxRate3,
+        ),
+      ],
+      usesInclusiveTaxes: d.usesInclusiveTaxes,
+      onInclusiveChanged: vm.setUsesInclusiveTaxes,
+      surcharges: [
+        (amount: d.customSurcharge1, onAmount: vm.setCustomSurcharge1),
+        (amount: d.customSurcharge2, onAmount: vm.setCustomSurcharge2),
+        (amount: d.customSurcharge3, onAmount: vm.setCustomSurcharge3),
+        (amount: d.customSurcharge4, onAmount: vm.setCustomSurcharge4),
+      ],
+    );
+  }
+}
+
+/// Mobile "Settings" tab — Project / Vendor / User / Exchange-Rate / Auto-Bill
+/// (+ Design). Desktop renders these in a sub-tab of the notes card; mobile
+/// previously had no tab for them, so those fields were uneditable on a phone.
+class _SettingsTab extends StatelessWidget {
+  const _SettingsTab({required this.vm});
+  final InvoiceEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(InSpacing.lg(context)),
+      child: BillingDocSettingsTab(
+        companyId: vm.companyId,
+        designId: vm.draft.designId,
+        onDesignChanged: vm.setDesignId,
+        userId: vm.draft.assignedUserId,
+        onUserChanged: vm.setAssignedUserId,
+        projectId: vm.draft.projectId,
+        onProjectChanged: vm.setProjectId,
+        vendorId: vm.draft.vendorId,
+        onVendorChanged: vm.setVendorId,
+        exchangeRate: vm.draft.exchangeRate.toString(),
+        onExchangeRateChanged: vm.setExchangeRate,
+        autoBillEnabled: vm.draft.autoBillEnabled,
+        onAutoBillEnabledChanged: vm.setAutoBillEnabled,
+      ),
     );
   }
 }
@@ -867,7 +958,10 @@ class _DetailsTabState extends State<_DetailsTab> {
               Expanded(
                 child: TextField(
                   controller: _partial,
-                  decoration: InputDecoration(labelText: context.tr('partial')),
+                  decoration: InputDecoration(
+                    labelText: context.tr('partial'),
+                    errorText: vm.fieldErrorFor('partial'),
+                  ),
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -924,6 +1018,7 @@ class _DetailsTabState extends State<_DetailsTab> {
               ),
             ],
           ),
+          _TaxSurchargeSection(vm: vm),
           SizedBox(height: InSpacing.lg(context)),
           _DesignPicker(vm: vm),
           SizedBox(height: InSpacing.lg(context)),

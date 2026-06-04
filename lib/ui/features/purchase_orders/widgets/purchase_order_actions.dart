@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
@@ -8,6 +9,8 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/purchase_order.dart';
+import 'package:admin/data/models/domain/purchase_order_status.dart';
+import 'package:admin/data/models/value/date.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
@@ -15,6 +18,7 @@ import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/billing_shared/actions/add_comment_prompt.dart';
+import 'package:admin/ui/features/billing_shared/billing_cross_clone.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
 
 /// PurchaseOrder action set. Mirrors Quote/Credit actions plus the two
@@ -348,47 +352,59 @@ class PurchaseOrderActions {
       case PurchaseOrderAction.cloneGroup:
         break; // Submenu parent — never dispatched; children carry the action.
       case PurchaseOrderAction.clone:
+        // Reset everything that must not carry over to a fresh draft (mirrors
+        // the invoice clone). Critically `statusId`: a clone of a Sent/Accepted
+        // PO must open as a Draft, not inherit "sent/accepted". Also drop dates
+        // (→ today / unset), exchange rate, project link, the downstream
+        // `expenseId` conversion link, and the e-invoice block. POs are
+        // vendor-centric — the `vendorId` is the core party, so it is kept.
+        // POs have no `partial` / `partialDueDate` / `paidToDate` /
+        // `subscriptionId` fields.
         final draft = po.copyWith(
           id: '',
           number: '',
+          statusId: PurchaseOrderStatus.draft,
+          date: Date.today(),
+          dueDate: null,
+          taxAmount: Decimal.zero,
+          balance: po.amount,
+          exchangeRate: Decimal.one,
+          projectId: '',
+          expenseId: '',
+          eInvoice: null,
           archivedAt: null,
           isDeleted: false,
           isDirty: false,
-          expenseId: '',
           updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
           createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
         );
         goEntityCreateFullWidth(context, '/purchase_orders', extra: draft);
 
+      // Cross-type clone is client-side (the server's bulk performAction has no
+      // PO clone targets): invoice/quote/credit are built here and opened in
+      // the target's create form. The PO is vendor-billed, so the converter
+      // drops the client + vendor invitations — the user picks the client on
+      // the create screen. Navigation IS the feedback — no toast, no tmp_ gate.
       case PurchaseOrderAction.cloneToInvoice:
-        if (tmpGate()) return;
-        await services.purchaseOrders.cloneTo(
-          companyId: companyId,
-          id: po.id,
-          targetType: 'invoice',
+        goEntityCreateFullWidth(
+          context,
+          '/invoices',
+          extra: cloneToInvoice(billingCloneFromPurchaseOrder(po)),
         );
-        if (!context.mounted) return;
-        Notify.success(context, context.tr('cloned_to_invoice'));
 
       case PurchaseOrderAction.cloneToQuote:
-        if (tmpGate()) return;
-        await services.purchaseOrders.cloneTo(
-          companyId: companyId,
-          id: po.id,
-          targetType: 'quote',
+        goEntityCreateFullWidth(
+          context,
+          '/quotes',
+          extra: cloneToQuote(billingCloneFromPurchaseOrder(po)),
         );
-        if (!context.mounted) return;
-        Notify.success(context, context.tr('cloned_to_quote'));
 
       case PurchaseOrderAction.cloneToCredit:
-        if (tmpGate()) return;
-        await services.purchaseOrders.cloneTo(
-          companyId: companyId,
-          id: po.id,
-          targetType: 'credit',
+        goEntityCreateFullWidth(
+          context,
+          '/credits',
+          extra: cloneToCredit(billingCloneFromPurchaseOrder(po)),
         );
-        if (!context.mounted) return;
-        Notify.success(context, context.tr('cloned_to_credit'));
 
       case PurchaseOrderAction.addComment:
         if (tmpGate()) return;
@@ -401,6 +417,7 @@ class PurchaseOrderActions {
         );
 
       case PurchaseOrderAction.archive:
+        if (tmpGate()) return;
         await StandardEntityActions.archive(
           context: context,
           wireName: 'purchase_order',
@@ -409,6 +426,7 @@ class PurchaseOrderActions {
         );
 
       case PurchaseOrderAction.restore:
+        if (tmpGate()) return;
         await StandardEntityActions.restore(
           context: context,
           wireName: 'purchase_order',

@@ -51,10 +51,11 @@ abstract class CompanySettingsApi with _$CompanySettingsApi {
     @JsonKey(name: 'currency_id') String? currencyId,
     @JsonKey(name: 'military_time') bool? militaryTime,
     @JsonKey(name: 'show_currency_code') bool? showCurrencyCode,
-    @JsonKey(name: 'use_comma_as_decimal_place') bool? useCommaAsDecimalPlace,
-    // NOTE: first_month_of_year is intentionally NOT here — it's a top-level
-    // company field (see CompanyApi.firstMonthOfYear), not a cascade setting.
-    // The server returns it on `company`, never on `company.settings`.
+    // NOTE: first_month_of_year, first_day_of_week and use_comma_as_decimal_place
+    // are intentionally NOT here — they're top-level company fields (see
+    // CompanyApi), not cascade settings. The server returns them on `company`,
+    // never on `company.settings`, and the money formatter reads
+    // use_comma_as_decimal_place via Services._buildFormatter's row overlay.
 
     // ── Defaults: terms & footers ───────────────────────────────────────
     @JsonKey(name: 'invoice_terms') String? invoiceTerms,

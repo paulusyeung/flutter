@@ -454,7 +454,10 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
       child: ListenableBuilder(
         listenable: Listenable.merge([theme, widget.services.accentColor]),
         builder: (context, _) => ValueListenableBuilder<Locale?>(
-          valueListenable: widget.services.locale,
+          // Resolved locale: device override → active company's
+          // settings.language_id → English (see AppLocaleResolver). The device
+          // App Language picker writes `services.locale`, which feeds this.
+          valueListenable: widget.services.appLocale,
           builder: (context, locale, _) => MaterialApp.router(
             title: 'Invoice Ninja',
             debugShowCheckedModeBanner: false,

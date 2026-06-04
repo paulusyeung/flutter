@@ -94,6 +94,11 @@ void main() {
       expect(preview(r'{$date:zzz}'), 'zzz');
     });
 
+    test('{\$date:jS} renders the ordinal day suffix', () {
+      // Fixed clock is the 3rd → "3rd".
+      expect(preview(r'{$date:jS}'), '3rd');
+    });
+
     test('client tokens are literal when the client group is hidden', () {
       expect(preview(r'{$client_number}'), r'{$client_number}');
     });
@@ -162,6 +167,26 @@ void main() {
     test('unknown letters pass through as literals', () {
       expect(fmt('q'), 'q');
       expect(fmt('Y q'), '2026 q');
+    });
+
+    test('ordinal S expands when now is supplied', () {
+      String ord(int day) => DateFormat(
+        phpDateFormatToIntl('jS', now: DateTime(2026, 6, day)),
+      ).format(DateTime(2026, 6, day));
+      expect(ord(1), '1st');
+      expect(ord(2), '2nd');
+      expect(ord(3), '3rd');
+      expect(ord(4), '4th');
+      expect(ord(11), '11th');
+      expect(ord(12), '12th');
+      expect(ord(13), '13th');
+      expect(ord(21), '21st');
+      expect(ord(23), '23rd');
+    });
+
+    test('S stays literal without now (fmt passes no clock)', () {
+      // j → day "3", S → bare letter (no `now`) → "3S".
+      expect(fmt('jS'), '3S');
     });
   });
 }

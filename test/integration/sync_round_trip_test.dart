@@ -126,14 +126,15 @@ void main() {
     },
   );
 
-  test('recordCreateSuccess rewrites pending outbox rows so a later drain '
-      'hits the real id, not the tmp id', () async {
-    // Two-drain variant: between the create drain and the update drain, a
-    // pending row should have been rewritten in place by the create's
-    // `recordCreateSuccess` transaction. The drain loop snapshots rows at
-    // the start of each pass, so this can only be observed across two
-    // drain calls — which is exactly what production looks like (the
-    // outbox drain fires per connectivity nudge, not per row).
+  test('create + edit drained in ONE pass: the edit dispatches against the '
+      'real id, not the tmp id', () async {
+    // Offline create + edit, then a single drain. The create remaps
+    // tmp -> real in the still-pending update row (recordCreateSuccess ->
+    // rewriteTempIdInPayloads); the drain loop re-reads each row by id
+    // immediately before dispatch, so the update picks up the remap within
+    // the same pass and targets the real id. Regression guard for the
+    // stale-snapshot bug (the update would otherwise PUT /clients/tmp_xxx
+    // -> 404 and park the edit as a bogus conflict).
     final api = _FakeClientsApi();
     api.createResponses['Acme'] = apiClient('real_002');
 
@@ -167,11 +168,9 @@ void main() {
     );
     await repo.save(companyId: 'co', client: edited);
 
-    // Allow the update dispatch to succeed against either id — the engine
-    // snapshots rows at the start of `drainOnce`, so the update row in the
-    // snapshot still carries the tmp id even though the DB row gets
-    // rewritten mid-loop by the create's `recordCreateSuccess`.
-    api.updateResponses[tmpId] = apiClient('real_002', name: 'Acme renamed');
+    // Queue a response ONLY for the real id. The fake throws on an unknown
+    // update id, so if the drain regressed to dispatching the tmp id this
+    // test fails with "No update response queued for id=tmp_...".
     api.updateResponses['real_002'] = apiClient(
       'real_002',
       name: 'Acme renamed',
@@ -197,6 +196,11 @@ void main() {
       tempId: tmpId,
     );
     expect(mapped, 'real_002');
+
+    // The update must have dispatched against the REAL id (proving the
+    // pre-dispatch re-read observed the mid-pass remap), never the tmp id.
+    expect(api.updateCallIds, contains('real_002'));
+    expect(api.updateCallIds, isNot(contains(tmpId)));
   });
 
   test('422 round-trip: dead row carries fieldErrorsJson and is locatable '

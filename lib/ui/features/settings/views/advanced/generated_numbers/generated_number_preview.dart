@@ -15,7 +15,10 @@ const _kSampleIdNumber = 'ID-0001';
 /// (`app/Utils/Traits/GeneratesCounter.php`): the [counter] is zero-padded to
 /// [padding] first, then the `{$...}` tokens are substituted. [now] and
 /// [company] are injected so the same pure call powers both the live UI
-/// (`now: DateTime.now()`) and deterministic unit tests.
+/// (`now: DateTime.now()`) and deterministic unit tests. [now] is device-local,
+/// not the company timezone (the backend renders `{$year}`/`{$date:…}` in the
+/// company tz); for a read-only preview that only diverges near midnight across
+/// zones that's an accepted approximation — the app bundles no tzdb.
 ///
 /// [showClient] / [showVendor] mirror the tab's chip gating: a token whose group
 /// isn't shown (e.g. `{$vendor_number}` on an invoice tab) is left literal —
@@ -48,7 +51,7 @@ String buildNumberPreview({
         // regardless of the company locale, so the default (en_US) matches the
         // server — and it needs no `initializeDateFormatting`. Numeric formats
         // (Y-m-d, d/m/Y) are locale-independent.
-        return DateFormat(phpDateFormatToIntl(fmt)).format(now);
+        return DateFormat(phpDateFormatToIntl(fmt, now: now)).format(now);
       } catch (_) {
         // Unparseable format → fall through to the ISO fallback.
       }
@@ -103,13 +106,36 @@ String _manualIso(DateTime now) =>
     '${now.month.toString().padLeft(2, '0')}-'
     '${now.day.toString().padLeft(2, '0')}';
 
+/// English ordinal suffix for a day-of-month: `1` → `st`, `2` → `nd`,
+/// `3` → `rd`, everything else → `th`; `11`–`13` are always `th`. Mirrors PHP's
+/// `date('S')`.
+String _ordinalSuffix(int day) {
+  if (day >= 11 && day <= 13) return 'th';
+  switch (day % 10) {
+    case 1:
+      return 'st';
+    case 2:
+      return 'nd';
+    case 3:
+      return 'rd';
+    default:
+      return 'th';
+  }
+}
+
 /// Convert a PHP `date()` format string to an `intl` [DateFormat] pattern.
 ///
 /// Known PHP format letters map to their intl equivalents; every other run of
 /// characters is single-quote-escaped so `DateFormat` treats it as a literal
 /// and never throws on an unknown letter. PHP backslash escapes (`\X`) emit a
 /// literal `X`.
-String phpDateFormatToIntl(String php) {
+///
+/// PHP `S` (English ordinal suffix, e.g. `jS` → "3rd") has no intl token, so
+/// when [now] is supplied the computed suffix for `now.day` is spliced in as a
+/// literal. Without [now] it stays the bare letter. Other PHP letters with no
+/// clean intl analogue (`N`, `w`, `t`, `L`, `o`, `U`, `W`, `z`, `c`, `r`) are
+/// intentionally left literal — this powers a read-only preview, not exact PHP.
+String phpDateFormatToIntl(String php, {DateTime? now}) {
   const map = <String, String>{
     'Y': 'yyyy',
     'y': 'yy',
@@ -146,6 +172,14 @@ String phpDateFormatToIntl(String php) {
         literal.write(php[i + 1]);
         i++;
       }
+      continue;
+    }
+    if (ch == 'S' && now != null) {
+      // `S` (ordinal suffix) has no intl token — append the computed suffix to
+      // the `literal` buffer so flush() folds it into one quoted run with any
+      // neighboring literals. Emitting it as its own `'rd'` adjacent to another
+      // quoted literal (`'rd''X'`) would read as an escaped apostrophe in ICU.
+      literal.write(_ordinalSuffix(now.day));
       continue;
     }
     final mapped = map[ch];

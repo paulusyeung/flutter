@@ -162,6 +162,7 @@ the honest default.
 | Invoice — detail | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Invoice — edit (line items, dates, totals) | ✅ | ✅ | ✅ | ✅ | |
 | Billing-doc edit — items-section FAB → tabbed multi-select picker (Products / Tasks / Expenses; tasks+expenses client-scoped to uninvoiced; exclude already-attached; Select All per tab; projectId carry-over) — invoice / quote / credit / recurring / PO | ✅ | ✅ | ✅ | ✅ | |
+| Billing-doc edit — document-level tax rates (1–3) + custom surcharges (1–4) + inclusive-taxes toggle, gated on company `enabled_tax_rates` / surcharge custom-fields — invoice / quote / credit / recurring / PO | ✅ | ✅ | ✅ | | |
 | Invoice — create | ✅ | ✅ | ✅ | ✅ | |
 | Edit/create screen action bar (Save & mark sent/paid/cancel/auto-bill via save query-param; email/clone/etc. after-save) — all entities | ✅ | ✅ | ✅ | | |
 | Invoice — clone to new invoice | ✅ | ✅ | ✅ | ✅ | |

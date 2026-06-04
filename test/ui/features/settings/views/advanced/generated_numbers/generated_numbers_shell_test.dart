@@ -506,6 +506,54 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  // Vendor tokens are backend-substituted only for Expense entities
+  // (GeneratesCounter.applyNumberPattern gates on `instanceof Expense`).
+  // Purchase orders and recurring expenses must NOT offer the chip, or users
+  // would build patterns whose {$vendor_*} tokens render literally.
+  testWidgets(
+    'vendor token chips show on Expenses only, not PO / Recurring Expenses',
+    (tester) async {
+      final vendorChip = find.widgetWithText(ActionChip, '{\$vendor_number}');
+
+      // Expenses → chip present (the one entity the backend substitutes).
+      await pumpOnTab(
+        tester,
+        company: Company(
+          id: 'co-A',
+          enabledModules: EnabledModule.expenses.bitmask,
+        ),
+        tabLabel: 'Expenses',
+      );
+      expect(vendorChip, findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+
+      // Purchase Orders → chip absent.
+      await pumpOnTab(
+        tester,
+        company: Company(
+          id: 'co-A',
+          enabledModules: EnabledModule.purchaseOrders.bitmask,
+        ),
+        tabLabel: 'Purchase Orders',
+      );
+      expect(vendorChip, findsNothing);
+      await tester.pumpWidget(const SizedBox.shrink());
+
+      // Recurring Expenses → chip absent.
+      await pumpOnTab(
+        tester,
+        company: Company(
+          id: 'co-A',
+          enabledModules: EnabledModule.recurringExpenses.bitmask,
+        ),
+        tabLabel: 'Recurring Expenses',
+      );
+      expect(vendorChip, findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
   // VeriFactu (Spain's tax-authority e-invoicing) locks `counter_number_applied`
   // server-side. The Settings tab mirrors React (`Settings.tsx:109`,
   // `|| verifactuEnabled`) by greying the Generate Number dropdown — a null

@@ -32,6 +32,13 @@ abstract class CompanyApi with _$CompanyApi {
     @JsonKey(name: 'industry_id') @Default('') String industryId,
     @JsonKey(name: 'first_month_of_year') @Default('') String firstMonthOfYear,
     @JsonKey(name: 'first_day_of_week') @Default('') String firstDayOfWeek,
+    // Settings → Localization "Decimal Comma". Top-level company column on the
+    // API (never inside `settings`) — confirmed against the live server, React
+    // (binds top-level), and admin-portal. The money formatter reads it via
+    // `Services._buildFormatter`'s row overlay, same as the two fields above.
+    @JsonKey(name: 'use_comma_as_decimal_place')
+    @Default(false)
+    bool useCommaAsDecimalPlace,
     @JsonKey(name: 'enabled_modules') @Default(0) int enabledModules,
     @JsonKey(name: 'legal_entity_id') @Default(0) int legalEntityId,
     // ── E-Invoice certificate ───────────────────────────────────────────

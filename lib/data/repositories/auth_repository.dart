@@ -879,6 +879,7 @@ class AuthRepository {
             industryId: Value(uc.company.industryId),
             firstMonthOfYear: Value(uc.company.firstMonthOfYear),
             firstDayOfWeek: Value(uc.company.firstDayOfWeek),
+            useCommaAsDecimalPlace: Value(uc.company.useCommaAsDecimalPlace),
             legalEntityId: Value(uc.company.legalEntityId),
             enabledModules: Value(uc.company.enabledModules),
             googleAnalyticsKey: Value(uc.company.googleAnalyticsKey),

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
@@ -8,6 +9,8 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/quote.dart';
+import 'package:admin/data/models/domain/quote_status.dart';
+import 'package:admin/data/models/value/date.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
@@ -15,6 +18,7 @@ import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/billing_shared/actions/add_comment_prompt.dart';
+import 'package:admin/ui/features/billing_shared/billing_cross_clone.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
 
 /// Quote action set. Mirrors `InvoiceAction` but drops `markPaid` /
@@ -381,13 +385,30 @@ class QuoteActions {
       case QuoteAction.cloneGroup:
         break; // Submenu parent — never dispatched; children carry the action.
       case QuoteAction.clone:
+        // Reset everything that must not carry over to a fresh draft (mirrors
+        // the invoice clone). Critically `statusId`: a clone of a Sent/Approved
+        // quote must open as a Draft, not inherit "sent/approved". Also drop
+        // dates (→ today / unset), exchange rate, partial, party links, and the
+        // e-invoice block. `balance: quote.amount` mirrors invoice.
         final draft = quote.copyWith(
           id: '',
           number: '',
+          statusId: QuoteStatus.draft,
+          date: Date.today(),
+          dueDate: null,
+          partialDueDate: null,
+          partial: Decimal.zero,
+          taxAmount: Decimal.zero,
+          balance: quote.amount,
+          exchangeRate: Decimal.one,
+          projectId: '',
+          vendorId: '',
+          subscriptionId: '',
+          invoiceId: '',
+          eInvoice: null,
           archivedAt: null,
           isDeleted: false,
           isDirty: false,
-          invoiceId: '',
           updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
           createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
         );
@@ -403,35 +424,31 @@ class QuoteActions {
         if (!context.mounted) return;
         Notify.success(context, context.tr('cloned_to_invoice'));
 
+      // Cross-type clone is client-side (the server's bulk performAction only
+      // clones quote→invoice/quote): credit/recurring/PO are built here and
+      // opened in the target's create form. Navigation IS the feedback — no
+      // toast, and no tmp_ gate since it never hits the server. `cloneToInvoice`
+      // above stays on the supported server path.
       case QuoteAction.cloneToCredit:
-        if (tmpGate()) return;
-        await services.quotes.cloneTo(
-          companyId: companyId,
-          id: quote.id,
-          targetType: 'credit',
+        goEntityCreateFullWidth(
+          context,
+          '/credits',
+          extra: cloneToCredit(billingCloneFromQuote(quote)),
         );
-        if (!context.mounted) return;
-        Notify.success(context, context.tr('cloned_to_credit'));
 
       case QuoteAction.cloneToRecurring:
-        if (tmpGate()) return;
-        await services.quotes.cloneTo(
-          companyId: companyId,
-          id: quote.id,
-          targetType: 'recurring_invoice',
+        goEntityCreateFullWidth(
+          context,
+          '/recurring_invoices',
+          extra: cloneToRecurringInvoice(billingCloneFromQuote(quote)),
         );
-        if (!context.mounted) return;
-        Notify.success(context, context.tr('cloned_to_recurring'));
 
       case QuoteAction.cloneToPurchaseOrder:
-        if (tmpGate()) return;
-        await services.quotes.cloneTo(
-          companyId: companyId,
-          id: quote.id,
-          targetType: 'purchase_order',
+        goEntityCreateFullWidth(
+          context,
+          '/purchase_orders',
+          extra: cloneToPurchaseOrder(billingCloneFromQuote(quote)),
         );
-        if (!context.mounted) return;
-        Notify.success(context, context.tr('cloned_to_purchase_order'));
 
       case QuoteAction.addComment:
         if (tmpGate()) return;
@@ -444,6 +461,7 @@ class QuoteActions {
         );
 
       case QuoteAction.archive:
+        if (tmpGate()) return;
         await StandardEntityActions.archive(
           context: context,
           wireName: 'quote',
@@ -451,6 +469,7 @@ class QuoteActions {
         );
 
       case QuoteAction.restore:
+        if (tmpGate()) return;
         await StandardEntityActions.restore(
           context: context,
           wireName: 'quote',

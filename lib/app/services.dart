@@ -88,6 +88,7 @@ import 'package:admin/ui/core/unsaved_changes/unsaved_changes_guard.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/app/accent_color_controller.dart';
+import 'package:admin/app/app_locale_resolver.dart';
 import 'package:admin/app/debug_capture_store.dart';
 import 'package:admin/app/diagnostics_log.dart';
 import 'package:admin/app/locale_controller.dart';
@@ -248,6 +249,7 @@ class Services implements SidebarBadgeContext {
     required this.theme,
     required this.accentColor,
     required this.locale,
+    required this.appLocale,
     required this.sidebar,
     required this.recentlyViewed,
     required this.settingsLevel,
@@ -505,7 +507,13 @@ class Services implements SidebarBadgeContext {
   /// so a swatch change or company switch repaints the theme.
   final AccentColorController accentColor;
 
+  /// Device-local app-language override (Settings → User Details →
+  /// Preferences). Drives [appLocale] as the top-priority input.
   final LocaleController locale;
+
+  /// The locale `MaterialApp.locale` actually binds to — resolves the device
+  /// override over the active company's `settings.language_id` (React parity).
+  final AppLocaleResolver appLocale;
 
   final SidebarController sidebar;
 
@@ -649,13 +657,15 @@ class Services implements SidebarBadgeContext {
                 : jsonDecode(row.settings) as Map<String, dynamic>,
           );
     if (row != null) {
-      // first_month_of_year / first_day_of_week are top-level company columns,
-      // not part of the `settings` JSON blob — overlay them from the row so the
-      // Formatter (and everything that reaches date_ranges.dart through it)
-      // sees the persisted fiscal-year / week-start values.
+      // first_month_of_year / first_day_of_week / use_comma_as_decimal_place
+      // are top-level company columns, not part of the `settings` JSON blob —
+      // overlay them from the row so the Formatter (and everything that reaches
+      // date_ranges.dart through it) sees the persisted fiscal-year / week-start
+      // / decimal-separator values.
       settings = settings.copyWith(
         firstMonthOfYear: int.tryParse(row.firstMonthOfYear) ?? 1,
         firstDayOfWeek: int.tryParse(row.firstDayOfWeek) ?? 0,
+        useCommaAsDecimalPlace: row.useCommaAsDecimalPlace,
       );
     }
     return Formatter(
@@ -775,8 +785,13 @@ class Services implements SidebarBadgeContext {
       onEnqueued: kickDrain,
       // Drop the memoized per-company Formatter after a settings write so a
       // Date Format / currency / decimal-separator change takes effect
-      // without a logout/restart.
-      onSettingsWritten: (companyId) => services.invalidateFormatter(companyId),
+      // without a logout/restart. Also recompute the app locale so a
+      // Localization → Language change re-localizes the app on save (React
+      // parity) without waiting for the next login/refresh.
+      onSettingsWritten: (companyId) {
+        services.invalidateFormatter(companyId);
+        services.appLocale.onSettingsWritten();
+      },
     );
     final quickbooksRepo = QuickbooksRepository(
       apiClient: apiClient,
@@ -899,6 +914,15 @@ class Services implements SidebarBadgeContext {
     final theme = ThemeController(db: db);
     final accentColor = AccentColorController(auth: auth, users: userRepo);
     final locale = LocaleController(db: db);
+    // Resolves the UI locale: device override → active company's
+    // settings.language_id → English. Listens to the override + auth.session,
+    // and is recomputed on settings save via the onSettingsWritten hook above.
+    final appLocale = AppLocaleResolver(
+      override: locale,
+      auth: auth,
+      statics: statics,
+      db: db,
+    );
     final sidebar = SidebarController(db: db);
     // Company-scoped — clears itself off `auth.session` changes, same as the
     // nav history. No `onActiveCompanyChanged` hook needed here.
@@ -995,6 +1019,7 @@ class Services implements SidebarBadgeContext {
       theme: theme,
       accentColor: accentColor,
       locale: locale,
+      appLocale: appLocale,
       sidebar: sidebar,
       recentlyViewed: recentlyViewed,
       settingsLevel: settingsLevel,

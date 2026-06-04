@@ -5751,6 +5751,21 @@ class $CompaniesTable extends Companies
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _useCommaAsDecimalPlaceMeta =
+      const VerificationMeta('useCommaAsDecimalPlace');
+  @override
+  late final GeneratedColumn<bool> useCommaAsDecimalPlace =
+      GeneratedColumn<bool>(
+        'use_comma_as_decimal_place',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("use_comma_as_decimal_place" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
   static const VerificationMeta _legalEntityIdMeta = const VerificationMeta(
     'legalEntityId',
   );
@@ -6900,6 +6915,7 @@ class $CompaniesTable extends Companies
     industryId,
     firstMonthOfYear,
     firstDayOfWeek,
+    useCommaAsDecimalPlace,
     legalEntityId,
     hasEInvoiceCertificate,
     eInvoiceCertificatePassphrase,
@@ -7095,6 +7111,15 @@ class $CompaniesTable extends Companies
         firstDayOfWeek.isAcceptableOrUnknown(
           data['first_day_of_week']!,
           _firstDayOfWeekMeta,
+        ),
+      );
+    }
+    if (data.containsKey('use_comma_as_decimal_place')) {
+      context.handle(
+        _useCommaAsDecimalPlaceMeta,
+        useCommaAsDecimalPlace.isAcceptableOrUnknown(
+          data['use_comma_as_decimal_place']!,
+          _useCommaAsDecimalPlaceMeta,
         ),
       );
     }
@@ -7872,6 +7897,10 @@ class $CompaniesTable extends Companies
         DriftSqlType.string,
         data['${effectivePrefix}first_day_of_week'],
       )!,
+      useCommaAsDecimalPlace: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}use_comma_as_decimal_place'],
+      )!,
       legalEntityId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}legal_entity_id'],
@@ -8227,6 +8256,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
   final String industryId;
   final String firstMonthOfYear;
   final String firstDayOfWeek;
+  final bool useCommaAsDecimalPlace;
   final int legalEntityId;
   final bool hasEInvoiceCertificate;
   final String eInvoiceCertificatePassphrase;
@@ -8331,6 +8361,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     required this.industryId,
     required this.firstMonthOfYear,
     required this.firstDayOfWeek,
+    required this.useCommaAsDecimalPlace,
     required this.legalEntityId,
     required this.hasEInvoiceCertificate,
     required this.eInvoiceCertificatePassphrase,
@@ -8435,6 +8466,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     map['industry_id'] = Variable<String>(industryId);
     map['first_month_of_year'] = Variable<String>(firstMonthOfYear);
     map['first_day_of_week'] = Variable<String>(firstDayOfWeek);
+    map['use_comma_as_decimal_place'] = Variable<bool>(useCommaAsDecimalPlace);
     map['legal_entity_id'] = Variable<int>(legalEntityId);
     map['has_e_invoice_certificate'] = Variable<bool>(hasEInvoiceCertificate);
     map['e_invoice_certificate_passphrase'] = Variable<String>(
@@ -8574,6 +8606,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       industryId: Value(industryId),
       firstMonthOfYear: Value(firstMonthOfYear),
       firstDayOfWeek: Value(firstDayOfWeek),
+      useCommaAsDecimalPlace: Value(useCommaAsDecimalPlace),
       legalEntityId: Value(legalEntityId),
       hasEInvoiceCertificate: Value(hasEInvoiceCertificate),
       eInvoiceCertificatePassphrase: Value(eInvoiceCertificatePassphrase),
@@ -8685,6 +8718,9 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       industryId: serializer.fromJson<String>(json['industryId']),
       firstMonthOfYear: serializer.fromJson<String>(json['firstMonthOfYear']),
       firstDayOfWeek: serializer.fromJson<String>(json['firstDayOfWeek']),
+      useCommaAsDecimalPlace: serializer.fromJson<bool>(
+        json['useCommaAsDecimalPlace'],
+      ),
       legalEntityId: serializer.fromJson<int>(json['legalEntityId']),
       hasEInvoiceCertificate: serializer.fromJson<bool>(
         json['hasEInvoiceCertificate'],
@@ -8863,6 +8899,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       'industryId': serializer.toJson<String>(industryId),
       'firstMonthOfYear': serializer.toJson<String>(firstMonthOfYear),
       'firstDayOfWeek': serializer.toJson<String>(firstDayOfWeek),
+      'useCommaAsDecimalPlace': serializer.toJson<bool>(useCommaAsDecimalPlace),
       'legalEntityId': serializer.toJson<int>(legalEntityId),
       'hasEInvoiceCertificate': serializer.toJson<bool>(hasEInvoiceCertificate),
       'eInvoiceCertificatePassphrase': serializer.toJson<String>(
@@ -8995,6 +9032,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     String? industryId,
     String? firstMonthOfYear,
     String? firstDayOfWeek,
+    bool? useCommaAsDecimalPlace,
     int? legalEntityId,
     bool? hasEInvoiceCertificate,
     String? eInvoiceCertificatePassphrase,
@@ -9092,6 +9130,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     industryId: industryId ?? this.industryId,
     firstMonthOfYear: firstMonthOfYear ?? this.firstMonthOfYear,
     firstDayOfWeek: firstDayOfWeek ?? this.firstDayOfWeek,
+    useCommaAsDecimalPlace:
+        useCommaAsDecimalPlace ?? this.useCommaAsDecimalPlace,
     legalEntityId: legalEntityId ?? this.legalEntityId,
     hasEInvoiceCertificate:
         hasEInvoiceCertificate ?? this.hasEInvoiceCertificate,
@@ -9226,6 +9266,9 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       firstDayOfWeek: data.firstDayOfWeek.present
           ? data.firstDayOfWeek.value
           : this.firstDayOfWeek,
+      useCommaAsDecimalPlace: data.useCommaAsDecimalPlace.present
+          ? data.useCommaAsDecimalPlace.value
+          : this.useCommaAsDecimalPlace,
       legalEntityId: data.legalEntityId.present
           ? data.legalEntityId.value
           : this.legalEntityId,
@@ -9479,6 +9522,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           ..write('industryId: $industryId, ')
           ..write('firstMonthOfYear: $firstMonthOfYear, ')
           ..write('firstDayOfWeek: $firstDayOfWeek, ')
+          ..write('useCommaAsDecimalPlace: $useCommaAsDecimalPlace, ')
           ..write('legalEntityId: $legalEntityId, ')
           ..write('hasEInvoiceCertificate: $hasEInvoiceCertificate, ')
           ..write(
@@ -9589,6 +9633,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     industryId,
     firstMonthOfYear,
     firstDayOfWeek,
+    useCommaAsDecimalPlace,
     legalEntityId,
     hasEInvoiceCertificate,
     eInvoiceCertificatePassphrase,
@@ -9690,6 +9735,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           other.industryId == this.industryId &&
           other.firstMonthOfYear == this.firstMonthOfYear &&
           other.firstDayOfWeek == this.firstDayOfWeek &&
+          other.useCommaAsDecimalPlace == this.useCommaAsDecimalPlace &&
           other.legalEntityId == this.legalEntityId &&
           other.hasEInvoiceCertificate == this.hasEInvoiceCertificate &&
           other.eInvoiceCertificatePassphrase ==
@@ -9794,6 +9840,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
   final Value<String> industryId;
   final Value<String> firstMonthOfYear;
   final Value<String> firstDayOfWeek;
+  final Value<bool> useCommaAsDecimalPlace;
   final Value<int> legalEntityId;
   final Value<bool> hasEInvoiceCertificate;
   final Value<String> eInvoiceCertificatePassphrase;
@@ -9892,6 +9939,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.industryId = const Value.absent(),
     this.firstMonthOfYear = const Value.absent(),
     this.firstDayOfWeek = const Value.absent(),
+    this.useCommaAsDecimalPlace = const Value.absent(),
     this.legalEntityId = const Value.absent(),
     this.hasEInvoiceCertificate = const Value.absent(),
     this.eInvoiceCertificatePassphrase = const Value.absent(),
@@ -9991,6 +10039,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.industryId = const Value.absent(),
     this.firstMonthOfYear = const Value.absent(),
     this.firstDayOfWeek = const Value.absent(),
+    this.useCommaAsDecimalPlace = const Value.absent(),
     this.legalEntityId = const Value.absent(),
     this.hasEInvoiceCertificate = const Value.absent(),
     this.eInvoiceCertificatePassphrase = const Value.absent(),
@@ -10096,6 +10145,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Expression<String>? industryId,
     Expression<String>? firstMonthOfYear,
     Expression<String>? firstDayOfWeek,
+    Expression<bool>? useCommaAsDecimalPlace,
     Expression<int>? legalEntityId,
     Expression<bool>? hasEInvoiceCertificate,
     Expression<String>? eInvoiceCertificatePassphrase,
@@ -10195,6 +10245,8 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       if (industryId != null) 'industry_id': industryId,
       if (firstMonthOfYear != null) 'first_month_of_year': firstMonthOfYear,
       if (firstDayOfWeek != null) 'first_day_of_week': firstDayOfWeek,
+      if (useCommaAsDecimalPlace != null)
+        'use_comma_as_decimal_place': useCommaAsDecimalPlace,
       if (legalEntityId != null) 'legal_entity_id': legalEntityId,
       if (hasEInvoiceCertificate != null)
         'has_e_invoice_certificate': hasEInvoiceCertificate,
@@ -10339,6 +10391,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Value<String>? industryId,
     Value<String>? firstMonthOfYear,
     Value<String>? firstDayOfWeek,
+    Value<bool>? useCommaAsDecimalPlace,
     Value<int>? legalEntityId,
     Value<bool>? hasEInvoiceCertificate,
     Value<String>? eInvoiceCertificatePassphrase,
@@ -10438,6 +10491,8 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       industryId: industryId ?? this.industryId,
       firstMonthOfYear: firstMonthOfYear ?? this.firstMonthOfYear,
       firstDayOfWeek: firstDayOfWeek ?? this.firstDayOfWeek,
+      useCommaAsDecimalPlace:
+          useCommaAsDecimalPlace ?? this.useCommaAsDecimalPlace,
       legalEntityId: legalEntityId ?? this.legalEntityId,
       hasEInvoiceCertificate:
           hasEInvoiceCertificate ?? this.hasEInvoiceCertificate,
@@ -10597,6 +10652,11 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     }
     if (firstDayOfWeek.present) {
       map['first_day_of_week'] = Variable<String>(firstDayOfWeek.value);
+    }
+    if (useCommaAsDecimalPlace.present) {
+      map['use_comma_as_decimal_place'] = Variable<bool>(
+        useCommaAsDecimalPlace.value,
+      );
     }
     if (legalEntityId.present) {
       map['legal_entity_id'] = Variable<int>(legalEntityId.value);
@@ -10937,6 +10997,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
           ..write('industryId: $industryId, ')
           ..write('firstMonthOfYear: $firstMonthOfYear, ')
           ..write('firstDayOfWeek: $firstDayOfWeek, ')
+          ..write('useCommaAsDecimalPlace: $useCommaAsDecimalPlace, ')
           ..write('legalEntityId: $legalEntityId, ')
           ..write('hasEInvoiceCertificate: $hasEInvoiceCertificate, ')
           ..write(
@@ -45671,6 +45732,7 @@ typedef $$CompaniesTableCreateCompanionBuilder =
       Value<String> industryId,
       Value<String> firstMonthOfYear,
       Value<String> firstDayOfWeek,
+      Value<bool> useCommaAsDecimalPlace,
       Value<int> legalEntityId,
       Value<bool> hasEInvoiceCertificate,
       Value<String> eInvoiceCertificatePassphrase,
@@ -45771,6 +45833,7 @@ typedef $$CompaniesTableUpdateCompanionBuilder =
       Value<String> industryId,
       Value<String> firstMonthOfYear,
       Value<String> firstDayOfWeek,
+      Value<bool> useCommaAsDecimalPlace,
       Value<int> legalEntityId,
       Value<bool> hasEInvoiceCertificate,
       Value<String> eInvoiceCertificatePassphrase,
@@ -45928,6 +45991,11 @@ class $$CompaniesTableFilterComposer
 
   ColumnFilters<String> get firstDayOfWeek => $composableBuilder(
     column: $table.firstDayOfWeek,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get useCommaAsDecimalPlace => $composableBuilder(
+    column: $table.useCommaAsDecimalPlace,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -46422,6 +46490,11 @@ class $$CompaniesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get useCommaAsDecimalPlace => $composableBuilder(
+    column: $table.useCommaAsDecimalPlace,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get legalEntityId => $composableBuilder(
     column: $table.legalEntityId,
     builder: (column) => ColumnOrderings(column),
@@ -46901,6 +46974,11 @@ class $$CompaniesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get useCommaAsDecimalPlace => $composableBuilder(
+    column: $table.useCommaAsDecimalPlace,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get legalEntityId => $composableBuilder(
     column: $table.legalEntityId,
     builder: (column) => column,
@@ -47346,6 +47424,7 @@ class $$CompaniesTableTableManager
                 Value<String> industryId = const Value.absent(),
                 Value<String> firstMonthOfYear = const Value.absent(),
                 Value<String> firstDayOfWeek = const Value.absent(),
+                Value<bool> useCommaAsDecimalPlace = const Value.absent(),
                 Value<int> legalEntityId = const Value.absent(),
                 Value<bool> hasEInvoiceCertificate = const Value.absent(),
                 Value<String> eInvoiceCertificatePassphrase =
@@ -47448,6 +47527,7 @@ class $$CompaniesTableTableManager
                 industryId: industryId,
                 firstMonthOfYear: firstMonthOfYear,
                 firstDayOfWeek: firstDayOfWeek,
+                useCommaAsDecimalPlace: useCommaAsDecimalPlace,
                 legalEntityId: legalEntityId,
                 hasEInvoiceCertificate: hasEInvoiceCertificate,
                 eInvoiceCertificatePassphrase: eInvoiceCertificatePassphrase,
@@ -47550,6 +47630,7 @@ class $$CompaniesTableTableManager
                 Value<String> industryId = const Value.absent(),
                 Value<String> firstMonthOfYear = const Value.absent(),
                 Value<String> firstDayOfWeek = const Value.absent(),
+                Value<bool> useCommaAsDecimalPlace = const Value.absent(),
                 Value<int> legalEntityId = const Value.absent(),
                 Value<bool> hasEInvoiceCertificate = const Value.absent(),
                 Value<String> eInvoiceCertificatePassphrase =
@@ -47652,6 +47733,7 @@ class $$CompaniesTableTableManager
                 industryId: industryId,
                 firstMonthOfYear: firstMonthOfYear,
                 firstDayOfWeek: firstDayOfWeek,
+                useCommaAsDecimalPlace: useCommaAsDecimalPlace,
                 legalEntityId: legalEntityId,
                 hasEInvoiceCertificate: hasEInvoiceCertificate,
                 eInvoiceCertificatePassphrase: eInvoiceCertificatePassphrase,

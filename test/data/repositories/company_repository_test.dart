@@ -299,6 +299,37 @@ void main() {
       expect(company!.firstMonthOfYear, '1');
     });
 
+    test('persists use_comma_as_decimal_place + first_day_of_week and surfaces '
+        'them through _fromRow — top-level company fields the money formatter '
+        'and week-start logic read off the company row, never `settings`. '
+        'Regression: decimal_comma was misfiled under settings and silently '
+        'never took effect', () async {
+      const companyId = 'co';
+      await seedCompany(companyId);
+      final repo = makeRepo();
+
+      await repo.applyUpdateResponse(
+        companyId: companyId,
+        serverResponse: CompanyApi(
+          id: companyId,
+          name: 'Acme',
+          // Both top-level on the company object (not inside `settings`),
+          // exactly as the live API returns them. '1' == Monday.
+          useCommaAsDecimalPlace: true,
+          firstDayOfWeek: '1',
+        ),
+      );
+
+      // Written to the dedicated columns…
+      final row = await db.companiesDao.byId(companyId);
+      expect(row!.useCommaAsDecimalPlace, true);
+      expect(row.firstDayOfWeek, '1');
+      // …and surfaced on the domain model.
+      final company = await repo.get(companyId);
+      expect(company!.useCommaAsDecimalPlace, true);
+      expect(company.firstDayOfWeek, '1');
+    });
+
     test('refreshes the logo_url column from settings.company_logo', () async {
       // Regression: the dedicated logo_url column must follow the applied
       // settings. `_onCompaniesChanged` / `restore` prefer the column, so a

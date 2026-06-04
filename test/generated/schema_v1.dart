@@ -1228,6 +1228,16 @@ class Companies extends Table with TableInfo {
     $customConstraints: 'NOT NULL DEFAULT \'\'',
     defaultValue: const CustomExpression('\'\''),
   );
+  late final GeneratedColumn<int> useCommaAsDecimalPlace = GeneratedColumn<int>(
+    'use_comma_as_decimal_place',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints:
+        'NOT NULL DEFAULT 0 CHECK (use_comma_as_decimal_place IN (0, 1))',
+    defaultValue: const CustomExpression('0'),
+  );
   late final GeneratedColumn<int> legalEntityId = GeneratedColumn<int>(
     'legal_entity_id',
     aliasedName,
@@ -2042,6 +2052,7 @@ class Companies extends Table with TableInfo {
     industryId,
     firstMonthOfYear,
     firstDayOfWeek,
+    useCommaAsDecimalPlace,
     legalEntityId,
     hasEInvoiceCertificate,
     eInvoiceCertificatePassphrase,

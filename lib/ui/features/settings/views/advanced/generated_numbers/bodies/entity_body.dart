@@ -79,8 +79,9 @@ class GeneratedNumbersEntityBody extends StatefulWidget {
   /// invoices, projects).
   final bool showClientTokens;
 
-  /// Show the vendor token chips. Set on tabs whose entity carries a vendor
-  /// reference (expenses, recurring expenses, purchase orders).
+  /// Show the vendor token chips. Set only on the Expenses tab — the backend
+  /// substitutes `{$vendor_*}` only for `Expense` entities; purchase orders and
+  /// recurring expenses leave those tokens literal, so they don't show them.
   final bool showVendorTokens;
 
   @override

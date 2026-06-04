@@ -24,25 +24,32 @@ class PurchaseOrdersApi
   PurchaseOrderItemApi parseItem(Object json) =>
       PurchaseOrderItemApi.fromJson(json as Map<String, dynamic>);
 
+  // State transitions ride `POST /purchase_orders/bulk` ({action, ids:[id]})
+  // — the per-id `/{id}/{action}` route is GET-only on the server.
   Future<PurchaseOrderItemApi?> markSent({
     required String id,
     required String idempotencyKey,
-  }) => action(id: id, action: 'mark_sent', idempotencyKey: idempotencyKey);
+  }) => bulkActionOne(
+    id: id,
+    action: 'mark_sent',
+    idempotencyKey: idempotencyKey,
+  );
 
   Future<PurchaseOrderItemApi?> accept({
     required String id,
     required String idempotencyKey,
-  }) => action(id: id, action: 'accept', idempotencyKey: idempotencyKey);
+  }) => bulkActionOne(id: id, action: 'accept', idempotencyKey: idempotencyKey);
 
   Future<PurchaseOrderItemApi?> cancel({
     required String id,
     required String idempotencyKey,
-  }) => action(id: id, action: 'cancel', idempotencyKey: idempotencyKey);
+  }) => bulkActionOne(id: id, action: 'cancel', idempotencyKey: idempotencyKey);
 
   Future<PurchaseOrderItemApi?> expense({
     required String id,
     required String idempotencyKey,
-  }) => action(id: id, action: 'expense', idempotencyKey: idempotencyKey);
+  }) =>
+      bulkActionOne(id: id, action: 'expense', idempotencyKey: idempotencyKey);
 
   Future<PurchaseOrderItemApi?> email({
     required String id,
@@ -51,16 +58,14 @@ class PurchaseOrdersApi
     String? body,
     String? ccEmail,
     required String idempotencyKey,
-  }) => action(
+  }) => sendEmail(
+    entity: 'purchase_order',
     id: id,
-    action: 'email',
+    template: template,
+    subject: subject,
+    body: body,
+    ccEmail: ccEmail,
     idempotencyKey: idempotencyKey,
-    payload: {
-      'template': template,
-      if (subject != null) 'subject': subject,
-      if (body != null) 'body': body,
-      if (ccEmail != null) 'cc_email': ccEmail,
-    },
   );
 
   Future<PurchaseOrderItemApi?> scheduleEmail({
@@ -71,24 +76,22 @@ class PurchaseOrdersApi
     String? body,
     String? ccEmail,
     required String idempotencyKey,
-  }) => action(
-    id: id,
-    action: 'email',
-    idempotencyKey: idempotencyKey,
-    payload: {
-      'template': template,
-      'send_at': sendAt,
-      if (subject != null) 'subject': subject,
-      if (body != null) 'body': body,
-      if (ccEmail != null) 'cc_email': ccEmail,
-    },
-  );
+  }) async {
+    await scheduleEmailRecord(
+      entity: 'purchase_order',
+      id: id,
+      template: template,
+      sendAt: sendAt,
+      idempotencyKey: idempotencyKey,
+    );
+    return null;
+  }
 
   Future<PurchaseOrderItemApi?> cloneTo({
     required String id,
     required String targetType,
     required String idempotencyKey,
-  }) => action(
+  }) => bulkActionOne(
     id: id,
     action: 'clone_to_$targetType',
     idempotencyKey: idempotencyKey,
@@ -98,11 +101,11 @@ class PurchaseOrdersApi
     required String id,
     required String templateId,
     required String idempotencyKey,
-  }) => action(
+  }) => bulkActionOne(
     id: id,
     action: 'template',
     idempotencyKey: idempotencyKey,
-    payload: {'template_id': templateId},
+    extra: {'template_id': templateId},
   );
 
   /// Server-rendered PDF via the purchase-order sub-path
@@ -137,7 +140,8 @@ class PurchaseOrdersApi
     final file = await source.toMultipartFile('documents[]');
     final raw = await client.uploadMultipart(
       path: '$basePath/$entityId/upload',
-      fields: const {'_method': 'POST'},
+      // Server route is `Route::put('purchase_orders/{purchase_order}/upload')`.
+      fields: const {'_method': 'PUT'},
       files: [file],
       idempotencyKey: idempotencyKey,
     );

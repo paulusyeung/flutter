@@ -66,20 +66,20 @@ class CompanyFormatSettings {
         : json;
     return CompanyFormatSettings(
       // Wire keys: currency_id, country_id, date_format_id, language_id,
-      // use_comma_as_decimal_place, show_currency_code, military_time.
+      // show_currency_code, military_time.
       currencyId: _str(settings, 'currency_id', fallback.currencyId),
       countryId: _str(settings, 'country_id', fallback.countryId),
       dateFormatId: _str(settings, 'date_format_id', fallback.dateFormatId),
-      useCommaAsDecimalPlace: _bool(settings, 'use_comma_as_decimal_place'),
       showCurrencyCode: _bool(settings, 'show_currency_code'),
       enableMilitaryTime: _bool(settings, 'military_time'),
       locale: _localeFromLanguageId(_str(settings, 'language_id', '')),
-      // first_month_of_year / first_day_of_week are TOP-LEVEL company fields
-      // (not inside `settings`), so read them off the outer `json`. In the
-      // common path `Services._buildFormatter` overrides these from the
-      // company row's dedicated columns via copyWith.
+      // first_month_of_year / first_day_of_week / use_comma_as_decimal_place are
+      // TOP-LEVEL company fields (not inside `settings`), so read them off the
+      // outer `json`. In the common path `Services._buildFormatter` overrides
+      // these from the company row's dedicated columns via copyWith.
       firstMonthOfYear: _int(json, 'first_month_of_year', 1),
       firstDayOfWeek: _int(json, 'first_day_of_week', 0),
+      useCommaAsDecimalPlace: _bool(json, 'use_comma_as_decimal_place'),
     );
   }
 

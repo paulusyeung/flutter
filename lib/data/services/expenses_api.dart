@@ -48,7 +48,7 @@ class ExpensesApi extends BaseEntityApi<ExpenseListApi, ExpenseItemApi> {
     final file = await source.toMultipartFile('documents[]');
     final raw = await client.uploadMultipart(
       path: '$basePath/$entityId/upload',
-      fields: const {'_method': 'POST'},
+      fields: const {'_method': 'PUT'},
       files: [file],
       idempotencyKey: idempotencyKey,
     );
