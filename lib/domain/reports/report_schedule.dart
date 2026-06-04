@@ -25,7 +25,7 @@ Schedule reportEmailSchedule(
   final base = Schedule.empty().withTemplate(kScheduleTemplateEmailReport);
   final params = Map<String, dynamic>.from(base.parameters)
     ..addAll(<String, dynamic>{
-      'report_name': seed.reportIdentifier,
+      'report_name': _scheduleReportName(seed.reportIdentifier),
       'date_range': _scheduleDateRange(p.datePreset),
       'start_date': p.startDate?.toIso() ?? '',
       'end_date': p.endDate?.toIso() ?? '',
@@ -53,6 +53,23 @@ Schedule reportEmailSchedule(
     nextRun: runAt,
     parameters: params,
   );
+}
+
+/// Normalize a report-registry identifier to a server-valid email_report
+/// `report_name`. The report registry exposes identifiers (`contact`,
+/// `task`, `vendor`, `purchase_order`, …) that don't all line up with the
+/// scheduler's exporter set: `contact`/`task` need the server's
+/// `client_contact`/`tasks`, and reports with no scheduler exporter
+/// (vendor, purchase_order[_item]) would be force-deleted on first run. Map
+/// the aliases and fall back to `activity` for anything unschedulable so a
+/// seeded schedule never silently self-destructs.
+String _scheduleReportName(String reportIdentifier) {
+  const aliases = <String, String>{
+    'contact': 'client_contact',
+    'task': 'tasks',
+  };
+  final mapped = aliases[reportIdentifier] ?? reportIdentifier;
+  return kEmailReportReportNames.contains(mapped) ? mapped : 'activity';
 }
 
 /// Scheduler `date_range` vocabulary is long-form; the report payload uses

@@ -59,6 +59,7 @@ const List<NotificationSection> kNotificationSections = <NotificationSection>[
       NotificationEvent(id: 'quote_viewed', labelKey: 'quote_viewed'),
       NotificationEvent(id: 'quote_approved', labelKey: 'quote_approved'),
       NotificationEvent(id: 'quote_expired', labelKey: 'quote_expired'),
+      NotificationEvent(id: 'quote_rejected', labelKey: 'quote_rejected'),
     ],
   ),
   NotificationSection(
@@ -177,6 +178,22 @@ NotificationChoice choiceFromTokens(String eventId, List<String> tokens) {
   if (tokens.contains('${eventId}_all')) return NotificationChoice.all;
   if (tokens.contains('${eventId}_user')) return NotificationChoice.user;
   return NotificationChoice.none;
+}
+
+/// Tokens in `notifications.email[]` that the Notifications tab doesn't model
+/// — the self-profile toggles (`task_assigned`,
+/// `disable_recurring_payment_notification`,
+/// `enable_e_invoice_received_notification`) plus any future server event.
+/// Callers re-append these verbatim on save so an admin editing another user
+/// never silently drops them.
+List<String> unmodeledNotificationTokens(List<String> tokens) {
+  final known = <String>{kNotificationsAll, kNotificationsAllUser};
+  for (final e in kNotificationEvents) {
+    known
+      ..add('${e.id}_all')
+      ..add('${e.id}_user');
+  }
+  return tokens.where((t) => !known.contains(t)).toList(growable: false);
 }
 
 /// Serialize the global + per-event selections back into the

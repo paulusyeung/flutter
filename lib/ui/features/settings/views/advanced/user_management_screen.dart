@@ -285,44 +285,70 @@ class _BulkBar extends StatelessWidget {
       color: tokens.accentSoft,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: Row(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.close, size: 20),
-              tooltip: context.tr('cancel'),
-              onPressed: onClear,
-            ),
-            Text(
-              context.tr('count_selected').replaceAll(':count', '$count'),
-              style: TextStyle(
-                color: tokens.accentInk,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const Spacer(),
-            TextButton.icon(
-              icon: const Icon(Icons.archive_outlined, size: 18),
-              label: Text(context.tr('archive')),
-              onPressed: enabled ? onArchive : null,
-            ),
-            TextButton.icon(
-              icon: const Icon(Icons.unarchive_outlined, size: 18),
-              label: Text(context.tr('restore')),
-              onPressed: enabled ? onRestore : null,
-            ),
-            TextButton.icon(
-              icon: Icon(
-                Icons.delete_outline,
-                size: 18,
-                color: enabled ? tokens.overdue : null,
-              ),
-              label: Text(
-                context.tr('delete'),
-                style: TextStyle(color: enabled ? tokens.overdue : null),
-              ),
-              onPressed: enabled ? onDelete : null,
-            ),
-          ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Three labeled buttons + count overflow a narrow phone, so drop
+            // to icon-only (tooltip-labeled) below ~420 px.
+            final compact = constraints.maxWidth < 420;
+
+            Widget action({
+              required IconData icon,
+              required String labelKey,
+              required VoidCallback onPressed,
+              Color? color,
+            }) {
+              final label = context.tr(labelKey);
+              final fg = enabled ? color : null;
+              if (compact) {
+                return IconButton(
+                  icon: Icon(icon, size: 20, color: fg),
+                  tooltip: label,
+                  onPressed: enabled ? onPressed : null,
+                );
+              }
+              return TextButton.icon(
+                icon: Icon(icon, size: 18, color: fg),
+                label: Text(label, style: TextStyle(color: fg)),
+                onPressed: enabled ? onPressed : null,
+              );
+            }
+
+            return Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.close, size: 20),
+                  tooltip: context.tr('cancel'),
+                  onPressed: onClear,
+                ),
+                Expanded(
+                  child: Text(
+                    context.tr('count_selected').replaceAll(':count', '$count'),
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: tokens.accentInk,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                action(
+                  icon: Icons.archive_outlined,
+                  labelKey: 'archive',
+                  onPressed: onArchive,
+                ),
+                action(
+                  icon: Icons.unarchive_outlined,
+                  labelKey: 'restore',
+                  onPressed: onRestore,
+                ),
+                action(
+                  icon: Icons.delete_outline,
+                  labelKey: 'delete',
+                  onPressed: onDelete,
+                  color: tokens.overdue,
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

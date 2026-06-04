@@ -46,3 +46,66 @@ String permissionToken({required String verb, required String entity}) =>
 
 /// "All" row token (`create_all` / `view_all` / `edit_all`).
 String permissionAllToken(String verb) => '${verb}_all';
+
+/// Next permission list after toggling the "All" checkbox for [verb].
+///
+/// Turning it on drops the now-redundant per-entity tokens for that verb and
+/// adds `<verb>_all`; turning it off just removes `<verb>_all`. Tokens for
+/// other verbs and any unmodeled tokens are preserved untouched.
+List<String> permissionsAfterToggleAll({
+  required List<String> current,
+  required String verb,
+  required bool checked,
+}) {
+  final next = List<String>.of(current)..remove(permissionAllToken(verb));
+  if (checked) {
+    for (final entity in kPermissionEntities) {
+      next.remove(permissionToken(verb: verb, entity: entity));
+    }
+    next.add(permissionAllToken(verb));
+  }
+  return next;
+}
+
+/// Next permission list after toggling a single `(verb, entity)` cell, plus
+/// whether the change auto-promoted the column to `<verb>_all`.
+///
+///  * Checking the last unchecked cell in a column collapses the 14 explicit
+///    tokens to `<verb>_all` (auto-promote; `promoted == true`).
+///  * Unchecking a cell while `<verb>_all` is set expands the column to the
+///    other 13 explicit tokens — "all except this one" in one click (React
+///    parity).
+///
+/// Tokens for other verbs and any unmodeled tokens are preserved.
+({List<String> permissions, bool promoted}) permissionsAfterToggleCell({
+  required List<String> current,
+  required String verb,
+  required String entity,
+  required bool checked,
+}) {
+  final next = List<String>.of(current);
+  final token = permissionToken(verb: verb, entity: entity);
+  final allToken = permissionAllToken(verb);
+  var promoted = false;
+  if (checked) {
+    if (!next.contains(token)) next.add(token);
+    final everyEntityChecked = kPermissionEntities.every(
+      (e) => next.contains(permissionToken(verb: verb, entity: e)),
+    );
+    if (everyEntityChecked) {
+      for (final e in kPermissionEntities) {
+        next.remove(permissionToken(verb: verb, entity: e));
+      }
+      next.add(allToken);
+      promoted = true;
+    }
+  } else if (next.contains(allToken)) {
+    next.remove(allToken);
+    for (final e in kPermissionEntities) {
+      if (e != entity) next.add(permissionToken(verb: verb, entity: e));
+    }
+  } else {
+    next.remove(token);
+  }
+  return (permissions: next, promoted: promoted);
+}

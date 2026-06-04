@@ -136,11 +136,13 @@ abstract class BaseEntityApi<TList, TItem> {
     required String action,
     required String idempotencyKey,
     Map<String, dynamic>? extra,
+    Map<String, String>? query,
     bool requiresPassword = false,
   }) async {
     final raw = await client.mutate(
       method: 'POST',
       path: '$basePath/bulk',
+      query: query,
       idempotencyKey: idempotencyKey,
       body: {
         'action': action,

@@ -49,6 +49,9 @@ class UserEditViewModel extends GenericEditViewModel<User> {
       for (final event in kNotificationEvents)
         event.id: impliedChoice ?? choiceFromTokens(event.id, tokens),
     };
+    // Tokens the tab doesn't model (self-profile toggles, future events) are
+    // re-appended on every flush so an admin edit never silently drops them.
+    _unknownNotificationTokens = unmodeledNotificationTokens(tokens);
   }
 
   final UserRepository repo;
@@ -134,6 +137,7 @@ class UserEditViewModel extends GenericEditViewModel<User> {
 
   NotificationGlobal _globalNotification = NotificationGlobal.custom;
   late Map<String, NotificationChoice> _perEventBuffer;
+  late List<String> _unknownNotificationTokens;
 
   NotificationGlobal get globalNotification => _globalNotification;
 
@@ -165,7 +169,13 @@ class UserEditViewModel extends GenericEditViewModel<User> {
       global: _globalNotification,
       perEvent: _perEventBuffer,
     );
-    updateDraft(draft.copyWith(notificationsEmail: tokens));
+    // Re-append the tokens the tab doesn't model so they survive the save —
+    // no overlap with `tokens` (those are globals / known-event tokens only).
+    updateDraft(
+      draft.copyWith(
+        notificationsEmail: [...tokens, ..._unknownNotificationTokens],
+      ),
+    );
   }
 
   // ── Details setters ─────────────────────────────────────────────────

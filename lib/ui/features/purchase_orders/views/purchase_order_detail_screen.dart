@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
@@ -285,10 +286,7 @@ class _Header extends StatelessWidget {
                       purchaseOrder.dueDate!.toIso(),
                 ),
               if (purchaseOrder.expenseId.isNotEmpty)
-                _LabelValue(
-                  label: context.tr('expense'),
-                  value: purchaseOrder.expenseId,
-                ),
+                _ExpenseLink(expenseId: purchaseOrder.expenseId),
             ],
           ),
         ],
@@ -383,6 +381,41 @@ class _LabelValue extends StatelessWidget {
             fontWeight: FontWeight.w600,
             color: tokens.ink,
             fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// "Expense" header field rendered as a tappable link to the converted
+/// expense (`/expenses/<id>`), instead of a raw UUID. Shown only when the PO
+/// has been converted (`expenseId` set).
+class _ExpenseLink extends StatelessWidget {
+  const _ExpenseLink({required this.expenseId});
+  final String expenseId;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          context.tr('expense'),
+          style: TextStyle(fontSize: 11, color: tokens.ink3),
+        ),
+        const SizedBox(height: 2),
+        InkWell(
+          onTap: () => context.go('/expenses/$expenseId'),
+          child: Text(
+            context.tr('view_expense'),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
         ),
       ],

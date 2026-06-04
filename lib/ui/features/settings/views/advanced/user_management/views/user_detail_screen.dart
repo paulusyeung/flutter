@@ -212,10 +212,12 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
 
   Future<void> _archive(Services services, String companyId, User user) async {
     await services.user.archive(companyId: companyId, id: user.id);
+    if (mounted) Notify.success(context, context.tr('archived_user'));
   }
 
   Future<void> _restore(Services services, String companyId, User user) async {
     await services.user.restore(companyId: companyId, id: user.id);
+    if (mounted) Notify.success(context, context.tr('restored_user'));
   }
 
   Future<void> _delete(Services services, String companyId, User user) async {

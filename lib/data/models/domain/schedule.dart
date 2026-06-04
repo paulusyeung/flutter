@@ -68,15 +68,22 @@ abstract class Schedule with _$Schedule {
 extension SchedulePayload on Schedule {
   /// Serialize to the wire shape. The Drift `payload` column round-trips
   /// through this when the row is read back by the repository's `_fromRow`.
+  ///
+  /// `frequency_id` / `remaining_cycles` are emitted only for the templates
+  /// that use them (React `TemplateProperties` in `useFormatSchedulePayload`):
+  /// the server force-sets `frequency_id=0` for email_record and
+  /// `remaining_cycles=count(schedule)` for payment_schedule, so sending
+  /// stale values is at best ignored and at worst (frequency on a one-shot
+  /// email_record) wrong. Omitted keys read back as the DTO defaults.
   Map<String, dynamic> toApiJson({bool preserveTempId = false}) {
     return <String, dynamic>{
       if (preserveTempId || !id.startsWith('tmp_')) 'id': id,
       'name': name,
       'template': template,
-      'frequency_id': frequencyId,
+      if (supportsFrequency) 'frequency_id': frequencyId,
       'next_run': nextRun?.toIso() ?? '',
       'is_paused': isPaused,
-      'remaining_cycles': remainingCycles,
+      if (supportsRemainingCycles) 'remaining_cycles': remainingCycles,
       'parameters': parameters,
     };
   }
@@ -101,6 +108,25 @@ extension ScheduleTemplateHelpers on Schedule {
   /// Whether this template uses the `next_run` field. Payment schedules
   /// drive their dates from the inline rows instead.
   bool get supportsNextRun => template != kScheduleTemplatePaymentSchedule;
+
+  /// Whether this template carries a `remaining_cycles` count. Only the two
+  /// recurring email templates do (React `TemplateProperties`):
+  /// invoice_outstanding_tasks sends a frequency but no cycle count, and
+  /// email_record / payment_schedule have neither.
+  bool get supportsRemainingCycles =>
+      template == kScheduleTemplateEmailStatement ||
+      template == kScheduleTemplateEmailReport;
+
+  /// Return a copy whose `next_run` is no earlier than [floor]. The server
+  /// enforces `next_run >= today` on every template (`StoreSchedulerRequest`),
+  /// so the repository clamps on save — this also covers payment_schedule,
+  /// whose `next_run` field is hidden, and editing a schedule whose stored
+  /// `next_run` already lapsed. A null `next_run` is left untouched.
+  Schedule withNextRunNotBefore(Date floor) {
+    final current = nextRun;
+    if (current == null || current.compareTo(floor) >= 0) return this;
+    return copyWith(nextRun: floor);
+  }
 }
 
 extension EmailStatementParametersAccess on Schedule {
@@ -300,7 +326,10 @@ Map<String, dynamic> _defaultParametersFor(String template) {
       return <String, dynamic>{
         'entity': 'invoice',
         'entity_id': '',
-        'template': 'initial',
+        // The initial-email template for the default `invoice` entity. Must
+        // be a server-accepted value (see kEmailRecordTemplatesPerEntity) —
+        // `'initial'` is rejected by `StoreSchedulerRequest`.
+        'template': 'invoice',
       };
     case kScheduleTemplateEmailReport:
       return <String, dynamic>{

@@ -62,11 +62,19 @@ const List<String> kEmailRecordEntityTypes = <String>[
 
 /// For each entity type, the email-template options available on the
 /// `parameters.template` dropdown. The first one in each list is the
-/// default. Source: admin-portal `schedule_edit.dart:397‑523`.
+/// default — the entity's *initial* email (the server names it after the
+/// entity, e.g. `invoice`/`quote`/`credit`/`purchase_order`).
+///
+/// These strings must be in the server's accepted set
+/// (`StoreSchedulerRequest::$templates` = invoice, quote, credit,
+/// purchase_order, reminder1, reminder2, reminder3, reminder_endless,
+/// custom1, custom2, custom3). The previous `'initial'` value was **not**
+/// in that set and made every email_record schedule 422 on save. React
+/// uses the entity name for the initial-email option (`EmailRecord.tsx`).
 const Map<String, List<String>> kEmailRecordTemplatesPerEntity =
     <String, List<String>>{
       'invoice': <String>[
-        'initial',
+        'invoice',
         'reminder1',
         'reminder2',
         'reminder3',
@@ -75,42 +83,50 @@ const Map<String, List<String>> kEmailRecordTemplatesPerEntity =
         'custom2',
         'custom3',
       ],
-      'quote': <String>[
-        'initial',
-        'reminder1',
+      'quote': <String>['quote', 'reminder1', 'custom1', 'custom2', 'custom3'],
+      'credit': <String>['credit', 'custom1', 'custom2', 'custom3'],
+      'purchase_order': <String>[
+        'purchase_order',
         'custom1',
         'custom2',
         'custom3',
       ],
-      'credit': <String>['initial', 'custom1', 'custom2', 'custom3'],
-      'purchase_order': <String>['initial', 'custom1', 'custom2', 'custom3'],
     };
 
 // ---------- email_report ----------
 
-/// All 19 report names the server accepts on `parameters.report_name`.
-/// Source: React `ExportType` enum at
-/// `/Users/hillel/Code/react/src/common/enums/export-format.ts`.
+/// Report names offered on `parameters.report_name`, restricted to the set
+/// the server's `EmailReport::run()` `match` actually handles. Names that
+/// pass request validation but have no exporter case (`vendor`,
+/// `purchase_order`, `purchase_order_item`) are **omitted** — the server
+/// `cancelSchedule()`s (force-deletes) them on first run. The singular
+/// `contact`/`task` are likewise unhandled, so we use the server's
+/// `client_contact` and `tasks`.
+///
+/// Source of truth: `app/Services/Scheduler/EmailReport.php`.
 const List<String> kEmailReportReportNames = <String>[
   'activity',
   'invoice',
   'invoice_item',
-  'product_sales',
-  'profitloss',
-  'client',
-  'contact',
   'recurring_invoice',
   'quote',
   'quote_item',
   'credit',
-  'document',
   'payment',
-  'expense',
-  'task',
   'product',
-  'vendor',
-  'purchase_order',
-  'purchase_order_item',
+  'product_sales',
+  'profitloss',
+  'ar_detailed',
+  'ar_summary',
+  'client_balance',
+  'client_sales',
+  'tax_summary',
+  'user_sales',
+  'client',
+  'client_contact',
+  'document',
+  'expense',
+  'tasks',
 ];
 
 /// Field names a per-report-type spec may declare. The edit form renders
@@ -138,29 +154,40 @@ enum EmailReportField {
   reportKeys,
 }
 
+/// Fields shown for a report with no explicit entry in
+/// [kEmailReportFieldsByReport]. Mirrors React's `DEFAULT_REPORT_FIELDS`
+/// (`EmailReport.tsx`) — the summary reports (ar_detailed, ar_summary,
+/// client_balance, client_sales, tax_summary, user_sales) fall back to
+/// this set.
+const Set<EmailReportField> kDefaultEmailReportFields = <EmailReportField>{
+  EmailReportField.sendEmail,
+  EmailReportField.dateRange,
+  EmailReportField.startDate,
+  EmailReportField.endDate,
+};
+
 /// Per-report-type field spec. Mirrors React `EmailReport.tsx:60‑208`.
 /// Every report carries `sendEmail` and most carry `dateRange`; the
 /// distinguishing fields are domain-specific (invoices add `status`,
 /// expenses add `is_expense_billed`, profit-and-loss adds
-/// `is_income_billed`, etc.).
+/// `is_income_billed`, etc.). Reports not listed here use
+/// [kDefaultEmailReportFields].
 const Map<String, Set<EmailReportField>> kEmailReportFieldsByReport =
     <String, Set<EmailReportField>>{
-      'activity': <EmailReportField>{
-        EmailReportField.sendEmail,
-        EmailReportField.dateRange,
-        EmailReportField.startDate,
-        EmailReportField.endDate,
-      },
+      // `activity` and the summary reports (ar_*, client_balance,
+      // client_sales, tax_summary, user_sales) are intentionally absent —
+      // they fall back to [kDefaultEmailReportFields].
       'invoice': <EmailReportField>{
         EmailReportField.sendEmail,
         EmailReportField.dateRange,
         EmailReportField.startDate,
         EmailReportField.endDate,
         EmailReportField.status,
-        EmailReportField.clients,
         EmailReportField.documentEmailAttachment,
         EmailReportField.pdfEmailAttachment,
         EmailReportField.includeDeleted,
+        EmailReportField.clientIdSingular,
+        EmailReportField.templateId,
       },
       'invoice_item': <EmailReportField>{
         EmailReportField.sendEmail,
@@ -168,17 +195,19 @@ const Map<String, Set<EmailReportField>> kEmailReportFieldsByReport =
         EmailReportField.startDate,
         EmailReportField.endDate,
         EmailReportField.status,
-        EmailReportField.clients,
         EmailReportField.productKey,
+        EmailReportField.documentEmailAttachment,
         EmailReportField.includeDeleted,
+        EmailReportField.clientIdSingular,
+        EmailReportField.templateId,
       },
       'product_sales': <EmailReportField>{
         EmailReportField.sendEmail,
         EmailReportField.dateRange,
         EmailReportField.startDate,
         EmailReportField.endDate,
-        EmailReportField.clients,
         EmailReportField.productKey,
+        EmailReportField.clientIdSingular,
       },
       'profitloss': <EmailReportField>{
         EmailReportField.sendEmail,
@@ -194,15 +223,16 @@ const Map<String, Set<EmailReportField>> kEmailReportFieldsByReport =
         EmailReportField.dateRange,
         EmailReportField.startDate,
         EmailReportField.endDate,
-        EmailReportField.clientIdSingular,
+        EmailReportField.documentEmailAttachment,
         EmailReportField.includeDeleted,
+        EmailReportField.templateId,
       },
-      'contact': <EmailReportField>{
+      'client_contact': <EmailReportField>{
         EmailReportField.sendEmail,
         EmailReportField.dateRange,
         EmailReportField.startDate,
         EmailReportField.endDate,
-        EmailReportField.clients,
+        EmailReportField.templateId,
       },
       'recurring_invoice': <EmailReportField>{
         EmailReportField.sendEmail,
@@ -210,99 +240,94 @@ const Map<String, Set<EmailReportField>> kEmailReportFieldsByReport =
         EmailReportField.startDate,
         EmailReportField.endDate,
         EmailReportField.status,
-        EmailReportField.clients,
+        EmailReportField.includeDeleted,
+        EmailReportField.clientIdSingular,
+        EmailReportField.templateId,
       },
       'quote': <EmailReportField>{
         EmailReportField.sendEmail,
         EmailReportField.dateRange,
         EmailReportField.startDate,
         EmailReportField.endDate,
-        EmailReportField.status,
-        EmailReportField.clients,
         EmailReportField.documentEmailAttachment,
+        EmailReportField.status,
+        EmailReportField.includeDeleted,
+        EmailReportField.clientIdSingular,
         EmailReportField.pdfEmailAttachment,
+        EmailReportField.templateId,
       },
       'quote_item': <EmailReportField>{
         EmailReportField.sendEmail,
         EmailReportField.dateRange,
         EmailReportField.startDate,
         EmailReportField.endDate,
-        EmailReportField.clients,
-        EmailReportField.productKey,
+        EmailReportField.documentEmailAttachment,
+        EmailReportField.status,
+        EmailReportField.includeDeleted,
+        EmailReportField.clientIdSingular,
+        EmailReportField.templateId,
       },
       'credit': <EmailReportField>{
         EmailReportField.sendEmail,
         EmailReportField.dateRange,
         EmailReportField.startDate,
         EmailReportField.endDate,
+        EmailReportField.documentEmailAttachment,
+        EmailReportField.includeDeleted,
         EmailReportField.status,
-        EmailReportField.clients,
+        EmailReportField.clientIdSingular,
+        EmailReportField.pdfEmailAttachment,
+        EmailReportField.templateId,
       },
       'document': <EmailReportField>{
         EmailReportField.sendEmail,
         EmailReportField.dateRange,
         EmailReportField.startDate,
         EmailReportField.endDate,
+        EmailReportField.documentEmailAttachment,
       },
       'payment': <EmailReportField>{
         EmailReportField.sendEmail,
         EmailReportField.dateRange,
         EmailReportField.startDate,
         EmailReportField.endDate,
-        EmailReportField.clients,
-        EmailReportField.includeDeleted,
+        EmailReportField.documentEmailAttachment,
+        EmailReportField.status,
+        EmailReportField.clientIdSingular,
+        EmailReportField.templateId,
       },
       'expense': <EmailReportField>{
         EmailReportField.sendEmail,
         EmailReportField.dateRange,
         EmailReportField.startDate,
         EmailReportField.endDate,
+        EmailReportField.documentEmailAttachment,
         EmailReportField.clients,
         EmailReportField.vendors,
         EmailReportField.projects,
         EmailReportField.categories,
-        EmailReportField.isExpenseBilled,
+        EmailReportField.status,
         EmailReportField.includeDeleted,
+        EmailReportField.templateId,
       },
-      'task': <EmailReportField>{
+      'tasks': <EmailReportField>{
         EmailReportField.sendEmail,
         EmailReportField.dateRange,
         EmailReportField.startDate,
         EmailReportField.endDate,
-        EmailReportField.clients,
-        EmailReportField.projects,
+        EmailReportField.documentEmailAttachment,
+        EmailReportField.status,
+        EmailReportField.includeDeleted,
+        EmailReportField.clientIdSingular,
+        EmailReportField.templateId,
       },
       'product': <EmailReportField>{
         EmailReportField.sendEmail,
         EmailReportField.dateRange,
         EmailReportField.startDate,
         EmailReportField.endDate,
-        EmailReportField.productKey,
-      },
-      'vendor': <EmailReportField>{
-        EmailReportField.sendEmail,
-        EmailReportField.dateRange,
-        EmailReportField.startDate,
-        EmailReportField.endDate,
-        EmailReportField.vendors,
-      },
-      'purchase_order': <EmailReportField>{
-        EmailReportField.sendEmail,
-        EmailReportField.dateRange,
-        EmailReportField.startDate,
-        EmailReportField.endDate,
-        EmailReportField.status,
-        EmailReportField.vendors,
         EmailReportField.documentEmailAttachment,
-        EmailReportField.pdfEmailAttachment,
-      },
-      'purchase_order_item': <EmailReportField>{
-        EmailReportField.sendEmail,
-        EmailReportField.dateRange,
-        EmailReportField.startDate,
-        EmailReportField.endDate,
-        EmailReportField.vendors,
-        EmailReportField.productKey,
+        EmailReportField.templateId,
       },
     };
 
@@ -320,30 +345,36 @@ String emailReportCategoryOf(String reportName) {
     case 'payment':
     case 'product_sales':
     case 'profitloss':
+    case 'ar_detailed':
+    case 'ar_summary':
+    case 'client_balance':
+    case 'client_sales':
+    case 'tax_summary':
+    case 'user_sales':
       return 'financial';
     case 'client':
-    case 'contact':
+    case 'client_contact':
       return 'clients';
     case 'product':
       return 'products';
     case 'expense':
-    case 'vendor':
-    case 'purchase_order':
-    case 'purchase_order_item':
       return 'vendors';
-    case 'task':
+    case 'tasks':
       return 'tasks';
     default:
       return 'other';
   }
 }
 
-// ---------- Date-range options (shared with reports / statements) ----------
+// ---------- Date-range options ----------
 
-/// Date-range options that both the schedule editor and the dashboard
-/// filters share. Keys are the wire strings the server expects on
-/// `parameters.date_range`.
-const List<String> kScheduleDateRangeOptions = <String>[
+/// Date-range options for `email_statement` + `invoice_outstanding_tasks`.
+/// Matches React's hardcoded list in `EmailStatement.tsx` /
+/// `InvoiceOutstandingTasks.tsx` — note these templates render **no**
+/// start/end fields, so `custom` is deliberately excluded (the server
+/// makes `start_date`/`end_date` `required_if date_range=custom`, which
+/// would 422).
+const List<String> kStatementDateRangeOptions = <String>[
   'last7_days',
   'last30_days',
   'last365_days',
@@ -354,6 +385,21 @@ const List<String> kScheduleDateRangeOptions = <String>[
   'this_year',
   'last_year',
   'all_time',
+];
+
+/// Date-range options for `email_report`. Matches React's `ranges`
+/// constant (`reports/index/Reports.tsx`) — includes `all` and `custom`
+/// (the report section renders start/end fields when `custom` is picked).
+const List<String> kReportDateRangeOptions = <String>[
+  'all',
+  'last7_days',
+  'last30_days',
+  'this_month',
+  'last_month',
+  'this_quarter',
+  'last_quarter',
+  'this_year',
+  'last_year',
   'custom',
 ];
 

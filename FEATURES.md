@@ -993,6 +993,7 @@ Field-level breakdown of every option under each settings panel. Source of truth
 | Import — third-party (FreshBooks / Invoice2Go / Invoicely / Wave / Zoho / QuickBooks) | ✅ | ✅ | ✅ | ✅ | |
 | Import — company migration (.zip / .json) | ✅ | ✅ | ✅ | ✅ | |
 | Export — CSV (per-entity, date-range filter) | ✅ | ✅ | ✅ | ✅ | |
+| Export — CSV options (attach documents, include deleted) | ❌ | ✅ | ✅ | ✅ | |
 
 ### Device Settings
 

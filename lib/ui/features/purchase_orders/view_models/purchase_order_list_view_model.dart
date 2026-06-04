@@ -112,15 +112,17 @@ class PurchaseOrderListViewModel extends GenericListViewModel<PurchaseOrder> {
       apply: (id) => repo.markSent(companyId: companyId, id: id),
     ),
     BulkAction<PurchaseOrder>(
-      id: 'accept',
-      labelKey: 'accept',
-      eligible: (po) => !po.isAccepted && !isDeleted(po),
-      apply: (id) => repo.accept(companyId: companyId, id: id),
+      id: 'add_to_inventory',
+      labelKey: 'add_to_inventory',
+      // Server moves Accepted → Received; no-ops past Received.
+      eligible: (po) => po.isAccepted && !isDeleted(po),
+      apply: (id) => repo.addToInventory(companyId: companyId, id: id),
     ),
     BulkAction<PurchaseOrder>(
       id: 'convert_to_expense',
       labelKey: 'convert_to_expense',
-      eligible: (po) => !isDeleted(po),
+      // Hidden once an expense exists (server rejects a second conversion).
+      eligible: (po) => po.expenseId.isEmpty && !isDeleted(po),
       apply: (id) => repo.convertToExpense(companyId: companyId, id: id),
     ),
     BulkAction<PurchaseOrder>(

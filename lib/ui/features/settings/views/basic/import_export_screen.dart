@@ -16,16 +16,21 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/file_drop_zone.dart';
 import 'package:admin/ui/core/widgets/in_date_field.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 
-/// Search keys for the settings search catalog.
+/// Search keys for the settings search catalog. Every entry must be rendered
+/// as a `context.tr('<key>')` label somewhere in this screen — enforced by
+/// `search_catalog_consistency_test`.
 const kImportExportSearchKeys = <String>[
   'import',
-  'csv',
+  'export',
   'import_type',
   'company_migration',
+  'column_mapping',
+  'import_settings',
 ];
 
 enum _Step { pick, map, done }
@@ -50,6 +55,24 @@ const _kExportDates = <String, List<String>>{
   'purchase_orders': <String>[],
   'purchase_order_items': <String>[],
   'vendors': <String>[],
+};
+
+/// CSV-export types that carry document attachments (old-Flutter
+/// `hasDocuments`) — only these expose the "Attach Documents" toggle.
+const _kExportHasDocuments = <String>{
+  'clients',
+  'invoices',
+  'invoice_items',
+  'quotes',
+  'quote_items',
+  'credits',
+  'expenses',
+  'payments',
+  'products',
+  'tasks',
+  'vendors',
+  'purchase_orders',
+  'purchase_order_items',
 };
 
 /// `date_range` identifier → localization key. Ported from React `Export.tsx`.
@@ -146,6 +169,10 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
   String _exportDateRange = 'last7';
   DateTime? _exportStart;
   DateTime? _exportEnd;
+  // CSV-export option toggles (old-Flutter parity). `_exportDocuments` is only
+  // offered for document-bearing types (see `_kExportHasDocuments`).
+  bool _exportDocuments = false;
+  bool _exportIncludeDeleted = false;
 
   // Third-party importer state (freshbooks / wave / zoho / …). Each required
   // group holds the bytes + display name of one picked file.
@@ -286,6 +313,9 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
             'end_date': _isoOrEmpty(_exportEnd),
           },
         },
+        if (_exportDocuments && _kExportHasDocuments.contains(_exportType))
+          'document_email_attachment': true,
+        if (_exportIncludeDeleted) 'include_deleted': true,
       };
       await services.apiClient.postJson(
         '/api/v1/reports/$_exportType',
@@ -409,6 +439,14 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     final companyId = services.auth.session.value?.currentCompanyId ?? '';
     final formatter = services.formatterIfReady(companyId);
     final dateKeys = _kExportDates[_exportType] ?? const <String>[];
+    // A "custom" range needs both ends — otherwise the server 422s on the
+    // required_if. Disable the action rather than surface that error.
+    final customIncomplete =
+        _exportDateKey != null &&
+        _exportDateRange == 'custom' &&
+        (_exportStart == null ||
+            _exportEnd == null ||
+            _exportEnd!.isBefore(_exportStart!));
     return FormSection(
       title: context.tr('export'),
       children: [
@@ -416,7 +454,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
           initialValue: _exportType,
           isExpanded: true,
           decoration: InputDecoration(
-            labelText: context.tr('export'),
+            labelText: context.tr('export_type'),
             border: const OutlineInputBorder(),
             isDense: true,
           ),
@@ -429,11 +467,18 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                   _exportDateRange = 'last7';
                   _exportStart = null;
                   _exportEnd = null;
+                  // Drop a stale "attach documents" choice when switching to a
+                  // type that doesn't support it.
+                  _exportDocuments = false;
                 }),
           items: [
+            // No module filter here: this State persists across a company
+            // switch (the settings shell keys its subtree by level, not
+            // company), so a filtered list could omit the stale `_exportType`
+            // and trip DropdownButtonFormField's value-in-items assertion.
+            // React's Export.tsx lists every type unconditionally too.
             for (final t in _exportTypes)
-              if (isWireModuleEnabledForCompany(t, _enabledModules(context)))
-                DropdownMenuItem(value: t, child: Text(context.tr(t))),
+              DropdownMenuItem(value: t, child: Text(context.tr(t))),
           ],
         ),
         if (dateKeys.isNotEmpty) ...[
@@ -497,11 +542,32 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
             onChanged: (d) => setState(() => _exportEnd = d),
           ),
         ],
+        if (_kExportHasDocuments.contains(_exportType)) ...[
+          SizedBox(height: InSpacing.md(context)),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            value: _exportDocuments,
+            onChanged: _exporting
+                ? null
+                : (v) => setState(() => _exportDocuments = v),
+            title: Text(context.tr('attach_documents')),
+          ),
+        ],
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+          value: _exportIncludeDeleted,
+          onChanged: _exporting
+              ? null
+              : (v) => setState(() => _exportIncludeDeleted = v),
+          title: Text(context.tr('include_deleted')),
+        ),
         Align(
           alignment: Alignment.centerRight,
           child: FilledButton.icon(
             style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
-            onPressed: _exporting ? null : _runExport,
+            onPressed: (_exporting || customIncomplete) ? null : _runExport,
             icon: _exporting
                 ? const SizedBox(
                     width: 16,
@@ -523,7 +589,9 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     final groups = _kThirdPartyImports[_thirdPartyType] ?? const <String>[];
     final ready = groups.every(_thirdPartyFiles.containsKey);
     return FormSection(
-      title: context.tr('import'),
+      // Distinct from the CSV column-map import card above (also titled
+      // "Import") so the two stacked sections aren't indistinguishable.
+      title: context.tr('import_third_party'),
       children: [
         DropdownButtonFormField<String>(
           initialValue: _thirdPartyType,
@@ -662,6 +730,18 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
           final accounts = (snap.data ?? const <BankAccount>[])
               .where((a) => !a.isDeleted)
               .toList();
+          if (accounts.isEmpty) {
+            // Nothing to attach imported transactions to — explain why the
+            // Continue button stays disabled instead of showing an empty,
+            // unselectable dropdown.
+            return Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                context.tr('no_bank_accounts'),
+                style: TextStyle(fontSize: 13, color: context.inTheme.ink3),
+              ),
+            );
+          }
           return DropdownButtonFormField<String>(
             initialValue: _bankIntegrationId,
             isExpanded: true,
@@ -761,56 +841,39 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
           title: Text(context.tr('skip_header')),
         ),
         const Divider(height: 1),
+        // One full-width searchable field per CSV column — the column name is
+        // the field label, the first sample value a caption beneath it. `''`
+        // is a sentinel "skip" entry so the picker still reads "Skip" for an
+        // unmapped column while staying type-to-search (an entity's field list
+        // can run 50+ deep). Full-width (not a 2-column row) so it stacks
+        // cleanly on phones with no overflow.
         for (var i = 0; i < preview.columns.length; i++)
           Padding(
             padding: EdgeInsets.symmetric(vertical: InSpacing.sm),
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        preview.columns[i],
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      if (i < preview.sample.length &&
-                          preview.sample[i].isNotEmpty)
-                        Text(
-                          preview.sample[i],
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 12, color: tokens.ink3),
-                        ),
-                    ],
-                  ),
+                SearchableDropdownField<String>(
+                  label: preview.columns[i],
+                  items: ['', ...preview.available],
+                  initialValue: _map[i] ?? '',
+                  displayString: (f) => f.isEmpty ? context.tr('skip') : f,
+                  idOf: (f) => f,
+                  onChanged: (f) {
+                    if (_busy) return;
+                    setState(() => _map[i] = f ?? '');
+                  },
                 ),
-                SizedBox(width: InSpacing.md(context)),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _map[i]?.isNotEmpty == true ? _map[i] : '',
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      isDense: true,
+                if (i < preview.sample.length && preview.sample[i].isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4, left: 4),
+                    child: Text(
+                      preview.sample[i],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 12, color: tokens.ink3),
                     ),
-                    onChanged: _busy
-                        ? null
-                        : (v) => setState(() => _map[i] = v ?? ''),
-                    items: [
-                      DropdownMenuItem(
-                        value: '',
-                        child: Text(context.tr('skip')),
-                      ),
-                      for (final field in preview.available)
-                        DropdownMenuItem(
-                          value: field,
-                          child: Text(field, overflow: TextOverflow.ellipsis),
-                        ),
-                    ],
                   ),
-                ),
               ],
             ),
           ),

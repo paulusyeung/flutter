@@ -42,49 +42,31 @@ class PermissionGrid extends StatelessWidget {
     return permissions.contains(permissionToken(verb: verb, entity: entity));
   }
 
-  bool _cellDisabled(String verb) => isAdmin || _isAllSet(verb);
+  // Only the admin toggle locks the grid. When `<verb>_all` is set the cells
+  // render checked but stay interactive — unchecking one expands the column
+  // to the other 13 entity tokens (React parity).
+  bool _cellDisabled(String verb) => isAdmin;
 
   void _toggleAll(String verb, bool? value) {
-    final token = permissionAllToken(verb);
-    final next = List<String>.of(permissions);
-    if (value ?? false) {
-      // Turning the "All" column on — drop the per-entity tokens for the
-      // same verb, they'd be redundant.
-      next.removeWhere((p) => p == token);
-      next.add(token);
-      for (final entity in kPermissionEntities) {
-        next.remove(permissionToken(verb: verb, entity: entity));
-      }
-    } else {
-      next.remove(token);
-    }
-    onChange(next);
+    onChange(
+      permissionsAfterToggleAll(
+        current: permissions,
+        verb: verb,
+        checked: value ?? false,
+      ),
+    );
   }
 
   void _toggleCell(String verb, String entity, bool? value) {
-    if (_cellDisabled(verb)) return;
-    final token = permissionToken(verb: verb, entity: entity);
-    final next = List<String>.of(permissions);
-    var promoted = false;
-    if (value ?? false) {
-      if (!next.contains(token)) next.add(token);
-      // Auto-promote: if the user just filled the last cell in this verb's
-      // column, collapse to `<verb>_all`.
-      final everyEntityChecked = kPermissionEntities.every(
-        (e) => next.contains(permissionToken(verb: verb, entity: e)),
-      );
-      if (everyEntityChecked) {
-        for (final e in kPermissionEntities) {
-          next.remove(permissionToken(verb: verb, entity: e));
-        }
-        next.add(permissionAllToken(verb));
-        promoted = true;
-      }
-    } else {
-      next.remove(token);
-    }
-    onChange(next);
-    if (promoted) onAutoPromote?.call(verb);
+    if (isAdmin) return;
+    final result = permissionsAfterToggleCell(
+      current: permissions,
+      verb: verb,
+      entity: entity,
+      checked: value ?? false,
+    );
+    onChange(result.permissions);
+    if (result.promoted) onAutoPromote?.call(verb);
   }
 
   @override
@@ -109,88 +91,111 @@ class PermissionGrid extends StatelessWidget {
           ),
         );
 
-    Widget verbHeaderRow() => Row(
-      children: [
-        Expanded(child: headerCell('name', align: TextAlign.start)),
-        for (final verb in kPermissionVerbs)
-          SizedBox(width: 90, child: headerCell(verb, align: TextAlign.center)),
-      ],
-    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Below ~480 px the Expanded name column crushes long entity labels
+        // ("Recurring invoice" / "Bank transaction"), so switch to fixed
+        // columns + horizontal scroll. Wide layouts keep the stretch-to-fill
+        // name column so the grid spans the section.
+        final narrow = constraints.maxWidth < 480;
+        final double verbWidth = narrow ? 76 : 90;
+        final double? nameWidth = narrow ? 140 : null;
 
-    Widget rowFor({
-      required String label,
-      required Widget Function(String verb) checkboxFor,
-      bool bold = false,
-    }) => Padding(
-      padding: EdgeInsets.symmetric(vertical: InSpacing.sm / 2),
-      child: Row(
-        children: [
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: InSpacing.sm),
-              child: Text(
-                label,
-                style: bold
-                    ? theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      )
-                    : theme.textTheme.bodyMedium,
+        Widget nameCell(Widget child) => nameWidth == null
+            ? Expanded(child: child)
+            : SizedBox(width: nameWidth, child: child);
+
+        Widget verbHeaderRow() => Row(
+          children: [
+            nameCell(headerCell('name', align: TextAlign.start)),
+            for (final verb in kPermissionVerbs)
+              SizedBox(width: verbWidth, child: headerCell(verb)),
+          ],
+        );
+
+        Widget rowFor({
+          required String label,
+          required Widget Function(String verb) checkboxFor,
+          bool bold = false,
+        }) => Padding(
+          padding: EdgeInsets.symmetric(vertical: InSpacing.sm / 2),
+          child: Row(
+            children: [
+              nameCell(
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: InSpacing.sm),
+                  child: Text(
+                    label,
+                    style: bold
+                        ? theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          )
+                        : theme.textTheme.bodyMedium,
+                  ),
+                ),
               ),
-            ),
+              for (final verb in kPermissionVerbs)
+                SizedBox(width: verbWidth, child: checkboxFor(verb)),
+            ],
           ),
-          for (final verb in kPermissionVerbs)
-            SizedBox(width: 90, child: checkboxFor(verb)),
-        ],
-      ),
-    );
+        );
 
-    Widget allRow() => rowFor(
-      label: context.tr('all'),
-      bold: true,
-      checkboxFor: (verb) => Center(
-        child: Semantics(
-          label: '${context.tr(verb)} ${context.tr('all')}',
-          checked: isAdmin || _isAllSet(verb),
-          child: Checkbox(
-            value: isAdmin ? true : _isAllSet(verb),
-            onChanged: isAdmin ? null : (v) => _toggleAll(verb, v),
-          ),
-        ),
-      ),
-    );
-
-    Widget entityRow(String entity) => rowFor(
-      label: context.tr(entity),
-      checkboxFor: (verb) {
-        final checked = _cellChecked(verb, entity);
-        final disabled = _cellDisabled(verb);
-        return Center(
-          child: Opacity(
-            opacity: disabled && checked && !isAdmin ? 0.6 : 1.0,
+        Widget allRow() => rowFor(
+          label: context.tr('all'),
+          bold: true,
+          checkboxFor: (verb) => Center(
             child: Semantics(
-              label: '${context.tr(verb)} ${context.tr(entity)}',
-              checked: checked,
+              label: '${context.tr(verb)} ${context.tr('all')}',
+              checked: isAdmin || _isAllSet(verb),
               child: Checkbox(
-                value: checked,
-                onChanged: disabled
-                    ? null
-                    : (v) => _toggleCell(verb, entity, v),
+                value: isAdmin ? true : _isAllSet(verb),
+                onChanged: isAdmin ? null : (v) => _toggleAll(verb, v),
               ),
             ),
           ),
         );
-      },
-    );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        verbHeaderRow(),
-        const Divider(height: 1),
-        allRow(),
-        const Divider(height: 1),
-        for (final entity in kPermissionEntities) entityRow(entity),
-      ],
+        Widget entityRow(String entity) => rowFor(
+          label: context.tr(entity),
+          checkboxFor: (verb) {
+            final checked = _cellChecked(verb, entity);
+            final disabled = _cellDisabled(verb);
+            return Center(
+              child: Semantics(
+                label: '${context.tr(verb)} ${context.tr(entity)}',
+                checked: checked,
+                child: Checkbox(
+                  value: checked,
+                  onChanged: disabled
+                      ? null
+                      : (v) => _toggleCell(verb, entity, v),
+                ),
+              ),
+            );
+          },
+        );
+
+        final grid = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            verbHeaderRow(),
+            const Divider(height: 1),
+            allRow(),
+            const Divider(height: 1),
+            for (final entity in kPermissionEntities) entityRow(entity),
+          ],
+        );
+
+        if (nameWidth == null) return grid;
+        // Narrow: size the grid to its fixed total and scroll sideways.
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: nameWidth + verbWidth * kPermissionVerbs.length,
+            child: grid,
+          ),
+        );
+      },
     );
   }
 }

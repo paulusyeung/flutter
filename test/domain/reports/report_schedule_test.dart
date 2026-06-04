@@ -156,4 +156,35 @@ void main() {
     expect(s.parameters['document_email_attachment'], true);
     expect(s.parameters['pdf_email_attachment'], true);
   });
+
+  group('report_name normalization (server-valid schedule names)', () {
+    test('contact → client_contact, task → tasks', () {
+      expect(
+        reportEmailSchedule(_seed(id: 'contact')).parameters['report_name'],
+        'client_contact',
+      );
+      expect(
+        reportEmailSchedule(_seed(id: 'task')).parameters['report_name'],
+        'tasks',
+      );
+    });
+
+    test('reports with no scheduler exporter fall back to activity', () {
+      // vendor / purchase_order(_item) would be force-deleted server-side.
+      for (final id in ['vendor', 'purchase_order', 'purchase_order_item']) {
+        expect(
+          reportEmailSchedule(_seed(id: id)).parameters['report_name'],
+          'activity',
+          reason: '$id is not schedulable',
+        );
+      }
+    });
+
+    test('a valid report identifier passes through unchanged', () {
+      expect(
+        reportEmailSchedule(_seed(id: 'expense')).parameters['report_name'],
+        'expense',
+      );
+    });
+  });
 }

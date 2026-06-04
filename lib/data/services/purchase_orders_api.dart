@@ -6,9 +6,11 @@ import 'package:admin/data/models/api/purchase_order_api_model.dart';
 import 'package:admin/data/services/base_entity_api.dart';
 
 /// Concrete API for `/api/v1/purchase_orders`. Mirrors `QuotesApi` /
-/// `CreditsApi` shape, vendor-centric. Adds two PO-specific actions:
-/// `accept` (server-side mark-accepted) and `expense` (convert PO →
-/// receipt → expense).
+/// `CreditsApi` shape, vendor-centric. Adds PO-specific actions:
+/// `expense` (convert PO → receipt → expense) and `add_to_inventory`
+/// (Accepted → Received, recording stock). There is no admin `accept` —
+/// a PO is accepted by the vendor via the portal (the server's `/bulk`
+/// allow-list has no `accept`).
 class PurchaseOrdersApi
     extends BaseEntityApi<PurchaseOrderListApi, PurchaseOrderItemApi> {
   PurchaseOrdersApi(super.client);
@@ -35,10 +37,14 @@ class PurchaseOrdersApi
     idempotencyKey: idempotencyKey,
   );
 
-  Future<PurchaseOrderItemApi?> accept({
+  Future<PurchaseOrderItemApi?> addToInventory({
     required String id,
     required String idempotencyKey,
-  }) => bulkActionOne(id: id, action: 'accept', idempotencyKey: idempotencyKey);
+  }) => bulkActionOne(
+    id: id,
+    action: 'add_to_inventory',
+    idempotencyKey: idempotencyKey,
+  );
 
   Future<PurchaseOrderItemApi?> cancel({
     required String id,
@@ -86,16 +92,6 @@ class PurchaseOrdersApi
     );
     return null;
   }
-
-  Future<PurchaseOrderItemApi?> cloneTo({
-    required String id,
-    required String targetType,
-    required String idempotencyKey,
-  }) => bulkActionOne(
-    id: id,
-    action: 'clone_to_$targetType',
-    idempotencyKey: idempotencyKey,
-  );
 
   Future<PurchaseOrderItemApi?> runTemplate({
     required String id,

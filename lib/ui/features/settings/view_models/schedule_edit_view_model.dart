@@ -1,3 +1,5 @@
+import 'package:decimal/decimal.dart';
+
 import 'package:admin/data/models/domain/report_schedule_seed.dart';
 import 'package:admin/data/models/domain/schedule.dart';
 import 'package:admin/data/models/domain/schedule_constants.dart';
@@ -213,8 +215,21 @@ class ScheduleEditViewModel extends GenericEditViewModel<Schedule> {
         final rows = d.paymentScheduleRows;
         if (d.paymentScheduleInvoiceId.isEmpty) return false;
         if (rows.isEmpty) return false;
+        // Dates strictly ascending (matches React AddScheduleModal).
         for (var i = 1; i < rows.length; i++) {
           if (rows[i].date.compareTo(rows[i - 1].date) <= 0) return false;
+        }
+        // Every row must allocate a positive amount/percent.
+        if (rows.any((r) => r.amount <= Decimal.zero)) return false;
+        // Percent mode: the split can't exceed 100% (React caps this; the
+        // amount-mode total-vs-invoice check is surfaced as a hint in the
+        // UI since the server tolerates it).
+        if (!rows.first.isAmount) {
+          final total = rows.fold<Decimal>(
+            Decimal.zero,
+            (sum, r) => sum + r.amount,
+          );
+          if (total > Decimal.fromInt(100)) return false;
         }
         return true;
       default:

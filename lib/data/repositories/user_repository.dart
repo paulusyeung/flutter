@@ -37,10 +37,19 @@ class UserRepository extends BaseEntityRepository<User, UserApi> {
     this.pageSize = 50,
   }) : super(
          entityType: EntityType.user,
+         // The user lifecycle ops (create/update/delete/archive/restore/purge)
+         // and detach all hit `password_protected` server routes — `POST
+         // /users` / `PUT /users/{id}` / `POST /users/bulk` / `POST
+         // /users/{id}/purge` / `DELETE /users/{id}/detach_from_company`. Each
+         // outbox row must carry `requiresPassword=true` so the drain attaches
+         // `X-API-PASSWORD-BASE64` (else the server 412s). archive/restore go
+         // through `/users/bulk`, which is gated too — hence included here.
          requiresPasswordFor: const {
            MutationKind.create,
            MutationKind.update,
            MutationKind.delete,
+           MutationKind.archive,
+           MutationKind.restore,
            MutationKind.purge,
            MutationKind.detachFromCompany,
          },

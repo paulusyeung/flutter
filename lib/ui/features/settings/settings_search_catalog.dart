@@ -35,6 +35,7 @@ import 'package:admin/ui/features/settings/views/basic/company_details/defaults_
 import 'package:admin/ui/features/settings/views/basic/company_details/documents_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/expense_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/logo_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/import_export_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/localization/custom_labels_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/localization/localization_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/online_payments/online_payments_defaults_body.dart';
@@ -443,7 +444,7 @@ const kSettingsSearchCatalog = <String, List<String>>{
     'import_data',
     'company_backup_file',
   ],
-  'import_export': ['import', 'export'],
+  'import_export': [...kImportExportSearchKeys],
   'device_settings': [
     'theme',
     'customize_colors',

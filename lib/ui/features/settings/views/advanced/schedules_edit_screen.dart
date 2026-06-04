@@ -7,13 +7,25 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/credit.dart';
+import 'package:admin/data/models/domain/design.dart';
 import 'package:admin/data/models/domain/enabled_modules.dart';
+import 'package:admin/data/models/domain/expense_category.dart';
+import 'package:admin/data/models/domain/invoice.dart';
+import 'package:admin/data/models/domain/product.dart';
+import 'package:admin/data/models/domain/project.dart';
+import 'package:admin/data/models/domain/purchase_order.dart';
+import 'package:admin/data/models/domain/quote.dart';
 import 'package:admin/data/models/domain/report_schedule_seed.dart';
 import 'package:admin/data/models/domain/schedule.dart';
 import 'package:admin/data/models/domain/schedule_constants.dart';
+import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/data/models/value/date.dart';
+import 'package:admin/domain/reports/report_filter_options.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/in_date_field.dart';
+import 'package:admin/ui/core/widgets/multi_entity_picker.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/view_models/schedule_edit_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
@@ -239,16 +251,25 @@ class _CommonFieldsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    final formatter = services.formatterIfReady(companyId);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
     return FormSection(
       title: context.tr('details'),
       children: [
-        SettingsTextField(
-          initialValue: vm.draft.name,
-          labelKey: 'name',
-          onChanged: vm.setName,
-          errorText: vm.fieldErrorFor('name'),
-          externalSyncKey: vm.original?.id,
-        ),
+        // payment_schedule + invoice_outstanding_tasks have their name set
+        // server-side (StoreSchedulerRequest::prepareForValidation), so an
+        // editable name field there would be silently overwritten — hide it.
+        if (!_serverAutoNamesSchedule(vm.draft.template))
+          SettingsTextField(
+            initialValue: vm.draft.name,
+            labelKey: 'name',
+            onChanged: vm.setName,
+            errorText: vm.fieldErrorFor('name'),
+            externalSyncKey: vm.original?.id,
+          ),
         _TemplateDisplayField(vm: vm),
         SwitchListTile.adaptive(
           contentPadding: EdgeInsets.zero,
@@ -264,13 +285,16 @@ class _CommonFieldsSection extends StatelessWidget {
           InDateField(
             value: vm.draft.nextRun?.toDateTime(),
             labelText: context.tr('next_run'),
+            formatter: formatter,
+            // The server rejects a past next_run (after_or_equal:today).
+            firstDate: today,
             onChanged: (dt) {
               vm.setNextRun(
                 dt == null ? null : Date(dt.year, dt.month, dt.day),
               );
             },
           ),
-        if (vm.draft.supportsFrequency) ...[
+        if (vm.draft.supportsFrequency)
           DropdownButtonFormField<String>(
             initialValue: vm.draft.frequencyId.isEmpty
                 ? null
@@ -285,6 +309,7 @@ class _CommonFieldsSection extends StatelessWidget {
             ],
             onChanged: (v) => vm.setFrequencyId(v ?? ''),
           ),
+        if (vm.draft.supportsRemainingCycles)
           DropdownButtonFormField<int>(
             initialValue: vm.draft.remainingCycles,
             decoration: InputDecoration(
@@ -301,11 +326,17 @@ class _CommonFieldsSection extends StatelessWidget {
             onChanged: (v) =>
                 vm.setRemainingCycles(v ?? kScheduleRemainingCyclesEndless),
           ),
-        ],
       ],
     );
   }
 }
+
+/// Whether the server overwrites the schedule `name` for this template
+/// (`StoreSchedulerRequest::prepareForValidation`). For those, the name
+/// field is hidden so the user isn't editing a value that gets discarded.
+bool _serverAutoNamesSchedule(String template) =>
+    template == kScheduleTemplatePaymentSchedule ||
+    template == kScheduleTemplateInvoiceOutstandingTasks;
 
 /// Read-only chip showing the chosen template. Disabled because changing
 /// it post-create would orphan all the parameter fields the user just
@@ -425,6 +456,7 @@ class _EmailStatementSection extends StatelessWidget {
           context,
           value: vm.draft.statementDateRange,
           onChanged: vm.setStatementDateRange,
+          options: kStatementDateRangeOptions,
         ),
         DropdownButtonFormField<String>(
           initialValue: vm.draft.statementStatus,
@@ -459,9 +491,7 @@ class _EmailStatementSection extends StatelessWidget {
           value: vm.draft.statementOnlyClientsWithInvoices,
           onChanged: vm.setOnlyClientsWithInvoices,
         ),
-        _ClientCsvField(
-          labelKey: 'clients',
-          hintKey: 'all_clients',
+        _ClientsField(
           ids: vm.draft.statementClients,
           onChanged: vm.setStatementClients,
         ),
@@ -509,13 +539,7 @@ class _EmailRecordSection extends StatelessWidget {
             if (v != null) vm.setRecordEntityType(v);
           },
         ),
-        SettingsTextField(
-          initialValue: vm.draft.recordEntityId,
-          labelKey: '${vm.draft.recordEntityType}_id',
-          onChanged: vm.setRecordEntityId,
-          errorText: vm.fieldErrorFor('entity_id'),
-          externalSyncKey: vm.draft.recordEntityType,
-        ),
+        _RecordEntityField(vm: vm),
         DropdownButtonFormField<String>(
           initialValue: templates.contains(vm.draft.recordEmailTemplate)
               ? vm.draft.recordEmailTemplate
@@ -551,7 +575,7 @@ class _EmailReportSectionState extends State<_EmailReportSection> {
     final vm = widget.vm;
     final reportName = vm.draft.reportName;
     final fields =
-        kEmailReportFieldsByReport[reportName] ?? const <EmailReportField>{};
+        kEmailReportFieldsByReport[reportName] ?? kDefaultEmailReportFields;
 
     return FormSection(
       title: context.tr('email_report'),
@@ -591,46 +615,55 @@ class _EmailReportSectionState extends State<_EmailReportSection> {
     ScheduleEditViewModel vm,
     EmailReportField field,
   ) {
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
     switch (field) {
       case EmailReportField.sendEmail:
+        // React renders this disabled — a scheduled report always emails.
         return SwitchListTile.adaptive(
           contentPadding: EdgeInsets.zero,
           title: Text(context.tr('send_email')),
           value: vm.draft.reportSendEmail,
-          onChanged: vm.setReportSendEmail,
+          onChanged: null,
         );
       case EmailReportField.dateRange:
         return _dateRangeDropdown(
           context,
           value: vm.draft.reportDateRange,
           onChanged: vm.setReportDateRange,
+          options: kReportDateRangeOptions,
         );
       case EmailReportField.startDate:
         if (vm.draft.reportDateRange != 'custom') {
           return const SizedBox.shrink();
         }
-        return SettingsTextField(
-          initialValue: vm.draft.reportStartDate,
-          labelKey: 'start_date',
-          onChanged: vm.setReportStartDate,
-          externalSyncKey: vm.draft.reportName,
+        return InDateField(
+          value: Date.tryParse(vm.draft.reportStartDate)?.toDateTime(),
+          labelText: context.tr('start_date'),
+          formatter: services.formatterIfReady(companyId),
+          clearable: true,
+          onChanged: (dt) => vm.setReportStartDate(
+            dt == null ? '' : Date(dt.year, dt.month, dt.day).toIso(),
+          ),
         );
       case EmailReportField.endDate:
         if (vm.draft.reportDateRange != 'custom') {
           return const SizedBox.shrink();
         }
-        return SettingsTextField(
-          initialValue: vm.draft.reportEndDate,
-          labelKey: 'end_date',
-          onChanged: vm.setReportEndDate,
-          externalSyncKey: vm.draft.reportName,
+        return InDateField(
+          value: Date.tryParse(vm.draft.reportEndDate)?.toDateTime(),
+          labelText: context.tr('end_date'),
+          formatter: services.formatterIfReady(companyId),
+          clearable: true,
+          onChanged: (dt) => vm.setReportEndDate(
+            dt == null ? '' : Date(dt.year, dt.month, dt.day).toIso(),
+          ),
         );
       case EmailReportField.status:
-        return SettingsTextField(
-          initialValue: vm.draft.reportStatus,
-          labelKey: 'status',
+        return _ReportStatusField(
+          reportName: vm.draft.reportName,
+          value: vm.draft.reportStatus,
           onChanged: vm.setReportStatus,
-          externalSyncKey: vm.draft.reportName,
         );
       case EmailReportField.documentEmailAttachment:
         return SwitchListTile.adaptive(
@@ -675,64 +708,87 @@ class _EmailReportSectionState extends State<_EmailReportSection> {
           onChanged: vm.setReportIncludeDeleted,
         );
       case EmailReportField.productKey:
-        return SettingsTextField(
-          initialValue: vm.draft.reportProductKey,
-          labelKey: 'product_key',
+        return _RepoSinglePicker<Product>(
+          labelKey: 'product',
+          stream: services.products.watchPage(
+            companyId: companyId,
+            loadedPages: 100,
+          ),
+          selectedId: vm.draft.reportProductKey,
+          idOf: (p) => p.productKey,
+          displayString: (p) => p.productKey.isEmpty ? p.id : p.productKey,
           onChanged: vm.setReportProductKey,
-          externalSyncKey: vm.draft.reportName,
         );
       case EmailReportField.clientIdSingular:
-        return SettingsTextField(
-          initialValue: vm.draft.reportClientId,
-          labelKey: 'client_id',
+        return _RepoSinglePicker<Client>(
+          labelKey: 'client',
+          stream: services.clients.watchPage(
+            companyId: companyId,
+            loadedPages: 100,
+          ),
+          selectedId: vm.draft.reportClientId,
+          idOf: (c) => c.id,
+          displayString: _clientLabel,
           onChanged: vm.setReportClientId,
-          externalSyncKey: vm.draft.reportName,
         );
       case EmailReportField.clients:
-        return _ClientCsvField(
-          labelKey: 'clients',
-          hintKey: 'all_clients',
+        return _ClientsField(
           ids: vm.draft.reportClients,
           onChanged: vm.setReportClients,
         );
       case EmailReportField.vendors:
-        return _ClientCsvField(
+        return _RepoMultiPicker<Vendor>(
           labelKey: 'vendors',
-          hintKey: 'all',
-          ids: vm.draft.reportVendors,
+          stream: services.vendors.watchPage(
+            companyId: companyId,
+            loadedPages: 100,
+          ),
+          selectedIds: vm.draft.reportVendors,
+          idOf: (v) => v.id,
+          displayString: (v) => v.name.isEmpty ? v.id : v.name,
           onChanged: vm.setReportVendorsCsv,
         );
       case EmailReportField.projects:
-        return _ClientCsvField(
+        return _RepoMultiPicker<Project>(
           labelKey: 'projects',
-          hintKey: 'all',
-          ids: vm.draft.reportProjects,
+          stream: services.projects.watchPage(
+            companyId: companyId,
+            loadedPages: 100,
+          ),
+          selectedIds: vm.draft.reportProjects,
+          idOf: (p) => p.id,
+          displayString: (p) => p.name.isEmpty ? p.id : p.name,
           onChanged: vm.setReportProjectsCsv,
         );
       case EmailReportField.categories:
-        return _ClientCsvField(
+        return _RepoMultiPicker<ExpenseCategory>(
           labelKey: 'categories',
-          hintKey: 'all',
-          ids: vm.draft.reportCategories,
+          stream: services.expenseCategories.watchPage(
+            companyId: companyId,
+            loadedPages: 100,
+          ),
+          selectedIds: vm.draft.reportCategories,
+          idOf: (c) => c.id,
+          displayString: (c) => c.name.isEmpty ? c.id : c.name,
           onChanged: vm.setReportCategoriesCsv,
         );
       case EmailReportField.templateId:
-        return SettingsTextField(
-          initialValue: vm.draft.reportTemplateId,
+        return _RepoSinglePicker<Design>(
           labelKey: 'design',
+          // Server requires a real template Design (is_template=true).
+          stream: services.designs
+              .watchAll(companyId: companyId)
+              .map((list) => list.where((d) => d.isTemplate).toList()),
+          selectedId: vm.draft.reportTemplateId,
+          idOf: (d) => d.id,
+          displayString: (d) => d.name,
           onChanged: vm.setReportTemplateId,
-          externalSyncKey: vm.draft.reportName,
         );
       case EmailReportField.groupBy:
-        return SettingsTextField(
-          initialValue: vm.draft.reportGroupBy,
-          labelKey: 'group_by',
-          onChanged: vm.setReportGroupBy,
-          externalSyncKey: vm.draft.reportName,
-        );
       case EmailReportField.reportKeys:
-        // No UI in either legacy client; round-tripped through the
-        // payload only.
+        // group_by needs React's per-report column-map options (deferred);
+        // report_keys has no UI in either client. Neither is currently
+        // listed in any report's field set, so these never render.
         return const SizedBox.shrink();
     }
   }
@@ -771,6 +827,7 @@ class _InvoiceOutstandingTasksSection extends StatelessWidget {
           context,
           value: vm.draft.outstandingTasksDateRange,
           onChanged: (v) => vm._patchOutstandingDateRange(v),
+          options: kStatementDateRangeOptions,
         ),
         SwitchListTile.adaptive(
           contentPadding: EdgeInsets.zero,
@@ -792,9 +849,7 @@ class _InvoiceOutstandingTasksSection extends StatelessWidget {
           value: vm.draft.outstandingTasksIncludeProjectTasks,
           onChanged: vm.setOutstandingTasksIncludeProjectTasks,
         ),
-        _ClientCsvField(
-          labelKey: 'clients',
-          hintKey: 'all_clients',
+        _ClientsField(
           ids: vm.draft.outstandingTasksClients,
           onChanged: (ids) => vm._patchOutstandingClients(ids),
         ),
@@ -832,6 +887,8 @@ class _PaymentScheduleSectionState extends State<_PaymentScheduleSection> {
   @override
   Widget build(BuildContext context) {
     final vm = widget.vm;
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
     final rows = vm.draft.paymentScheduleRows;
     final isAmountMode = rows.isEmpty ? _pendingMode : rows.first.isAmount;
     final today = Date.today();
@@ -840,30 +897,23 @@ class _PaymentScheduleSectionState extends State<_PaymentScheduleSection> {
       title: context.tr('payment_schedule'),
       children: [
         // Lock invoice id on edit — matches React PaymentSchedule.tsx:389.
-        // Render as a read-only decorator so the field is also out of the
-        // focus tree (a previous IgnorePointer+Opacity wrap left it
-        // keyboard-focusable). On create, the standard editable field.
+        // On create, a searchable invoice picker (the id is validated
+        // server-side by InvoiceWithNoExistingSchedule, so a typed id 422s).
         if (vm.isCreate)
-          SettingsTextField(
-            initialValue: vm.draft.paymentScheduleInvoiceId,
-            labelKey: 'invoice_id',
+          _RepoSinglePicker<Invoice>(
+            labelKey: 'invoice',
+            stream: services.invoices.watchPage(
+              companyId: companyId,
+              loadedPages: 100,
+            ),
+            selectedId: vm.draft.paymentScheduleInvoiceId,
+            idOf: (i) => i.id,
+            displayString: (i) => i.number.isEmpty ? i.id : i.number,
             onChanged: vm.setPaymentScheduleInvoiceId,
             errorText: vm.fieldErrorFor('invoice_id'),
-            externalSyncKey: vm.original?.id,
           )
         else
-          InputDecorator(
-            decoration: InputDecoration(
-              labelText: context.tr('invoice_id'),
-              enabled: false,
-            ),
-            child: Text(
-              vm.draft.paymentScheduleInvoiceId,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
+          _InvoiceReadonlyField(invoiceId: vm.draft.paymentScheduleInvoiceId),
         SwitchListTile.adaptive(
           contentPadding: EdgeInsets.zero,
           title: Text(context.tr('auto_bill')),
@@ -926,6 +976,14 @@ class _PaymentScheduleSectionState extends State<_PaymentScheduleSection> {
                 ),
             ],
           ),
+        if (rows.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          _PaymentRemainingHint(
+            invoiceId: vm.draft.paymentScheduleInvoiceId,
+            rows: rows,
+            isAmountMode: isAmountMode,
+          ),
+        ],
         const SizedBox(height: 8),
         OutlinedButton.icon(
           style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
@@ -1095,12 +1153,13 @@ Widget _dateRangeDropdown(
   BuildContext context, {
   required String value,
   required ValueChanged<String> onChanged,
+  required List<String> options,
 }) {
   return DropdownButtonFormField<String>(
-    initialValue: kScheduleDateRangeOptions.contains(value) ? value : null,
+    initialValue: options.contains(value) ? value : null,
     decoration: InputDecoration(labelText: context.tr('date_range')),
     items: [
-      for (final o in kScheduleDateRangeOptions)
+      for (final o in options)
         DropdownMenuItem<String>(value: o, child: Text(context.tr(o))),
     ],
     onChanged: (v) {
@@ -1109,69 +1168,367 @@ Widget _dateRangeDropdown(
   );
 }
 
-/// Comma-separated id input. A scaffolding placeholder until proper
-/// entity-pickers land — the user can paste a list of ids (or leave
-/// empty for "all"). Empty list emits the wire's "no filter" signal.
-class _ClientCsvField extends StatefulWidget {
-  const _ClientCsvField({
+String _clientLabel(Client c) => c.displayName.isEmpty ? c.name : c.displayName;
+
+/// Single-entity reference picker backed by a watched repo list. Resolves
+/// the current id against the loaded page and shows the entity's
+/// name/number instead of the raw hashed id; the server validates the id on
+/// save. Loads one page + filters client-side — same trade-off as the
+/// payment-edit invoice picker.
+class _RepoSinglePicker<T extends Object> extends StatelessWidget {
+  const _RepoSinglePicker({
     required this.labelKey,
-    required this.hintKey,
-    required this.ids,
+    required this.stream,
+    required this.selectedId,
+    required this.idOf,
+    required this.displayString,
+    required this.onChanged,
+    this.errorText,
+  });
+
+  final String labelKey;
+  final Stream<List<T>> stream;
+  final String selectedId;
+  final String Function(T) idOf;
+  final String Function(T) displayString;
+  final ValueChanged<String> onChanged;
+  final String? errorText;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<T>>(
+      stream: stream,
+      builder: (context, snapshot) {
+        final items = snapshot.data ?? const [];
+        T? selected;
+        for (final it in items) {
+          if (idOf(it) == selectedId) {
+            selected = it;
+            break;
+          }
+        }
+        return SearchableDropdownField<T>(
+          label: context.tr(labelKey),
+          items: items,
+          initialValue: selected,
+          displayString: displayString,
+          idOf: idOf,
+          onChanged: (it) => onChanged(it == null ? '' : idOf(it)),
+          errorText: errorText,
+        );
+      },
+    );
+  }
+}
+
+/// Multi-entity reference picker backed by a watched repo list.
+class _RepoMultiPicker<T extends Object> extends StatelessWidget {
+  const _RepoMultiPicker({
+    required this.labelKey,
+    required this.stream,
+    required this.selectedIds,
+    required this.idOf,
+    required this.displayString,
     required this.onChanged,
   });
 
   final String labelKey;
-  final String hintKey;
+  final Stream<List<T>> stream;
+  final List<String> selectedIds;
+  final String Function(T) idOf;
+  final String Function(T) displayString;
+  final ValueChanged<List<String>> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<T>>(
+      stream: stream,
+      builder: (context, snapshot) {
+        final items = snapshot.data ?? const [];
+        return MultiEntityPicker<T>(
+          labelKey: labelKey,
+          selectedIds: selectedIds,
+          items: items,
+          idOf: idOf,
+          displayString: displayString,
+          onChanged: onChanged,
+        );
+      },
+    );
+  }
+}
+
+/// Multi-client picker — statement / outstanding-tasks / report `clients`
+/// filters. Empty selection = "all clients".
+class _ClientsField extends StatelessWidget {
+  const _ClientsField({required this.ids, required this.onChanged});
+
   final List<String> ids;
   final ValueChanged<List<String>> onChanged;
 
   @override
-  State<_ClientCsvField> createState() => _ClientCsvFieldState();
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    return _RepoMultiPicker<Client>(
+      labelKey: 'clients',
+      stream: services.clients.watchPage(
+        companyId: companyId,
+        loadedPages: 100,
+      ),
+      selectedIds: ids,
+      idOf: (c) => c.id,
+      displayString: _clientLabel,
+      onChanged: onChanged,
+    );
+  }
 }
 
-class _ClientCsvFieldState extends State<_ClientCsvField> {
-  late final TextEditingController _controller;
+/// email_record entity picker — the repo + display switch on the chosen
+/// entity type (invoice / quote / credit / purchase_order).
+class _RecordEntityField extends StatelessWidget {
+  const _RecordEntityField({required this.vm});
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.ids.join(', '));
-  }
-
-  @override
-  void didUpdateWidget(covariant _ClientCsvField old) {
-    super.didUpdateWidget(old);
-    // External list change (e.g. starter prefill) — reseed the controller
-    // without disturbing the cursor while the user is mid-edit.
-    final joined = widget.ids.join(', ');
-    if (joined != _controller.text.replaceAll(' ', '').replaceAll(',', ', ') &&
-        joined != _controller.text) {
-      _controller.text = joined;
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  final ScheduleEditViewModel vm;
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: _controller,
-      decoration: InputDecoration(
-        labelText: context.tr(widget.labelKey),
-        hintText: context.tr(widget.hintKey),
-        helperText: context.tr('comma_separated_ids'),
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    final selectedId = vm.draft.recordEntityId;
+    final error = vm.fieldErrorFor('entity_id');
+    switch (vm.draft.recordEntityType) {
+      case 'quote':
+        return _RepoSinglePicker<Quote>(
+          labelKey: 'quote',
+          stream: services.quotes.watchPage(
+            companyId: companyId,
+            loadedPages: 100,
+          ),
+          selectedId: selectedId,
+          idOf: (q) => q.id,
+          displayString: (q) => q.number.isEmpty ? q.id : q.number,
+          onChanged: vm.setRecordEntityId,
+          errorText: error,
+        );
+      case 'credit':
+        return _RepoSinglePicker<Credit>(
+          labelKey: 'credit',
+          stream: services.credits.watchPage(
+            companyId: companyId,
+            loadedPages: 100,
+          ),
+          selectedId: selectedId,
+          idOf: (c) => c.id,
+          displayString: (c) => c.number.isEmpty ? c.id : c.number,
+          onChanged: vm.setRecordEntityId,
+          errorText: error,
+        );
+      case 'purchase_order':
+        return _RepoSinglePicker<PurchaseOrder>(
+          labelKey: 'purchase_order',
+          stream: services.purchaseOrders.watchPage(
+            companyId: companyId,
+            loadedPages: 100,
+          ),
+          selectedId: selectedId,
+          idOf: (p) => p.id,
+          displayString: (p) => p.number.isEmpty ? p.id : p.number,
+          onChanged: vm.setRecordEntityId,
+          errorText: error,
+        );
+      case 'invoice':
+      default:
+        return _RepoSinglePicker<Invoice>(
+          labelKey: 'invoice',
+          stream: services.invoices.watchPage(
+            companyId: companyId,
+            loadedPages: 100,
+          ),
+          selectedId: selectedId,
+          idOf: (i) => i.id,
+          displayString: (i) => i.number.isEmpty ? i.id : i.number,
+          onChanged: vm.setRecordEntityId,
+          errorText: error,
+        );
+    }
+  }
+}
+
+/// Read-only invoice label (payment_schedule on edit — the invoice can't be
+/// changed). Resolves the id to the invoice number once loaded.
+class _InvoiceReadonlyField extends StatelessWidget {
+  const _InvoiceReadonlyField({required this.invoiceId});
+
+  final String invoiceId;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    final theme = Theme.of(context);
+    return StreamBuilder<List<Invoice>>(
+      stream: services.invoices.watchPage(
+        companyId: companyId,
+        loadedPages: 100,
       ),
-      onChanged: (raw) {
-        final ids = raw
-            .split(',')
-            .map((s) => s.trim())
-            .where((s) => s.isNotEmpty)
-            .toList(growable: false);
-        widget.onChanged(ids);
+      builder: (context, snapshot) {
+        final items = snapshot.data ?? const <Invoice>[];
+        var label = invoiceId;
+        for (final i in items) {
+          if (i.id == invoiceId && i.number.isNotEmpty) {
+            label = i.number;
+            break;
+          }
+        }
+        return InputDecorator(
+          decoration: InputDecoration(
+            labelText: context.tr('invoice'),
+            enabled: false,
+          ),
+          child: Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Report `status` filter — a report-aware multiselect of chips when the
+/// report has a known status set ([reportStatusOptions]), a free-text field
+/// otherwise. Emits the CSV the server expects.
+class _ReportStatusField extends StatelessWidget {
+  const _ReportStatusField({
+    required this.reportName,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String reportName;
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final options = reportStatusOptions(reportName);
+    if (options == null) {
+      return SettingsTextField(
+        initialValue: value,
+        labelKey: 'status',
+        onChanged: onChanged,
+        externalSyncKey: reportName,
+      );
+    }
+    final theme = Theme.of(context);
+    final tokens = context.inTheme;
+    final selected = value
+        .split(',')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toSet();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          context.tr('status'),
+          style: theme.textTheme.labelMedium?.copyWith(color: tokens.ink3),
+        ),
+        SizedBox(height: InSpacing.sm),
+        Wrap(
+          spacing: InSpacing.sm,
+          runSpacing: InSpacing.sm,
+          children: [
+            for (final o in options)
+              FilterChip(
+                label: Text(context.tr(o.labelKey)),
+                selected: selected.contains(o.id),
+                onSelected: (isOn) {
+                  final next = {...selected};
+                  if (isOn) {
+                    next.add(o.id);
+                  } else {
+                    next.remove(o.id);
+                  }
+                  // Keep the canonical option order in the emitted CSV.
+                  onChanged(
+                    options
+                        .where((x) => next.contains(x.id))
+                        .map((x) => x.id)
+                        .join(','),
+                  );
+                },
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Non-blocking "remaining" hint for the payment schedule. Percent mode:
+/// 100 − Σ%. Amount mode: invoice total − Σ amount (when the invoice is
+/// loaded). The server doesn't enforce the sum, so this is guidance only.
+class _PaymentRemainingHint extends StatelessWidget {
+  const _PaymentRemainingHint({
+    required this.invoiceId,
+    required this.rows,
+    required this.isAmountMode,
+  });
+
+  final String invoiceId;
+  final List<ScheduleParamsRow> rows;
+  final bool isAmountMode;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = context.inTheme;
+    final allocated = rows.fold<Decimal>(
+      Decimal.zero,
+      (sum, r) => sum + r.amount,
+    );
+
+    Widget hint(String text, {bool over = false}) => Text(
+      text,
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: over ? theme.colorScheme.error : tokens.ink3,
+      ),
+    );
+
+    if (!isAmountMode) {
+      final remaining = Decimal.fromInt(100) - allocated;
+      return hint(
+        '$remaining% ${context.tr('remaining')}',
+        over: remaining < Decimal.zero,
+      );
+    }
+
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    return StreamBuilder<List<Invoice>>(
+      stream: services.invoices.watchPage(
+        companyId: companyId,
+        loadedPages: 100,
+      ),
+      builder: (context, snapshot) {
+        final items = snapshot.data ?? const <Invoice>[];
+        Invoice? invoice;
+        for (final i in items) {
+          if (i.id == invoiceId) {
+            invoice = i;
+            break;
+          }
+        }
+        if (invoice == null) return const SizedBox.shrink();
+        final remaining = invoice.amount - allocated;
+        return hint(
+          '$remaining ${context.tr('remaining')}',
+          over: remaining < Decimal.zero,
+        );
       },
     );
   }

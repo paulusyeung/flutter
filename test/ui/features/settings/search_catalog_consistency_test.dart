@@ -27,6 +27,7 @@ import 'package:admin/ui/features/settings/views/basic/account_management/danger
 import 'package:admin/ui/features/settings/views/basic/backup_restore/widgets/backup_tab.dart';
 import 'package:admin/ui/features/settings/views/basic/backup_restore/widgets/restore_tab.dart';
 import 'package:admin/ui/features/settings/views/basic/expense_settings_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/import_export_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/product_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/task_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/email_settings/email_settings_body.dart';
@@ -357,6 +358,13 @@ final List<_TabUnderTest> _tabsUnderTest = [
       'lib/ui/features/settings/views/basic/backup_restore/widgets/restore_tab.dart',
     ],
     keys: kRestoreTabSearchKeys,
+  ),
+  const _TabUnderTest(
+    label: 'import_export',
+    sourcePaths: [
+      'lib/ui/features/settings/views/basic/import_export_screen.dart',
+    ],
+    keys: kImportExportSearchKeys,
   ),
   const _TabUnderTest(
     label: 'account_management/danger_zone',

@@ -20,10 +20,14 @@ import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/billing_shared/actions/add_comment_prompt.dart';
 import 'package:admin/ui/features/billing_shared/billing_cross_clone.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
+import 'package:admin/ui/features/vendors/widgets/vendor_portal.dart';
 
-/// PurchaseOrder action set. Mirrors Quote/Credit actions plus the two
-/// PO-specific actions (`accept`, `convertToExpense`); drops conversion
-/// actions and the cloneToRecurring target (no recurring POs).
+/// PurchaseOrder action set. Mirrors Quote/Credit actions plus the
+/// PO-specific actions (`addToInventory`, `convertToExpense`/`viewExpense`,
+/// `vendorPortal`); drops conversion actions and the cloneToRecurring target
+/// (no recurring POs). There is intentionally **no admin `accept`** — a PO is
+/// accepted by the vendor via the portal; the server has no admin accept
+/// route (not in the `/bulk` allow-list, `?accept=true` is ignored).
 enum PurchaseOrderAction {
   edit,
   pdfGroup,
@@ -33,9 +37,11 @@ enum PurchaseOrderAction {
   sendEmail,
   scheduleEmail,
   markSent,
-  accept,
   cancel,
+  addToInventory,
   convertToExpense,
+  viewExpense,
+  vendorPortal,
   cloneGroup,
   clone,
   cloneToInvoice,
@@ -54,16 +60,14 @@ class PurchaseOrderActions {
   /// SAVE-PARAM classifier (edit-screen action bar). Non-null => the
   /// action is performed *by* the create/update request via these query
   /// params (server creates/updates and acts atomically — no temp-id
-  /// gap). Keys are purchase-order-specific (verified against admin-portal
-  /// `purchase_order_repository.saveData`: `mark_sent` / `accept`).
-  /// `sendEmail` is intentionally **not** here — it is an after-save
-  /// separate request.
+  /// gap). Only `mark_sent` qualifies for POs — the server's
+  /// `TriggeredActions` honors `mark_sent` / `send_email` but **not**
+  /// `accept`. `sendEmail` is intentionally **not** here — it is an
+  /// after-save separate request.
   static Map<String, String>? saveParamFor(PurchaseOrderAction action) {
     switch (action) {
       case PurchaseOrderAction.markSent:
         return const {'mark_sent': 'true'};
-      case PurchaseOrderAction.accept:
-        return const {'accept': 'true'};
       default:
         return null;
     }
@@ -114,10 +118,19 @@ class PurchaseOrderActions {
     final canCreate = me?.can('create_purchase_order') ?? false;
     final canDelete = me?.can('delete_purchase_order') ?? false;
     final canMarkSent = canEdit && po.isDraft;
-    final canAccept = canEdit && po.isSent;
-    final canCancel =
-        canEdit && (po.isSent || po.isAccepted) && !po.isCancelled;
-    final canConvertToExpense = canEdit && po.isAccepted;
+    // Server only cancels a PO while `status_id <= SENT`; it silently no-ops
+    // for Accepted/Received. So gate on Sent (the only meaningful case —
+    // an unsent draft is deleted, not cancelled).
+    final canCancel = canEdit && po.isSent;
+    // `add_to_inventory` moves an Accepted PO → Received (server guards on
+    // `status_id < RECEIVED`). Matches React/legacy (Accepted-only).
+    final canAddToInventory = canEdit && po.isAccepted;
+    final expenseModuleEnabled = me?.moduleEnabled(EntityType.expense) ?? false;
+    // Convert is offered while no expense exists yet (any status — the server
+    // has no status guard, only a duplicate guard). Once expensed, we show
+    // "View expense" instead.
+    final hasExpense = po.expenseId.isNotEmpty;
+    final portalLink = _firstPortalLink(po);
 
     return [
       if (canEdit)
@@ -168,19 +181,27 @@ class PurchaseOrderActions {
         onTap: () => onTap(PurchaseOrderAction.markSent),
       ),
       EntityActionItem(
-        kind: PurchaseOrderAction.accept,
-        icon: Icons.thumb_up_alt_outlined,
-        label: context.tr('accept'),
-        enabled: canAccept,
-        onTap: () => onTap(PurchaseOrderAction.accept),
+        kind: PurchaseOrderAction.addToInventory,
+        icon: Icons.inventory_2_outlined,
+        label: context.tr('add_to_inventory'),
+        enabled: canAddToInventory,
+        onTap: () => onTap(PurchaseOrderAction.addToInventory),
       ),
-      if (me?.moduleEnabled(EntityType.expense) ?? false)
+      if (expenseModuleEnabled && !hasExpense)
         EntityActionItem(
           kind: PurchaseOrderAction.convertToExpense,
           icon: Icons.receipt_outlined,
           label: context.tr('convert_to_expense'),
-          enabled: canConvertToExpense,
+          enabled: canEdit,
           onTap: () => onTap(PurchaseOrderAction.convertToExpense),
+        ),
+      if (expenseModuleEnabled && hasExpense)
+        EntityActionItem(
+          kind: PurchaseOrderAction.viewExpense,
+          icon: Icons.receipt_long_outlined,
+          label: context.tr('view_expense'),
+          enabled: true,
+          onTap: () => onTap(PurchaseOrderAction.viewExpense),
         ),
       EntityActionItem(
         kind: PurchaseOrderAction.cancel,
@@ -189,6 +210,14 @@ class PurchaseOrderActions {
         enabled: canCancel,
         onTap: () => onTap(PurchaseOrderAction.cancel),
       ),
+      if (portalLink.isNotEmpty)
+        EntityActionItem(
+          kind: PurchaseOrderAction.vendorPortal,
+          icon: Icons.open_in_new_outlined,
+          label: context.tr('vendor_portal'),
+          enabled: true,
+          onTap: () => onTap(PurchaseOrderAction.vendorPortal),
+        ),
       if (canCreate)
         cloneGroupActionItem(
           context: context,
@@ -328,11 +357,14 @@ class PurchaseOrderActions {
         if (!context.mounted) return;
         Notify.success(context, context.tr('marked_purchase_order_as_sent'));
 
-      case PurchaseOrderAction.accept:
+      case PurchaseOrderAction.addToInventory:
         if (tmpGate()) return;
-        await services.purchaseOrders.accept(companyId: companyId, id: po.id);
+        await services.purchaseOrders.addToInventory(
+          companyId: companyId,
+          id: po.id,
+        );
         if (!context.mounted) return;
-        Notify.success(context, context.tr('accepted_purchase_order'));
+        Notify.success(context, context.tr('added_to_inventory'));
 
       case PurchaseOrderAction.cancel:
         if (tmpGate()) return;
@@ -348,6 +380,16 @@ class PurchaseOrderActions {
         );
         if (!context.mounted) return;
         Notify.success(context, context.tr('converted_to_expense'));
+
+      case PurchaseOrderAction.viewExpense:
+        if (po.expenseId.isEmpty) return;
+        // `go` (not `push`): consistent with viewPdf above.
+        context.go('/expenses/${po.expenseId}');
+
+      case PurchaseOrderAction.vendorPortal:
+        final link = _firstPortalLink(po);
+        if (link.isEmpty) return;
+        await launchVendorPortal(context, vendorPortalUrl(contactLink: link));
 
       case PurchaseOrderAction.cloneGroup:
         break; // Submenu parent — never dispatched; children carry the action.
@@ -455,5 +497,15 @@ class PurchaseOrderActions {
         if (!context.mounted) return;
         Notify.success(context, context.tr('template_queued'));
     }
+  }
+
+  /// The first vendor-invitation portal link on the PO, or `''` if none.
+  /// Gates + dispatches the Vendor Portal action (empty on an unsaved/unsent
+  /// draft, so the action stays hidden there).
+  static String _firstPortalLink(PurchaseOrder po) {
+    for (final inv in po.invitations) {
+      if (inv.link.isNotEmpty) return inv.link;
+    }
+    return '';
   }
 }

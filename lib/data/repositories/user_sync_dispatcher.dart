@@ -17,8 +17,12 @@ import 'package:admin/domain/sync/sync_dispatcher.dart';
 ///   * [MutationKind.update] → `PUT /api/v1/users/{id}` (with body `_action`
 ///     escape hatch for `connect_oauth` / `disconnect_oauth` /
 ///     `disconnect_mailer`)
-///   * [MutationKind.delete] → `DELETE /api/v1/users/{id}` (soft)
-///   * [MutationKind.archive] / [MutationKind.restore] → `POST .../<action>`
+///   * [MutationKind.delete] / [MutationKind.archive] / [MutationKind.restore]
+///     → `POST /api/v1/users/bulk` with `{action, ids:[id]}` (password-gated).
+///     Users expose **no** per-id `/archive` / `/restore` route and **no**
+///     RESTful `DELETE /users/{id}` — the lifecycle ops only exist on `/bulk`
+///     (see `UserController::bulk`). Per-id POSTs 404 and park as bogus
+///     conflicts, so these must use [BaseEntityApi.bulkActionOne].
 ///   * [MutationKind.purge] → `POST /api/v1/users/{id}/purge` (hard)
 ///   * [MutationKind.inviteUser] → `POST /api/v1/users/{id}/invite`
 ///   * [MutationKind.detachFromCompany] →
@@ -104,9 +108,14 @@ class UserSyncDispatcher implements SyncDispatcher {
         );
 
       case MutationKind.delete:
+        // Users have no RESTful `DELETE /users/{id}` — the delete lifecycle op
+        // lives only on `POST /users/bulk` (password-gated). Route through
+        // bulkActionOne; the server echoes the soft-deleted user but we only
+        // need to mark the local row deleted.
         try {
-          await api.delete(
+          await api.bulkActionOne(
             id: row.entityId,
+            action: 'delete',
             idempotencyKey: row.idempotencyKey,
             requiresPassword: row.requiresPassword,
           );
@@ -120,10 +129,15 @@ class UserSyncDispatcher implements SyncDispatcher {
         );
 
       case MutationKind.archive:
-        final item = await api.action(
+        // `?include=company_user` so the echoed user keeps its permissions /
+        // is_admin block — `company_user` is an opt-in include server-side,
+        // and applyUpdateResponse would otherwise blank those columns.
+        final item = await api.bulkActionOne(
           id: row.entityId,
           action: 'archive',
           idempotencyKey: row.idempotencyKey,
+          query: const {'include': 'company_user'},
+          requiresPassword: row.requiresPassword,
         );
         if (item != null) {
           await repo.applyUpdateResponse(
@@ -133,10 +147,12 @@ class UserSyncDispatcher implements SyncDispatcher {
         }
 
       case MutationKind.restore:
-        final item = await api.action(
+        final item = await api.bulkActionOne(
           id: row.entityId,
           action: 'restore',
           idempotencyKey: row.idempotencyKey,
+          query: const {'include': 'company_user'},
+          requiresPassword: row.requiresPassword,
         );
         if (item != null) {
           await repo.applyUpdateResponse(

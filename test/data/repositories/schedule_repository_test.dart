@@ -6,6 +6,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/schedule_api_model.dart';
 import 'package:admin/data/models/domain/schedule.dart';
 import 'package:admin/data/models/domain/schedule_constants.dart';
+import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/schedule_repository.dart';
@@ -314,6 +315,78 @@ void main() {
         expect(pending, isNotEmpty);
       },
     );
+
+    test('create clamps a past next_run to today (server requires '
+        'after_or_equal:today)', () async {
+      final repo = makeRepo();
+      final draft = Schedule.empty()
+          .withTemplate(kScheduleTemplateEmailStatement)
+          .copyWith(nextRun: Date(2020, 1, 1));
+      final result = await repo.create(companyId: 'co', draft: draft);
+      expect(result.entity.nextRun, Date.today());
+    });
+  });
+
+  group('Schedule payload shaping + next_run clamp', () {
+    test('email_record payload omits frequency_id/remaining_cycles and uses a '
+        'server-valid template (not the rejected "initial")', () {
+      final json = Schedule.empty()
+          .withTemplate(kScheduleTemplateEmailRecord)
+          .toApiJson();
+      expect(json.containsKey('frequency_id'), isFalse);
+      expect(json.containsKey('remaining_cycles'), isFalse);
+      expect((json['parameters'] as Map)['template'], 'invoice');
+    });
+
+    test('payment_schedule payload omits frequency_id/remaining_cycles', () {
+      final json = Schedule.empty()
+          .withTemplate(kScheduleTemplatePaymentSchedule)
+          .toApiJson();
+      expect(json.containsKey('frequency_id'), isFalse);
+      expect(json.containsKey('remaining_cycles'), isFalse);
+    });
+
+    test(
+      'email_statement payload includes frequency_id + remaining_cycles',
+      () {
+        final json = Schedule.empty()
+            .withTemplate(kScheduleTemplateEmailStatement)
+            .toApiJson();
+        expect(json['frequency_id'], '5');
+        expect(json.containsKey('remaining_cycles'), isTrue);
+      },
+    );
+
+    test(
+      'invoice_outstanding_tasks sends frequency_id but not remaining_cycles '
+      '(React TemplateProperties parity)',
+      () {
+        final json = Schedule.empty()
+            .withTemplate(kScheduleTemplateInvoiceOutstandingTasks)
+            .toApiJson();
+        expect(json.containsKey('frequency_id'), isTrue);
+        expect(json.containsKey('remaining_cycles'), isFalse);
+      },
+    );
+
+    test('withNextRunNotBefore clamps a past date, keeps a future one', () {
+      final floor = Date(2026, 6, 1);
+      expect(
+        Schedule.empty()
+            .copyWith(nextRun: Date(2020, 1, 1))
+            .withNextRunNotBefore(floor)
+            .nextRun,
+        floor,
+      );
+      final future = Date(2099, 1, 1);
+      expect(
+        Schedule.empty()
+            .copyWith(nextRun: future)
+            .withNextRunNotBefore(floor)
+            .nextRun,
+        future,
+      );
+    });
   });
 }
 

@@ -291,13 +291,18 @@ class PurchaseOrderRepository
     payload: {'message_id': messageId},
   );
 
-  Future<void> accept({required String companyId, required String id}) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.acceptOrder,
-        payload: {'id': id},
-      );
+  /// `POST /purchase_orders/bulk {action:'add_to_inventory'}` — record the
+  /// PO's line items as received stock and flip Accepted → Received. Server
+  /// no-ops once `status_id >= RECEIVED`.
+  Future<void> addToInventory({
+    required String companyId,
+    required String id,
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: MutationKind.addToInventory,
+    payload: {'id': id},
+  );
 
   Future<void> cancel({required String companyId, required String id}) =>
       enqueueMutation(
@@ -357,17 +362,6 @@ class PurchaseOrderRepository
       if (body != null) 'body': body,
       if (ccEmail != null) 'cc_email': ccEmail,
     },
-  );
-
-  Future<void> cloneTo({
-    required String companyId,
-    required String id,
-    required String targetType,
-  }) => enqueueMutation(
-    companyId: companyId,
-    entityId: id,
-    kind: _cloneKindFor(targetType),
-    payload: {'id': id, 'target': targetType},
   );
 
   Future<void> runTemplate({
@@ -613,26 +607,6 @@ class PurchaseOrderRepository
       isDirty: row.isDirty,
       documents: decodeDocumentsColumn(row.documents),
     );
-  }
-}
-
-MutationKind _cloneKindFor(String targetType) {
-  switch (targetType) {
-    case 'invoice':
-      return MutationKind.cloneToInvoice;
-    case 'quote':
-      return MutationKind.cloneToQuote;
-    case 'credit':
-      return MutationKind.cloneToCredit;
-    case 'recurring_invoice':
-      return MutationKind.cloneToRecurring;
-    case 'purchase_order':
-      return MutationKind.cloneToPurchaseOrder;
-    default:
-      throw ArgumentError(
-        'Unknown clone target "$targetType" — must be one of '
-        'invoice|quote|credit|recurring_invoice|purchase_order',
-      );
   }
 }
 

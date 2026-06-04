@@ -8,6 +8,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/schedule_dao.dart';
 import 'package:admin/data/models/api/schedule_api_model.dart';
 import 'package:admin/data/models/domain/schedule.dart';
+import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/schedules_api.dart';
@@ -175,7 +176,9 @@ class ScheduleRepository extends BaseEntityRepository<Schedule, ScheduleApi> {
     String? existingTempId,
   }) async {
     final tmpId = existingTempId ?? mintTempId();
-    final stored = draft.copyWith(id: tmpId);
+    // Clamp next_run to today — the server rejects past dates on every
+    // template (`next_run after_or_equal:today`).
+    final stored = draft.copyWith(id: tmpId).withNextRunNotBefore(Date.today());
     final companion = _domainToCompanion(stored, companyId, isDirty: true);
     var rowId = 0;
     await db.transaction(() async {
@@ -199,23 +202,27 @@ class ScheduleRepository extends BaseEntityRepository<Schedule, ScheduleApi> {
     required String companyId,
     required Schedule schedule,
   }) async {
-    final companion = _domainToCompanion(schedule, companyId, isDirty: true);
+    // Clamp next_run to today — the server rejects past dates on every
+    // template (`next_run after_or_equal:today`). Covers payment_schedule
+    // (hidden field) and editing a schedule whose next_run already lapsed.
+    final clamped = schedule.withNextRunNotBefore(Date.today());
+    final companion = _domainToCompanion(clamped, companyId, isDirty: true);
     var rowId = 0;
     await db.transaction(() async {
       await db.scheduleDao.upsert(companion);
       await dedupPendingMutations(
         companyId: companyId,
-        entityId: schedule.id,
+        entityId: clamped.id,
         kind: MutationKind.update,
       );
       rowId = await enqueueMutation(
         companyId: companyId,
-        entityId: schedule.id,
+        entityId: clamped.id,
         kind: MutationKind.update,
-        payload: schedule.toApiJson(preserveTempId: true),
+        payload: clamped.toApiJson(preserveTempId: true),
       );
     });
-    return SaveResult(entity: schedule, outboxRowId: rowId);
+    return SaveResult(entity: clamped, outboxRowId: rowId);
   }
 
   /// Toggle the paused flag. The full schedule payload is sent on the wire

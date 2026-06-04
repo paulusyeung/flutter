@@ -163,6 +163,11 @@ enum MutationKind {
   /// Payload is `{'id': id}`.
   convertToExpense,
 
+  /// `POST /purchase_orders/bulk` with `action: add_to_inventory` — record a
+  /// PO's line items as received stock and flip Accepted → Received (server
+  /// no-ops once `status_id >= RECEIVED`). PO-only. Payload is `{'id': id}`.
+  addToInventory,
+
   /// `POST /recurring_invoices/{id}/send_now` — fire a one-off generation
   /// of the next invoice from this template, regardless of the schedule.
   /// RecurringInvoice-only. Payload is `{'id': id}`.
@@ -330,6 +335,7 @@ enum MutationKind {
     'convert_to_project' => MutationKind.convertToProject,
     'accept_order' => MutationKind.acceptOrder,
     'convert_to_expense' => MutationKind.convertToExpense,
+    'add_to_inventory' => MutationKind.addToInventory,
     'send_now' => MutationKind.sendNow,
     'upload_e_invoice_certificate' => MutationKind.uploadEInvoiceCertificate,
     'peppol_setup' => MutationKind.peppolSetup,
@@ -387,6 +393,7 @@ enum MutationKind {
     MutationKind.convertToProject => 'convert_to_project',
     MutationKind.acceptOrder => 'accept_order',
     MutationKind.convertToExpense => 'convert_to_expense',
+    MutationKind.addToInventory => 'add_to_inventory',
     MutationKind.sendNow => 'send_now',
     MutationKind.uploadEInvoiceCertificate => 'upload_e_invoice_certificate',
     MutationKind.peppolSetup => 'peppol_setup',

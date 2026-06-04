@@ -147,6 +147,22 @@ void main() {
       },
     );
 
+    test('archive / restore enqueue outbox rows with requiresPassword=true '
+        '(POST /users/bulk is password-gated)', () async {
+      final repo = makeRepo();
+      await repo.archive(companyId: 'co_1', id: 'u_a');
+      await repo.restore(companyId: 'co_1', id: 'u_b');
+      final rows = await db.outboxDao.watchAll('co_1').first;
+      final archiveRow = rows.firstWhere(
+        (r) => r.mutationKind == MutationKind.archive.wireName,
+      );
+      final restoreRow = rows.firstWhere(
+        (r) => r.mutationKind == MutationKind.restore.wireName,
+      );
+      expect(archiveRow.requiresPassword, isTrue);
+      expect(restoreRow.requiresPassword, isTrue);
+    });
+
     test('applyPurgeResponse hard-deletes the local row', () async {
       final repo = makeRepo();
       await repo.applyApiResponse(

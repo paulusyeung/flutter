@@ -1390,11 +1390,13 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     },
   );
 
-  // PurchaseOrder — vendor-centric mirror of Quote/Credit. Adds two
-  // PO-specific custom actions (`accept`, `convert_to_expense`) on top of
-  // the shared mark_sent / email / schedule_email / clone_to_* /
-  // run_template / addComment / cancelEntity / document trio. Status
-  // lifecycle: Draft → Sent → Accepted → Received → Cancelled.
+  // PurchaseOrder — vendor-centric mirror of Quote/Credit. Adds the
+  // PO-specific custom actions (`convert_to_expense`, `add_to_inventory`) on
+  // top of the shared mark_sent / email / schedule_email / run_template /
+  // addComment / cancelEntity / document trio. Status lifecycle:
+  // Draft → Sent → Accepted → Received → Cancelled. Accept is vendor-portal
+  // only (no admin route); cross-type clone is client-side (the server's
+  // /bulk has no clone_to_* for POs), so no clone_to_* handlers here.
   final purchaseOrdersApi = PurchaseOrdersApi(ctx.apiClient);
   final purchaseOrderRepo = PurchaseOrderRepository(
     db: ctx.db,
@@ -1413,8 +1415,8 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         );
         return response?.data;
       },
-      MutationKind.acceptOrder: ({required row, required payload}) async {
-        final response = await purchaseOrdersApi.accept(
+      MutationKind.addToInventory: ({required row, required payload}) async {
+        final response = await purchaseOrdersApi.addToInventory(
           id: payload['id'] as String,
           idempotencyKey: row.idempotencyKey,
         );
@@ -1457,39 +1459,6 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         );
         return response?.data;
       },
-      MutationKind.cloneToInvoice: ({required row, required payload}) async {
-        await purchaseOrdersApi.cloneTo(
-          id: payload['id'] as String,
-          targetType: 'invoice',
-          idempotencyKey: row.idempotencyKey,
-        );
-        return null;
-      },
-      MutationKind.cloneToQuote: ({required row, required payload}) async {
-        await purchaseOrdersApi.cloneTo(
-          id: payload['id'] as String,
-          targetType: 'quote',
-          idempotencyKey: row.idempotencyKey,
-        );
-        return null;
-      },
-      MutationKind.cloneToCredit: ({required row, required payload}) async {
-        await purchaseOrdersApi.cloneTo(
-          id: payload['id'] as String,
-          targetType: 'credit',
-          idempotencyKey: row.idempotencyKey,
-        );
-        return null;
-      },
-      MutationKind.cloneToPurchaseOrder:
-          ({required row, required payload}) async {
-            await purchaseOrdersApi.cloneTo(
-              id: payload['id'] as String,
-              targetType: 'purchase_order',
-              idempotencyKey: row.idempotencyKey,
-            );
-            return null;
-          },
       MutationKind.runTemplate: ({required row, required payload}) async {
         final response = await purchaseOrdersApi.runTemplate(
           id: payload['id'] as String,
