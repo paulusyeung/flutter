@@ -179,6 +179,8 @@ abstract class CompanySettingsApi with _$CompanySettingsApi {
     @JsonKey(name: 'email_subject_payment') String? emailSubjectPayment,
     @JsonKey(name: 'email_subject_payment_partial')
     String? emailSubjectPaymentPartial,
+    @JsonKey(name: 'email_subject_payment_failed')
+    String? emailSubjectPaymentFailed,
     @JsonKey(name: 'email_subject_statement') String? emailSubjectStatement,
     @JsonKey(name: 'email_subject_purchase_order')
     String? emailSubjectPurchaseOrder,
@@ -198,6 +200,8 @@ abstract class CompanySettingsApi with _$CompanySettingsApi {
     @JsonKey(name: 'email_template_payment') String? emailTemplatePayment,
     @JsonKey(name: 'email_template_payment_partial')
     String? emailTemplatePaymentPartial,
+    @JsonKey(name: 'email_template_payment_failed')
+    String? emailTemplatePaymentFailed,
     @JsonKey(name: 'email_template_statement') String? emailTemplateStatement,
     @JsonKey(name: 'email_template_purchase_order')
     String? emailTemplatePurchaseOrder,

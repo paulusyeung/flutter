@@ -341,6 +341,11 @@ class _Editor extends StatelessWidget {
           enabled: isProOrEnterprise,
           hintText: defaultSubject.isEmpty ? null : defaultSubject,
         ),
+        // Unlike the subject, the body shows no statics-default placeholder:
+        // MarkdownTextField/super_editor exposes no placeholder slot, and the
+        // default body is a full template blob that reads poorly as a caption.
+        // Harmless — an empty body still renders the server default, and the
+        // subject hint already signals that defaults exist.
         OverridableMarkdownField(
           label: context.tr('body'),
           apiKey: template.templateKey,

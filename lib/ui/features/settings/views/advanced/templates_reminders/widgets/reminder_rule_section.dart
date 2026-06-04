@@ -202,8 +202,8 @@ class _EndlessRuleSection extends StatelessWidget {
     return FormSection(
       title: context.tr('reminders'),
       children: [
-        const OverridableSwitchField(
-          label: 'Send Email',
+        OverridableSwitchField(
+          label: context.tr('send_email'),
           apiKey: 'enable_reminder_endless',
         ),
         OverridableDropdownField<String>(

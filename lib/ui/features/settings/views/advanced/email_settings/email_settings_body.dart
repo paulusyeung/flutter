@@ -99,6 +99,9 @@ class EmailSettingsBody extends StatelessWidget {
     final session = services.auth.session.value;
     final isHosted = session?.isHosted ?? false;
     final isProOrEnterprise = session?.hasProAccess ?? false;
+    // Hosted free/trial users can't change the sending provider (React parity:
+    // the field is Pro/Enterprise-gated). Self-hosted is never "free".
+    final isFreePlan = session?.isFreePlan ?? false;
     final isCompanyScope = scope.level == SettingsLevel.company;
     final method = host.settings.emailSendingMethod ?? 'default';
 
@@ -118,8 +121,11 @@ class EmailSettingsBody extends StatelessWidget {
                 isProOrEnterprise: isProOrEnterprise,
                 isCompanyScope: isCompanyScope,
               ),
-              onChanged: (v) =>
-                  host.updateSettings((s) => s.copyWith(emailSendingMethod: v)),
+              onChanged: isFreePlan
+                  ? null
+                  : (v) => host.updateSettings(
+                      (s) => s.copyWith(emailSendingMethod: v),
+                    ),
             ),
           ],
         ),
@@ -305,6 +311,18 @@ class EmailSettingsBody extends StatelessWidget {
       items.add(
         _brandItem(context, value: 'gmail', label: 'Gmail', brandKey: 'gmail'),
       );
+    } else {
+      // Self-hosted: the server's configured default mailer. v1 and React both
+      // expose this; without it a self-hosted instance (whose method *is*
+      // `default`) renders a blank provider dropdown.
+      items.add(
+        _brandItem(
+          context,
+          value: 'default',
+          label: context.tr('default'),
+          brandKey: 'smtp',
+        ),
+      );
     }
     items.add(
       _brandItem(
@@ -356,10 +374,13 @@ class EmailSettingsBody extends StatelessWidget {
           children: [
             _BrandDot(color: _kBrandDotColors['smtp']!),
             const SizedBox(width: 8),
-            Text(
-              'SMTP',
-              style: TextStyle(
-                color: smtpEnabled ? null : Theme.of(context).disabledColor,
+            Flexible(
+              child: Text(
+                'SMTP',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: smtpEnabled ? null : Theme.of(context).disabledColor,
+                ),
               ),
             ),
             if (!smtpEnabled) ...[const SizedBox(width: 8), const _ProChip()],
@@ -382,7 +403,7 @@ class EmailSettingsBody extends StatelessWidget {
         children: [
           _BrandDot(color: _kBrandDotColors[brandKey]!),
           const SizedBox(width: 8),
-          Text(label),
+          Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
         ],
       ),
     );

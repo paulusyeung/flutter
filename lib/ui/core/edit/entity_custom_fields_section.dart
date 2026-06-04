@@ -197,7 +197,7 @@ class _CustomSwitchRow extends StatelessWidget {
       child: Row(
         children: [
           Switch(
-            value: value == kSwitchValueYes,
+            value: isSwitchTruthy(value),
             onChanged: (v) => onChanged(v ? kSwitchValueYes : kSwitchValueNo),
           ),
           SizedBox(width: InSpacing.sm),

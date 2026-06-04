@@ -1120,8 +1120,6 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Vendor custom fields (4 slots) | ✅ | ✅ | ✅ | ✅ | |
 | Vendor contact custom fields (4 slots) | ✅ | ✅ | ✅ | ✅ | |
 | Expense custom fields (4 slots) | ✅ | ✅ | ✅ | ✅ | |
-| Quote custom fields (4 slots) | ✅ | ✅ | ✅ | ✅ | |
-| Credit custom fields (4 slots) | ✅ | ✅ | ✅ | ✅ | |
 | User custom fields (4 slots) | ✅ | ✅ | ✅ | ✅ | |
 | Custom field types (single line / multi line / switch / date / dropdown) | ✅ | ✅ | ✅ | ✅ | |
 | Module-gated tabs (hide Tasks / Vendors / Expenses / Projects when module disabled) | — | ✅ | ✅ | ✅ | |

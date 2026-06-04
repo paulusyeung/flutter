@@ -111,17 +111,16 @@ class _SmtpMailDriverCardState extends State<SmtpMailDriverCard> {
     SettingsDraftHost host,
     Company company,
   ) {
-    final value = company.smtpEncryption.isEmpty
-        ? 'TLS'
-        : company.smtpEncryption;
     return DropdownButtonFormField<String>(
-      initialValue: value,
+      initialValue: _normalizeEncryption(company.smtpEncryption),
       decoration: InputDecoration(labelText: context.tr('encryption')),
       items: const [
-        // i18n-exempt: protocol identifier
-        DropdownMenuItem(value: 'TLS', child: Text('TLS')),
-        // i18n-exempt: protocol identifier
-        DropdownMenuItem(value: 'STARTTLS', child: Text('STARTTLS')),
+        // i18n-exempt: protocol identifiers. Values are the lowercase tokens
+        // the server feeds straight into Symfony Mailer (see CompanyTransformer
+        // / NinjaMailerJob): 'tls' = STARTTLS (port 587), 'ssl' = implicit
+        // TLS/SSL (port 465). Sending 'TLS'/'STARTTLS' breaks the 465 path.
+        DropdownMenuItem(value: 'tls', child: Text('STARTTLS')),
+        DropdownMenuItem(value: 'ssl', child: Text('SSL/TLS')),
       ],
       onChanged: (v) {
         if (v == null) return;
@@ -178,11 +177,13 @@ class _SmtpMailDriverCardState extends State<SmtpMailDriverCard> {
         payload: <String, dynamic>{
           'smtp_host': company.smtpHost,
           'smtp_port': company.smtpPort,
-          'smtp_encryption': company.smtpEncryption,
+          'smtp_encryption': _normalizeEncryption(company.smtpEncryption),
           'smtp_username': company.smtpUsername,
           'smtp_password': company.smtpPassword,
           'smtp_local_domain': company.smtpLocalDomain,
-          'smtp_verify_peer': company.smtpVerifyPeer,
+          // Server reads `verify_peer` (not `smtp_verify_peer`) — see
+          // CheckSmtpRequest; the prefixed key was silently ignored.
+          'verify_peer': company.smtpVerifyPeer,
         },
       );
       if (!context.mounted) return;
@@ -198,6 +199,14 @@ class _SmtpMailDriverCardState extends State<SmtpMailDriverCard> {
     }
   }
 }
+
+/// Normalizes a stored `smtp_encryption` value to the lowercase token the
+/// server expects (Symfony Mailer: `tls` = STARTTLS, `ssl` = implicit TLS).
+/// Legacy admin-portal values (`TLS` / `STARTTLS`), empty, and anything
+/// unknown collapse to `tls`, so the value always matches a dropdown item
+/// (no "value not in items" assertion) and uppercase never reaches the server.
+String _normalizeEncryption(String raw) =>
+    raw.toLowerCase() == 'ssl' ? 'ssl' : 'tls';
 
 /// Internal labeled text field for the seven SMTP rows. Mirrors
 /// [OverridableTextField]'s look-and-feel (label + helper + optional eye

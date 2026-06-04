@@ -952,6 +952,14 @@ final Map<String, SettingsBinding> _bindings = <String, SettingsBinding>{
     read: (s) => s.emailTemplatePaymentPartial,
     write: (s, v) => s.copyWith(emailTemplatePaymentPartial: v),
   ),
+  'email_subject_payment_failed': (
+    read: (s) => s.emailSubjectPaymentFailed,
+    write: (s, v) => s.copyWith(emailSubjectPaymentFailed: v),
+  ),
+  'email_template_payment_failed': (
+    read: (s) => s.emailTemplatePaymentFailed,
+    write: (s, v) => s.copyWith(emailTemplatePaymentFailed: v),
+  ),
   'email_subject_statement': (
     read: (s) => s.emailSubjectStatement,
     write: (s, v) => s.copyWith(emailSubjectStatement: v),

@@ -147,12 +147,21 @@ class _VariableChip extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  token,
-                  style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 14,
-                    color: t.ink,
+                // Flexible + ellipsis is a safety net: real tokens fit
+                // within a chip on a 360 px phone, but a pathologically long
+                // token degrades gracefully instead of throwing a RenderFlex
+                // overflow. No visual change for existing tokens (a min-axis
+                // Row only shrinks the child when space-constrained).
+                Flexible(
+                  child: Text(
+                    token,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 14,
+                      color: t.ink,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 6),

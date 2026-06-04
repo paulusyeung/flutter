@@ -675,4 +675,71 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  // Editing is gated on admin/owner AND a paid plan (React parity). A
+  // non-admin Pro user sees read-only fields — and no upgrade banner, because
+  // they DO have the plan (the banner is plan-gated, not role-gated).
+  testWidgets('non-admin Pro user → read-only fields, no upgrade banner', (
+    tester,
+  ) async {
+    final services = makeServices(
+      company: Company(id: 'co-A', enabledModules: _allModules()),
+      isAdmin: false, // Pro plan, but not admin/owner.
+    );
+    await tester.pumpWidget(_host(services: services));
+    await settle(tester);
+
+    expect(find.text('Manage Plan'), findsNothing);
+    final labelField = find.descendant(
+      of: find.byKey(const ValueKey('co-A:company1')),
+      matching: find.byType(TextField),
+    );
+    expect(labelField, findsOneWidget);
+    expect(tester.widget<TextField>(labelField).enabled, isFalse);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  // Reseed regression: the label + options text controllers must follow the
+  // draft when `vm.reset()` reverts an in-place Discard (the type dropdown
+  // already self-heals via its ValueKey; this covers the two text fields).
+  testWidgets('reseed: Discard reverts the label + options text', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1600, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final services = makeServices(
+      company: const Company(
+        id: 'co-A',
+        enabledModules: 0,
+        customFields: {'company1': 'Region|North,South'},
+      ),
+    );
+    await tester.pumpWidget(_host(services: services));
+    await settle(tester);
+
+    final row = find.byKey(const ValueKey('co-A:company1'));
+    final fields = find.descendant(of: row, matching: find.byType(TextField));
+    expect(fields, findsNWidgets(2)); // label + dropdown options
+
+    await tester.enterText(fields.at(0), 'Region X');
+    await tester.enterText(fields.at(1), 'North,South,East');
+    await tester.pump();
+    expect(find.text('Region X'), findsOneWidget);
+    expect(find.text('North,South,East'), findsOneWidget);
+
+    final bodyCtx = tester.element(find.text('Company Field'));
+    final vm = Provider.of<CustomFieldsViewModel>(bodyCtx, listen: false);
+    vm.reset();
+    await tester.pump();
+
+    // Both controllers snapped back to the baseline.
+    expect(find.text('Region X'), findsNothing);
+    expect(find.text('North,South,East'), findsNothing);
+    expect(find.text('Region'), findsOneWidget);
+    expect(find.text('North,South'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 }

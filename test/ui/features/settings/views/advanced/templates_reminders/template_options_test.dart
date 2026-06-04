@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/ui/features/settings/views/advanced/templates_reminders/template_options.dart';
+import 'package:admin/ui/features/settings/widgets/settings_field_bindings.dart';
 
 void main() {
   group('TemplateOption.subjectKey / templateKey', () {
@@ -152,6 +153,70 @@ void main() {
       expect(kEndlessReminderFrequencies.first.$2, 'freq_daily');
       expect(kEndlessReminderFrequencies.last.$1, '12');
       expect(kEndlessReminderFrequencies.last.$2, 'freq_three_years');
+    });
+  });
+
+  // Guards the class of bug where a picker option (e.g. `payment_failed`)
+  // references a settings key that has no entry in
+  // `settings_field_bindings.dart`. `settingsBindingOf` throws a StateError
+  // for unknown keys, so selecting such a template would crash the editor.
+  // This test would have caught the `payment_failed` regression.
+  group('every template option resolves to a registered binding', () {
+    test('subject + body keys are all bound', () {
+      final bindings = settingsBindings();
+      for (final o in kTemplateOptions) {
+        expect(
+          bindings.containsKey(o.subjectKey),
+          isTrue,
+          reason:
+              '${o.key}: subject key "${o.subjectKey}" has no binding — '
+              'selecting this template would throw in OverridableTextField',
+        );
+        expect(
+          bindings.containsKey(o.templateKey),
+          isTrue,
+          reason:
+              '${o.key}: body key "${o.templateKey}" has no binding — '
+              'selecting this template would throw in OverridableMarkdownField',
+        );
+      }
+    });
+
+    test('reminder rule keys are all bound', () {
+      final bindings = settingsBindings();
+      // Mirrors the key derivation in `_ScheduledRuleSection` /
+      // `_EndlessRuleSection` (reminder_rule_section.dart).
+      for (final o in kTemplateOptions.where((o) => o.isReminder)) {
+        final isQuote = o.key == 'quote_reminder1';
+        final keys = <String>[
+          isQuote ? 'enable_quote_reminder1' : 'enable_${o.key}',
+        ];
+        if (o.key == 'reminder_endless') {
+          keys.add('endless_reminder_frequency_id');
+        } else if (isQuote) {
+          keys.addAll(const [
+            'quote_num_days_reminder1',
+            'quote_schedule_reminder1',
+            'quote_late_fee_amount1',
+            'quote_late_fee_percent1',
+          ]);
+        } else {
+          final n = o.key.substring(o.key.length - 1);
+          keys.addAll([
+            'num_days_${o.key}',
+            'schedule_${o.key}',
+            'late_fee_amount$n',
+            'late_fee_percent$n',
+          ]);
+        }
+        for (final k in keys) {
+          expect(
+            bindings.containsKey(k),
+            isTrue,
+            reason: '${o.key}: rule key "$k" has no binding',
+          );
+        }
+      }
     });
   });
 }

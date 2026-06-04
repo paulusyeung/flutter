@@ -36,11 +36,12 @@ void main() {
         payload: const {
           'smtp_host': 'smtp.example.com',
           'smtp_port': 587,
-          'smtp_encryption': 'TLS',
+          'smtp_encryption': 'tls',
           'smtp_username': 'user',
           'smtp_password': 'pw',
           'smtp_local_domain': '',
-          'smtp_verify_peer': true,
+          // Server reads `verify_peer`, not `smtp_verify_peer`.
+          'verify_peer': true,
         },
       );
 
@@ -51,8 +52,8 @@ void main() {
       final body = jsonDecode(captured!.body) as Map<String, dynamic>;
       expect(body['smtp_host'], 'smtp.example.com');
       expect(body['smtp_port'], 587);
-      expect(body['smtp_encryption'], 'TLS');
-      expect(body['smtp_verify_peer'], true);
+      expect(body['smtp_encryption'], 'tls');
+      expect(body['verify_peer'], true);
     });
 
     test(

@@ -28,6 +28,13 @@ class EmailSettingsScreen extends StatelessWidget {
   }
 
   static bool _emailSaveGate(SettingsDraftHost host) {
+    // A custom email style must contain the `$body` placeholder, or the
+    // server renders a broken email. The inline red `_BodyVariableChip`
+    // explains why Save is disabled. Matches v1 (save-time dialog) + React.
+    if (host.settings.emailStyle == 'custom' &&
+        !(host.settings.emailStyleCustom ?? '').contains(r'$body')) {
+      return false;
+    }
     final method = host.settings.emailSendingMethod;
     if (method != 'gmail' && method != 'office365' && method != 'microsoft') {
       return true;

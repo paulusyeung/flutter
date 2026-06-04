@@ -8,8 +8,9 @@ import 'package:admin/data/models/domain/enabled_modules.dart';
 ///
 /// `payment_failed` is intentionally included even though React omits it —
 /// the `email_subject_payment_failed` / `email_template_payment_failed`
-/// fields are persisted on the company so not surfacing them would leave
-/// an inaccessible setting.
+/// fields live on `CompanySettings` (with matching entries in
+/// `settings_field_bindings.dart`), so not surfacing them would leave an
+/// inaccessible setting.
 class TemplateOption {
   const TemplateOption({
     required this.key,

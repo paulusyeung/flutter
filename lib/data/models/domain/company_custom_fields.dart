@@ -43,7 +43,7 @@ extension CompanyCustomFields on Company {
   }) {
     switch (customFieldType(key)) {
       case kFieldTypeSwitch:
-        return value == kSwitchValueYes ? yes : no;
+        return isSwitchTruthy(value) ? yes : no;
       case kFieldTypeDate:
         return value.isEmpty ? '' : (formatter?.date(value) ?? value);
       default:

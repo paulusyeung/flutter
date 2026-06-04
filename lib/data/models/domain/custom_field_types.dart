@@ -34,6 +34,12 @@ const String kFieldTypeDropdown = 'dropdown';
 const String kSwitchValueYes = 'yes';
 const String kSwitchValueNo = 'no';
 
+/// Whether a stored switch [value] is "on". Writes are always canonical
+/// `'yes'`/`'no'`, but reads tolerate legacy / imported `'true'` / `'1'` —
+/// matching React's `InputCustomField` truthy check.
+bool isSwitchTruthy(String value) =>
+    value == kSwitchValueYes || value == 'true' || value == '1';
+
 /// Type segments recognized as keywords. Anything else after the pipe is a
 /// dropdown's options list. Includes [kFieldTypeMultiLineText] because the
 /// settings editor emits that keyword explicitly.
