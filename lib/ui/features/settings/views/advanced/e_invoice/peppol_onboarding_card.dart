@@ -84,8 +84,11 @@ Map<String, dynamic> buildPeppolSetupPayload({
 /// and the body's conditional gates swap this card out for
 /// [PeppolPreferencesCard].
 ///
-/// Singapore-specific UEN + signer fields and CorpPass redirect are
-/// deferred to a follow-up phase per the project plan.
+/// Singapore (`country_id == '702'`) drives the CorpPass variant: it swaps
+/// the VAT/individual branch for an always-present UEN, adds the C5 signer
+/// pair, offers business/government classification, and on Setup posts
+/// directly (`peppolSetupDirect`) so the returned gov-auth URL can be
+/// launched at tap-time — see `_onSetup`.
 class PeppolOnboardingCard extends StatefulWidget {
   const PeppolOnboardingCard({super.key});
 

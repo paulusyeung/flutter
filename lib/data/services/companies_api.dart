@@ -276,6 +276,35 @@ class CompaniesApi extends BaseEntityApi<CompanyItemApi, CompanyItemApi> {
     return parseItem(raw as Object);
   }
 
+  /// Retroactively apply a design to existing records of [entity] — powers
+  /// the Invoice Design page's "Update all records" toggle. `POST
+  /// /api/v1/designs/set/default`. [settingsLevel] is `company` /
+  /// `group_settings` / `client`; the matching scope id is sent for the
+  /// latter two. Mirrors React `InvoiceDesign.tsx` and admin-portal
+  /// `invoice_design_vm.dart`. The server returns a status message we don't
+  /// need, so the body is ignored.
+  Future<void> setDefaultDesign({
+    required String designId,
+    required String entity,
+    required String settingsLevel,
+    required String idempotencyKey,
+    String? clientId,
+    String? groupSettingsId,
+  }) async {
+    await client.mutate(
+      method: 'POST',
+      path: '/api/v1/designs/set/default',
+      idempotencyKey: idempotencyKey,
+      body: <String, dynamic>{
+        'design_id': designId,
+        'entity': entity,
+        'settings_level': settingsLevel,
+        if (clientId != null) 'client_id': clientId,
+        if (groupSettingsId != null) 'group_settings_id': groupSettingsId,
+      },
+    );
+  }
+
   /// Live fetch of the PEPPOL credit quota. Out-of-outbox; the Preferences
   /// card calls this on mount and ignores network errors.
   Future<dynamic> getEInvoiceQuota() {

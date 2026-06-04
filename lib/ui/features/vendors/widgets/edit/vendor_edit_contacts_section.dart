@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/vendor_contact.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
 import 'package:admin/ui/core/edit/entity_edit_field.dart';
 import 'package:admin/ui/core/widgets/labeled_switch_group.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/vendors/view_models/vendor_edit_view_model.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// "Contacts" card on the vendor edit screen. Renders every contact inline,
 /// each with its own First/Last/Email/Phone block plus a header row carrying
@@ -26,6 +31,9 @@ class VendorEditContactsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    final services = context.read<Services>();
+    final companyStream = services.company.watchCompany(vm.companyId);
+    final formatter = services.formatterIfReady(vm.companyId);
     final contacts = vm.draft.contacts;
     final canDelete = contacts.length > 1;
     return DashboardCardShell(
@@ -54,6 +62,8 @@ class VendorEditContactsSection extends StatelessWidget {
                 index: i,
                 contact: contacts[i],
                 canDelete: canDelete,
+                companyStream: companyStream,
+                formatter: formatter,
                 onMakePrimary: () => vm.setContactPrimary(i),
                 onDelete: () => vm.removeContact(i),
                 onFirstName: (v) => vm.setContactFirstNameAt(i, v),
@@ -61,6 +71,10 @@ class VendorEditContactsSection extends StatelessWidget {
                 onEmail: (v) => vm.setContactEmailAt(i, v),
                 onPhone: (v) => vm.setContactPhoneAt(i, v),
                 onCcOnly: (v) => vm.setContactCcOnlyAt(i, v),
+                onCustomValue1: (v) => vm.setContactCustomValue1At(i, v),
+                onCustomValue2: (v) => vm.setContactCustomValue2At(i, v),
+                onCustomValue3: (v) => vm.setContactCustomValue3At(i, v),
+                onCustomValue4: (v) => vm.setContactCustomValue4At(i, v),
               ),
             ],
           SizedBox(height: InSpacing.md(context)),
@@ -94,6 +108,8 @@ class _ContactEditor extends StatelessWidget {
     required this.index,
     required this.contact,
     required this.canDelete,
+    required this.companyStream,
+    required this.formatter,
     required this.onMakePrimary,
     required this.onDelete,
     required this.onFirstName,
@@ -101,11 +117,17 @@ class _ContactEditor extends StatelessWidget {
     required this.onEmail,
     required this.onPhone,
     required this.onCcOnly,
+    required this.onCustomValue1,
+    required this.onCustomValue2,
+    required this.onCustomValue3,
+    required this.onCustomValue4,
   });
 
   final int index;
   final VendorContact contact;
   final bool canDelete;
+  final Stream<Company?> companyStream;
+  final Formatter? formatter;
   final VoidCallback onMakePrimary;
   final VoidCallback onDelete;
   final ValueChanged<String> onFirstName;
@@ -113,6 +135,10 @@ class _ContactEditor extends StatelessWidget {
   final ValueChanged<String> onEmail;
   final ValueChanged<String> onPhone;
   final ValueChanged<bool> onCcOnly;
+  final ValueChanged<String> onCustomValue1;
+  final ValueChanged<String> onCustomValue2;
+  final ValueChanged<String> onCustomValue3;
+  final ValueChanged<String> onCustomValue4;
 
   @override
   Widget build(BuildContext context) {
@@ -185,6 +211,26 @@ class _ContactEditor extends StatelessWidget {
           initial: contact.phone,
           onChanged: onPhone,
           keyboardType: TextInputType.phone,
+        ),
+        // Per-contact custom fields (vendor_contact1..4). Renders inline,
+        // gated by the company's configured labels — invisible when none set.
+        EntityCustomFieldsSection(
+          keyPrefix: 'vendor_contact',
+          companyStream: companyStream,
+          formatter: formatter,
+          wrapInCard: false,
+          values: [
+            contact.customValue1,
+            contact.customValue2,
+            contact.customValue3,
+            contact.customValue4,
+          ],
+          onChanged: [
+            onCustomValue1,
+            onCustomValue2,
+            onCustomValue3,
+            onCustomValue4,
+          ],
         ),
         LabeledSwitchGroup(
           items: [

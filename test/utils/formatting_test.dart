@@ -148,6 +148,41 @@ void main() {
     });
   });
 
+  group('parseDouble — tax-rate input (comma-locale safe)', () {
+    test('parses a plain dot decimal', () {
+      expect(parseDouble('19.5'), 19.5);
+    });
+
+    test('comma decimal parses correctly when the company uses commas', () {
+      // The bug this guards: a German user typing "19,5" must yield 19.5,
+      // not 195. See Settings → Tax Settings (CRUD + subregion dialog).
+      expect(parseDouble('19,5', useCommaAsDecimalPlace: true), 19.5);
+      expect(parseDouble('1.234,56', useCommaAsDecimalPlace: true), 1234.56);
+    });
+
+    test('empty / unparseable input is zero (or null with zeroIsNull)', () {
+      expect(parseDouble(''), 0.0);
+      expect(parseDouble(null, zeroIsNull: true), isNull);
+      expect(parseDouble('0', zeroIsNull: true), isNull);
+    });
+  });
+
+  group('rateInputText — tax-rate display', () {
+    test('drops trailing .0 (19.0 → "19")', () {
+      expect(rateInputText(19), '19');
+      expect(rateInputText(19.5), '19.5');
+    });
+
+    test('uses the comma separator when the company does', () {
+      expect(rateInputText(19.5, useCommaAsDecimalPlace: true), '19,5');
+    });
+
+    test('blankZero: empty for zero when seeding a field, "0" for display', () {
+      expect(rateInputText(0), '');
+      expect(rateInputText(0, blankZero: false), '0');
+    });
+  });
+
   group('Formatter.money — USD defaults', () {
     final f = _make();
 

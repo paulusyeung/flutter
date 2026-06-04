@@ -235,12 +235,16 @@ class _Header extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(
-                quote.number.isEmpty ? '—' : '#${quote.number}',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w600,
-                  color: tokens.ink,
+              Flexible(
+                child: Text(
+                  quote.number.isEmpty ? '—' : '#${quote.number}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                    color: tokens.ink,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),

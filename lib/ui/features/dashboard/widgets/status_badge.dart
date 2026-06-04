@@ -34,8 +34,9 @@ class StatusBadge extends StatelessWidget {
     if (expired) return StatusTone.overdue;
     switch (statusId) {
       case 4:
-      case 5:
         return StatusTone.paid;
+      case 5: // rejected — negative terminal state (matches QuoteStatusPill)
+        return StatusTone.overdue;
       case 3:
         return StatusTone.partial;
       case 2:
@@ -69,13 +70,16 @@ class StatusBadge extends StatelessWidget {
   /// Localized label for a quote status id. Expiry is layered on top by the
   /// caller (it overrides the status), not resolved here.
   static String quoteStatusLabel(BuildContext context, int statusId) {
+    // Quote wire status_id: 1 draft, 2 sent, 3 approved, 4 converted,
+    // 5 rejected (see quote_status.dart). The earlier mapping was shifted
+    // (3→"partial", 4→"approved", 5→"converted") — corrected here.
     switch (statusId) {
-      case 4:
-        return context.tr('approved');
       case 5:
+        return context.tr('rejected');
+      case 4:
         return context.tr('converted');
       case 3:
-        return context.tr('partial');
+        return context.tr('approved');
       case 2:
         return context.tr('sent');
       case 1:

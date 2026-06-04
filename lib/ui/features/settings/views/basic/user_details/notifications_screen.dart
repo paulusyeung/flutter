@@ -41,6 +41,21 @@ const kUserDetailsNotificationsSearchKeys = <String>[
 const String _kAllNotifications = 'all_notifications';
 const String _kAllUserNotifications = 'all_user_notifications';
 
+// Special first-section toggle codes. The server stores these as bare strings
+// in `company_user.notifications.email` (matching React), NOT as settings-blob
+// booleans. They're independent of the per-record master selector, so they're
+// preserved across a master-mode switch.
+const String _kTaskAssigned = 'task_assigned';
+const String _kDisableRecurringPayment =
+    'disable_recurring_payment_notification';
+const String _kEnableEInvoiceReceived =
+    'enable_e_invoice_received_notification';
+const Set<String> _kSpecialCodes = {
+  _kTaskAssigned,
+  _kDisableRecurringPayment,
+  _kEnableEInvoiceReceived,
+};
+
 enum _MasterMode { allRecords, ownedByUser, custom }
 
 enum _EventMode { allRecords, ownedByUser, none }
@@ -87,7 +102,6 @@ class UserDetailsNotificationsScreen extends StatelessWidget {
     final user = vm.user;
     if (user == null) return const SizedBox.shrink();
 
-    final settings = user.companyUserSettings;
     final email = user.notificationsEmail;
     final master = _masterFor(email);
 
@@ -100,31 +114,26 @@ class UserDetailsNotificationsScreen extends StatelessWidget {
               items: [
                 LabeledSwitchItem(
                   label: context.tr('user_logged_in_notification'),
-                  value: settings.userLoggedInNotification,
-                  onChanged: (v) => vm.updateCompanyUserSettings(
-                    (s) => s.copyWith(userLoggedInNotification: v),
-                  ),
+                  value: user.userLoggedInNotification,
+                  onChanged: vm.setUserLoggedInNotification,
                 ),
                 LabeledSwitchItem(
                   label: context.tr('task_assigned_notification'),
-                  value: settings.taskAssignedNotification,
-                  onChanged: (v) => vm.updateCompanyUserSettings(
-                    (s) => s.copyWith(taskAssignedNotification: v),
-                  ),
+                  value: email.contains(_kTaskAssigned),
+                  onChanged: (v) =>
+                      vm.toggleNotificationCode(_kTaskAssigned, v),
                 ),
                 LabeledSwitchItem(
                   label: context.tr('disable_recurring_payment_notification'),
-                  value: settings.disableRecurringPaymentNotification,
-                  onChanged: (v) => vm.updateCompanyUserSettings(
-                    (s) => s.copyWith(disableRecurringPaymentNotification: v),
-                  ),
+                  value: email.contains(_kDisableRecurringPayment),
+                  onChanged: (v) =>
+                      vm.toggleNotificationCode(_kDisableRecurringPayment, v),
                 ),
                 LabeledSwitchItem(
                   label: context.tr('enable_e_invoice_received_notification'),
-                  value: settings.enableEInvoiceReceivedNotification,
-                  onChanged: (v) => vm.updateCompanyUserSettings(
-                    (s) => s.copyWith(enableEInvoiceReceivedNotification: v),
-                  ),
+                  value: email.contains(_kEnableEInvoiceReceived),
+                  onChanged: (v) =>
+                      vm.toggleNotificationCode(_kEnableEInvoiceReceived, v),
                 ),
               ],
             ),
@@ -158,11 +167,14 @@ class UserDetailsNotificationsScreen extends StatelessWidget {
     List<String> email,
     _MasterMode mode,
   ) {
+    // The special toggle codes live in the same email list but are independent
+    // of the per-record master selector — carry them across a master switch.
+    final preserved = email.where(_kSpecialCodes.contains).toList();
     switch (mode) {
       case _MasterMode.allRecords:
-        vm.setNotificationsEmail(const [_kAllNotifications]);
+        vm.setNotificationsEmail([_kAllNotifications, ...preserved]);
       case _MasterMode.ownedByUser:
-        vm.setNotificationsEmail(const [_kAllUserNotifications]);
+        vm.setNotificationsEmail([_kAllUserNotifications, ...preserved]);
       case _MasterMode.custom:
         // Drop the master codes; keep any per-event subscriptions already
         // there (lets the user undo a master selection without losing the
@@ -222,63 +234,71 @@ class _SubscriptionsTable extends StatelessWidget {
       context,
     ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600);
     final disabledByMaster = master != _MasterMode.custom;
-    return SizedBox(
-      width: double.infinity,
-      child: DataTable(
-        headingRowHeight: 36,
-        dataRowMinHeight: 44,
-        dataRowMaxHeight: 56,
-        horizontalMargin: 0,
-        columnSpacing: InSpacing.xl,
-        dividerThickness: 0,
-        columns: [
-          const DataColumn(label: SizedBox.shrink()),
-          DataColumn(label: Text(context.tr('email'), style: headerStyle)),
-        ],
-        rows: [
-          DataRow(
-            cells: [
-              DataCell(Text(context.tr('all_events'), style: headerStyle)),
-              DataCell(
-                _NotificationSelector<_MasterMode>(
-                  value: master,
-                  items: const [
-                    _SelectorItem(
-                      value: _MasterMode.allRecords,
-                      labelKey: 'all_records',
-                      icon: Icons.supervised_user_circle,
-                    ),
-                    _SelectorItem(
-                      value: _MasterMode.ownedByUser,
-                      labelKey: 'owned_by_user',
-                      icon: Icons.account_circle,
-                    ),
-                    _SelectorItem(
-                      value: _MasterMode.custom,
-                      labelKey: 'custom',
-                      icon: Icons.arrow_drop_down_circle,
-                    ),
-                  ],
-                  onChanged: onMasterChanged,
-                ),
-              ),
+    // DataTable doesn't scroll horizontally — on a narrow phone a long
+    // localized event label + the dropdown can overflow. Fill the width when
+    // it fits (minWidth) and scroll when it doesn't.
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: constraints.maxWidth),
+          child: DataTable(
+            headingRowHeight: 36,
+            dataRowMinHeight: 44,
+            dataRowMaxHeight: 56,
+            horizontalMargin: 0,
+            columnSpacing: InSpacing.xl,
+            dividerThickness: 0,
+            columns: [
+              const DataColumn(label: SizedBox.shrink()),
+              DataColumn(label: Text(context.tr('email'), style: headerStyle)),
             ],
-          ),
-          for (final event in _kEvents)
-            DataRow(
-              cells: [
-                DataCell(
-                  Text(
-                    context.tr(event.labelKey),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: disabledByMaster ? tokens.ink3 : tokens.ink,
+            rows: [
+              DataRow(
+                cells: [
+                  DataCell(Text(context.tr('all_events'), style: headerStyle)),
+                  DataCell(
+                    _NotificationSelector<_MasterMode>(
+                      value: master,
+                      items: const [
+                        _SelectorItem(
+                          value: _MasterMode.allRecords,
+                          labelKey: 'all_records',
+                          icon: Icons.supervised_user_circle,
+                        ),
+                        _SelectorItem(
+                          value: _MasterMode.ownedByUser,
+                          labelKey: 'owned_by_user',
+                          icon: Icons.account_circle,
+                        ),
+                        _SelectorItem(
+                          value: _MasterMode.custom,
+                          labelKey: 'custom',
+                          icon: Icons.arrow_drop_down_circle,
+                        ),
+                      ],
+                      onChanged: onMasterChanged,
                     ),
                   ),
+                ],
+              ),
+              for (final event in _kEvents)
+                DataRow(
+                  cells: [
+                    DataCell(
+                      Text(
+                        context.tr(event.labelKey),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: disabledByMaster ? tokens.ink3 : tokens.ink,
+                        ),
+                      ),
+                    ),
+                    DataCell(_eventCell(context, event)),
+                  ],
                 ),
-                DataCell(_eventCell(context, event)),
-              ],
-            ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }

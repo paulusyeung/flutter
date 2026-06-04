@@ -76,6 +76,9 @@ abstract class Quote with _$Quote {
     @Default(<Invitation>[]) List<Invitation> invitations,
     @Default(<Document>[]) List<Document> documents,
     Map<String, dynamic>? eInvoice,
+    // Server-computed, read-only (display only — omitted from toApiJson).
+    Date? lastSentDate,
+    Date? nextSendDate,
     @Default(false) bool isDirty,
   }) = _Quote;
 
@@ -134,6 +137,8 @@ abstract class Quote with _$Quote {
     invitations: a.invitations.map(Invitation.fromApi).toList(growable: false),
     documents: mapDocuments(a.documents),
     eInvoice: a.eInvoice,
+    lastSentDate: Date.tryParse(a.lastSentDate),
+    nextSendDate: Date.tryParse(a.nextSendDate),
   );
 }
 
@@ -145,10 +150,13 @@ extension QuoteCalculation on Quote {
   bool get isDraft => statusId == QuoteStatus.draft;
   bool get isSent => statusId == QuoteStatus.sent;
   bool get isApproved => statusId == QuoteStatus.approved;
+  bool get isRejected => statusId == QuoteStatus.rejected;
   bool get isConverted =>
       statusId == QuoteStatus.converted || invoiceId.isNotEmpty;
   bool get isExpired {
-    if (isConverted || isApproved) return false;
+    // Terminal statuses are never "expired" — a past-due rejected quote
+    // must read "Rejected", not "Expired" (mirrors converted/approved).
+    if (isConverted || isApproved || isRejected) return false;
     final today = Date.today();
     final due = dueDate;
     if (due == null) return false;
@@ -169,6 +177,7 @@ extension QuoteCalculation on Quote {
   String get calculatedStatusId {
     if (isConverted) return QuoteStatus.converted.wireId;
     if (isApproved) return QuoteStatus.approved.wireId;
+    if (isRejected) return QuoteStatus.rejected.wireId;
     if (isExpired) return QuoteStatusComputed.expired;
     if (statusId == QuoteStatus.sent && hasViewedInvitation) {
       return QuoteStatusComputed.viewed;

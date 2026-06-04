@@ -960,6 +960,12 @@ class Services implements SidebarBadgeContext {
       // list. Errors are caught + logged per entity so a 401 / network
       // blip can't take down login.
       unawaited(_prefetchSidebarOnCompanyChange(entities, companyId));
+      // Warm the per-company Formatter cache so `formatterIfReady` is reliably
+      // non-null on every screen (product edit, tax-rate edit, …) instead of
+      // silently falling back to dot-decimal / default formats while the
+      // future resolves. Memoized + non-blocking; the company row and statics
+      // are already loaded by the time this hook fires.
+      unawaited(services.formatterFor(companyId));
     };
     services = Services._(
       db: db,

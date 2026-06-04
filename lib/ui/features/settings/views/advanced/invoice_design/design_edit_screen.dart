@@ -190,7 +190,15 @@ class _DesignWorkspaceState extends State<_DesignWorkspace> {
       });
     } else if (importJson != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) widget.vm.importFromJson(importJson);
+        if (!mounted) return;
+        // Surface a parse failure instead of silently opening a blank editor —
+        // the import dialog passes the raw text through without validating.
+        final error = widget.vm.importFromJson(importJson);
+        if (error != null) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(context.tr(error))));
+        }
       });
     }
   }

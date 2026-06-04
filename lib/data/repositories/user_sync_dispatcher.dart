@@ -66,16 +66,19 @@ class UserSyncDispatcher implements SyncDispatcher {
               provider: body['provider'] as String? ?? '',
               accessToken: body['access_token'] as String? ?? '',
               idempotencyKey: row.idempotencyKey,
+              requiresPassword: row.requiresPassword,
             );
           case 'disconnect_oauth':
             response = await api.disconnectOauth(
               id: row.entityId,
               idempotencyKey: row.idempotencyKey,
+              requiresPassword: row.requiresPassword,
             );
           case 'disconnect_mailer':
             response = await api.disconnectMailer(
               id: row.entityId,
               idempotencyKey: row.idempotencyKey,
+              requiresPassword: row.requiresPassword,
             );
           default:
             response = await api.updateAuthUser(

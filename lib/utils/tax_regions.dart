@@ -18,6 +18,7 @@
 /// case for [calculateTaxesRegionForCountryId]. Add new ids here if the UI
 /// grows additional country-specific branches.
 const Map<String, String> kCountryIdToIso3166Alpha2 = {
+  '20': 'AD', // Andorra
   '36': 'AU', // Australia
   '840': 'US', // United States
   '826': 'GB', // United Kingdom (Great Britain)
@@ -68,12 +69,13 @@ const Map<String, String> kEuCalculateTaxesCountries = {
 final Set<String> kCalculateTaxesSupportedCountries = <String>{
   'AU',
   'US',
+  'AD', // Andorra — supported seller per React `useCalculateTaxesRegion`.
   ...kEuCalculateTaxesCountries.keys,
 };
 
 /// Identifies which subregion-picker UI to render on the Tax Settings page.
 /// Mirrors the four-way switch in React `SellerSubregion.tsx`.
-enum SellerSubregionKind { us, eu, australia, britain, none }
+enum SellerSubregionKind { us, eu, australia, britain, andorra, none }
 
 /// Resolve which seller-subregion widget to render for the given
 /// `country_id`. Returns [SellerSubregionKind.none] when the country isn't
@@ -84,6 +86,7 @@ SellerSubregionKind sellerSubregionForCountryId(String? countryId) {
   if (iso == 'US') return SellerSubregionKind.us;
   if (iso == 'AU') return SellerSubregionKind.australia;
   if (iso == 'GB') return SellerSubregionKind.britain;
+  if (iso == 'AD') return SellerSubregionKind.andorra;
   if (iso != null && kEuCalculateTaxesCountries.containsKey(iso)) {
     return SellerSubregionKind.eu;
   }
@@ -150,7 +153,9 @@ const Map<String, String> kUsStates = {
 /// `CalculateTaxes.tsx` mounting order (US, EU, UK, AU, Andorra, Singapore).
 const List<String> kTaxRegionOrder = ['US', 'EU', 'UK', 'AU', 'AD', 'SG'];
 
-/// Localization key for each region's display name.
+/// Localization key for each region's display name. Resolved from
+/// `assets/i18n/en.json` or, for the app-local names not yet in Transifex,
+/// `assets/i18n/_app_pending.json` (see `tax_settings_localization_test`).
 const Map<String, String> kTaxRegionLabelKeys = {
   'US': 'united_states',
   'EU': 'europe',

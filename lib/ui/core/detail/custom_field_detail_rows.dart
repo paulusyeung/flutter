@@ -1,0 +1,44 @@
+import 'package:admin/data/models/domain/company.dart';
+import 'package:admin/data/models/domain/company_custom_fields.dart';
+import 'package:admin/utils/formatting.dart';
+
+/// `(label, display value)` pairs for read-only custom-field rows on entity
+/// detail screens.
+///
+/// A slot is included only when its label is configured in the company's
+/// `custom_fields` **and** the stored value is non-empty — mirroring React,
+/// which hides custom fields that have no configured label. The display value
+/// is type-aware: switch → localized [yes] / [no], date → [formatter] (ISO
+/// fallback), everything else verbatim.
+///
+/// [values] are `customValue1..4` in order; [prefix] is the entity key prefix
+/// (e.g. `'client'`, `'task'`, `'expense'`). Returns `const []` while the
+/// company is still loading (null) so callers can collapse the card.
+List<({String label, String value})> customFieldDetailRows({
+  required Company? company,
+  required String prefix,
+  required List<String> values,
+  required String yes,
+  required String no,
+  Formatter? formatter,
+}) {
+  if (company == null) return const [];
+  final rows = <({String label, String value})>[];
+  for (var i = 1; i <= 4; i++) {
+    final key = '$prefix$i';
+    final label = company.customFieldLabel(key);
+    final raw = values[i - 1];
+    if (label.isEmpty || raw.isEmpty) continue;
+    rows.add((
+      label: label,
+      value: company.customFieldDisplay(
+        key,
+        raw,
+        formatter: formatter,
+        yes: yes,
+        no: no,
+      ),
+    ));
+  }
+  return rows;
+}

@@ -978,21 +978,26 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         return response?.data;
       },
       MutationKind.convertToInvoice: ({required row, required payload}) async {
-        // Server returns the *new* invoice envelope, not an update to the
-        // source quote. Returning null skips applyUpdateResponse — the
-        // new invoice lands via a refresh / explicit navigation.
-        await quotesApi.convertToInvoice(
+        // `/quotes/bulk` convert returns the *updated quote* (status →
+        // converted, `invoice_id` set) via QuoteTransformer — verified
+        // against the server's QuoteController::bulk + ConvertQuote. Apply
+        // it so the source quote flips to "Converted" and surfaces its
+        // "View invoice" link. (The new invoice lands in the invoices list
+        // on the next sync.)
+        final response = await quotesApi.convertToInvoice(
           id: payload['id'] as String,
           idempotencyKey: row.idempotencyKey,
         );
-        return null;
+        return response?.data;
       },
       MutationKind.convertToProject: ({required row, required payload}) async {
-        await quotesApi.convertToProject(
+        // Likewise returns the updated quote (now carrying `project_id`),
+        // so applying it hides the "Convert to project" action afterward.
+        final response = await quotesApi.convertToProject(
           id: payload['id'] as String,
           idempotencyKey: row.idempotencyKey,
         );
-        return null;
+        return response?.data;
       },
       MutationKind.emailEntity: ({required row, required payload}) async {
         final response = await quotesApi.email(

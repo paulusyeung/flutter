@@ -85,6 +85,13 @@ abstract class CompanyApi with _$CompanyApi {
     int enabledExpenseTaxRates,
     @JsonKey(name: 'calculate_taxes') @Default(false) bool calculateTaxes,
     @JsonKey(name: 'tax_data') TaxConfigApi? taxData,
+    // Server's e-invoice config blob (nested UBL-ish map). Read-only as far as
+    // the typed model is concerned — `includeIfNull: false` + the omission
+    // from `Company.toApiJson` keep it out of the company PUT body, so a save
+    // never clears the server's config. The Payment Means card seeds its
+    // fields from `e_invoice.Invoice.PaymentMeans[0]` (matches React).
+    @JsonKey(name: 'e_invoice', includeIfNull: false)
+    Map<String, dynamic>? eInvoice,
     // Per-surcharge "charge taxes" toggles paired with the four surcharge
     // custom-field slots in `custom_fields.surcharge1..4`. Edited on
     // Settings → Custom Fields → Invoices.

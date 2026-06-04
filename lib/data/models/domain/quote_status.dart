@@ -1,5 +1,8 @@
-/// Stored status discriminator on every quote. Wire ids are `'1'..'4'`.
+/// Stored status discriminator on every quote. Wire ids are `'1'..'5'`.
 /// Mirrors admin-portal `kQuoteStatus*` constants.
+///
+/// `rejected` ('5') is set server-side when a client rejects the quote in
+/// the portal — the admin app never sets it but must display it.
 ///
 /// Computed-only pseudo-statuses (`expired`, `viewed`) are derived on the
 /// client from the quote's `due_date` and invitation state — see the
@@ -9,7 +12,8 @@ enum QuoteStatus {
   draft('1'),
   sent('2'),
   approved('3'),
-  converted('4');
+  converted('4'),
+  rejected('5');
 
   const QuoteStatus(this.wireId);
 
@@ -19,6 +23,7 @@ enum QuoteStatus {
     '2' => QuoteStatus.sent,
     '3' => QuoteStatus.approved,
     '4' => QuoteStatus.converted,
+    '5' => QuoteStatus.rejected,
     _ => QuoteStatus.draft,
   };
 
@@ -27,6 +32,7 @@ enum QuoteStatus {
     QuoteStatus.sent => 'sent',
     QuoteStatus.approved => 'approved',
     QuoteStatus.converted => 'converted',
+    QuoteStatus.rejected => 'rejected',
   };
 }
 

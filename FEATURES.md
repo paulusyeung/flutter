@@ -1015,6 +1015,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Statement Design | ✅ | ✅ | ✅ | ✅ | |
 | Payment Receipt Design | ✅ | ✅ | ✅ | ✅ | |
 | Payment Refund Design | ✅ | ✅ | ✅ | ✅ | |
+| "Update all records" on design change → POST /designs/set/default (company scope wired; client/group pending) | ✅ | ✅ | 🟡 | | |
 | Page Layout (portrait / landscape) | ✅ | ✅ | ✅ | ✅ | |
 | Page Size (A4 / Letter / etc.) | ✅ | ✅ | ✅ | ✅ | |
 | Font Size | ✅ | ✅ | ✅ | ✅ | |

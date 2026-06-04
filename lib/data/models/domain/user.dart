@@ -10,7 +10,9 @@ part 'user.freezed.dart';
 ///
 /// Settings live in two parallel maps mirroring the Company pattern:
 ///  * [companyUserSettings] — typed-ish [CompanyUserSettings] for the fields
-///    we edit (accent_color, notification toggles, …).
+///    we edit (accent_color). Notification prefs live elsewhere:
+///    `user_logged_in_notification` is a top-level [User] field and the
+///    per-event / special codes live in [notificationsEmail].
 ///  * [rawCompanyUserSettings] — the original server JSON for the per-user
 ///    settings blob; everything the new app doesn't model round-trips
 ///    untouched on save.
@@ -178,25 +180,12 @@ abstract class CompanyUser with _$CompanyUser {
 abstract class CompanyUserSettings with _$CompanyUserSettings {
   const CompanyUserSettings._();
 
-  const factory CompanyUserSettings({
-    @Default('') String accentColor,
-    @Default(false) bool userLoggedInNotification,
-    @Default(false) bool taskAssignedNotification,
-    @Default(false) bool disableRecurringPaymentNotification,
-    @Default(false) bool enableEInvoiceReceivedNotification,
-  }) = _CompanyUserSettings;
+  const factory CompanyUserSettings({@Default('') String accentColor}) =
+      _CompanyUserSettings;
 
   factory CompanyUserSettings.fromJson(Map<String, dynamic> json) {
     return CompanyUserSettings(
       accentColor: json['accent_color']?.toString() ?? '',
-      userLoggedInNotification: _bool(json['user_logged_in_notification']),
-      taskAssignedNotification: _bool(json['task_assigned_notification']),
-      disableRecurringPaymentNotification: _bool(
-        json['disable_recurring_payment_notification'],
-      ),
-      enableEInvoiceReceivedNotification: _bool(
-        json['enable_e_invoice_received_notification'],
-      ),
     );
   }
 
@@ -205,21 +194,5 @@ abstract class CompanyUserSettings with _$CompanyUserSettings {
   /// preferences blob, dashboard prefs, …) survive the round-trip.
   Map<String, dynamic> toJson() => <String, dynamic>{
     if (accentColor.isNotEmpty) 'accent_color': accentColor,
-    'user_logged_in_notification': userLoggedInNotification,
-    'task_assigned_notification': taskAssignedNotification,
-    'disable_recurring_payment_notification':
-        disableRecurringPaymentNotification,
-    'enable_e_invoice_received_notification':
-        enableEInvoiceReceivedNotification,
   };
-}
-
-bool _bool(Object? value) {
-  if (value is bool) return value;
-  if (value is num) return value != 0;
-  if (value is String) {
-    final v = value.toLowerCase();
-    return v == 'true' || v == '1';
-  }
-  return false;
 }

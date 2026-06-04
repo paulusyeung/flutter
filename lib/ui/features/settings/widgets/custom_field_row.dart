@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/company.dart';
+import 'package:admin/data/models/domain/custom_field_types.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
@@ -46,19 +47,11 @@ class CustomFieldRow<V extends SettingsDraftHost> extends StatefulWidget {
   State<CustomFieldRow<V>> createState() => _CustomFieldRowState<V>();
 }
 
-/// Recognized type segments — anything else after the pipe is treated as
-/// dropdown options (comma-separated values).
-const _kReservedTypes = <String>{
-  'single_line_text',
-  'multi_line_text',
-  'switch',
-  'date',
-};
-
 class _CustomFieldRowState<V extends SettingsDraftHost>
     extends State<CustomFieldRow<V>> {
   late final TextEditingController _label;
   late final TextEditingController _options;
+  late final V _vm;
 
   String get _key => '${widget.prefix}${widget.slot}';
 
@@ -67,13 +60,40 @@ class _CustomFieldRowState<V extends SettingsDraftHost>
   @override
   void initState() {
     super.initState();
-    final vm = context.read<V>();
-    _label = TextEditingController(text: _parsedLabel(vm));
-    _options = TextEditingController(text: _parsedOptions(vm));
+    _vm = context.read<V>();
+    _label = TextEditingController(text: _parsedLabel(_vm));
+    _options = TextEditingController(text: _parsedOptions(_vm));
+    // The type dropdown self-heals on reset via a value-bearing ValueKey, but
+    // these two text controllers are seeded once. Reseed them when the draft
+    // returns to its baseline (Discard / post-save / background refresh) so an
+    // in-place Discard reverts the visible text too. Guarding on `!isDirty`
+    // makes this a no-op during active typing — the draft tracks the
+    // controller then, so it never fights the cursor.
+    _vm.addListener(_syncFromDraft);
+  }
+
+  void _syncFromDraft() {
+    if (!mounted || _vm.isDirty) return;
+    final label = _parsedLabel(_vm);
+    if (_label.text != label) {
+      _label.value = TextEditingValue(
+        text: label,
+        selection: TextSelection.collapsed(offset: label.length),
+      );
+    }
+    if (_isSurcharge) return;
+    final options = _parsedOptions(_vm);
+    if (_options.text != options) {
+      _options.value = TextEditingValue(
+        text: options,
+        selection: TextSelection.collapsed(offset: options.length),
+      );
+    }
   }
 
   @override
   void dispose() {
+    _vm.removeListener(_syncFromDraft);
     _label.dispose();
     _options.dispose();
     super.dispose();
@@ -81,47 +101,37 @@ class _CustomFieldRowState<V extends SettingsDraftHost>
 
   String _rawValue(V vm) => vm.draft?.customFields[_key] ?? '';
 
+  /// Trim each comma-separated dropdown option (keeps empty segments so a
+  /// `"Label|"` no-options dropdown round-trips).
+  String _normalizeOptions(String raw) =>
+      raw.split(',').map((p) => p.trim()).join(',');
+
   /// Label portion of the stored value. Surcharge slots store the raw label
-  /// with no pipe; everything else takes the first pipe segment.
+  /// with no pipe; everything else takes the first pipe segment via the shared
+  /// [parseCustomField].
   String _parsedLabel(V vm) {
     final raw = _rawValue(vm);
     if (_isSurcharge) return raw;
-    final idx = raw.indexOf('|');
-    return idx < 0 ? raw : raw.substring(0, idx);
+    return parseCustomField(raw).label;
   }
 
-  /// Type code shown in the dropdown. An explicit `single_line_text` suffix —
-  /// or an empty *slot* (no pipe) — surfaces as single-line text; an empty
-  /// *suffix* (`"Label|"`) is a dropdown with no options typed yet; any other
-  /// non-recognized suffix maps to `'dropdown'` (the options live in
-  /// [_parsedOptions]).
+  /// Type code shown in the dropdown. The editor uses `''` for both an empty
+  /// slot and single-line text; everything else passes through the shared
+  /// [parseCustomField] type (`multi_line_text`, `switch`, `date`, `dropdown`).
+  /// A `"Label|"` (empty suffix) surfaces as a dropdown with no options typed
+  /// yet; options live in [_parsedOptions].
   String _parsedType(V vm) {
     if (_isSurcharge) return '';
-    final raw = _rawValue(vm);
-    final idx = raw.indexOf('|');
-    if (idx < 0) {
-      // Legacy data shape: no pipe means multi-line text. Matches React's
-      // `useEffect` parser in `Field.tsx`.
-      return raw.isEmpty ? '' : 'multi_line_text';
-    }
-    final suffix = raw.substring(idx + 1);
-    // An empty suffix (`"Label|"`) is a dropdown with no options typed yet —
-    // the React / admin-portal encoding. (Single-line text now carries the
-    // explicit `single_line_text` keyword, so it no longer lands here.)
-    if (suffix.isEmpty) return 'dropdown';
-    if (_kReservedTypes.contains(suffix)) return suffix;
-    return 'dropdown';
+    final parsed = parseCustomField(_rawValue(vm));
+    if (parsed.label.isEmpty) return '';
+    if (parsed.type == kFieldTypeSingleLineText) return '';
+    return parsed.type;
   }
 
   /// Comma-separated options when the slot is a dropdown; empty otherwise.
   String _parsedOptions(V vm) {
     if (_isSurcharge) return '';
-    final raw = _rawValue(vm);
-    final idx = raw.indexOf('|');
-    if (idx < 0) return '';
-    final suffix = raw.substring(idx + 1);
-    if (suffix.isEmpty || _kReservedTypes.contains(suffix)) return '';
-    return suffix;
+    return parseCustomField(_rawValue(vm)).options.join(',');
   }
 
   /// Rewrite the slot. Override [label] / [type] / [options] to change one
@@ -166,7 +176,11 @@ class _CustomFieldRowState<V extends SettingsDraftHost>
         // label would re-parse as `multi_line_text` — see `_parsedType` and
         // `handleChange` in React's `Field.tsx`.
         '' => 'single_line_text',
-        'dropdown' => newOptions,
+        // Normalize the comma-separated options — trim each entry so stored
+        // values don't carry stray spaces (which would surface as padded
+        // option labels on entity dropdowns / in other clients). Matches
+        // React + admin-portal's `split(',').map(trim).join(',')`.
+        'dropdown' => _normalizeOptions(newOptions),
         _ => newType,
       };
       // Empty label retires the slot, regardless of type/options — mirrors
@@ -337,7 +351,12 @@ class _SurchargeLayout<V extends SettingsDraftHost> extends StatelessWidget {
                       : null,
                 ),
                 SizedBox(width: InSpacing.sm),
-                Text(context.tr('charge_taxes')),
+                Flexible(
+                  child: Text(
+                    context.tr('charge_taxes'),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
           ),

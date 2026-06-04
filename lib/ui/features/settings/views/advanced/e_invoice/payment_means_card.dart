@@ -37,6 +37,7 @@ class _PaymentMeansCardState extends State<PaymentMeansCard> {
 
   String _code = _kDefaultCode;
   bool _saving = false;
+  bool _seeded = false;
 
   final Map<String, TextEditingController> _controllers = {};
 
@@ -52,8 +53,22 @@ class _PaymentMeansCardState extends State<PaymentMeansCard> {
     return _controllers.putIfAbsent(field, TextEditingController.new);
   }
 
+  /// Seed `_code` and the sub-field controllers from the server's saved
+  /// config (`company.e_invoice.Invoice.PaymentMeans[0]`) on first build with
+  /// a non-null blob. Latched so a later rebuild never clobbers user edits —
+  /// without this the card always opened at code '1' and a blind Save wiped
+  /// the stored config.
+  void _seedIfNeeded(Map<String, dynamic>? eInvoice) {
+    if (_seeded || eInvoice == null) return;
+    _seeded = true;
+    final seed = paymentMeansSeedFromEInvoice(eInvoice);
+    if (seed.code != null) _code = seed.code!;
+    seed.fields.forEach((field, value) => _controllerFor(field).text = value);
+  }
+
   @override
   Widget build(BuildContext context) {
+    _seedIfNeeded(context.watch<SettingsDraftHost>().draft?.eInvoice);
     final fields = kPaymentMeansFormElements[_code] ?? const <String>[];
     final codes = kPaymentMeansCodes.entries.toList()
       ..sort((a, b) {
@@ -184,4 +199,72 @@ class _SubField extends StatelessWidget {
     };
     return withHelp[field];
   }
+}
+
+/// Flat sub-field → nested path inside a `PaymentMeans[0]` entry, mirroring
+/// React's `PaymentMeans.tsx` read paths. The server writes a flat
+/// `{code, iban, …}` body but returns this nested UBL shape, so seeding reads
+/// from here while the card's Save still POSTs the flat form.
+const Map<String, List<String>> _kPaymentMeansSubFieldPaths = {
+  'iban': ['PayeeFinancialAccount', 'ID', 'value'],
+  'bic_swift': [
+    'PayeeFinancialAccount',
+    'FinancialInstitutionBranch',
+    'FinancialInstitution',
+    'ID',
+    'value',
+  ],
+  'account_holder': ['PayeeFinancialAccount', 'Name'],
+  'payer_bank_account': ['PayerFinancialAccount', 'ID', 'value'],
+  'bsb_sort': ['PayeeFinancialAccount', 'SortCode', 'value'],
+  'card_type': ['CardAccount', 'NetworkID', 'value'],
+  'card_number': ['CardAccount', 'PrimaryAccountNumberID', 'value'],
+  'card_holder': ['CardAccount', 'HolderName', 'value'],
+};
+
+/// Pure extraction of the Payment Means seed from a company `e_invoice` blob
+/// (the nested UBL shape the server returns). Walks `Invoice.PaymentMeans[0]`
+/// and returns the payment-means code (or null) plus the flat sub-field values
+/// present. Safe on null / non-map / missing hops — returns an empty result
+/// rather than throwing. Public + pure so the path strings are unit-testable
+/// without widget scaffolding (mirrors `buildPeppolSetupPayload`).
+({String? code, Map<String, String> fields}) paymentMeansSeedFromEInvoice(
+  Map<String, dynamic>? eInvoice,
+) {
+  final pm = _node(eInvoice, const ['Invoice', 'PaymentMeans', 0]);
+  if (pm is! Map) return (code: null, fields: const <String, String>{});
+  final rawCode = _str(_node(pm, const ['PaymentMeansCode', 'value']));
+  final fields = <String, String>{};
+  _kPaymentMeansSubFieldPaths.forEach((field, path) {
+    final value = _str(_node(pm, path));
+    if (value != null && value.isNotEmpty) fields[field] = value;
+  });
+  return (
+    code: (rawCode != null && rawCode.isNotEmpty) ? rawCode : null,
+    fields: fields,
+  );
+}
+
+/// Walk a path of map keys + list indices into the nested `e_invoice` blob.
+/// Returns the node at the path, or null on any missing/wrong-typed hop.
+Object? _node(Object? root, List<Object> path) {
+  Object? cur = root;
+  for (final key in path) {
+    if (cur is Map && key is String) {
+      cur = cur[key];
+    } else if (cur is List && key is int && key >= 0 && key < cur.length) {
+      cur = cur[key];
+    } else {
+      return null;
+    }
+  }
+  return cur;
+}
+
+/// Coerce a leaf node to a display string (the server ships values as either
+/// a bare string or a number).
+String? _str(Object? node) {
+  if (node is String) return node;
+  if (node is num) return node.toString();
+  return null;
 }

@@ -107,7 +107,7 @@ class QuoteDao extends BaseEntityDao<$QuotesTable, QuoteRow>
       // `client_status` is the computed quote status. Mirror the domain
       // getters (`Quote.isConverted/isApproved/isExpired`,
       // `quote_status.dart`): draft='1' sent='2' approved='3'
-      // converted='4'. `converted` also covers a set `invoice_id`;
+      // converted='4' rejected='5'. `converted` also covers a set `invoice_id`;
       // `expired`/`upcoming` split non-terminal quotes by whether the
       // (non-empty) due date is before/onafter `statusAsOf` (the domain's
       // `Date.today()`). Approximation: precedence isn't applied (a
@@ -118,6 +118,7 @@ class QuoteDao extends BaseEntityDao<$QuotesTable, QuoteRow>
       final notConverted =
           quotes.statusId.equals('4').not() & quotes.invoiceId.equals('');
       final notApproved = quotes.statusId.equals('3').not();
+      final notRejected = quotes.statusId.equals('5').not();
       const dueNN = CustomExpression<String>("NULLIF(due_date, '')");
       q.where((e) {
         Expression<bool>? clause;
@@ -133,10 +134,13 @@ class QuoteDao extends BaseEntityDao<$QuotesTable, QuoteRow>
               add(e.statusId.equals('3'));
             case 'converted':
               add(e.statusId.equals('4') | e.invoiceId.equals('').not());
+            case 'rejected':
+              add(e.statusId.equals('5'));
             case 'expired':
               add(
                 notConverted &
                     notApproved &
+                    notRejected &
                     dueNN.isNotNull() &
                     dueNN.isSmallerThanValue(today),
               );
@@ -144,6 +148,7 @@ class QuoteDao extends BaseEntityDao<$QuotesTable, QuoteRow>
               add(
                 notConverted &
                     notApproved &
+                    notRejected &
                     dueNN.isNotNull() &
                     dueNN.isBiggerOrEqualValue(today),
               );

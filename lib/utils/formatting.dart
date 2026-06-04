@@ -79,6 +79,25 @@ Decimal? parseDecimal(
 String decimalInputText(Decimal value) =>
     value == Decimal.zero ? '' : value.toString();
 
+/// Renders a `double` tax/exchange rate: no trailing `.0`, and the company's
+/// decimal separator (so `19.0` shows as `19`, and comma-locale users see
+/// `19,5`). The display analog of [parseDouble].
+///
+/// `blankZero` (default `true`) returns `''` for zero — right for seeding an
+/// editable field (no stray `0` to clear). Pass `false` for read-only summary
+/// text where a literal `0` is meaningful (a zero-rated "VAT 0%").
+String rateInputText(
+  double value, {
+  bool useCommaAsDecimalPlace = false,
+  bool blankZero = true,
+}) {
+  if (value == 0 && blankZero) return '';
+  final s = value == value.roundToDouble()
+      ? value.toInt().toString()
+      : value.toString();
+  return useCommaAsDecimalPlace ? s.replaceAll('.', ',') : s;
+}
+
 /// Same as [parseDecimal] but returns `double`. Used for non-money inputs
 /// (tax rates, exchange rates) where `Decimal` is overkill.
 double? parseDouble(

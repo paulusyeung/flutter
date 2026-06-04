@@ -244,6 +244,12 @@ abstract class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
     int enabledExpenseTaxRates,
     @JsonKey(name: 'calculate_taxes') @Default(false) bool calculateTaxes,
     @JsonKey(name: 'tax_data') TaxConfigApi? taxData,
+    // Server's e-invoice config blob (nested UBL-ish map). Carried untyped so
+    // the Payment Means card can seed from `e_invoice.Invoice.PaymentMeans[0]`
+    // (matches React). Written straight to Drift on login/refresh; never
+    // edited here. Writes flow through `/einvoice/configurations`.
+    @JsonKey(name: 'e_invoice', includeIfNull: false)
+    Map<String, dynamic>? eInvoice,
     // Per-custom-surcharge "charge taxes" toggles. Edited under Settings →
     // Custom Fields → Invoices; mirrored from `CompanyApi`.
     @JsonKey(name: 'custom_surcharge_taxes1')

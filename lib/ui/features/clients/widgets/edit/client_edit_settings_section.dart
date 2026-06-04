@@ -62,7 +62,14 @@ class ClientEditSettingsSection extends StatelessWidget {
     );
     final sizes = sorted<Size>(statics.sizes.values, (s) => s.name);
 
-    final taskRate = draft.settings?['default_task_rate']?.toString() ?? '';
+    // `default_task_rate` is stored as a num (see `setDefaultTaskRate`); show a
+    // whole number without a trailing `.0`, and tolerate a legacy string value.
+    final taskRateRaw = draft.settings?['default_task_rate'];
+    final taskRate = taskRateRaw == null
+        ? ''
+        : (taskRateRaw is num && taskRateRaw % 1 == 0
+              ? taskRateRaw.toInt().toString()
+              : taskRateRaw.toString());
 
     return DashboardCardShell(
       title: context.tr('settings'),

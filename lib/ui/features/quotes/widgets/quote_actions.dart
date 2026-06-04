@@ -119,9 +119,13 @@ class QuoteActions {
     final canCreate = me?.can('create_quote') ?? false;
     final canDelete = me?.can('delete_quote') ?? false;
     final canMarkSent = canEdit && quote.isDraft;
-    final canApprove = canEdit && quote.isSent;
-    final canConvert =
-        canEdit && (quote.isApproved || quote.isSent) && !quote.isConverted;
+    // Approve any non-terminal quote (draft or sent) — matches React
+    // (`Draft || Sent`) and admin-portal (`!isApproved`); excludes
+    // approved / converted / rejected.
+    final canApprove = canEdit && (quote.isDraft || quote.isSent);
+    // Convert any not-yet-converted quote (incl. drafts) — admin-portal
+    // gates only on `invoiceId.isEmpty`.
+    final canConvert = canEdit && !quote.isConverted;
     // Cancel is server-allowed for Sent quotes (rarely used in practice
     // but available — mirrors the Invoice rule). Converted quotes can't
     // be cancelled since their downstream invoice has its own lifecycle.
@@ -195,7 +199,9 @@ class QuoteActions {
           kind: QuoteAction.convertToProject,
           icon: Icons.work_outline,
           label: context.tr('convert_to_project'),
-          enabled: canEdit && !quote.isConverted,
+          // Hidden once a project is linked — mirrors admin-portal's
+          // `projectId.isEmpty` gate.
+          enabled: canEdit && !quote.isConverted && quote.projectId.isEmpty,
           onTap: () => onTap(QuoteAction.convertToProject),
         ),
       EntityActionItem(
@@ -397,6 +403,9 @@ class QuoteActions {
           date: Date.today(),
           dueDate: null,
           partialDueDate: null,
+          // Server-computed send timestamps must not carry to a fresh draft.
+          lastSentDate: null,
+          nextSendDate: null,
           partial: Decimal.zero,
           taxAmount: Decimal.zero,
           balance: quote.amount,

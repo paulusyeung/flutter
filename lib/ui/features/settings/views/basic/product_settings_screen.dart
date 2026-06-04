@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/features/settings/view_models/product_settings_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_company_scoped_host.dart';
@@ -34,10 +35,11 @@ const kProductSettingsSearchKeys = <String>[
 ];
 
 /// Settings → Product Settings. Company-only page that writes 12 top-level
-/// `company.*` fields. Mirrors the legacy admin-portal page with two UX
-/// refinements: the Notification Threshold and Convert To dropdown are
-/// conditionally revealed under their parent toggles, and visually nested
-/// via a leading indent so the parent/child relationship reads at a glance.
+/// `company.*` fields, grouped into Inventory / Display / Behavior cards to
+/// mirror the legacy admin-portal page. Two UX refinements: the Notification
+/// Threshold and Convert To selector are conditionally revealed under their
+/// parent toggles, and visually nested via a leading indent so the
+/// parent/child relationship reads at a glance.
 ///
 /// All 12 fields are top-level on the Company API (not `company.settings.*`);
 /// edits flow through `vm.updateCompany((c) => c.copyWith(...))`.
@@ -76,8 +78,10 @@ class _ProductSettingsBody extends StatelessWidget {
 
     return SettingsFormShell(
       sections: [
+        // Inventory. Title-less cards (like the legacy 3-card layout and the
+        // React divider groups) — clean section-title keys don't exist yet.
         FormSection(
-          title: context.tr('settings'),
+          title: null,
           spacing: 0,
           children: [
             SwitchListTile(
@@ -98,6 +102,13 @@ class _ProductSettingsBody extends StatelessWidget {
             ),
             if (draft.stockNotification)
               _NestedChild(child: _ThresholdField(vm: vm)),
+          ],
+        ),
+        // Display
+        FormSection(
+          title: null,
+          spacing: 0,
+          children: [
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(context.tr('show_product_discount')),
@@ -130,6 +141,13 @@ class _ProductSettingsBody extends StatelessWidget {
               onChanged: (v) =>
                   vm.updateCompany((c) => c.copyWith(defaultQuantity: v)),
             ),
+          ],
+        ),
+        // Behavior
+        FormSection(
+          title: null,
+          spacing: 0,
+          children: [
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(context.tr('show_product_description')),
@@ -163,7 +181,7 @@ class _ProductSettingsBody extends StatelessWidget {
                   vm.updateCompany((c) => c.copyWith(convertProducts: v)),
             ),
             if (draft.convertProducts)
-              _NestedChild(child: _ConvertToDropdown(vm: vm)),
+              _NestedChild(child: _ConvertToRadio(vm: vm)),
           ],
         ),
       ],
@@ -236,9 +254,15 @@ class _ThresholdFieldState extends State<_ThresholdField> {
 
   @override
   Widget build(BuildContext context) {
+    // Single-line field: pressing Enter submits the surrounding settings form,
+    // matching every other single-line field (see CLAUDE.md § Forms). The
+    // scaffold wraps the body in a FormSaveScope; `onChanged` has already
+    // synced each keystroke to the draft, so submit just fires the save.
+    final scope = FormSaveScope.maybeOf(context);
     return TextField(
       controller: _controller,
       keyboardType: TextInputType.number,
+      textInputAction: TextInputAction.done,
       inputFormatters: <TextInputFormatter>[
         FilteringTextInputFormatter.digitsOnly,
       ],
@@ -251,39 +275,65 @@ class _ThresholdFieldState extends State<_ThresholdField> {
           (c) => c.copyWith(inventoryNotificationThreshold: parsed),
         );
       },
+      onSubmitted: (_) => scope?.trySubmit(),
     );
   }
 }
 
-/// Convert To dropdown — true → client currency, false → company currency.
-/// Conditional on `convert_products` so the value isn't editable when the
-/// surrounding feature is disabled.
-class _ConvertToDropdown extends StatelessWidget {
-  const _ConvertToDropdown({required this.vm});
+/// Convert To selector — true → client currency, false → company currency.
+/// Two choices, so a radio group (both options visible) per the design system
+/// — not a dropdown. Top-level `company.*` field, so a plain `RadioGroup` (no
+/// cascade/override binding, unlike `OverridableRadioField`). Conditional on
+/// `convert_products` so the value isn't editable when the surrounding feature
+/// is disabled.
+class _ConvertToRadio extends StatelessWidget {
+  const _ConvertToRadio({required this.vm});
 
   final ProductSettingsViewModel vm;
 
   @override
   Widget build(BuildContext context) {
     final value = vm.draft?.convertRateToClient ?? false;
-    return DropdownButtonFormField<bool>(
-      key: ValueKey('convert-to-$value'),
-      initialValue: value,
-      decoration: InputDecoration(labelText: context.tr('convert_to')),
-      items: [
-        DropdownMenuItem(
-          value: true,
-          child: Text(context.tr('client_currency')),
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 8, bottom: 4),
+          child: Text(
+            context.tr('convert_to'),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
         ),
-        DropdownMenuItem(
-          value: false,
-          child: Text(context.tr('company_currency')),
+        RadioGroup<bool>(
+          groupValue: value,
+          onChanged: (v) {
+            if (v == null) return;
+            vm.updateCompany((c) => c.copyWith(convertRateToClient: v));
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RadioListTile<bool>(
+                value: true,
+                title: Text(context.tr('client_currency')),
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+              ),
+              RadioListTile<bool>(
+                value: false,
+                title: Text(context.tr('company_currency')),
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+              ),
+            ],
+          ),
         ),
       ],
-      onChanged: (v) {
-        if (v == null) return;
-        vm.updateCompany((c) => c.copyWith(convertRateToClient: v));
-      },
     );
   }
 }

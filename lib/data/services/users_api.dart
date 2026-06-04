@@ -93,11 +93,13 @@ class UsersApi extends BaseEntityApi<UserListApi, UserItemApi> {
   Future<UserApi> disconnectOauth({
     required String id,
     required String idempotencyKey,
+    bool requiresPassword = false,
   }) async {
     final raw = await client.mutate(
       method: 'POST',
       path: '/api/v1/users/$id/disconnect_oauth',
       idempotencyKey: idempotencyKey,
+      requiresPassword: requiresPassword,
     );
     return _parseEnvelope(raw, '/users/$id/disconnect_oauth');
   }
@@ -116,6 +118,7 @@ class UsersApi extends BaseEntityApi<UserListApi, UserItemApi> {
     required String provider,
     required String accessToken,
     required String idempotencyKey,
+    bool requiresPassword = false,
   }) async {
     final raw = await client.mutate(
       method: 'POST',
@@ -123,6 +126,7 @@ class UsersApi extends BaseEntityApi<UserListApi, UserItemApi> {
       query: {'provider': provider, 'include': 'company_user'},
       idempotencyKey: idempotencyKey,
       body: {'access_token': accessToken},
+      requiresPassword: requiresPassword,
     );
     return _parseEnvelope(raw, '/connected_account?provider=$provider');
   }
@@ -132,11 +136,13 @@ class UsersApi extends BaseEntityApi<UserListApi, UserItemApi> {
   Future<UserApi> disconnectMailer({
     required String id,
     required String idempotencyKey,
+    bool requiresPassword = false,
   }) async {
     final raw = await client.mutate(
       method: 'POST',
       path: '/api/v1/users/$id/disconnect_mailer',
       idempotencyKey: idempotencyKey,
+      requiresPassword: requiresPassword,
     );
     return _parseEnvelope(raw, '/users/$id/disconnect_mailer');
   }

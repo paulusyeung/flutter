@@ -5,12 +5,14 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/expense_category.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/recurring_expense.dart';
 import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/custom_field_detail_rows.dart';
 import 'package:admin/ui/core/detail/entity_link_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/recurring_expenses/widgets/recurring_expense_status_pill.dart';
@@ -159,7 +161,13 @@ class RecurringExpenseDetailCardsGrid extends StatelessWidget {
       );
     }
     if (_hasAnyCustomValue(e)) {
-      cards.add(_CustomFieldsCard(recurringExpense: e));
+      cards.add(
+        _CustomFieldsCard(
+          recurringExpense: e,
+          companyId: companyId,
+          formatter: formatter,
+        ),
+      );
     }
     return cards;
   }
@@ -452,38 +460,47 @@ class _TaxBreakdownCard extends StatelessWidget {
 }
 
 class _CustomFieldsCard extends StatelessWidget {
-  const _CustomFieldsCard({required this.recurringExpense});
+  const _CustomFieldsCard({
+    required this.recurringExpense,
+    required this.companyId,
+    this.formatter,
+  });
   final RecurringExpense recurringExpense;
+  final String companyId;
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
     final e = recurringExpense;
-    return DashboardCardShell(
-      title: context.tr('custom_fields'),
-      child: Column(
-        children: [
-          if (e.customValue1.isNotEmpty)
-            _Row(
-              label: context.tr('custom_value1'),
-              value: Text(e.customValue1),
-            ),
-          if (e.customValue2.isNotEmpty)
-            _Row(
-              label: context.tr('custom_value2'),
-              value: Text(e.customValue2),
-            ),
-          if (e.customValue3.isNotEmpty)
-            _Row(
-              label: context.tr('custom_value3'),
-              value: Text(e.customValue3),
-            ),
-          if (e.customValue4.isNotEmpty)
-            _Row(
-              label: context.tr('custom_value4'),
-              value: Text(e.customValue4),
-            ),
-        ],
-      ),
+    final yes = context.tr('yes');
+    final no = context.tr('no');
+    return StreamBuilder<Company?>(
+      stream: context.read<Services>().company.watchCompany(companyId),
+      builder: (context, snapshot) {
+        final rows = customFieldDetailRows(
+          company: snapshot.data,
+          // Recurring expenses reuse the expense custom fields.
+          prefix: 'expense',
+          values: [
+            e.customValue1,
+            e.customValue2,
+            e.customValue3,
+            e.customValue4,
+          ],
+          formatter: formatter,
+          yes: yes,
+          no: no,
+        );
+        if (rows.isEmpty) return const SizedBox.shrink();
+        return DashboardCardShell(
+          title: context.tr('custom_fields'),
+          child: Column(
+            children: [
+              for (final r in rows) _Row(label: r.label, value: Text(r.value)),
+            ],
+          ),
+        );
+      },
     );
   }
 }

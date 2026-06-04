@@ -4,6 +4,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/api/tax_config_api_model.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/form_save_scope.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Edit a single [TaxSubregionApi] entry from Settings → Tax Settings →
 /// Calculate Taxes. Mirrors React `EditSubRegionModal.tsx` — four typed
@@ -14,6 +15,7 @@ class SubregionEditDialog extends StatefulWidget {
     super.key,
     required this.subregionKey,
     required this.initial,
+    this.useComma = false,
     this.fieldErrors,
   });
 
@@ -23,6 +25,11 @@ class SubregionEditDialog extends StatefulWidget {
   /// Current values; closed dialog returns the new subregion via the
   /// `Navigator.pop` result.
   final TaxSubregionApi initial;
+
+  /// The company's `use_comma_as_decimal_place` setting — drives both the
+  /// seeded display and the parse of the rate fields so comma-locale users
+  /// can type `19,5` without it becoming `195`.
+  final bool useComma;
 
   /// Server validation errors for this subregion, pre-stripped of the
   /// `tax_data.regions.<R>.subregions.<S>.` prefix — keys are bare field
@@ -36,6 +43,7 @@ class SubregionEditDialog extends StatefulWidget {
     BuildContext context, {
     required String subregionKey,
     required TaxSubregionApi initial,
+    bool useComma = false,
     Map<String, List<String>>? fieldErrors,
   }) {
     return showDialog<TaxSubregionApi>(
@@ -43,6 +51,7 @@ class SubregionEditDialog extends StatefulWidget {
       builder: (_) => SubregionEditDialog(
         subregionKey: subregionKey,
         initial: initial,
+        useComma: useComma,
         fieldErrors: fieldErrors,
       ),
     );
@@ -63,14 +72,16 @@ class _SubregionEditDialogState extends State<SubregionEditDialog> {
     super.initState();
     _name = TextEditingController(text: widget.initial.taxName);
     _rate = TextEditingController(
-      text: widget.initial.taxRate == 0
-          ? ''
-          : widget.initial.taxRate.toString(),
+      text: rateInputText(
+        widget.initial.taxRate,
+        useCommaAsDecimalPlace: widget.useComma,
+      ),
     );
     _reducedRate = TextEditingController(
-      text: widget.initial.reducedTaxRate == 0
-          ? ''
-          : widget.initial.reducedTaxRate.toString(),
+      text: rateInputText(
+        widget.initial.reducedTaxRate,
+        useCommaAsDecimalPlace: widget.useComma,
+      ),
     );
     _vatNumber = TextEditingController(text: widget.initial.vatNumber);
   }
@@ -87,8 +98,14 @@ class _SubregionEditDialogState extends State<SubregionEditDialog> {
   void _submit() {
     final next = widget.initial.copyWith(
       taxName: _name.text.trim(),
-      taxRate: double.tryParse(_rate.text.trim()) ?? 0,
-      reducedTaxRate: double.tryParse(_reducedRate.text.trim()) ?? 0,
+      taxRate:
+          parseDouble(_rate.text, useCommaAsDecimalPlace: widget.useComma) ?? 0,
+      reducedTaxRate:
+          parseDouble(
+            _reducedRate.text,
+            useCommaAsDecimalPlace: widget.useComma,
+          ) ??
+          0,
       vatNumber: _vatNumber.text.trim(),
     );
     Navigator.of(context).pop(next);

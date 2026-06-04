@@ -913,6 +913,11 @@ class AuthRepository {
                   ? null
                   : jsonEncode(uc.company.taxData!.toJson()),
             ),
+            eInvoiceJson: Value(
+              uc.company.eInvoice == null
+                  ? null
+                  : jsonEncode(uc.company.eInvoice),
+            ),
             customSurchargeTaxes1: Value(uc.company.customSurchargeTaxes1),
             customSurchargeTaxes2: Value(uc.company.customSurchargeTaxes2),
             customSurchargeTaxes3: Value(uc.company.customSurchargeTaxes3),

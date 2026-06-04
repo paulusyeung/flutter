@@ -6,10 +6,12 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/custom_field_detail_rows.dart';
 import 'package:admin/ui/core/detail/entity_link_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/tasks/widgets/running_duration_label.dart';
@@ -70,7 +72,12 @@ class ProjectDetailCardsGrid extends StatelessWidget {
     ];
     final rightCards = <Widget>[
       if (p.clientId.isNotEmpty) _clientLink(context, p),
-      if (_hasAnyCustomValue(p)) _CustomFieldsCard(project: p),
+      if (_hasAnyCustomValue(p))
+        _CustomFieldsCard(
+          project: p,
+          companyId: companyId,
+          formatter: formatter,
+        ),
     ];
 
     if (rightCards.isEmpty) {
@@ -96,7 +103,12 @@ class ProjectDetailCardsGrid extends StatelessWidget {
       if (p.clientId.isNotEmpty) _clientLink(context, p),
       if (_tasksEnabled(context))
         _TasksCard(project: p, companyId: companyId, formatter: formatter),
-      if (_hasAnyCustomValue(p)) _CustomFieldsCard(project: p),
+      if (_hasAnyCustomValue(p))
+        _CustomFieldsCard(
+          project: p,
+          companyId: companyId,
+          formatter: formatter,
+        ),
     ];
     return _stack(context, cards);
   }
@@ -355,37 +367,45 @@ class _TaskRow extends StatelessWidget {
 }
 
 class _CustomFieldsCard extends StatelessWidget {
-  const _CustomFieldsCard({required this.project});
+  const _CustomFieldsCard({
+    required this.project,
+    required this.companyId,
+    this.formatter,
+  });
   final Project project;
+  final String companyId;
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
-    return DashboardCardShell(
-      title: context.tr('custom_fields'),
-      child: Column(
-        children: [
-          if (project.customValue1.isNotEmpty)
-            _Row(
-              label: context.tr('custom_value1'),
-              value: Text(project.customValue1),
-            ),
-          if (project.customValue2.isNotEmpty)
-            _Row(
-              label: context.tr('custom_value2'),
-              value: Text(project.customValue2),
-            ),
-          if (project.customValue3.isNotEmpty)
-            _Row(
-              label: context.tr('custom_value3'),
-              value: Text(project.customValue3),
-            ),
-          if (project.customValue4.isNotEmpty)
-            _Row(
-              label: context.tr('custom_value4'),
-              value: Text(project.customValue4),
-            ),
-        ],
-      ),
+    final yes = context.tr('yes');
+    final no = context.tr('no');
+    return StreamBuilder<Company?>(
+      stream: context.read<Services>().company.watchCompany(companyId),
+      builder: (context, snapshot) {
+        final rows = customFieldDetailRows(
+          company: snapshot.data,
+          prefix: 'project',
+          values: [
+            project.customValue1,
+            project.customValue2,
+            project.customValue3,
+            project.customValue4,
+          ],
+          formatter: formatter,
+          yes: yes,
+          no: no,
+        );
+        if (rows.isEmpty) return const SizedBox.shrink();
+        return DashboardCardShell(
+          title: context.tr('custom_fields'),
+          child: Column(
+            children: [
+              for (final r in rows) _Row(label: r.label, value: Text(r.value)),
+            ],
+          ),
+        );
+      },
     );
   }
 }

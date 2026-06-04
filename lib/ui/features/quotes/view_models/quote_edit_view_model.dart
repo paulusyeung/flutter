@@ -20,6 +20,7 @@ class QuoteEditViewModel extends GenericBillingDocEditViewModel<Quote> {
     required this.companyId,
     required this.clientRequiredMessage,
     required this.crossClientLineItemsMessage,
+    required this.partialInvalidMessage,
     Quote? existing,
     Quote? cloneFrom,
     super.currencyPrecision,
@@ -38,12 +39,21 @@ class QuoteEditViewModel extends GenericBillingDocEditViewModel<Quote> {
   /// `buildVm` (VMs have no `BuildContext` to localize with).
   final String clientRequiredMessage;
   final String crossClientLineItemsMessage;
+  final String partialInvalidMessage;
 
   @override
-  Map<String, List<String>> validate() => {
-    if (draft.clientId.isEmpty) 'client_id': [clientRequiredMessage],
-    ...validateCrossClient(crossClientLineItemsMessage),
-  };
+  Map<String, List<String>> validate() {
+    final errors = <String, List<String>>{
+      if (draft.clientId.isEmpty) 'client_id': [clientRequiredMessage],
+      ...validateCrossClient(crossClientLineItemsMessage),
+    };
+    // Deposit/partial must sit within [0, total] — mirrors the invoice rule.
+    final partial = draft.partial;
+    if (partial < Decimal.zero || partial > totals.total) {
+      errors['partial'] = [partialInvalidMessage];
+    }
+    return errors;
+  }
 
   @override
   bool draftIsNonEmpty() {
@@ -147,6 +157,11 @@ class QuoteEditViewModel extends GenericBillingDocEditViewModel<Quote> {
   void setPoNumber(String v) => updateDraft(draft.copyWith(poNumber: v));
   void setDate(Date? d) => updateDraft(draft.copyWith(date: d));
   void setDueDate(Date? d) => updateDraft(draft.copyWith(dueDate: d));
+  void setPartial(String input) => updateDraft(
+    draft.copyWith(partial: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+  );
+  void setPartialDueDate(Date? d) =>
+      updateDraft(draft.copyWith(partialDueDate: d));
   void setDesignId(String v) => updateDraft(draft.copyWith(designId: v));
   void setExchangeRate(String input) => updateDraft(
     draft.copyWith(exchangeRate: Decimal.tryParse(input.trim()) ?? Decimal.one),

@@ -68,6 +68,7 @@ class QuoteClientStatusFilterKey extends FilterKey {
     ('expired', 'expired'),
     ('upcoming', 'upcoming'),
     ('converted', 'converted'),
+    ('rejected', 'rejected'),
   ];
 
   static String _labelKeyFor(String wire) {

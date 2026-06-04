@@ -156,6 +156,20 @@ class ProductDao extends BaseEntityDao<$ProductsTable, ProductRow>
         return p.quantity.cast<double>();
       case ProductFieldIds.updatedAt:
         return p.updatedAt;
+      case ProductFieldIds.description:
+        return p.notes.lower();
+      case ProductFieldIds.custom1:
+        return p.customValue1.lower();
+      case ProductFieldIds.custom2:
+        return p.customValue2.lower();
+      case ProductFieldIds.custom3:
+        return p.customValue3.lower();
+      case ProductFieldIds.custom4:
+        return p.customValue4.lower();
+      case ProductFieldIds.createdAt:
+        return p.createdAt;
+      case ProductFieldIds.archivedAt:
+        return p.archivedAt;
       default:
         return p.productKey.lower();
     }

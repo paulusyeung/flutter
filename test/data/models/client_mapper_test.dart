@@ -1,5 +1,7 @@
 import 'package:admin/data/models/api/client_api_model.dart';
+import 'package:admin/data/models/api/gateway_token_api_model.dart';
 import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/gateway_token.dart';
 import 'package:decimal/decimal.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -399,6 +401,33 @@ void main() {
           .first;
       expect(contactJson['contact_key'], 'KEY123');
       expect(contactJson['can_sign'], isTrue);
+    });
+
+    test('GatewayToken survives the toApiJson → fromApi round-trip (the local '
+        'Drift payload inject path in _domainToCompanion)', () {
+      const original = GatewayToken(
+        id: 'gt1',
+        companyGatewayId: 'cg1',
+        gatewayTypeId: '1',
+        customerReference: 'cus_123',
+        isDefault: true,
+        brand: 'visa',
+        last4: '4242',
+        expMonth: '12',
+        expYear: '2027',
+        cardType: 'card',
+      );
+      final round = GatewayToken.fromApi(
+        GatewayTokenApi.fromJson(original.toApiJson()),
+      );
+      expect(round.brand, 'visa');
+      expect(round.last4, '4242');
+      expect(round.expMonth, '12');
+      expect(round.expYear, '2027');
+      expect(round.cardType, 'card');
+      expect(round.isDefault, isTrue);
+      expect(round.customerReference, 'cus_123');
+      expect(round.companyGatewayId, 'cg1');
     });
   });
 }

@@ -213,6 +213,18 @@ same `whereIn('status_id', explode(',', $v))` to Quote/Credit/Payment/
 PurchaseOrder/RecurringInvoice filters for cross-entity consistency. Low
 priority — the official clients use the computed `client_status` for these.
 
+### F1. `QuoteFilters::client_status` — missing `rejected` — **O**
+
+`client_status` handles `sent / draft / approved / expired / upcoming /
+converted` but has **no `rejected` branch**, so `client_status=rejected`
+hits the global silent-no-op (returns the unfiltered set). Quotes do carry
+`STATUS_REJECTED = 5` (set when a client rejects in the portal), and the
+official clients expose a "Rejected" filter chip. Requested: add
+`if (in_array('rejected', $status_parameters)) $query->orWhere('status_id',
+Quote::STATUS_REJECTED);`. Low priority — the v2 client already filters
+`rejected` **locally** as a deliberate approximation (the chip narrows
+cached rows), so this only improves server-side narrowing for large lists.
+
 ### G. Hygiene — highest leverage
 
 1. **R (non-breaking first).** Unknown filter param → surface in a

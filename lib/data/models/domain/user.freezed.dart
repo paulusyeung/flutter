@@ -669,7 +669,7 @@ as bool,
 /// @nodoc
 mixin _$CompanyUserSettings {
 
- String get accentColor; bool get userLoggedInNotification; bool get taskAssignedNotification; bool get disableRecurringPaymentNotification; bool get enableEInvoiceReceivedNotification;
+ String get accentColor;
 /// Create a copy of CompanyUserSettings
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -680,16 +680,16 @@ $CompanyUserSettingsCopyWith<CompanyUserSettings> get copyWith => _$CompanyUserS
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CompanyUserSettings&&(identical(other.accentColor, accentColor) || other.accentColor == accentColor)&&(identical(other.userLoggedInNotification, userLoggedInNotification) || other.userLoggedInNotification == userLoggedInNotification)&&(identical(other.taskAssignedNotification, taskAssignedNotification) || other.taskAssignedNotification == taskAssignedNotification)&&(identical(other.disableRecurringPaymentNotification, disableRecurringPaymentNotification) || other.disableRecurringPaymentNotification == disableRecurringPaymentNotification)&&(identical(other.enableEInvoiceReceivedNotification, enableEInvoiceReceivedNotification) || other.enableEInvoiceReceivedNotification == enableEInvoiceReceivedNotification));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CompanyUserSettings&&(identical(other.accentColor, accentColor) || other.accentColor == accentColor));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,accentColor,userLoggedInNotification,taskAssignedNotification,disableRecurringPaymentNotification,enableEInvoiceReceivedNotification);
+int get hashCode => Object.hash(runtimeType,accentColor);
 
 @override
 String toString() {
-  return 'CompanyUserSettings(accentColor: $accentColor, userLoggedInNotification: $userLoggedInNotification, taskAssignedNotification: $taskAssignedNotification, disableRecurringPaymentNotification: $disableRecurringPaymentNotification, enableEInvoiceReceivedNotification: $enableEInvoiceReceivedNotification)';
+  return 'CompanyUserSettings(accentColor: $accentColor)';
 }
 
 
@@ -700,7 +700,7 @@ abstract mixin class $CompanyUserSettingsCopyWith<$Res>  {
   factory $CompanyUserSettingsCopyWith(CompanyUserSettings value, $Res Function(CompanyUserSettings) _then) = _$CompanyUserSettingsCopyWithImpl;
 @useResult
 $Res call({
- String accentColor, bool userLoggedInNotification, bool taskAssignedNotification, bool disableRecurringPaymentNotification, bool enableEInvoiceReceivedNotification
+ String accentColor
 });
 
 
@@ -717,14 +717,10 @@ class _$CompanyUserSettingsCopyWithImpl<$Res>
 
 /// Create a copy of CompanyUserSettings
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? accentColor = null,Object? userLoggedInNotification = null,Object? taskAssignedNotification = null,Object? disableRecurringPaymentNotification = null,Object? enableEInvoiceReceivedNotification = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? accentColor = null,}) {
   return _then(_self.copyWith(
 accentColor: null == accentColor ? _self.accentColor : accentColor // ignore: cast_nullable_to_non_nullable
-as String,userLoggedInNotification: null == userLoggedInNotification ? _self.userLoggedInNotification : userLoggedInNotification // ignore: cast_nullable_to_non_nullable
-as bool,taskAssignedNotification: null == taskAssignedNotification ? _self.taskAssignedNotification : taskAssignedNotification // ignore: cast_nullable_to_non_nullable
-as bool,disableRecurringPaymentNotification: null == disableRecurringPaymentNotification ? _self.disableRecurringPaymentNotification : disableRecurringPaymentNotification // ignore: cast_nullable_to_non_nullable
-as bool,enableEInvoiceReceivedNotification: null == enableEInvoiceReceivedNotification ? _self.enableEInvoiceReceivedNotification : enableEInvoiceReceivedNotification // ignore: cast_nullable_to_non_nullable
-as bool,
+as String,
   ));
 }
 
@@ -809,10 +805,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String accentColor,  bool userLoggedInNotification,  bool taskAssignedNotification,  bool disableRecurringPaymentNotification,  bool enableEInvoiceReceivedNotification)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String accentColor)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CompanyUserSettings() when $default != null:
-return $default(_that.accentColor,_that.userLoggedInNotification,_that.taskAssignedNotification,_that.disableRecurringPaymentNotification,_that.enableEInvoiceReceivedNotification);case _:
+return $default(_that.accentColor);case _:
   return orElse();
 
 }
@@ -830,10 +826,10 @@ return $default(_that.accentColor,_that.userLoggedInNotification,_that.taskAssig
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String accentColor,  bool userLoggedInNotification,  bool taskAssignedNotification,  bool disableRecurringPaymentNotification,  bool enableEInvoiceReceivedNotification)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String accentColor)  $default,) {final _that = this;
 switch (_that) {
 case _CompanyUserSettings():
-return $default(_that.accentColor,_that.userLoggedInNotification,_that.taskAssignedNotification,_that.disableRecurringPaymentNotification,_that.enableEInvoiceReceivedNotification);case _:
+return $default(_that.accentColor);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -850,10 +846,10 @@ return $default(_that.accentColor,_that.userLoggedInNotification,_that.taskAssig
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String accentColor,  bool userLoggedInNotification,  bool taskAssignedNotification,  bool disableRecurringPaymentNotification,  bool enableEInvoiceReceivedNotification)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String accentColor)?  $default,) {final _that = this;
 switch (_that) {
 case _CompanyUserSettings() when $default != null:
-return $default(_that.accentColor,_that.userLoggedInNotification,_that.taskAssignedNotification,_that.disableRecurringPaymentNotification,_that.enableEInvoiceReceivedNotification);case _:
+return $default(_that.accentColor);case _:
   return null;
 
 }
@@ -865,14 +861,10 @@ return $default(_that.accentColor,_that.userLoggedInNotification,_that.taskAssig
 
 
 class _CompanyUserSettings extends CompanyUserSettings {
-  const _CompanyUserSettings({this.accentColor = '', this.userLoggedInNotification = false, this.taskAssignedNotification = false, this.disableRecurringPaymentNotification = false, this.enableEInvoiceReceivedNotification = false}): super._();
+  const _CompanyUserSettings({this.accentColor = ''}): super._();
   
 
 @override@JsonKey() final  String accentColor;
-@override@JsonKey() final  bool userLoggedInNotification;
-@override@JsonKey() final  bool taskAssignedNotification;
-@override@JsonKey() final  bool disableRecurringPaymentNotification;
-@override@JsonKey() final  bool enableEInvoiceReceivedNotification;
 
 /// Create a copy of CompanyUserSettings
 /// with the given fields replaced by the non-null parameter values.
@@ -884,16 +876,16 @@ _$CompanyUserSettingsCopyWith<_CompanyUserSettings> get copyWith => __$CompanyUs
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CompanyUserSettings&&(identical(other.accentColor, accentColor) || other.accentColor == accentColor)&&(identical(other.userLoggedInNotification, userLoggedInNotification) || other.userLoggedInNotification == userLoggedInNotification)&&(identical(other.taskAssignedNotification, taskAssignedNotification) || other.taskAssignedNotification == taskAssignedNotification)&&(identical(other.disableRecurringPaymentNotification, disableRecurringPaymentNotification) || other.disableRecurringPaymentNotification == disableRecurringPaymentNotification)&&(identical(other.enableEInvoiceReceivedNotification, enableEInvoiceReceivedNotification) || other.enableEInvoiceReceivedNotification == enableEInvoiceReceivedNotification));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CompanyUserSettings&&(identical(other.accentColor, accentColor) || other.accentColor == accentColor));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,accentColor,userLoggedInNotification,taskAssignedNotification,disableRecurringPaymentNotification,enableEInvoiceReceivedNotification);
+int get hashCode => Object.hash(runtimeType,accentColor);
 
 @override
 String toString() {
-  return 'CompanyUserSettings(accentColor: $accentColor, userLoggedInNotification: $userLoggedInNotification, taskAssignedNotification: $taskAssignedNotification, disableRecurringPaymentNotification: $disableRecurringPaymentNotification, enableEInvoiceReceivedNotification: $enableEInvoiceReceivedNotification)';
+  return 'CompanyUserSettings(accentColor: $accentColor)';
 }
 
 
@@ -904,7 +896,7 @@ abstract mixin class _$CompanyUserSettingsCopyWith<$Res> implements $CompanyUser
   factory _$CompanyUserSettingsCopyWith(_CompanyUserSettings value, $Res Function(_CompanyUserSettings) _then) = __$CompanyUserSettingsCopyWithImpl;
 @override @useResult
 $Res call({
- String accentColor, bool userLoggedInNotification, bool taskAssignedNotification, bool disableRecurringPaymentNotification, bool enableEInvoiceReceivedNotification
+ String accentColor
 });
 
 
@@ -921,14 +913,10 @@ class __$CompanyUserSettingsCopyWithImpl<$Res>
 
 /// Create a copy of CompanyUserSettings
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? accentColor = null,Object? userLoggedInNotification = null,Object? taskAssignedNotification = null,Object? disableRecurringPaymentNotification = null,Object? enableEInvoiceReceivedNotification = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? accentColor = null,}) {
   return _then(_CompanyUserSettings(
 accentColor: null == accentColor ? _self.accentColor : accentColor // ignore: cast_nullable_to_non_nullable
-as String,userLoggedInNotification: null == userLoggedInNotification ? _self.userLoggedInNotification : userLoggedInNotification // ignore: cast_nullable_to_non_nullable
-as bool,taskAssignedNotification: null == taskAssignedNotification ? _self.taskAssignedNotification : taskAssignedNotification // ignore: cast_nullable_to_non_nullable
-as bool,disableRecurringPaymentNotification: null == disableRecurringPaymentNotification ? _self.disableRecurringPaymentNotification : disableRecurringPaymentNotification // ignore: cast_nullable_to_non_nullable
-as bool,enableEInvoiceReceivedNotification: null == enableEInvoiceReceivedNotification ? _self.enableEInvoiceReceivedNotification : enableEInvoiceReceivedNotification // ignore: cast_nullable_to_non_nullable
-as bool,
+as String,
   ));
 }
 

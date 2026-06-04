@@ -123,13 +123,15 @@ class QuoteListViewModel extends GenericListViewModel<Quote> {
     BulkAction<Quote>(
       id: 'approve',
       labelKey: 'approve',
-      eligible: (q) => !q.isApproved && !isDeleted(q),
+      // Draft or sent only — never approved/converted/rejected (matches
+      // the detail screen + React). See quote_actions.dart canApprove.
+      eligible: (q) => (q.isDraft || q.isSent) && !isDeleted(q),
       apply: (id) => repo.approve(companyId: companyId, id: id),
     ),
     BulkAction<Quote>(
       id: 'convert_to_invoice',
       labelKey: 'convert_to_invoice',
-      eligible: (q) => !isDeleted(q),
+      eligible: (q) => !q.isConverted && !isDeleted(q),
       apply: (id) => repo.convertToInvoice(companyId: companyId, id: id),
     ),
     BulkAction<Quote>(

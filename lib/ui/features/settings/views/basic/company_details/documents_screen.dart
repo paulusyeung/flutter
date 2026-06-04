@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
@@ -13,6 +14,7 @@ import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/utils/document_upload_validation.dart';
 import 'package:admin/utils/formatting.dart';
+import 'package:admin/utils/url_safety.dart';
 
 /// Searchable label keys rendered by this tab. See
 /// `kCompanyDetailsDetailsSearchKeys` for the colocation pattern.
@@ -49,14 +51,8 @@ class CompanyDetailsDocumentsScreen extends StatelessWidget {
               _DocumentList(
                 documents: documents,
                 tokens: tokens,
-                // Delete is password-gated server-side; the sync engine prompts
-                // via ConfirmPasswordSheet when the row drains (no pre-confirm
-                // dialog — typing the password is the confirmation, mirroring
-                // EntityDocumentsTab). The row drops once the delete confirms.
-                onDelete: (doc) => services.company.deleteDocument(
-                  companyId: vm.companyId,
-                  documentId: doc.id,
-                ),
+                onView: _openDocument,
+                onDelete: (doc) => _deleteDocument(context, services, vm, doc),
               ),
             ],
           ],
@@ -120,17 +116,50 @@ class CompanyDetailsDocumentsScreen extends StatelessWidget {
       Notify.error(context, context.tr('error_uploading_document'), error: e);
     }
   }
+
+  /// Open a document URL in the OS's external handler. Document URLs are
+  /// server-supplied, so the HTTPS check guards against a hostile/compromised
+  /// server pushing `javascript:` / `file:` / `intent:` URIs — mirrors
+  /// `EntityDocumentsTab._onView`. Silent no-op on an unsafe/empty URL.
+  Future<void> _openDocument(Document doc) async {
+    if (!isSafeHttpsUrl(doc.url)) return;
+    await launchUrl(Uri.parse(doc.url), mode: LaunchMode.externalApplication);
+  }
+
+  /// Enqueue a document delete + optimistic success toast. The delete is
+  /// password-gated, so `ConfirmPasswordSheet` fires when the outbox row
+  /// drains and the row drops from the list on confirm (remove-on-drain).
+  Future<void> _deleteDocument(
+    BuildContext context,
+    Services services,
+    CompanyDetailsViewModel vm,
+    Document doc,
+  ) async {
+    try {
+      await services.company.deleteDocument(
+        companyId: vm.companyId,
+        documentId: doc.id,
+      );
+      if (!context.mounted) return;
+      Notify.success(context, context.tr('deleted_document'));
+    } catch (e) {
+      if (!context.mounted) return;
+      Notify.error(context, context.tr('error'), error: e);
+    }
+  }
 }
 
 class _DocumentList extends StatelessWidget {
   const _DocumentList({
     required this.documents,
     required this.tokens,
+    required this.onView,
     required this.onDelete,
   });
 
   final List<Document> documents;
   final InTheme tokens;
+  final Future<void> Function(Document doc) onView;
   final Future<void> Function(Document doc) onDelete;
 
   @override
@@ -139,7 +168,12 @@ class _DocumentList extends StatelessWidget {
       children: [
         for (var i = 0; i < documents.length; i++) ...[
           if (i > 0) const SizedBox(height: InSpacing.sm),
-          _DocumentRow(doc: documents[i], tokens: tokens, onDelete: onDelete),
+          _DocumentRow(
+            doc: documents[i],
+            tokens: tokens,
+            onView: onView,
+            onDelete: onDelete,
+          ),
         ],
       ],
     );
@@ -150,11 +184,13 @@ class _DocumentRow extends StatelessWidget {
   const _DocumentRow({
     required this.doc,
     required this.tokens,
+    required this.onView,
     required this.onDelete,
   });
 
   final Document doc;
   final InTheme tokens;
+  final Future<void> Function(Document doc) onView;
   final Future<void> Function(Document doc) onDelete;
 
   static const _imageExts = <String>{
@@ -200,15 +236,38 @@ class _DocumentRow extends StatelessWidget {
             Text(formatSize(doc.size), style: TextStyle(color: tokens.ink3)),
           ],
           const SizedBox(width: InSpacing.sm),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, size: 20),
-            tooltip: context.tr('delete'),
-            visualDensity: VisualDensity.compact,
-            color: tokens.ink3,
-            onPressed: () => onDelete(doc),
+          PopupMenuButton<_RowAction>(
+            tooltip: context.tr('actions'),
+            icon: Icon(Icons.more_vert, size: 20, color: tokens.ink3),
+            onSelected: (action) async {
+              switch (action) {
+                case _RowAction.view:
+                  await onView(doc);
+                case _RowAction.delete:
+                  await onDelete(doc);
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: _RowAction.view,
+                child: ListTile(
+                  leading: const Icon(Icons.open_in_new),
+                  title: Text(context.tr('view')),
+                ),
+              ),
+              PopupMenuItem(
+                value: _RowAction.delete,
+                child: ListTile(
+                  leading: const Icon(Icons.delete_outline),
+                  title: Text(context.tr('delete')),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 }
+
+enum _RowAction { view, delete }

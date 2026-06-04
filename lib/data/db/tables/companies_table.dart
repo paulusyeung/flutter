@@ -95,6 +95,11 @@ class Companies extends Table {
   // installs that haven't been touched recently) ship without it; the UI
   // treats null as "no regions provisioned yet".
   TextColumn get taxDataJson => text().named('tax_data_json').nullable()();
+  // `e_invoice` JSON map (nested UBL-ish payment-means config). Nullable;
+  // the Payment Means card seeds its fields from
+  // `e_invoice.Invoice.PaymentMeans[0]`. Written on login/refresh; preserved
+  // (not cleared) on a company PUT response that omits it.
+  TextColumn get eInvoiceJson => text().named('e_invoice_json').nullable()();
   // Per-surcharge "charge taxes" toggles paired with the four surcharge
   // custom-field slots. Settings → Custom Fields → Invoices renders the
   // switch when `enabledTaxRates != 0`.

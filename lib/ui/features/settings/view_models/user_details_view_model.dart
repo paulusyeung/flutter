@@ -118,6 +118,24 @@ class UserDetailsViewModel extends DraftStreamHost<User> {
     updateDraft((u) => u.copyWith(notificationsEmail: codes));
   }
 
+  /// Top-level `user.user_logged_in_notification` flag. The server reads this
+  /// as a top-level user boolean (matches React) — NOT a `company_user`
+  /// settings key.
+  void setUserLoggedInNotification(bool value) {
+    updateDraft((u) => u.copyWith(userLoggedInNotification: value));
+  }
+
+  /// Add/remove a bare notification code (e.g. `task_assigned`) in
+  /// `company_user.notifications.email`. These special codes live in the same
+  /// list as the per-event `<event>_all` / `<event>_user` subscriptions.
+  void toggleNotificationCode(String code, bool value) {
+    updateDraft((u) {
+      final next = u.notificationsEmail.where((c) => c != code).toList();
+      if (value) next.add(code);
+      return u.copyWith(notificationsEmail: next);
+    });
+  }
+
   /// Stash the pending-new-password the dispatcher will send under the
   /// `password` key. Cleared after a successful save.
   void setPendingPassword(String? value) {
@@ -184,6 +202,7 @@ class UserDetailsViewModel extends DraftStreamHost<User> {
     'language_id': '',
     'password': 'password',
     'accent_color': 'preferences',
+    'user_logged_in_notification': 'notifications',
     'notifications': 'notifications',
     'notifications.email': 'notifications',
   };

@@ -47,7 +47,7 @@ class _UserDetailsPasswordScreenState extends State<UserDetailsPasswordScreen> {
     final vm = context.read<UserDetailsViewModel>();
     final pw = _password.text;
     final cn = _confirm.text;
-    final ready = pw.isNotEmpty && pw == cn && pw.length >= 6;
+    final ready = pw.isNotEmpty && pw == cn && pw.length >= 8;
     vm.setPendingPassword(ready ? pw : null);
   }
 
@@ -79,7 +79,7 @@ class _UserDetailsPasswordScreenState extends State<UserDetailsPasswordScreen> {
                       : context.tr('hide_password'),
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),
-                errorText: fieldError,
+                errorText: fieldError ?? _passwordError(),
               ),
               textInputAction: TextInputAction.next,
             ),
@@ -100,6 +100,15 @@ class _UserDetailsPasswordScreenState extends State<UserDetailsPasswordScreen> {
         ),
       ],
     );
+  }
+
+  // Client-side gate: minimum length only. Complexity (upper/lower/digit) is
+  // left to the server's 422 so we never block a password the server accepts.
+  String? _passwordError() {
+    final pw = _password.text;
+    if (pw.isEmpty) return null;
+    if (pw.length < 8) return context.tr('password_is_too_short');
+    return null;
   }
 
   String? _confirmError() {

@@ -5933,6 +5933,17 @@ class $CompaniesTable extends Companies
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _eInvoiceJsonMeta = const VerificationMeta(
+    'eInvoiceJson',
+  );
+  @override
+  late final GeneratedColumn<String> eInvoiceJson = GeneratedColumn<String>(
+    'e_invoice_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _customSurchargeTaxes1Meta =
       const VerificationMeta('customSurchargeTaxes1');
   @override
@@ -6959,6 +6970,7 @@ class $CompaniesTable extends Companies
     enabledExpenseTaxRates,
     calculateTaxes,
     taxDataJson,
+    eInvoiceJson,
     customSurchargeTaxes1,
     customSurchargeTaxes2,
     customSurchargeTaxes3,
@@ -7260,6 +7272,15 @@ class $CompaniesTable extends Companies
         taxDataJson.isAcceptableOrUnknown(
           data['tax_data_json']!,
           _taxDataJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('e_invoice_json')) {
+      context.handle(
+        _eInvoiceJsonMeta,
+        eInvoiceJson.isAcceptableOrUnknown(
+          data['e_invoice_json']!,
+          _eInvoiceJsonMeta,
         ),
       );
     }
@@ -8003,6 +8024,10 @@ class $CompaniesTable extends Companies
         DriftSqlType.string,
         data['${effectivePrefix}tax_data_json'],
       ),
+      eInvoiceJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}e_invoice_json'],
+      ),
       customSurchargeTaxes1: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}custom_surcharge_taxes1'],
@@ -8328,6 +8353,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
   final int enabledExpenseTaxRates;
   final bool calculateTaxes;
   final String? taxDataJson;
+  final String? eInvoiceJson;
   final bool customSurchargeTaxes1;
   final bool customSurchargeTaxes2;
   final bool customSurchargeTaxes3;
@@ -8435,6 +8461,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     required this.enabledExpenseTaxRates,
     required this.calculateTaxes,
     this.taxDataJson,
+    this.eInvoiceJson,
     required this.customSurchargeTaxes1,
     required this.customSurchargeTaxes2,
     required this.customSurchargeTaxes3,
@@ -8549,6 +8576,9 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     map['calculate_taxes'] = Variable<bool>(calculateTaxes);
     if (!nullToAbsent || taxDataJson != null) {
       map['tax_data_json'] = Variable<String>(taxDataJson);
+    }
+    if (!nullToAbsent || eInvoiceJson != null) {
+      map['e_invoice_json'] = Variable<String>(eInvoiceJson);
     }
     map['custom_surcharge_taxes1'] = Variable<bool>(customSurchargeTaxes1);
     map['custom_surcharge_taxes2'] = Variable<bool>(customSurchargeTaxes2);
@@ -8688,6 +8718,9 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       taxDataJson: taxDataJson == null && nullToAbsent
           ? const Value.absent()
           : Value(taxDataJson),
+      eInvoiceJson: eInvoiceJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(eInvoiceJson),
       customSurchargeTaxes1: Value(customSurchargeTaxes1),
       customSurchargeTaxes2: Value(customSurchargeTaxes2),
       customSurchargeTaxes3: Value(customSurchargeTaxes3),
@@ -8810,6 +8843,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       ),
       calculateTaxes: serializer.fromJson<bool>(json['calculateTaxes']),
       taxDataJson: serializer.fromJson<String?>(json['taxDataJson']),
+      eInvoiceJson: serializer.fromJson<String?>(json['eInvoiceJson']),
       customSurchargeTaxes1: serializer.fromJson<bool>(
         json['customSurchargeTaxes1'],
       ),
@@ -8989,6 +9023,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       'enabledExpenseTaxRates': serializer.toJson<int>(enabledExpenseTaxRates),
       'calculateTaxes': serializer.toJson<bool>(calculateTaxes),
       'taxDataJson': serializer.toJson<String?>(taxDataJson),
+      'eInvoiceJson': serializer.toJson<String?>(eInvoiceJson),
       'customSurchargeTaxes1': serializer.toJson<bool>(customSurchargeTaxes1),
       'customSurchargeTaxes2': serializer.toJson<bool>(customSurchargeTaxes2),
       'customSurchargeTaxes3': serializer.toJson<bool>(customSurchargeTaxes3),
@@ -9120,6 +9155,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     int? enabledExpenseTaxRates,
     bool? calculateTaxes,
     Value<String?> taxDataJson = const Value.absent(),
+    Value<String?> eInvoiceJson = const Value.absent(),
     bool? customSurchargeTaxes1,
     bool? customSurchargeTaxes2,
     bool? customSurchargeTaxes3,
@@ -9226,6 +9262,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
         enabledExpenseTaxRates ?? this.enabledExpenseTaxRates,
     calculateTaxes: calculateTaxes ?? this.calculateTaxes,
     taxDataJson: taxDataJson.present ? taxDataJson.value : this.taxDataJson,
+    eInvoiceJson: eInvoiceJson.present ? eInvoiceJson.value : this.eInvoiceJson,
     customSurchargeTaxes1: customSurchargeTaxes1 ?? this.customSurchargeTaxes1,
     customSurchargeTaxes2: customSurchargeTaxes2 ?? this.customSurchargeTaxes2,
     customSurchargeTaxes3: customSurchargeTaxes3 ?? this.customSurchargeTaxes3,
@@ -9383,6 +9420,9 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       taxDataJson: data.taxDataJson.present
           ? data.taxDataJson.value
           : this.taxDataJson,
+      eInvoiceJson: data.eInvoiceJson.present
+          ? data.eInvoiceJson.value
+          : this.eInvoiceJson,
       customSurchargeTaxes1: data.customSurchargeTaxes1.present
           ? data.customSurchargeTaxes1.value
           : this.customSurchargeTaxes1,
@@ -9626,6 +9666,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           ..write('enabledExpenseTaxRates: $enabledExpenseTaxRates, ')
           ..write('calculateTaxes: $calculateTaxes, ')
           ..write('taxDataJson: $taxDataJson, ')
+          ..write('eInvoiceJson: $eInvoiceJson, ')
           ..write('customSurchargeTaxes1: $customSurchargeTaxes1, ')
           ..write('customSurchargeTaxes2: $customSurchargeTaxes2, ')
           ..write('customSurchargeTaxes3: $customSurchargeTaxes3, ')
@@ -9735,6 +9776,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     enabledExpenseTaxRates,
     calculateTaxes,
     taxDataJson,
+    eInvoiceJson,
     customSurchargeTaxes1,
     customSurchargeTaxes2,
     customSurchargeTaxes3,
@@ -9841,6 +9883,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           other.enabledExpenseTaxRates == this.enabledExpenseTaxRates &&
           other.calculateTaxes == this.calculateTaxes &&
           other.taxDataJson == this.taxDataJson &&
+          other.eInvoiceJson == this.eInvoiceJson &&
           other.customSurchargeTaxes1 == this.customSurchargeTaxes1 &&
           other.customSurchargeTaxes2 == this.customSurchargeTaxes2 &&
           other.customSurchargeTaxes3 == this.customSurchargeTaxes3 &&
@@ -9946,6 +9989,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
   final Value<int> enabledExpenseTaxRates;
   final Value<bool> calculateTaxes;
   final Value<String?> taxDataJson;
+  final Value<String?> eInvoiceJson;
   final Value<bool> customSurchargeTaxes1;
   final Value<bool> customSurchargeTaxes2;
   final Value<bool> customSurchargeTaxes3;
@@ -10047,6 +10091,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.enabledExpenseTaxRates = const Value.absent(),
     this.calculateTaxes = const Value.absent(),
     this.taxDataJson = const Value.absent(),
+    this.eInvoiceJson = const Value.absent(),
     this.customSurchargeTaxes1 = const Value.absent(),
     this.customSurchargeTaxes2 = const Value.absent(),
     this.customSurchargeTaxes3 = const Value.absent(),
@@ -10149,6 +10194,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.enabledExpenseTaxRates = const Value.absent(),
     this.calculateTaxes = const Value.absent(),
     this.taxDataJson = const Value.absent(),
+    this.eInvoiceJson = const Value.absent(),
     this.customSurchargeTaxes1 = const Value.absent(),
     this.customSurchargeTaxes2 = const Value.absent(),
     this.customSurchargeTaxes3 = const Value.absent(),
@@ -10257,6 +10303,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Expression<int>? enabledExpenseTaxRates,
     Expression<bool>? calculateTaxes,
     Expression<String>? taxDataJson,
+    Expression<String>? eInvoiceJson,
     Expression<bool>? customSurchargeTaxes1,
     Expression<bool>? customSurchargeTaxes2,
     Expression<bool>? customSurchargeTaxes3,
@@ -10366,6 +10413,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
         'enabled_expense_tax_rates': enabledExpenseTaxRates,
       if (calculateTaxes != null) 'calculate_taxes': calculateTaxes,
       if (taxDataJson != null) 'tax_data_json': taxDataJson,
+      if (eInvoiceJson != null) 'e_invoice_json': eInvoiceJson,
       if (customSurchargeTaxes1 != null)
         'custom_surcharge_taxes1': customSurchargeTaxes1,
       if (customSurchargeTaxes2 != null)
@@ -10509,6 +10557,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Value<int>? enabledExpenseTaxRates,
     Value<bool>? calculateTaxes,
     Value<String?>? taxDataJson,
+    Value<String?>? eInvoiceJson,
     Value<bool>? customSurchargeTaxes1,
     Value<bool>? customSurchargeTaxes2,
     Value<bool>? customSurchargeTaxes3,
@@ -10617,6 +10666,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
           enabledExpenseTaxRates ?? this.enabledExpenseTaxRates,
       calculateTaxes: calculateTaxes ?? this.calculateTaxes,
       taxDataJson: taxDataJson ?? this.taxDataJson,
+      eInvoiceJson: eInvoiceJson ?? this.eInvoiceJson,
       customSurchargeTaxes1:
           customSurchargeTaxes1 ?? this.customSurchargeTaxes1,
       customSurchargeTaxes2:
@@ -10814,6 +10864,9 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     }
     if (taxDataJson.present) {
       map['tax_data_json'] = Variable<String>(taxDataJson.value);
+    }
+    if (eInvoiceJson.present) {
+      map['e_invoice_json'] = Variable<String>(eInvoiceJson.value);
     }
     if (customSurchargeTaxes1.present) {
       map['custom_surcharge_taxes1'] = Variable<bool>(
@@ -11135,6 +11188,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
           ..write('enabledExpenseTaxRates: $enabledExpenseTaxRates, ')
           ..write('calculateTaxes: $calculateTaxes, ')
           ..write('taxDataJson: $taxDataJson, ')
+          ..write('eInvoiceJson: $eInvoiceJson, ')
           ..write('customSurchargeTaxes1: $customSurchargeTaxes1, ')
           ..write('customSurchargeTaxes2: $customSurchargeTaxes2, ')
           ..write('customSurchargeTaxes3: $customSurchargeTaxes3, ')
@@ -45868,6 +45922,7 @@ typedef $$CompaniesTableCreateCompanionBuilder =
       Value<int> enabledExpenseTaxRates,
       Value<bool> calculateTaxes,
       Value<String?> taxDataJson,
+      Value<String?> eInvoiceJson,
       Value<bool> customSurchargeTaxes1,
       Value<bool> customSurchargeTaxes2,
       Value<bool> customSurchargeTaxes3,
@@ -45971,6 +46026,7 @@ typedef $$CompaniesTableUpdateCompanionBuilder =
       Value<int> enabledExpenseTaxRates,
       Value<bool> calculateTaxes,
       Value<String?> taxDataJson,
+      Value<String?> eInvoiceJson,
       Value<bool> customSurchargeTaxes1,
       Value<bool> customSurchargeTaxes2,
       Value<bool> customSurchargeTaxes3,
@@ -46188,6 +46244,11 @@ class $$CompaniesTableFilterComposer
 
   ColumnFilters<String> get taxDataJson => $composableBuilder(
     column: $table.taxDataJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get eInvoiceJson => $composableBuilder(
+    column: $table.eInvoiceJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -46698,6 +46759,11 @@ class $$CompaniesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get eInvoiceJson => $composableBuilder(
+    column: $table.eInvoiceJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get customSurchargeTaxes1 => $composableBuilder(
     column: $table.customSurchargeTaxes1,
     builder: (column) => ColumnOrderings(column),
@@ -47186,6 +47252,11 @@ class $$CompaniesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get eInvoiceJson => $composableBuilder(
+    column: $table.eInvoiceJson,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get customSurchargeTaxes1 => $composableBuilder(
     column: $table.customSurchargeTaxes1,
     builder: (column) => column,
@@ -47596,6 +47667,7 @@ class $$CompaniesTableTableManager
                 Value<int> enabledExpenseTaxRates = const Value.absent(),
                 Value<bool> calculateTaxes = const Value.absent(),
                 Value<String?> taxDataJson = const Value.absent(),
+                Value<String?> eInvoiceJson = const Value.absent(),
                 Value<bool> customSurchargeTaxes1 = const Value.absent(),
                 Value<bool> customSurchargeTaxes2 = const Value.absent(),
                 Value<bool> customSurchargeTaxes3 = const Value.absent(),
@@ -47700,6 +47772,7 @@ class $$CompaniesTableTableManager
                 enabledExpenseTaxRates: enabledExpenseTaxRates,
                 calculateTaxes: calculateTaxes,
                 taxDataJson: taxDataJson,
+                eInvoiceJson: eInvoiceJson,
                 customSurchargeTaxes1: customSurchargeTaxes1,
                 customSurchargeTaxes2: customSurchargeTaxes2,
                 customSurchargeTaxes3: customSurchargeTaxes3,
@@ -47806,6 +47879,7 @@ class $$CompaniesTableTableManager
                 Value<int> enabledExpenseTaxRates = const Value.absent(),
                 Value<bool> calculateTaxes = const Value.absent(),
                 Value<String?> taxDataJson = const Value.absent(),
+                Value<String?> eInvoiceJson = const Value.absent(),
                 Value<bool> customSurchargeTaxes1 = const Value.absent(),
                 Value<bool> customSurchargeTaxes2 = const Value.absent(),
                 Value<bool> customSurchargeTaxes3 = const Value.absent(),
@@ -47910,6 +47984,7 @@ class $$CompaniesTableTableManager
                 enabledExpenseTaxRates: enabledExpenseTaxRates,
                 calculateTaxes: calculateTaxes,
                 taxDataJson: taxDataJson,
+                eInvoiceJson: eInvoiceJson,
                 customSurchargeTaxes1: customSurchargeTaxes1,
                 customSurchargeTaxes2: customSurchargeTaxes2,
                 customSurchargeTaxes3: customSurchargeTaxes3,

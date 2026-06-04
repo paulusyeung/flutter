@@ -211,6 +211,7 @@ _CompanyEnvelopeApi _$CompanyEnvelopeApiFromJson(
   taxData: json['tax_data'] == null
       ? null
       : TaxConfigApi.fromJson(json['tax_data'] as Map<String, dynamic>),
+  eInvoice: json['e_invoice'] as Map<String, dynamic>?,
   customSurchargeTaxes1: json['custom_surcharge_taxes1'] as bool? ?? false,
   customSurchargeTaxes2: json['custom_surcharge_taxes2'] as bool? ?? false,
   customSurchargeTaxes3: json['custom_surcharge_taxes3'] as bool? ?? false,
@@ -286,6 +287,7 @@ Map<String, dynamic> _$CompanyEnvelopeApiToJson(
   'enabled_expense_tax_rates': instance.enabledExpenseTaxRates,
   'calculate_taxes': instance.calculateTaxes,
   'tax_data': instance.taxData,
+  'e_invoice': ?instance.eInvoice,
   'custom_surcharge_taxes1': instance.customSurchargeTaxes1,
   'custom_surcharge_taxes2': instance.customSurchargeTaxes2,
   'custom_surcharge_taxes3': instance.customSurchargeTaxes3,

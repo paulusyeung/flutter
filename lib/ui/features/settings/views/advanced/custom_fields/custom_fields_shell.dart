@@ -14,10 +14,8 @@ import 'package:admin/ui/features/settings/views/advanced/custom_fields/company_
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/expenses_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/invoices_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/payments_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/custom_fields/credits_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/products_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/projects_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/custom_fields/quotes_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/tasks_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/users_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/vendors_screen.dart';
@@ -47,6 +45,12 @@ class _CustomFieldsTab {
 /// `pages/settings/custom-fields/CustomFields.tsx` and old Flutter v1's
 /// `lib/ui/settings/custom_fields.dart`. The `company` tab uses the empty
 /// slug — it's the default landing page at `/settings/custom_fields`.
+///
+/// No Quotes / Credits tabs by design: quotes, credits, recurring invoices and
+/// purchase orders all reuse the **invoice** custom fields (their edit screens
+/// read `invoice1..4`), so a separate `quote1..4` / `credit1..4` definition
+/// would be dead config. React comments these tabs out; old Flutter aliases
+/// `quote*`/`credit*` → `invoice*`.
 const _allTabs = <_CustomFieldsTab>[
   _CustomFieldsTab(
     slug: '',
@@ -76,18 +80,6 @@ const _allTabs = <_CustomFieldsTab>[
     // Payments piggyback on the Invoices module — there's no separate
     // payments bit. Matches old Flutter's gating.
     enabledBy: EnabledModule.invoices,
-  ),
-  _CustomFieldsTab(
-    slug: 'quotes',
-    labelKey: 'quotes',
-    body: CustomFieldsQuotesScreen(),
-    enabledBy: EnabledModule.quotes,
-  ),
-  _CustomFieldsTab(
-    slug: 'credits',
-    labelKey: 'credits',
-    body: CustomFieldsCreditsScreen(),
-    enabledBy: EnabledModule.credits,
   ),
   _CustomFieldsTab(
     slug: 'projects',
@@ -132,8 +124,6 @@ const _prefixToSlug = <String, String>{
   'invoice': 'invoices',
   'surcharge': 'invoices',
   'custom_surcharge_taxes': 'invoices',
-  'quote': 'quotes',
-  'credit': 'credits',
   'payment': 'payments',
   'project': 'projects',
   'task': 'tasks',
@@ -339,7 +329,14 @@ class _LoadedShellState extends State<_LoadedShell>
 
     final tokens = context.inTheme;
     final session = context.read<Services>().auth.session.value;
-    final hasPaidAccess = session?.hasProAccess ?? false;
+    // Editing requires a paid plan AND an admin/owner role — matches React's
+    // `useShouldDisableCustomFields` (`(pro||enterprise) && isAdmin`). The
+    // per-company role is read from `currentCompany`, like `system_logs`.
+    // The PlanGateBanner stays plan-only, so a non-admin Pro user sees
+    // read-only fields without a misleading upgrade CTA.
+    final me = session?.currentCompany;
+    final isAdminOrOwner = (me?.isAdmin ?? false) || (me?.isOwner ?? false);
+    final canEdit = (session?.hasProAccess ?? false) && isAdminOrOwner;
 
     final tabBar = TabBar(
       controller: _controller,
@@ -362,7 +359,7 @@ class _LoadedShellState extends State<_LoadedShell>
         for (final tab in widget.visible)
           _CustomFieldsAccessScope(
             companyId: widget.vm.draft!.id,
-            enabled: hasPaidAccess,
+            enabled: canEdit,
             child: tab.body,
           ),
       ],

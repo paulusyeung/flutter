@@ -332,6 +332,18 @@ class SyncRepository {
     return future;
   }
 
+  /// Re-arm parked password-required rows for [companyId], then kick a drain.
+  /// Called by the shell's password sheet after the user enters their password
+  /// so the just-parked mutation retries immediately instead of waiting out
+  /// its +1 min park (see the `PasswordRequiredException` handler).
+  Future<void> retryPasswordRows({required String companyId}) async {
+    await db.outboxDao.readyPasswordRows(
+      companyId: companyId,
+      now: _now().millisecondsSinceEpoch,
+    );
+    await drainOnce(companyId: companyId);
+  }
+
   Future<int> _drainOnceImpl(String companyId) async {
     // Re-arm rows orphaned in `in_flight` by a prior interrupted pass (app
     // killed / process death between `markInFlight` and the catch handler).
@@ -439,6 +451,13 @@ class SyncRepository {
       return false;
     } on PasswordRequiredException {
       _log.info('Password required for ${row.entityType}/${row.entityId}');
+      // The server gates this mutation behind a password (e.g. a plain user
+      // PUT). Upgrade the row so that once the user enters their password the
+      // retry attaches X-API-PASSWORD-BASE64 — the dispatcher forwards
+      // `row.requiresPassword`, and `api_client.mutate` only reads the cache
+      // when it's true. Without this, a row enqueued with
+      // requiresPassword=false would 412 forever.
+      await db.outboxDao.updateRequiresPassword(id: row.id, value: true);
       // Leave the row pending; the UI prompts the user and the sync engine
       // retries once the password cache is populated.
       await db.outboxDao.scheduleRetry(

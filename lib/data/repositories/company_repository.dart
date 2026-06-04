@@ -172,6 +172,11 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
           taxDataJson: Value(
             draft.taxData == null ? null : jsonEncode(draft.taxData!.toJson()),
           ),
+          // Round-trip the e-invoice blob the draft loaded from Drift so a
+          // settings save doesn't drop the Payment Means seed.
+          eInvoiceJson: Value(
+            draft.eInvoice == null ? null : jsonEncode(draft.eInvoice),
+          ),
           customSurchargeTaxes1: Value(draft.customSurchargeTaxes1),
           customSurchargeTaxes2: Value(draft.customSurchargeTaxes2),
           customSurchargeTaxes3: Value(draft.customSurchargeTaxes3),
@@ -604,6 +609,13 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
               ? null
               : jsonEncode(serverResponse.taxData!.toJson()),
         ),
+        // Preserve the existing blob when the response omits `e_invoice` (a
+        // plain company PUT echoes settings but not the derived e-invoice
+        // config) — `Value.absent()` leaves the column untouched. Only a
+        // response that actually carries it (e.g. /refresh) overwrites.
+        eInvoiceJson: serverResponse.eInvoice == null
+            ? const Value.absent()
+            : Value(jsonEncode(serverResponse.eInvoice)),
         customSurchargeTaxes1: Value(serverResponse.customSurchargeTaxes1),
         customSurchargeTaxes2: Value(serverResponse.customSurchargeTaxes2),
         customSurchargeTaxes3: Value(serverResponse.customSurchargeTaxes3),
@@ -737,6 +749,18 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
         );
       }
     }
+    Map<String, dynamic>? eInvoice;
+    final eInvoiceJson = row.eInvoiceJson;
+    if (eInvoiceJson != null && eInvoiceJson.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(eInvoiceJson);
+        if (decoded is Map<String, dynamic>) {
+          eInvoice = decoded;
+        }
+      } catch (e, st) {
+        _log.warning('e_invoice decode failed for companyId=${row.id}', e, st);
+      }
+    }
     return Company(
       id: row.id,
       name: row.name,
@@ -773,6 +797,7 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
       enabledExpenseTaxRates: row.enabledExpenseTaxRates,
       calculateTaxes: row.calculateTaxes,
       taxData: taxData,
+      eInvoice: eInvoice,
       customSurchargeTaxes1: row.customSurchargeTaxes1,
       customSurchargeTaxes2: row.customSurchargeTaxes2,
       customSurchargeTaxes3: row.customSurchargeTaxes3,

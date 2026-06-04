@@ -12,6 +12,7 @@ import 'package:admin/data/models/value/currency.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/models/value/payment_type.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
 import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/core/widgets/in_date_field.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
@@ -83,7 +84,7 @@ class _PaymentEditLayoutState extends State<PaymentEditLayout>
               SizedBox(height: InSpacing.lg(context)),
               _NotesSection(vm: vm),
               SizedBox(height: InSpacing.lg(context)),
-              _CustomFieldsSection(vm: vm),
+              _CustomFieldsSection(vm: vm, formatter: formatter),
               SizedBox(height: InSpacing.lg(context)),
               _emailReceiptToggle(context, vm),
             ],
@@ -177,37 +178,32 @@ class _NotesSection extends StatelessWidget {
 }
 
 class _CustomFieldsSection extends StatelessWidget {
-  const _CustomFieldsSection({required this.vm});
+  const _CustomFieldsSection({required this.vm, required this.formatter});
   final PaymentEditViewModel vm;
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
-    return _Section(
-      title: context.tr('custom_fields'),
-      children: [
-        TextFormField(
-          initialValue: vm.draft.customValue1,
-          decoration: InputDecoration(labelText: context.tr('custom_value1')),
-          onChanged: vm.setCustomValue1,
-        ),
-        const SizedBox(height: 12),
-        TextFormField(
-          initialValue: vm.draft.customValue2,
-          decoration: InputDecoration(labelText: context.tr('custom_value2')),
-          onChanged: vm.setCustomValue2,
-        ),
-        const SizedBox(height: 12),
-        TextFormField(
-          initialValue: vm.draft.customValue3,
-          decoration: InputDecoration(labelText: context.tr('custom_value3')),
-          onChanged: vm.setCustomValue3,
-        ),
-        const SizedBox(height: 12),
-        TextFormField(
-          initialValue: vm.draft.customValue4,
-          decoration: InputDecoration(labelText: context.tr('custom_value4')),
-          onChanged: vm.setCustomValue4,
-        ),
+    // Type-aware, gated by the company's configured `payment1..4` labels —
+    // self-collapses (renders nothing) when no slots are configured.
+    return EntityCustomFieldsSection(
+      keyPrefix: 'payment',
+      companyStream: context.read<Services>().company.watchCompany(
+        vm.companyId,
+      ),
+      formatter: formatter,
+      cardTitle: context.tr('custom_fields'),
+      values: [
+        vm.draft.customValue1,
+        vm.draft.customValue2,
+        vm.draft.customValue3,
+        vm.draft.customValue4,
+      ],
+      onChanged: [
+        vm.setCustomValue1,
+        vm.setCustomValue2,
+        vm.setCustomValue3,
+        vm.setCustomValue4,
       ],
     );
   }

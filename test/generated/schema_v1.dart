@@ -1357,6 +1357,14 @@ class Companies extends Table with TableInfo {
     requiredDuringInsert: false,
     $customConstraints: 'NULL',
   );
+  late final GeneratedColumn<String> eInvoiceJson = GeneratedColumn<String>(
+    'e_invoice_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
   late final GeneratedColumn<int> customSurchargeTaxes1 = GeneratedColumn<int>(
     'custom_surcharge_taxes1',
     aliasedName,
@@ -2086,6 +2094,7 @@ class Companies extends Table with TableInfo {
     enabledExpenseTaxRates,
     calculateTaxes,
     taxDataJson,
+    eInvoiceJson,
     customSurchargeTaxes1,
     customSurchargeTaxes2,
     customSurchargeTaxes3,

@@ -10,6 +10,7 @@ import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_field.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// One default-tax-rate row on Settings → Tax Settings. Picks a [TaxRate]
 /// from the bundled list (`services.taxRates`) and writes BOTH the name and
@@ -44,12 +45,16 @@ class TaxRatePicker extends StatelessWidget {
   Widget build(BuildContext context) {
     final services = context.read<Services>();
     final host = context.watch<SettingsDraftHost>();
+    // Read company-level context (id, decimal separator) via `companyContext`
+    // so the picker works at client scope, where `host.draft` is null.
+    final ctx = host.companyContext;
+    final useComma = ctx?.useCommaAsDecimalPlace ?? false;
 
     final currentName = _readName(host.settings, slot);
     final currentRate = _readRate(host.settings, slot);
 
     return StreamBuilder<List<TaxRate>>(
-      stream: services.taxRates.watchAll(companyId: host.draft!.id),
+      stream: services.taxRates.watchAll(companyId: ctx?.id ?? ''),
       builder: (context, snap) {
         final rates = snap.data ?? const <TaxRate>[];
         if (rates.isEmpty) {
@@ -93,7 +98,8 @@ class TaxRatePicker extends StatelessWidget {
           label: label,
           items: sorted,
           initialValue: selected,
-          displayString: (r) => '${r.name} (${r.rate}%)',
+          displayString: (r) =>
+              '${r.name} (${rateInputText(r.rate, useCommaAsDecimalPlace: useComma, blankZero: false)}%)',
           idOf: (r) => '${r.name}|${r.rate}',
           onChanged: (r) {
             host.updateSettings(

@@ -10,10 +10,10 @@ part 'quote_api_model.g.dart';
 /// Raw JSON shape of `/api/v1/quotes/{id}`.
 ///
 /// Identical to [InvoiceApi] in shape — quotes share line items,
-/// invitations, taxes, surcharges, custom fields, design, exchange rate.
-/// The differences live in the *status enum* and a handful of fields
-/// that quotes don't carry (`paid_to_date`, `partial`, reminder
-/// timestamps, recurring linkage). Including them as `@Default` here
+/// invitations, taxes, surcharges, custom fields, design, exchange rate,
+/// and the deposit (`partial` / `partial_due_date`). The differences live
+/// in the *status enum* and the payment-side fields quotes don't carry
+/// (`paid_to_date`, recurring linkage). Including those as `@Default` here
 /// would also work — the server tolerates extras — but we drop them to
 /// keep the wire shape lean.
 @freezed
@@ -25,6 +25,9 @@ abstract class QuoteApi with _$QuoteApi {
     @Default('') String date,
     @JsonKey(name: 'due_date') @Default('') String dueDate,
     @JsonKey(name: 'partial_due_date') @Default('') String partialDueDate,
+    // Server-computed, read-only (display only — never sent back).
+    @JsonKey(name: 'last_sent_date') @Default('') String lastSentDate,
+    @JsonKey(name: 'next_send_date') @Default('') String nextSendDate,
     @JsonKey(name: 'status_id') @Default('1') String statusId,
     @JsonKey(name: 'client_id') @Default('') String clientId,
     @JsonKey(name: 'vendor_id') @Default('') String vendorId,

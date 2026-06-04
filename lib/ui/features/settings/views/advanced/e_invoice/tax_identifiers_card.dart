@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -238,7 +240,10 @@ class _AddIdentifierDialogState extends State<_AddIdentifierDialog> {
         enabled: canSave,
         onSubmit: () => _submit(context),
         child: SizedBox(
-          width: 420,
+          // Cap at 420 on desktop, but shrink to fit narrow phones — the
+          // AlertDialog inset + content padding eat ~128px, so a fixed 420
+          // overflows below ~360px wide.
+          width: math.min(420.0, MediaQuery.sizeOf(context).width - 128),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

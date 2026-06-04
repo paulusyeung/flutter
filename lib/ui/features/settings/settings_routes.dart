@@ -334,8 +334,6 @@ final List<RouteBase> settingsRoutes = [
       'products',
       'invoices',
       'payments',
-      'quotes',
-      'credits',
       'projects',
       'tasks',
       'vendors',

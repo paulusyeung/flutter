@@ -6,6 +6,8 @@ import 'package:admin/data/models/domain/design.dart';
 import 'package:admin/data/static/google_fonts_catalog.dart';
 import 'package:admin/data/static/pdf_catalogs.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
+import 'package:admin/ui/features/settings/view_models/invoice_design_view_model.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_color_field.dart';
@@ -71,6 +73,12 @@ class GeneralSettingsBody extends StatelessWidget {
   Widget _buildSections(BuildContext context, List<Design> bundled) {
     final host = context.watch<SettingsDraftHost>();
     final settings = host.settings;
+    final initial = host.initialSettings;
+    // The "Update all records" toggles are company-scope only — the
+    // `extraOutboxPayload` hook that carries them lives on the company VM,
+    // not the client-scope `ClientSettingsDraftViewModel`.
+    final invoiceVm = host is InvoiceDesignViewModel ? host : null;
+    final isCompany = context.watch<SettingsLevelController>().isCompany;
     // Module gating mirrors admin-portal. `embedDocuments` toggle only renders
     // when the Documents module is on; alignment dropdown only when page
     // numbering is enabled.
@@ -100,29 +108,49 @@ class GeneralSettingsBody extends StatelessWidget {
         FormSection(
           title: context.tr('design'),
           children: [
-            OverridableDesignPicker(
-              label: context.tr('invoice_design'),
+            ..._designPickerWithUpdateAll(
+              context,
+              labelKey: 'invoice_design',
               apiKey: 'invoice_design_id',
-              bundledDesigns: bundled,
-              forEntity: 'invoice',
+              entity: 'invoice',
+              bundled: bundled,
+              currentId: settings.invoiceDesignId,
+              initialId: initial.invoiceDesignId,
+              vm: invoiceVm,
+              isCompany: isCompany,
             ),
-            OverridableDesignPicker(
-              label: context.tr('quote_design'),
+            ..._designPickerWithUpdateAll(
+              context,
+              labelKey: 'quote_design',
               apiKey: 'quote_design_id',
-              bundledDesigns: bundled,
-              forEntity: 'quote',
+              entity: 'quote',
+              bundled: bundled,
+              currentId: settings.quoteDesignId,
+              initialId: initial.quoteDesignId,
+              vm: invoiceVm,
+              isCompany: isCompany,
             ),
-            OverridableDesignPicker(
-              label: context.tr('credit_design'),
+            ..._designPickerWithUpdateAll(
+              context,
+              labelKey: 'credit_design',
               apiKey: 'credit_design_id',
-              bundledDesigns: bundled,
-              forEntity: 'credit',
+              entity: 'credit',
+              bundled: bundled,
+              currentId: settings.creditDesignId,
+              initialId: initial.creditDesignId,
+              vm: invoiceVm,
+              isCompany: isCompany,
             ),
-            OverridableDesignPicker(
-              label: context.tr('purchase_order_design'),
+            ..._designPickerWithUpdateAll(
+              context,
+              labelKey: 'purchase_order_design',
               apiKey: 'purchase_order_design_id',
-              bundledDesigns: bundled,
-              forEntity: 'purchase_order',
+              entity: 'purchase_order',
+              bundled: bundled,
+              currentId: settings.purchaseOrderDesignId,
+              initialId: initial.purchaseOrderDesignId,
+              vm: invoiceVm,
+              isCompany: isCompany,
             ),
             OverridableDesignPicker(
               label: context.tr('delivery_note_design'),
@@ -269,6 +297,40 @@ class GeneralSettingsBody extends StatelessWidget {
     );
   }
 
+  /// A required document-design picker plus its conditional "Update all
+  /// records" toggle. The toggle appears only at company scope and only once
+  /// the design differs from the loaded baseline — mirrors React
+  /// (`InvoiceDesign.tsx`) and admin-portal (`invoice_design.dart`). Ticking
+  /// it makes the next save also `POST /designs/set/default` for [entity].
+  List<Widget> _designPickerWithUpdateAll(
+    BuildContext context, {
+    required String labelKey,
+    required String apiKey,
+    required String entity,
+    required List<Design> bundled,
+    required String? currentId,
+    required String? initialId,
+    required InvoiceDesignViewModel? vm,
+    required bool isCompany,
+  }) {
+    final changed =
+        (currentId ?? '').isNotEmpty && (currentId ?? '') != (initialId ?? '');
+    return [
+      OverridableDesignPicker(
+        label: context.tr(labelKey),
+        apiKey: apiKey,
+        bundledDesigns: bundled,
+        forEntity: entity,
+      ),
+      if (vm != null && isCompany && changed)
+        _UpdateAllDesignToggle(
+          key: ValueKey('update_all_$entity'),
+          vm: vm,
+          entity: entity,
+        ),
+    ];
+  }
+
   static String _alignmentLabelKey(String v) {
     switch (v) {
       case PageNumberingAlignment.left:
@@ -280,5 +342,45 @@ class GeneralSettingsBody extends StatelessWidget {
       default:
         return v;
     }
+  }
+}
+
+/// Inline "Update all records" checkbox shown under a changed document-design
+/// picker. Holds its checked state locally (visual) and stashes it on the VM
+/// for [InvoiceDesignViewModel.extraOutboxPayload] to read at save time —
+/// deliberately *not* via the cascade draft, so ticking it doesn't dirty the
+/// form or trigger a live-preview re-render. Re-seeds from the VM on remount
+/// so a tick survives toggling the design back and forth within a session.
+class _UpdateAllDesignToggle extends StatefulWidget {
+  const _UpdateAllDesignToggle({
+    super.key,
+    required this.vm,
+    required this.entity,
+  });
+
+  final InvoiceDesignViewModel vm;
+  final String entity;
+
+  @override
+  State<_UpdateAllDesignToggle> createState() => _UpdateAllDesignToggleState();
+}
+
+class _UpdateAllDesignToggleState extends State<_UpdateAllDesignToggle> {
+  late bool _value = widget.vm.updateAll(widget.entity);
+
+  @override
+  Widget build(BuildContext context) {
+    return CheckboxListTile(
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      controlAffinity: ListTileControlAffinity.leading,
+      value: _value,
+      onChanged: (v) {
+        final next = v ?? false;
+        setState(() => _value = next);
+        widget.vm.setUpdateAll(widget.entity, next);
+      },
+      title: Text(context.tr('update_all_records')),
+    );
   }
 }

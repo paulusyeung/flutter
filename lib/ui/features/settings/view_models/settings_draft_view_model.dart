@@ -45,6 +45,14 @@ abstract class SettingsDraftHost extends ChangeNotifier {
 
   Company? get draft => null;
 
+  /// The company this settings draft belongs to. At company scope this is the
+  /// [draft]; at client scope [draft] is null, so cascade pages that need
+  /// company-level fields (e.g. Tax Settings reading the company's tax-rate
+  /// slot counts / decimal-separator setting) read them here instead. The
+  /// client-scoped host overrides this with a sparse [Company] built from the
+  /// loaded company row. Never write through it — it's read-only context.
+  Company? get companyContext => draft;
+
   /// The baseline settings the draft started from. Email Settings's
   /// send-time sync prompt compares the draft's `entitySendTime`
   /// against this to decide whether to show the "Also apply to existing

@@ -5,6 +5,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/value/language.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
 import 'package:admin/ui/core/widgets/markdown_text_field.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/settings_actions.dart';
@@ -104,6 +105,30 @@ class _DetailsForm extends StatelessWidget {
           initialValue: user.signature,
           height: 180,
           onChanged: (v) => vm.updateUser((u) => u.copyWith(signature: v)),
+        ),
+        // User custom fields (`user1..4`) — type-aware, gated by the company's
+        // configured labels; renders nothing when none are set.
+        EntityCustomFieldsSection(
+          keyPrefix: 'user',
+          companyStream: services.company.watchCompany(
+            services.auth.session.value?.currentCompanyId ?? '',
+          ),
+          formatter: services.formatterIfReady(
+            services.auth.session.value?.currentCompanyId ?? '',
+          ),
+          wrapInCard: false,
+          values: [
+            user.customValue1,
+            user.customValue2,
+            user.customValue3,
+            user.customValue4,
+          ],
+          onChanged: [
+            (v) => vm.updateUser((u) => u.copyWith(customValue1: v)),
+            (v) => vm.updateUser((u) => u.copyWith(customValue2: v)),
+            (v) => vm.updateUser((u) => u.copyWith(customValue3: v)),
+            (v) => vm.updateUser((u) => u.copyWith(customValue4: v)),
+          ],
         ),
       ],
     );

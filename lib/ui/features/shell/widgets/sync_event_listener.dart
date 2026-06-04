@@ -183,11 +183,12 @@ class _SyncEventListenerState extends State<SyncEventListener> {
         cache: services.passwordCache,
       );
       if (!ok || !mounted) return;
-      // Re-kick the drain so the parked outbox row retries immediately
-      // with the freshly-populated password cache.
+      // Re-arm the parked password-required rows (the cache is now warm) and
+      // kick a drain so they retry immediately instead of waiting out their
+      // +1 min park.
       final companyId = services.auth.session.value?.currentCompanyId;
       if (companyId != null) {
-        unawaited(services.sync.drainOnce(companyId: companyId));
+        unawaited(services.sync.retryPasswordRows(companyId: companyId));
       }
     } finally {
       _dialogOpen = false;

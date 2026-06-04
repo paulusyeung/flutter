@@ -11,6 +11,8 @@ import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/status_pill.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
+import 'package:admin/ui/features/settings/widgets/overridable_switch_field.dart';
+import 'package:admin/ui/features/settings/widgets/overridable_text_field.dart';
 
 /// Settings → E-Invoice — PEPPOL Preferences card. Rendered when the
 /// active company has a non-zero `legalEntityId` (i.e. setup has
@@ -137,6 +139,28 @@ class _PeppolPreferencesCardState extends State<PeppolPreferencesCard> {
             (t) => t.copyWith(actsAsReceiver: v),
             debounce: true,
           ),
+        ),
+        // Inbound-forwarding addresses + the skip-automatic-email toggle.
+        // These are PEPPOL-specific settings; React surfaces them on the
+        // Preferences card once a legal entity is bound (not in the
+        // non-PEPPOL enable block). Cascade fields — they ride the page
+        // Save button via their `apiKey`, unlike the auto-firing toggles above.
+        OverridableTextField(
+          label: context.tr('e_invoice_forward_email'),
+          apiKey: 'e_invoice_forward_email',
+          helperText: context.tr('e_invoice_forward_email_help'),
+          keyboardType: TextInputType.emailAddress,
+        ),
+        OverridableTextField(
+          label: context.tr('e_expense_forward_email'),
+          apiKey: 'e_expense_forward_email',
+          helperText: context.tr('e_expense_forward_email_help'),
+          keyboardType: TextInputType.emailAddress,
+        ),
+        OverridableSwitchField(
+          label: context.tr('skip_automatic_email_with_peppol'),
+          apiKey: 'skip_automatic_email_with_peppol',
+          subtitle: context.tr('skip_automatic_email_with_peppol_help'),
         ),
         if (!_quotaLoading)
           Row(

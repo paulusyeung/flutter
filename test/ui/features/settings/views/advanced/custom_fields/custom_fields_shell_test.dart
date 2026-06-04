@@ -103,24 +103,38 @@ class _FakeServices implements Services {
       throw UnimplementedError(invocation.memberName.toString());
 }
 
-AuthSession _session({String plan = 'pro', bool isHosted = false}) =>
-    AuthSession(
-      baseUrl: 'https://example.test',
-      isHosted: isHosted,
-      accountId: 'acct',
-      companies: const [],
-      currentCompanyId: 'co-A',
-      plan: plan,
-    );
+AuthSession _session({
+  String plan = 'pro',
+  bool isHosted = false,
+  bool isAdmin = true,
+}) => AuthSession(
+  baseUrl: 'https://example.test',
+  isHosted: isHosted,
+  accountId: 'acct',
+  // A `co-A` company is required: editing is gated on the current company's
+  // admin/owner role (mirrors React). Default admin so the persist tests can
+  // type into enabled fields; the gating test flips `isAdmin: false`.
+  companies: [
+    AuthCompany(
+      id: 'co-A',
+      name: 'Co A',
+      displayName: 'Co A',
+      permissions: '',
+      isAdmin: isAdmin,
+      // Fixture: a privileged user is owner+admin (so the plan banner's
+      // owner-gated "Manage Plan" CTA shows); a non-privileged user is neither.
+      isOwner: isAdmin,
+    ),
+  ],
+  currentCompanyId: 'co-A',
+  plan: plan,
+);
 
-/// Bitmask combining several modules — enables Invoices/Payments (sharing the
-/// Invoices bit), Projects, Tasks, Vendors, Expenses, and Recurring Invoices
-/// for completeness, including Quotes / Credits (now in the v2
-/// custom-fields scope).
+/// Bitmask combining the modules that map to a custom-fields tab —
+/// Invoices/Payments (sharing the Invoices bit), Projects, Tasks, Vendors, and
+/// Expenses. (Quotes/Credits have no tab — they reuse the Invoices fields.)
 int _allModules() =>
     EnabledModule.invoices.bitmask |
-    EnabledModule.quotes.bitmask |
-    EnabledModule.credits.bitmask |
     EnabledModule.projects.bitmask |
     EnabledModule.tasks.bitmask |
     EnabledModule.vendors.bitmask |
@@ -191,10 +205,15 @@ void main() {
     required Company company,
     String plan = 'pro',
     bool isHosted = false,
+    bool isAdmin = true,
   }) {
     final repo = _StubCompanyRepo(db: db, api: companiesApi, company: company);
     return _FakeServices(
-      auth: _FakeAuth(ValueNotifier(_session(plan: plan, isHosted: isHosted))),
+      auth: _FakeAuth(
+        ValueNotifier(
+          _session(plan: plan, isHosted: isHosted, isAdmin: isAdmin),
+        ),
+      ),
       company: repo,
       clients: clientRepo,
       db: db,
@@ -210,7 +229,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('all modules enabled + paid plan → 12 tabs visible, no banner', (
+  testWidgets('all modules enabled + paid plan → 10 tabs visible, no banner', (
     tester,
   ) async {
     final services = makeServices(
@@ -219,16 +238,15 @@ void main() {
     await tester.pumpWidget(_host(services: services));
     await settle(tester);
 
-    // 12 entity tabs in display order. Text is the localized label,
-    // which capitalizes the slug (`company` → "Company", etc.).
+    // 10 entity tabs in display order. Text is the localized label,
+    // which capitalizes the slug (`company` → "Company", etc.). No Quotes /
+    // Credits tabs — quotes & credits reuse the Invoices custom fields.
     for (final label in const [
       'Company',
       'Clients',
       'Products',
       'Invoices',
       'Payments',
-      'Quotes',
-      'Credits',
       'Projects',
       'Tasks',
       'Vendors',
@@ -267,8 +285,6 @@ void main() {
       for (final label in const [
         'Invoices',
         'Payments',
-        'Quotes',
-        'Credits',
         'Projects',
         'Tasks',
         'Vendors',
@@ -659,50 +675,4 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
-
-  testWidgets(
-    'Quotes / Credits tabs render their field sections and persist a slot',
-    (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1600, 800));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-
-      final services = makeServices(
-        company: Company(
-          id: 'co-A',
-          enabledModules:
-              EnabledModule.quotes.bitmask | EnabledModule.credits.bitmask,
-        ),
-      );
-      await tester.pumpWidget(_host(services: services));
-      await settle(tester);
-
-      await tester.tap(
-        find.descendant(of: find.byType(Tab), matching: find.text('Quotes')),
-      );
-      await settle(tester);
-      expect(find.text('Quote field'), findsOneWidget);
-
-      final bodyCtx = tester.element(find.text('Quote field'));
-      final vm = Provider.of<CustomFieldsViewModel>(bodyCtx, listen: false);
-      final row = find.byKey(const ValueKey('co-A:quote1'));
-      expect(row, findsOneWidget);
-      await tester.enterText(
-        find.descendant(of: row, matching: find.byType(TextField)),
-        'PO Ref',
-      );
-      await tester.pump();
-      // Default field type is single-line text, which persists with the
-      // explicit `single_line_text` keyword (canonical React / admin-portal
-      // encoding) — not a bare label.
-      expect(vm.draft?.customFields['quote1'], 'PO Ref|single_line_text');
-
-      await tester.tap(
-        find.descendant(of: find.byType(Tab), matching: find.text('Credits')),
-      );
-      await settle(tester);
-      expect(find.text('Credit Field'), findsOneWidget);
-
-      await tester.pumpWidget(const SizedBox.shrink());
-    },
-  );
 }

@@ -53,6 +53,7 @@ class QuoteStatusPill extends StatelessWidget {
     case '-2': // viewed (computed)
       return (fg: tokens.sent, bg: tokens.sentSoft);
     case '-1': // expired (computed)
+    case '5': // rejected — negative terminal state, shares the overdue red
       return (fg: tokens.overdue, bg: tokens.overdueSoft);
     case '1': // draft
     default:

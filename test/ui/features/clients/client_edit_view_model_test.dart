@@ -580,4 +580,34 @@ void main() {
       vm.dispose();
     });
   });
+
+  group('per-client settings (task rate)', () {
+    test('setDefaultTaskRate stores a num (not a string) and reaches the wire '
+        'as a number under settings; blank clears the override', () {
+      final vm = ClientEditViewModel(
+        repo: repo,
+        companyId: 'co',
+        existing: existing(),
+      );
+
+      vm.setDefaultTaskRate('50');
+      expect(
+        vm.draft.settings?['default_task_rate'],
+        isA<num>(),
+        reason: 'server expects ?float default_task_rate, not a quoted string',
+      );
+      expect(vm.draft.settings?['default_task_rate'], 50);
+      final wireSettings =
+          vm.draft.toApiJson()['settings'] as Map<String, dynamic>;
+      expect(wireSettings['default_task_rate'], isA<num>());
+
+      // Clearing removes the override (inherit from company/group).
+      vm.setDefaultTaskRate('');
+      expect(
+        vm.draft.settings?.containsKey('default_task_rate') ?? false,
+        isFalse,
+      );
+      vm.dispose();
+    });
+  });
 }

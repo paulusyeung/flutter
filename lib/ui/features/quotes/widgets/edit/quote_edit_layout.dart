@@ -283,12 +283,36 @@ class _ContactsForClient extends StatelessWidget {
   }
 }
 
-class _DatesCardDesktop extends StatelessWidget {
+class _DatesCardDesktop extends StatefulWidget {
   const _DatesCardDesktop({required this.vm});
   final QuoteEditViewModel vm;
 
   @override
+  State<_DatesCardDesktop> createState() => _DatesCardDesktopState();
+}
+
+class _DatesCardDesktopState extends State<_DatesCardDesktop> {
+  late final TextEditingController _partial;
+
+  @override
+  void initState() {
+    super.initState();
+    _partial = TextEditingController(
+      text: widget.vm.draft.partial == Decimal.zero
+          ? ''
+          : widget.vm.draft.partial.toString(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _partial.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final vm = widget.vm;
     final fmt = context.read<Services>().formatterIfReady(vm.companyId);
     return FormSection(
       title: null,
@@ -321,6 +345,33 @@ class _DatesCardDesktop extends StatelessWidget {
           labelText: context.tr('valid_until'),
           clearable: true,
         ),
+        SizedBox(height: InSpacing.md(context)),
+        TextField(
+          controller: _partial,
+          decoration: billingFieldDecoration(
+            context,
+            label: context.tr('partial'),
+            errorText: vm.fieldErrorFor('partial'),
+          ),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          onChanged: vm.setPartial,
+        ),
+        if (vm.draft.partial > Decimal.zero) ...[
+          SizedBox(height: InSpacing.md(context)),
+          InDateField(
+            value: vm.draft.partialDueDate?.toDateTime(),
+            formatter: fmt,
+            onChanged: (d) {
+              if (d == null) {
+                vm.setPartialDueDate(null);
+              } else {
+                vm.setPartialDueDate(Date(d.year, d.month, d.day));
+              }
+            },
+            labelText: context.tr('partial_due_date'),
+            clearable: true,
+          ),
+        ],
         SizedBox(height: InSpacing.md(context)),
         EntityCustomFieldsSection(
           keyPrefix: 'invoice',
@@ -707,6 +758,7 @@ class _DetailsTabState extends State<_DetailsTab> {
   late final TextEditingController _number;
   late final TextEditingController _poNumber;
   late final TextEditingController _discount;
+  late final TextEditingController _partial;
 
   @override
   void initState() {
@@ -718,6 +770,11 @@ class _DetailsTabState extends State<_DetailsTab> {
           ? ''
           : widget.vm.draft.discount.toString(),
     );
+    _partial = TextEditingController(
+      text: widget.vm.draft.partial == Decimal.zero
+          ? ''
+          : widget.vm.draft.partial.toString(),
+    );
   }
 
   @override
@@ -725,6 +782,7 @@ class _DetailsTabState extends State<_DetailsTab> {
     _number.dispose();
     _poNumber.dispose();
     _discount.dispose();
+    _partial.dispose();
     super.dispose();
   }
 
@@ -831,6 +889,32 @@ class _DetailsTabState extends State<_DetailsTab> {
               ),
             ],
           ),
+          SizedBox(height: InSpacing.md(context)),
+          TextField(
+            controller: _partial,
+            decoration: InputDecoration(
+              labelText: context.tr('partial'),
+              errorText: vm.fieldErrorFor('partial'),
+            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: vm.setPartial,
+          ),
+          if (vm.draft.partial > Decimal.zero) ...[
+            SizedBox(height: InSpacing.md(context)),
+            InDateField(
+              value: vm.draft.partialDueDate?.toDateTime(),
+              formatter: fmt,
+              onChanged: (d) {
+                if (d == null) {
+                  vm.setPartialDueDate(null);
+                } else {
+                  vm.setPartialDueDate(Date(d.year, d.month, d.day));
+                }
+              },
+              labelText: context.tr('partial_due_date'),
+              clearable: true,
+            ),
+          ],
           _TaxSurchargeSection(vm: vm),
           SizedBox(height: InSpacing.lg(context)),
           _DesignPicker(vm: vm),

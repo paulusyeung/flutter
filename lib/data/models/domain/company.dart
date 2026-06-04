@@ -69,6 +69,12 @@ abstract class Company with _$Company {
     @Default(0) int enabledExpenseTaxRates,
     @Default(false) bool calculateTaxes,
     TaxConfigApi? taxData,
+    // Server's e-invoice config blob (nested UBL-ish map), carried untyped so
+    // the Payment Means card can seed from `e_invoice.Invoice.PaymentMeans[0]`
+    // (matches React). Deliberately omitted from [toApiJson] — it's server-
+    // derived and writes go through `/einvoice/configurations`, so we never
+    // send it back on a company PUT.
+    Map<String, dynamic>? eInvoice,
     // Per-surcharge "charge taxes" toggles paired with the four surcharge
     // custom-field slots (`customFields['surcharge1'..'surcharge4']`).
     @Default(false) bool customSurchargeTaxes1,
@@ -187,6 +193,7 @@ abstract class Company with _$Company {
     enabledExpenseTaxRates: api.enabledExpenseTaxRates,
     calculateTaxes: api.calculateTaxes,
     taxData: api.taxData,
+    eInvoice: api.eInvoice,
     customSurchargeTaxes1: api.customSurchargeTaxes1,
     customSurchargeTaxes2: api.customSurchargeTaxes2,
     customSurchargeTaxes3: api.customSurchargeTaxes3,

@@ -101,6 +101,11 @@ class CompanySyncDispatcher implements SyncDispatcher {
     // before serializing so it doesn't leak into the company PUT body,
     // and pass it as a query param on the canonical settings PUT below.
     final syncSendTime = payload.remove('_sync_send_time');
+    // The Invoice Design page's "Update all records" toggles stash a list of
+    // `{design_id, entity}` directives here; pop it before serializing so it
+    // can't leak into the company PUT body, then fire a `/designs/set/default`
+    // POST per entry once the settings land (see below).
+    final designUpdates = payload.remove('_design_updates');
     if (action == 'upload_logo') {
       final source = UploadSource.fromPayload(payload);
       if (!await source.exists()) {
@@ -152,6 +157,39 @@ class CompanySyncDispatcher implements SyncDispatcher {
       companyId: row.companyId,
       serverResponse: response.data,
     );
+    // "Update all records": retroactively stamp changed designs onto existing
+    // entities. Fired after the settings PUT lands so the new default is
+    // already persisted. Each POST gets a per-entity idempotency key derived
+    // from the row's, so a retry of this row re-fires them idempotently (and
+    // the redundant PUT above dedupes on its own key). At company scope here;
+    // the VM only attaches directives when editing the company settings.
+    if (designUpdates is List) {
+      for (final update in designUpdates) {
+        if (update is! Map) continue;
+        final designId = update['design_id'];
+        final entity = update['entity'];
+        if (designId is! String || entity is! String) continue;
+        // Best-effort: a set/default failure must NOT fail the settings save —
+        // the PUT above already succeeded and applied. The server 400s on a
+        // design id it doesn't know; letting that throw here would retry the
+        // whole row and eventually mark the (already-applied) settings change
+        // dead. Catch per-entity so one failure doesn't block the rest.
+        try {
+          await api.setDefaultDesign(
+            designId: designId,
+            entity: entity,
+            settingsLevel: 'company',
+            idempotencyKey: '${row.idempotencyKey}:set_default:$entity',
+          );
+        } catch (e) {
+          _log.warning(
+            'set/default failed (design=$designId entity=$entity, company '
+            '${row.companyId}) — settings save unaffected, retro-apply skipped.',
+            e,
+          );
+        }
+      }
+    }
   }
 
   /// E-Invoice / PEPPOL branch table. Returns true when [kind] was handled

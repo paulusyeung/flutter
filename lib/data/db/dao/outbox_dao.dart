@@ -221,6 +221,31 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
     ),
   );
 
+  /// Flip an outbox row's `requires_password` flag. The drain loop calls this
+  /// when the server answers a no-password mutation with 412, so the
+  /// post-prompt retry attaches `X-API-PASSWORD-BASE64` (the dispatcher
+  /// forwards `row.requiresPassword`).
+  Future<void> updateRequiresPassword({required int id, required bool value}) =>
+      (update(outbox)..where((o) => o.id.equals(id))).write(
+        OutboxCompanion(requiresPassword: Value(value)),
+      );
+
+  /// Re-arm every parked, password-required `pending` row for a company so the
+  /// next [nextReady] returns it immediately. Called right after the user
+  /// enters their password (cache now warm) — without it the rows sit on their
+  /// +1 min park until an unrelated drain trigger fires.
+  Future<void> readyPasswordRows({
+    required String companyId,
+    required int now,
+  }) =>
+      (update(outbox)..where(
+            (o) =>
+                o.companyId.equals(companyId) &
+                o.state.equals('pending') &
+                o.requiresPassword.equals(true),
+          ))
+          .write(OutboxCompanion(nextAttemptAt: Value(now)));
+
   Future<void> markDead({
     required int id,
     required String error,

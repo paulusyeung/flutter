@@ -6,6 +6,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/location.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/notify_async.dart';
 import 'package:admin/ui/features/clients/widgets/edit/client_edit_country_field.dart';
@@ -198,6 +199,13 @@ class _LocationFormDialogState extends State<_LocationFormDialog> {
   late final TextEditingController _postalCode;
   late String _countryId;
   late bool _isShipping;
+  // Custom values held in State (not controllers) so typed inputs — switch /
+  // date / dropdown — can reflect a new selection on rebuild; `_build()` reads
+  // these on save.
+  late String _custom1;
+  late String _custom2;
+  late String _custom3;
+  late String _custom4;
   bool _busy = false;
 
   @override
@@ -212,6 +220,10 @@ class _LocationFormDialogState extends State<_LocationFormDialog> {
     _postalCode = TextEditingController(text: e?.postalCode ?? '');
     _countryId = e?.countryId ?? '';
     _isShipping = e?.isShippingLocation ?? false;
+    _custom1 = e?.customValue1 ?? '';
+    _custom2 = e?.customValue2 ?? '';
+    _custom3 = e?.customValue3 ?? '';
+    _custom4 = e?.customValue4 ?? '';
   }
 
   @override
@@ -237,12 +249,10 @@ class _LocationFormDialogState extends State<_LocationFormDialog> {
       state: _state.text.trim(),
       postalCode: _postalCode.text.trim(),
       countryId: _countryId,
-      // Preserve any configured custom values on edit (the dialog doesn't
-      // surface them, but losing them on save would be data loss).
-      customValue1: e?.customValue1 ?? '',
-      customValue2: e?.customValue2 ?? '',
-      customValue3: e?.customValue3 ?? '',
-      customValue4: e?.customValue4 ?? '',
+      customValue1: _custom1,
+      customValue2: _custom2,
+      customValue3: _custom3,
+      customValue4: _custom4,
       isShippingLocation: _isShipping,
       updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
       isDeleted: false,
@@ -297,6 +307,15 @@ class _LocationFormDialogState extends State<_LocationFormDialog> {
                 initial: _countryId,
                 onChanged: (id) => _countryId = id,
               ),
+              _LocationCustomFields(
+                values: [_custom1, _custom2, _custom3, _custom4],
+                onChanged: [
+                  (v) => setState(() => _custom1 = v),
+                  (v) => setState(() => _custom2 = v),
+                  (v) => setState(() => _custom3 = v),
+                  (v) => setState(() => _custom4 = v),
+                ],
+              ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 dense: true,
@@ -350,4 +369,27 @@ class _LocationFormDialogState extends State<_LocationFormDialog> {
       ),
     ),
   );
+}
+
+/// Location custom fields (`location1..4`) — type-aware, gated by the company's
+/// configured labels. Self-collapses (renders nothing) when none are set.
+class _LocationCustomFields extends StatelessWidget {
+  const _LocationCustomFields({required this.values, required this.onChanged});
+
+  final List<String> values;
+  final List<ValueChanged<String>> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    return EntityCustomFieldsSection(
+      keyPrefix: 'location',
+      companyStream: services.company.watchCompany(companyId),
+      formatter: services.formatterIfReady(companyId),
+      wrapInCard: false,
+      values: values,
+      onChanged: onChanged,
+    );
+  }
 }

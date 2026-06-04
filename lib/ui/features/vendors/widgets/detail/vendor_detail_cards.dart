@@ -4,9 +4,11 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/data/models/domain/vendor_contact.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/custom_field_detail_rows.dart';
 import 'package:admin/ui/core/widgets/detail_info_row.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
@@ -56,7 +58,9 @@ class VendorDetailCardsGrid extends StatelessWidget {
     final hasNotes =
         vendor.privateNotes.isNotEmpty || vendor.publicNotes.isNotEmpty;
     final columns = <Widget>[
-      Expanded(child: VendorDetailDetailsCard(vendor: vendor)),
+      Expanded(
+        child: VendorDetailDetailsCard(vendor: vendor, formatter: formatter),
+      ),
       SizedBox(width: InSpacing.md(context)),
       Expanded(child: VendorDetailAddressCard(vendor: vendor)),
       if (hasContacts) ...[
@@ -84,7 +88,7 @@ class VendorDetailCardsGrid extends StatelessWidget {
 
   Widget _stacked(BuildContext context) {
     final cards = <Widget>[
-      VendorDetailDetailsCard(vendor: vendor),
+      VendorDetailDetailsCard(vendor: vendor, formatter: formatter),
       VendorDetailAddressCard(vendor: vendor),
       VendorDetailContactsCard(contacts: vendor.contacts),
       if (vendor.privateNotes.isNotEmpty || vendor.publicNotes.isNotEmpty)
@@ -110,64 +114,73 @@ class VendorDetailCardsGrid extends StatelessWidget {
 // ───────────────────────── Details ─────────────────────────
 
 class VendorDetailDetailsCard extends StatelessWidget {
-  const VendorDetailDetailsCard({super.key, required this.vendor});
+  const VendorDetailDetailsCard({
+    super.key,
+    required this.vendor,
+    this.formatter,
+  });
 
   final Vendor vendor;
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    final yes = context.tr('yes');
+    final no = context.tr('no');
     String orDash(String v) => v.isEmpty ? '—' : v;
     Color? dimIfEmpty(String v) => v.isEmpty ? tokens.ink4 : null;
     final websiteUri = _parseWebsite(vendor.website);
-    final rows = <Widget?>[
-      DetailInfoRow(
-        label: context.tr('website'),
-        value: orDash(vendor.website),
-        valueColor: dimIfEmpty(vendor.website),
-        onTap: websiteUri == null
-            ? null
-            : () => _openWebsite(context, websiteUri),
-      ),
-      DetailInfoRow(
-        label: context.tr('phone'),
-        value: orDash(vendor.phone),
-        valueColor: dimIfEmpty(vendor.phone),
-      ),
-      DetailInfoRow(
-        label: context.tr('vat_number'),
-        value: orDash(vendor.vatNumber),
-        valueColor: dimIfEmpty(vendor.vatNumber),
-      ),
-      DetailInfoRow(
-        label: context.tr('id_number'),
-        value: orDash(vendor.idNumber),
-        valueColor: dimIfEmpty(vendor.idNumber),
-      ),
-      if (vendor.customValue1.isNotEmpty)
-        DetailInfoRow(
-          label: context.tr('custom_value1'),
-          value: vendor.customValue1,
-        ),
-      if (vendor.customValue2.isNotEmpty)
-        DetailInfoRow(
-          label: context.tr('custom_value2'),
-          value: vendor.customValue2,
-        ),
-      if (vendor.customValue3.isNotEmpty)
-        DetailInfoRow(
-          label: context.tr('custom_value3'),
-          value: vendor.customValue3,
-        ),
-      if (vendor.customValue4.isNotEmpty)
-        DetailInfoRow(
-          label: context.tr('custom_value4'),
-          value: vendor.customValue4,
-        ),
-    ];
-    return DashboardCardShell(
-      title: context.tr('details'),
-      child: DetailRowStack(children: rows),
+    return StreamBuilder<Company?>(
+      stream: services.company.watchCompany(companyId),
+      builder: (context, snapshot) {
+        final customRows = customFieldDetailRows(
+          company: snapshot.data,
+          prefix: 'vendor',
+          values: [
+            vendor.customValue1,
+            vendor.customValue2,
+            vendor.customValue3,
+            vendor.customValue4,
+          ],
+          formatter: formatter,
+          yes: yes,
+          no: no,
+        );
+        final rows = <Widget?>[
+          DetailInfoRow(
+            label: context.tr('website'),
+            value: orDash(vendor.website),
+            valueColor: dimIfEmpty(vendor.website),
+            onTap: websiteUri == null
+                ? null
+                : () => _openWebsite(context, websiteUri),
+          ),
+          DetailInfoRow(
+            label: context.tr('phone'),
+            value: orDash(vendor.phone),
+            valueColor: dimIfEmpty(vendor.phone),
+          ),
+          DetailInfoRow(
+            label: context.tr('vat_number'),
+            value: orDash(vendor.vatNumber),
+            valueColor: dimIfEmpty(vendor.vatNumber),
+          ),
+          DetailInfoRow(
+            label: context.tr('id_number'),
+            value: orDash(vendor.idNumber),
+            valueColor: dimIfEmpty(vendor.idNumber),
+          ),
+          for (final r in customRows)
+            DetailInfoRow(label: r.label, value: r.value),
+        ];
+        return DashboardCardShell(
+          title: context.tr('details'),
+          child: DetailRowStack(children: rows),
+        );
+      },
     );
   }
 }

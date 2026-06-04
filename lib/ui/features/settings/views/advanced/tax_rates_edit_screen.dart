@@ -9,6 +9,7 @@ import 'package:admin/ui/features/settings/view_models/tax_rate_edit_view_model.
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_entity_edit_scaffold.dart';
 import 'package:admin/ui/features/settings/widgets/settings_text_field.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// `/settings/tax_rates/new` and `/settings/tax_rates/:id`.
 ///
@@ -26,6 +27,12 @@ class TaxRatesEditScreen extends StatelessWidget {
     final services = context.read<Services>();
     final companyId = services.auth.session.value?.currentCompanyId ?? '';
     final repo = services.taxRates;
+    // Decimal-separator setting drives both display and parse of the rate so
+    // a comma-locale user typing `19,5` doesn't save `195`. `formatterIfReady`
+    // is the sync accessor the entity-edit screens use (see product edit).
+    final useComma =
+        services.formatterIfReady(companyId)?.settings.useCommaAsDecimalPlace ??
+        false;
 
     return SettingsEntityEditScaffold<TaxRate, TaxRateEditViewModel>(
       existingId: existingId,
@@ -64,15 +71,22 @@ class TaxRatesEditScreen extends StatelessWidget {
               externalSyncKey: vm.original?.id,
             ),
             SettingsTextField(
-              initialValue: vm.draft.rate != 0 ? vm.draft.rate.toString() : '',
+              initialValue: rateInputText(
+                vm.draft.rate,
+                useCommaAsDecimalPlace: useComma,
+              ),
               labelKey: 'rate',
-              onChanged: (v) => vm.setRate(double.tryParse(v) ?? 0),
+              onChanged: (v) => vm.setRate(
+                parseDouble(v, useCommaAsDecimalPlace: useComma) ?? 0,
+              ),
               errorText: vm.fieldErrorFor('rate'),
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
+              // Allow the comma so comma-locale users can type a decimal
+              // separator; `parseDouble` interprets it via `useComma`.
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
               ],
               externalSyncKey: vm.original?.id,
             ),

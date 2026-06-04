@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/custom_field_detail_rows.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/detail_info_row.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
@@ -36,6 +40,11 @@ class ClientDetailDetailsCard extends StatelessWidget {
       c.phone.isNotEmpty ||
       c.vatNumber.isNotEmpty ||
       c.idNumber.isNotEmpty ||
+      c.classification.isNotEmpty ||
+      c.currencyId.isNotEmpty ||
+      c.languageId.isNotEmpty ||
+      c.routingId.isNotEmpty ||
+      c.isTaxExempt ||
       c.customValue1.isNotEmpty ||
       c.customValue2.isNotEmpty ||
       c.customValue3.isNotEmpty ||
@@ -48,6 +57,16 @@ class ClientDetailDetailsCard extends StatelessWidget {
     Color? dimIfEmpty(String v) => v.isEmpty ? tokens.ink4 : null;
 
     final websiteUri = _parseWebsite(client.website);
+    // Resolve currency / language names lazily — only touch `Services` when a
+    // value is actually set, so the card still renders in tests (and the first
+    // post-login frame) without a Services provider, exactly like the address
+    // card's country lookup guards on a non-empty id.
+    String currencyName() =>
+        context.read<Services>().statics.currency(client.currencyId)?.name ??
+        client.currencyId;
+    String languageName() =>
+        context.read<Services>().statics.language(client.languageId)?.name ??
+        client.languageId;
 
     // Compact (stacked / pane): drop a blank standard row entirely instead of
     // rendering a dimmed `—`. Wide keeps it for column symmetry.
@@ -72,30 +91,87 @@ class ClientDetailDetailsCard extends StatelessWidget {
       stdRow(context.tr('phone'), client.phone),
       stdRow(context.tr('vat_number'), client.vatNumber),
       stdRow(context.tr('id_number'), client.idNumber),
-      if (client.customValue1.isNotEmpty)
+      // Per-client settings + classification surfaced read-side (mirror of the
+      // edit Settings card). Shown only when explicitly set, so an inherited
+      // currency/language or a blank classification stays out of the way.
+      if (client.classification.isNotEmpty)
         DetailInfoRow(
-          label: context.tr('custom_value1'),
-          value: client.customValue1,
+          label: context.tr('classification'),
+          value: context.tr(client.classification),
         ),
-      if (client.customValue2.isNotEmpty)
+      if (client.currencyId.isNotEmpty)
+        DetailInfoRow(label: context.tr('currency'), value: currencyName()),
+      if (client.languageId.isNotEmpty)
+        DetailInfoRow(label: context.tr('language'), value: languageName()),
+      if (client.routingId.isNotEmpty)
+        DetailInfoRow(label: context.tr('routing_id'), value: client.routingId),
+      if (client.isTaxExempt)
         DetailInfoRow(
-          label: context.tr('custom_value2'),
-          value: client.customValue2,
-        ),
-      if (client.customValue3.isNotEmpty)
-        DetailInfoRow(
-          label: context.tr('custom_value3'),
-          value: client.customValue3,
-        ),
-      if (client.customValue4.isNotEmpty)
-        DetailInfoRow(
-          label: context.tr('custom_value4'),
-          value: client.customValue4,
+          label: context.tr('tax_exempt'),
+          value: context.tr('yes'),
         ),
     ];
+    // Custom fields need the company config (via Services). Only reach for it
+    // when a value is actually present, so the card still renders in tests /
+    // the first post-login frame without a Services provider — same lazy
+    // guard as the currency / language lookups above.
+    final hasCustom =
+        client.customValue1.isNotEmpty ||
+        client.customValue2.isNotEmpty ||
+        client.customValue3.isNotEmpty ||
+        client.customValue4.isNotEmpty;
     return DashboardCardShell(
       title: context.tr('details'),
-      child: DetailRowStack(children: rows),
+      child: hasCustom
+          ? _DetailsWithCustomFields(client: client, standardRows: rows)
+          : DetailRowStack(children: rows),
+    );
+  }
+}
+
+/// Appends the client's configured, type-formatted custom-field rows below the
+/// standard rows. Split out so [ClientDetailDetailsCard] only touches
+/// `Services` when a custom value is present (preserving its no-Services test
+/// path). Labels + switch/date formatting come from the company config.
+class _DetailsWithCustomFields extends StatelessWidget {
+  const _DetailsWithCustomFields({
+    required this.client,
+    required this.standardRows,
+  });
+
+  final Client client;
+  final List<Widget?> standardRows;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    final yes = context.tr('yes');
+    final no = context.tr('no');
+    return StreamBuilder<Company?>(
+      stream: services.company.watchCompany(companyId),
+      builder: (context, snapshot) {
+        final customRows = customFieldDetailRows(
+          company: snapshot.data,
+          prefix: 'client',
+          values: [
+            client.customValue1,
+            client.customValue2,
+            client.customValue3,
+            client.customValue4,
+          ],
+          formatter: services.formatterIfReady(companyId),
+          yes: yes,
+          no: no,
+        );
+        return DetailRowStack(
+          children: [
+            ...standardRows,
+            for (final r in customRows)
+              DetailInfoRow(label: r.label, value: r.value),
+          ],
+        );
+      },
     );
   }
 }

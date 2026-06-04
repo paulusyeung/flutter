@@ -11,6 +11,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/domain/notifications.dart';
 import 'package:admin/domain/permissions.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
 import 'package:admin/ui/core/widgets/confirm_password_sheet.dart';
 import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
@@ -286,6 +287,31 @@ class _DetailsTab extends StatelessWidget {
               ),
               value: vm.draft.userLoggedInNotification,
               onChanged: vm.setUserLoggedInNotification,
+            ),
+            // User custom fields (`user1..4`) — type-aware, gated by the
+            // company's configured labels; renders nothing when none are set.
+            Builder(
+              builder: (context) {
+                final services = context.read<Services>();
+                return EntityCustomFieldsSection(
+                  keyPrefix: 'user',
+                  companyStream: services.company.watchCompany(vm.companyId),
+                  formatter: services.formatterIfReady(vm.companyId),
+                  wrapInCard: false,
+                  values: [
+                    vm.draft.customValue1,
+                    vm.draft.customValue2,
+                    vm.draft.customValue3,
+                    vm.draft.customValue4,
+                  ],
+                  onChanged: [
+                    vm.setCustomValue1,
+                    vm.setCustomValue2,
+                    vm.setCustomValue3,
+                    vm.setCustomValue4,
+                  ],
+                );
+              },
             ),
           ],
         ),

@@ -8,6 +8,7 @@ import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/data/models/domain/task_status.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
 import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/tasks/view_models/task_edit_view_model.dart';
@@ -83,7 +84,18 @@ class TaskEditLayout extends StatelessWidget {
         SizedBox(width: InSpacing.md(context)),
         SizedBox(
           width: _sidebarWidth,
-          child: _IdentitySection(vm: vm, locked: locked),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _IdentitySection(vm: vm, locked: locked),
+              SizedBox(height: InSpacing.lg(context)),
+              _CustomFieldsSection(
+                vm: vm,
+                formatter: formatter,
+                locked: locked,
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -102,11 +114,54 @@ class TaskEditLayout extends StatelessWidget {
             ],
             _IdentitySection(vm: vm, locked: locked),
             SizedBox(height: InSpacing.lg(context)),
+            _CustomFieldsSection(vm: vm, formatter: formatter, locked: locked),
+            SizedBox(height: InSpacing.lg(context)),
             TaskEditTimesSection(vm: vm, locked: locked, formatter: formatter),
           ],
         ),
       ),
     );
+  }
+}
+
+/// Task custom fields (`task1..4`) — type-aware, gated by the company's
+/// configured labels (self-collapses when none). Disabled when the task is
+/// invoice-locked, matching the rest of the form.
+class _CustomFieldsSection extends StatelessWidget {
+  const _CustomFieldsSection({
+    required this.vm,
+    required this.formatter,
+    required this.locked,
+  });
+
+  final TaskEditViewModel vm;
+  final Formatter? formatter;
+  final bool locked;
+
+  @override
+  Widget build(BuildContext context) {
+    final section = EntityCustomFieldsSection(
+      keyPrefix: 'task',
+      companyStream: context.read<Services>().company.watchCompany(
+        vm.companyId,
+      ),
+      formatter: formatter,
+      cardTitle: context.tr('custom_fields'),
+      values: [
+        vm.draft.customValue1,
+        vm.draft.customValue2,
+        vm.draft.customValue3,
+        vm.draft.customValue4,
+      ],
+      onChanged: [
+        vm.setCustomValue1,
+        vm.setCustomValue2,
+        vm.setCustomValue3,
+        vm.setCustomValue4,
+      ],
+    );
+    if (!locked) return section;
+    return IgnorePointer(child: Opacity(opacity: 0.5, child: section));
   }
 }
 

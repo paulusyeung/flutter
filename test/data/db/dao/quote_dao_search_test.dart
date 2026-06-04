@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -34,6 +35,30 @@ void main() {
 
   Future<List<String>> search(String term) => db.quoteDao
       .watchPage(companyId: 'co', offset: 0, limit: 50, search: term)
+      .first
+      .then((rows) => rows.map((r) => r.id).toList()..sort());
+
+  QuotesCompanion statusQuote({
+    required String id,
+    required String statusId,
+    String dueDate = '',
+  }) => QuotesCompanion.insert(
+    id: id,
+    companyId: 'co',
+    updatedAt: 1,
+    statusId: Value(statusId),
+    dueDate: Value(dueDate),
+    payload: jsonEncode({'status_id': statusId}),
+  );
+
+  Future<List<String>> byStatus(String status, {String? asOf}) => db.quoteDao
+      .watchPage(
+        companyId: 'co',
+        offset: 0,
+        limit: 50,
+        statuses: {status},
+        statusAsOf: asOf,
+      )
       .first
       .then((rows) => rows.map((r) => r.id).toList()..sort());
 
@@ -82,4 +107,28 @@ void main() {
 
     expect(await search('shared keyword'), ['a', 'b']);
   });
+
+  test("'rejected' filter returns only status-5 quotes", () async {
+    await db.quoteDao.upsert(statusQuote(id: 'r', statusId: '5'));
+    await db.quoteDao.upsert(statusQuote(id: 's', statusId: '2'));
+    await db.quoteDao.upsert(statusQuote(id: 'd', statusId: '1'));
+
+    expect(await byStatus('rejected'), ['r']);
+  });
+
+  test(
+    'a past-due rejected quote is excluded from the expired filter',
+    () async {
+      await db.quoteDao.upsert(
+        statusQuote(id: 'rej', statusId: '5', dueDate: '2000-01-01'),
+      );
+      await db.quoteDao.upsert(
+        statusQuote(id: 'exp', statusId: '2', dueDate: '2000-01-01'),
+      );
+
+      // Same past-due date: the sent quote is expired, the rejected one is not.
+      expect(await byStatus('expired', asOf: '2026-06-04'), ['exp']);
+      expect(await byStatus('rejected'), ['rej']);
+    },
+  );
 }

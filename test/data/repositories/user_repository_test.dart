@@ -227,6 +227,37 @@ void main() {
       expect(decoded.companyUser?.permissions, 'view_client');
       expect(decoded.companyUser?.notifications.email, ['payment_success_all']);
     });
+
+    test('notification placement — login flag top-level, special codes in '
+        'notifications.email, none leak into company_user.settings', () {
+      final user = const User().copyWith(
+        id: 'u_7',
+        userLoggedInNotification: true,
+        notificationsEmail: const ['task_assigned', 'invoice_sent_all'],
+        companyUserSettings: const CompanyUserSettings(accentColor: '#ff0000'),
+      );
+      // Encode+decode so nested objects materialize as maps (json_serializable
+      // defaults to explicit_to_json: false).
+      final json =
+          jsonDecode(jsonEncode(user.toApi().toJson())) as Map<String, dynamic>;
+      final companyUser = json['company_user'] as Map<String, dynamic>;
+
+      // Top-level boolean (matches React / the server), not a settings key.
+      expect(json['user_logged_in_notification'], isTrue);
+
+      // Bare codes ride in the email array beside per-event subscriptions.
+      expect(
+        companyUser['notifications']['email'],
+        containsAll(<String>['task_assigned', 'invoice_sent_all']),
+      );
+
+      // accent_color still round-trips through the settings blob…
+      final settings = companyUser['settings'] as Map<String, dynamic>;
+      expect(settings['accent_color'], '#ff0000');
+      // …but the dead notification keys no longer leak into it.
+      expect(settings.containsKey('task_assigned_notification'), isFalse);
+      expect(settings.containsKey('user_logged_in_notification'), isFalse);
+    });
   });
 }
 

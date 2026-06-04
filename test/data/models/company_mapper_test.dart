@@ -168,4 +168,41 @@ void main() {
       expect(domain.inboundMailboxWhitelist, '');
     });
   });
+
+  group('Company e_invoice blob mapping', () {
+    final eInvoiceBlob = <String, dynamic>{
+      'Invoice': {
+        'PaymentMeans': [
+          {
+            'PaymentMeansCode': {'value': '58'},
+            'PayeeFinancialAccount': {
+              'ID': {'value': 'DE89370400440532013000'},
+              'Name': 'Acme GmbH',
+            },
+          },
+        ],
+      },
+    };
+
+    test('fromJson + fromApi carry the e_invoice blob untouched', () {
+      final api = CompanyApi.fromJson(<String, dynamic>{
+        'id': 'co',
+        'e_invoice': eInvoiceBlob,
+      });
+      expect(api.eInvoice, eInvoiceBlob);
+      expect(Company.fromApi(api).eInvoice, eInvoiceBlob);
+    });
+
+    test('toApiJson omits e_invoice so a company PUT never clears the '
+        'server-derived config', () {
+      final domain = Company(id: 'co', name: 'Acme', eInvoice: eInvoiceBlob);
+      expect(domain.toApiJson().containsKey('e_invoice'), isFalse);
+    });
+
+    test('e_invoice is null when missing from the wire', () {
+      final api = CompanyApi.fromJson(<String, dynamic>{'id': 'co'});
+      expect(api.eInvoice, isNull);
+      expect(Company.fromApi(api).eInvoice, isNull);
+    });
+  });
 }

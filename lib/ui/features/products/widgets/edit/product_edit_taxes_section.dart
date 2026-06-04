@@ -46,8 +46,8 @@ class ProductEditTaxesSection extends StatelessWidget {
     final services = context.read<Services>();
     return StreamBuilder<Company?>(
       stream: services.company.watchCompany(vm.companyId),
-      builder: (context, snap) {
-        final enabledSlots = snap.data?.enabledItemTaxRates ?? 0;
+      builder: (context, companySnap) {
+        final enabledSlots = companySnap.data?.enabledItemTaxRates ?? 0;
         return DashboardCardShell(
           title: context.tr('taxes'),
           child: Column(
@@ -76,9 +76,27 @@ class ProductEditTaxesSection extends StatelessWidget {
                   onChanged: (v) => vm.setTaxId(v ?? ''),
                 ),
               ),
-              if (enabledSlots >= 1) _TaxSlot(vm: vm, slot: 1),
-              if (enabledSlots >= 2) _TaxSlot(vm: vm, slot: 2),
-              if (enabledSlots >= 3) _TaxSlot(vm: vm, slot: 3),
+              // One subscription to the bundled tax rates feeds every enabled
+              // slot. Only opened when at least one slot is configured.
+              if (enabledSlots >= 1)
+                StreamBuilder<List<TaxRate>>(
+                  stream: services.taxRates.watchAll(companyId: vm.companyId),
+                  builder: (context, rateSnap) {
+                    final rates = rateSnap.data ?? const <TaxRate>[];
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (enabledSlots >= 1)
+                          _TaxSlot(vm: vm, slot: 1, rates: rates),
+                        if (enabledSlots >= 2)
+                          _TaxSlot(vm: vm, slot: 2, rates: rates),
+                        if (enabledSlots >= 3)
+                          _TaxSlot(vm: vm, slot: 3, rates: rates),
+                      ],
+                    );
+                  },
+                ),
             ],
           ),
         );
@@ -91,10 +109,11 @@ class ProductEditTaxesSection extends StatelessWidget {
 /// `tax_rates`; if the company has none, falls back to the freeform
 /// name/rate pair.
 class _TaxSlot extends StatelessWidget {
-  const _TaxSlot({required this.vm, required this.slot});
+  const _TaxSlot({required this.vm, required this.slot, required this.rates});
 
   final ProductEditViewModel vm;
   final int slot;
+  final List<TaxRate> rates;
 
   String get _name => switch (slot) {
     1 => vm.draft.taxName1,
@@ -122,67 +141,60 @@ class _TaxSlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final services = context.read<Services>();
     final name = _name;
     final rate = _rate;
-    return StreamBuilder<List<TaxRate>>(
-      stream: services.taxRates.watchAll(companyId: vm.companyId),
-      builder: (context, snap) {
-        final rates = snap.data ?? const <TaxRate>[];
-        if (rates.isEmpty) {
-          // No bundled tax rates → keep the freeform pair so a tax can still
-          // be hand-entered. (Typed input correctly routes through the
-          // locale-aware String setters.)
-          return _TaxRow(
-            nameLabel: context.tr('tax_name'),
-            rateLabel: context.tr('tax_rate'),
-            nameValue: name,
-            rateValue: rate,
-            onNameChanged: _onNameChanged,
-            onRateChanged: _onRateChanged,
-          );
-        }
+    if (rates.isEmpty) {
+      // No bundled tax rates → keep the freeform pair so a tax can still
+      // be hand-entered. (Typed input correctly routes through the
+      // locale-aware String setters.)
+      return _TaxRow(
+        nameLabel: context.tr('tax_name'),
+        rateLabel: context.tr('tax_rate'),
+        nameValue: name,
+        rateValue: rate,
+        onNameChanged: _onNameChanged,
+        onRateChanged: _onRateChanged,
+      );
+    }
 
-        final sorted = [...rates]..sort((a, b) => a.name.compareTo(b.name));
+    final sorted = [...rates]..sort((a, b) => a.name.compareTo(b.name));
 
-        TaxRate? selected;
-        for (final r in sorted) {
-          if (r.name == name && numToDecimal(r.rate) == rate) {
-            selected = r;
-            break;
-          }
-        }
-        // Stored value not in the bundled list (a legacy hand-entered rate) →
-        // show a synthetic entry so the user still sees what's saved. It's not
-        // added to `items`, so it disappears once a real rate is picked.
-        if (selected == null && name.isNotEmpty) {
-          selected = TaxRate(
-            id: '__current__',
-            name: name,
-            rate: rate.toDouble(),
-            updatedAt: DateTime.fromMillisecondsSinceEpoch(0),
-            createdAt: DateTime.fromMillisecondsSinceEpoch(0),
-            archivedAt: null,
-            isDeleted: false,
-          );
-        }
+    TaxRate? selected;
+    for (final r in sorted) {
+      if (r.name == name && numToDecimal(r.rate) == rate) {
+        selected = r;
+        break;
+      }
+    }
+    // Stored value not in the bundled list (a legacy hand-entered rate) →
+    // show a synthetic entry so the user still sees what's saved. It's not
+    // added to `items`, so it disappears once a real rate is picked.
+    if (selected == null && name.isNotEmpty) {
+      selected = TaxRate(
+        id: '__current__',
+        name: name,
+        rate: rate.toDouble(),
+        updatedAt: DateTime.fromMillisecondsSinceEpoch(0),
+        createdAt: DateTime.fromMillisecondsSinceEpoch(0),
+        archivedAt: null,
+        isDeleted: false,
+      );
+    }
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: InSpacing.xs),
-          child: SearchableDropdownField<TaxRate>(
-            label: context.tr('tax_rate'),
-            items: sorted,
-            initialValue: selected,
-            displayString: (r) => '${r.name} (${r.rate}%)',
-            idOf: (r) => '${r.name}|${r.rate}',
-            onChanged: (r) => vm.setTaxSlot(
-              slot,
-              name: r?.name ?? '',
-              rate: r == null ? Decimal.zero : numToDecimal(r.rate),
-            ),
-          ),
-        );
-      },
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: InSpacing.xs),
+      child: SearchableDropdownField<TaxRate>(
+        label: context.tr('tax_rate'),
+        items: sorted,
+        initialValue: selected,
+        displayString: (r) => '${r.name} (${r.rate}%)',
+        idOf: (r) => '${r.name}|${r.rate}',
+        onChanged: (r) => vm.setTaxSlot(
+          slot,
+          name: r?.name ?? '',
+          rate: r == null ? Decimal.zero : numToDecimal(r.rate),
+        ),
+      ),
     );
   }
 }

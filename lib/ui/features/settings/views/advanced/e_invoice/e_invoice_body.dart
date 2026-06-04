@@ -16,14 +16,17 @@ import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_searchable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_switch_field.dart';
-import 'package:admin/ui/features/settings/widgets/overridable_text_field.dart';
 import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
 /// Field labels exposed by the in-app settings search for the E-Invoice
-/// page. Keep in sync with `kSettingsSearchCatalog['e_invoice']` —
-/// `search_catalog_consistency_test` asserts every entry is actually
-/// rendered.
+/// page. Keep in sync with `kSettingsSearchCatalog['e_invoice']`. Every key
+/// is rendered somewhere on the page: the cascade fields here, the rest in
+/// the company-only cards — the three forward-email / skip keys live on
+/// [PeppolPreferencesCard], `certificate_passphrase` on [CertificateCard],
+/// `payment_means` on [PaymentMeansCard], the identifier keys on
+/// [TaxIdentifiersCard]. (`e_invoice` is not yet in
+/// `search_catalog_consistency_test`'s tab list, so this sync is by hand.)
 const kEInvoiceSearchKeys = <String>[
   'e_invoice_type',
   'enable_e_invoice',
@@ -148,11 +151,6 @@ class EInvoiceBody extends StatelessWidget {
                   label: context.tr('merge_e_invoice_to_pdf'),
                   apiKey: 'merge_e_invoice_to_pdf',
                 ),
-                OverridableSwitchField(
-                  label: context.tr('skip_automatic_email_with_peppol'),
-                  apiKey: 'skip_automatic_email_with_peppol',
-                  subtitle: context.tr('skip_automatic_email_with_peppol_help'),
-                ),
                 OverridableDropdownField<String>(
                   label: context.tr('e_quote_type'),
                   apiKey: 'e_quote_type',
@@ -166,18 +164,10 @@ class EInvoiceBody extends StatelessWidget {
                   onChanged: (v) =>
                       host.updateSettings((s) => s.copyWith(eQuoteType: v)),
                 ),
-                OverridableTextField(
-                  label: context.tr('e_invoice_forward_email'),
-                  apiKey: 'e_invoice_forward_email',
-                  helperText: context.tr('e_invoice_forward_email_help'),
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                OverridableTextField(
-                  label: context.tr('e_expense_forward_email'),
-                  apiKey: 'e_expense_forward_email',
-                  helperText: context.tr('e_expense_forward_email_help'),
-                  keyboardType: TextInputType.emailAddress,
-                ),
+                // Forward-email fields + the skip-automatic-email toggle used
+                // to live here, but they are PEPPOL-specific: React surfaces
+                // them only on the PEPPOL Preferences card once a legal entity
+                // is bound. Moved to `PeppolPreferencesCard` for parity.
               ],
             ],
           ),

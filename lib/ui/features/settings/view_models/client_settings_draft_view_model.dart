@@ -47,6 +47,7 @@ class ClientSettingsDraftViewModel extends SettingsDraftHost {
   final String clientId;
 
   Map<String, dynamic> _companyDefaults = const {};
+  Company? _companyContext;
   CompanySettings _initial = const CompanySettingsApi();
   CompanySettings _draft = const CompanySettingsApi();
   Client? _client;
@@ -101,6 +102,12 @@ class ClientSettingsDraftViewModel extends SettingsDraftHost {
   @override
   Company? get draft => null;
 
+  /// Sparse company context (set in [load]) so the cascade body can read
+  /// company-level fields at client scope. Only the fields cascade pages
+  /// consume are populated; see [load].
+  @override
+  Company? get companyContext => _companyContext;
+
   @override
   CompanySettings get initialSettings => _initial;
 
@@ -148,11 +155,24 @@ class ClientSettingsDraftViewModel extends SettingsDraftHost {
   Future<void> load() async {
     if (_clientSub != null) return;
     final companyRow = await db.companiesDao.byId(companyId);
-    if (companyRow != null && companyRow.settings.isNotEmpty) {
-      final decoded = jsonDecode(companyRow.settings);
-      if (decoded is Map<String, dynamic>) {
-        _companyDefaults = decoded;
+    if (companyRow != null) {
+      if (companyRow.settings.isNotEmpty) {
+        final decoded = jsonDecode(companyRow.settings);
+        if (decoded is Map<String, dynamic>) {
+          _companyDefaults = decoded;
+        }
       }
+      // Sparse company context so the Tax Settings body can read company-level
+      // fields (tax-rate slot counts, calculate-taxes flag, decimal separator)
+      // at client scope, where there's no Company [draft]. Only the fields the
+      // cascade body reads are populated; everything else defaults.
+      _companyContext = Company(
+        id: companyId,
+        enabledTaxRates: companyRow.enabledTaxRates,
+        enabledItemTaxRates: companyRow.enabledItemTaxRates,
+        calculateTaxes: companyRow.calculateTaxes,
+        useCommaAsDecimalPlace: companyRow.useCommaAsDecimalPlace,
+      );
     }
     _clientSub = repo
         .watch(companyId: companyId, id: clientId)

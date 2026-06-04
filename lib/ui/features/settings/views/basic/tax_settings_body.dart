@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
 import 'package:admin/data/models/api/tax_config_api_model.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
@@ -13,6 +14,7 @@ import 'package:admin/ui/features/settings/widgets/overridable_switch_field.dart
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/subregion_edit_dialog.dart';
 import 'package:admin/ui/features/settings/widgets/tax_rate_picker.dart';
+import 'package:admin/utils/formatting.dart';
 import 'package:admin/utils/tax_regions.dart';
 
 /// Field labels exposed by the in-app settings search for the Tax Settings
@@ -52,12 +54,19 @@ class TaxSettingsBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final host = context.watch<SettingsDraftHost>();
     final scope = context.watch<SettingsLevelController>();
-    final company = host.draft;
-    if (company == null) {
-      return const SizedBox.shrink();
-    }
     final isCompany = scope.isCompany;
-    final calculateTaxes = company.calculateTaxes;
+    // `draft` is the Company at company scope and null at client scope, where
+    // the company-only sections (rate counts, Calculate Taxes) don't render.
+    // `companyContext` carries the company-level fields the cascade sections
+    // (default-rate pickers, decimal separator) still need at client scope —
+    // see `SettingsDraftHost.companyContext`.
+    final company = host.draft;
+    final ctx = host.companyContext;
+    final calculateTaxes = ctx?.calculateTaxes ?? false;
+    final useComma = ctx?.useCommaAsDecimalPlace ?? false;
+    final invoiceTaxRates = ctx?.enabledTaxRates ?? 0;
+    final itemTaxRates = ctx?.enabledItemTaxRates ?? 0;
+    final session = context.read<Services>().auth.session.value;
 
     return SettingsFormShell(
       sections: [
@@ -67,15 +76,16 @@ class TaxSettingsBody extends StatelessWidget {
           children: [
             // Tax-rate-count dropdowns are top-level company.* fields, not
             // settings — they have no cascade override at client/group
-            // scope, so we hide them entirely outside company scope.
-            if (isCompany && !calculateTaxes)
+            // scope, so we hide them entirely outside company scope (where
+            // `company`/`host.draft` is non-null).
+            if (isCompany && company != null && !calculateTaxes)
               _RateCountDropdown(
                 label: context.tr('invoice_tax_rates'),
                 value: company.enabledTaxRates,
                 onChanged: (v) =>
                     host.updateCompany((c) => c.copyWith(enabledTaxRates: v)),
               ),
-            if (isCompany)
+            if (isCompany && company != null)
               _RateCountDropdown(
                 label: context.tr('invoice_item_tax_rates'),
                 value: company.enabledItemTaxRates,
@@ -83,7 +93,7 @@ class TaxSettingsBody extends StatelessWidget {
                   (c) => c.copyWith(enabledItemTaxRates: v),
                 ),
               ),
-            if (isCompany)
+            if (isCompany && company != null)
               _RateCountDropdown(
                 label: context.tr('expense_tax_rates'),
                 value: company.enabledExpenseTaxRates,
@@ -101,23 +111,29 @@ class TaxSettingsBody extends StatelessWidget {
         ),
 
         // ── Section B — Default Tax Rates ────────────────────────────────
-        if (company.enabledTaxRates >= 1 && !calculateTaxes)
+        // Slot count is the company's `enabled_tax_rates`, read via
+        // `companyContext` so the per-client/group override rows still render
+        // at client scope (where there's no `draft`). (`enabledTaxRates` is
+        // forced to 0 when Calculate Taxes is on, so this self-hides then.)
+        if (invoiceTaxRates >= 1)
           FormSection(
             title: context.tr('default_tax_rate'),
             children: [
-              for (var slot = 1; slot <= company.enabledTaxRates; slot++)
+              for (var slot = 1; slot <= invoiceTaxRates; slot++)
                 TaxRatePicker(slot: slot, label: _slotLabel(context, slot)),
             ],
           ),
 
         // ── Section B′ — Default Item Tax Rates ─────────────────────────
-        if (company.enabledTaxRates == 0 &&
-            company.enabledItemTaxRates >= 1 &&
-            !calculateTaxes)
+        // Mirrors React `DefaultLineItemTaxes` (shown when
+        // `enabled_item_tax_rates > 0 && !enabled_tax_rates`) — which stays
+        // visible when Calculate Taxes is on (it sets item rates to 1), so we
+        // deliberately do NOT gate this on `!calculateTaxes`.
+        if (invoiceTaxRates == 0 && itemTaxRates >= 1)
           FormSection(
             title: context.tr('default_tax_rate'),
             children: [
-              for (var slot = 1; slot <= company.enabledItemTaxRates; slot++)
+              for (var slot = 1; slot <= itemTaxRates; slot++)
                 TaxRatePicker(slot: slot, label: _slotLabel(context, slot)),
             ],
           ),
@@ -136,7 +152,14 @@ class TaxSettingsBody extends StatelessWidget {
         // and each subregion row filters `host.fieldErrors` by the
         // `tax_data.regions.<R>.subregions.<S>.` prefix to render an
         // indicator + re-open the dialog with `errorText` populated.
+        // Plan-gated to match React (`isPaidOrSelfHost`) and the legacy app
+        // (`isProPlan`): the toggle only shows for self-hosted or paid/trial
+        // hosted accounts. `isFreePlan` is the trial-aware predicate
+        // (`isHosted && !hasProAccess`). The `|| calculateTaxes` escape keeps
+        // an already-enabled config visible/editable after a downgrade.
         if (isCompany &&
+            company != null &&
+            !(session?.isFreePlan ?? false) &&
             (_calculateTaxesAvailableFor(host.settings.countryId) ||
                 calculateTaxes))
           FormSection(
@@ -145,7 +168,7 @@ class TaxSettingsBody extends StatelessWidget {
               _CalculateTaxesToggle(host: host),
               if (calculateTaxes) ...[
                 SizedBox(height: InSpacing.md(context)),
-                _CalculateTaxesRegional(host: host),
+                _CalculateTaxesRegional(host: host, useComma: useComma),
               ],
             ],
           ),
@@ -296,9 +319,10 @@ class _CalculateTaxesToggle extends StatelessWidget {
 }
 
 class _CalculateTaxesRegional extends StatelessWidget {
-  const _CalculateTaxesRegional({required this.host});
+  const _CalculateTaxesRegional({required this.host, required this.useComma});
 
   final SettingsDraftHost host;
+  final bool useComma;
 
   @override
   Widget build(BuildContext context) {
@@ -321,7 +345,7 @@ class _CalculateTaxesRegional extends StatelessWidget {
         _SellerSubregionRow(host: host, kind: subregionKind, taxData: taxData),
         SizedBox(height: InSpacing.md(context)),
         for (final region in kTaxRegionOrder) ...[
-          _RegionCard(host: host, regionKey: region),
+          _RegionCard(host: host, regionKey: region, useComma: useComma),
           SizedBox(height: InSpacing.md(context)),
         ],
       ],
@@ -372,6 +396,7 @@ class _SellerSubregionRowState extends State<_SellerSubregionRow> {
     final desired = switch (widget.kind) {
       SellerSubregionKind.australia => 'AU',
       SellerSubregionKind.britain => 'GB',
+      SellerSubregionKind.andorra => 'AD',
       _ => null,
     };
     if (desired == null) return;
@@ -389,9 +414,26 @@ class _SellerSubregionRowState extends State<_SellerSubregionRow> {
     final label = context.tr('seller_subregion');
     final errorText =
         widget.host.fieldErrors['tax_data.seller_subregion']?.firstOrNull;
+
+    // AU / GB / AD are single-subregion sellers shown as a read-only field
+    // pinned to a fixed ISO code. `initialValue` (not a `controller:`) avoids
+    // leaking a fresh TextEditingController on every rebuild.
+    final fixedCode = switch (widget.kind) {
+      SellerSubregionKind.australia => 'AU',
+      SellerSubregionKind.britain => 'GB',
+      SellerSubregionKind.andorra => 'AD',
+      _ => null,
+    };
+    if (fixedCode != null) {
+      return TextFormField(
+        key: ValueKey('seller-fixed-$fixedCode'),
+        enabled: false,
+        initialValue: fixedCode,
+        decoration: InputDecoration(labelText: label, errorText: errorText),
+      );
+    }
+
     switch (widget.kind) {
-      case SellerSubregionKind.none:
-        return const SizedBox.shrink();
       case SellerSubregionKind.us:
         return _IsoDropdown(
           label: label,
@@ -408,18 +450,11 @@ class _SellerSubregionRowState extends State<_SellerSubregionRow> {
           errorText: errorText,
           onChanged: (v) => _writeSeller(v ?? ''),
         );
+      case SellerSubregionKind.none:
       case SellerSubregionKind.australia:
-        return TextField(
-          enabled: false,
-          decoration: InputDecoration(labelText: label, errorText: errorText),
-          controller: TextEditingController(text: 'AU'),
-        );
       case SellerSubregionKind.britain:
-        return TextField(
-          enabled: false,
-          decoration: InputDecoration(labelText: label, errorText: errorText),
-          controller: TextEditingController(text: 'GB'),
-        );
+      case SellerSubregionKind.andorra:
+        return const SizedBox.shrink();
     }
   }
 
@@ -469,10 +504,15 @@ class _IsoDropdown extends StatelessWidget {
 }
 
 class _RegionCard extends StatefulWidget {
-  const _RegionCard({required this.host, required this.regionKey});
+  const _RegionCard({
+    required this.host,
+    required this.regionKey,
+    required this.useComma,
+  });
 
   final SettingsDraftHost host;
   final String regionKey;
+  final bool useComma;
 
   @override
   State<_RegionCard> createState() => _RegionCardState();
@@ -553,6 +593,7 @@ class _RegionCardState extends State<_RegionCard> {
                 subregionKey: entry.key,
                 subregion: entry.value,
                 disabled: region.taxAllSubregions,
+                useComma: widget.useComma,
                 onChanged: (next) => _updateSubregion(entry.key, next),
               ),
           ],
@@ -588,6 +629,7 @@ class _SubregionRow extends StatelessWidget {
     required this.subregionKey,
     required this.subregion,
     required this.disabled,
+    required this.useComma,
     required this.onChanged,
   });
 
@@ -596,6 +638,7 @@ class _SubregionRow extends StatelessWidget {
   final String subregionKey;
   final TaxSubregionApi subregion;
   final bool disabled;
+  final bool useComma;
   final ValueChanged<TaxSubregionApi> onChanged;
 
   /// Server validation errors scoped to this subregion, with the
@@ -614,16 +657,22 @@ class _SubregionRow extends StatelessWidget {
     return out;
   }
 
+  /// Trims a rate for the summary row: `19.0` → `19`, with the company's
+  /// decimal separator. `blankZero: false` keeps a literal `0` (a named
+  /// zero-rated subregion should read "VAT 0%", not "VAT").
+  String _fmt(double v) =>
+      rateInputText(v, useCommaAsDecimalPlace: useComma, blankZero: false);
+
   @override
   Widget build(BuildContext context) {
     final parts = <String>[];
     if (subregion.taxName.isNotEmpty) {
-      parts.add('${subregion.taxName} ${subregion.taxRate}%');
+      parts.add('${subregion.taxName} ${_fmt(subregion.taxRate)}%');
     } else if (subregion.taxRate != 0) {
-      parts.add('${subregion.taxRate}%');
+      parts.add('${_fmt(subregion.taxRate)}%');
     }
     if (subregion.reducedTaxRate != 0) {
-      parts.add('${subregion.reducedTaxRate}%');
+      parts.add('${_fmt(subregion.reducedTaxRate)}%');
     }
     final body = parts.isEmpty ? '—' : parts.join(' • ');
     final scopedErrors = _scopedErrors;
@@ -673,6 +722,7 @@ class _SubregionRow extends StatelessWidget {
                     context,
                     subregionKey: subregionKey,
                     initial: subregion,
+                    useComma: useComma,
                     fieldErrors: scopedErrors.isEmpty ? null : scopedErrors,
                   );
                   if (next != null) onChanged(next);

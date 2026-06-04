@@ -6,6 +6,7 @@ import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/client_repository.dart';
 import 'package:admin/data/services/device_contacts_service.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Drives the Client edit + create screen.
 ///
@@ -135,9 +136,21 @@ class ClientEditViewModel extends GenericEditViewModel<Client> {
       updateDraft(draft.copyWith(routingId: value));
 
   /// Per-client default task rate — a cascade setting stored in `settings`
-  /// (no top-level domain field). Empty string clears the override.
-  void setDefaultTaskRate(String value) =>
-      updateDraft(draft.withCascadeOverride('default_task_rate', value));
+  /// (no top-level domain field). Stored as a **num** (not a string) to match
+  /// the server's `?float default_task_rate` and the admin-portal payload;
+  /// a blank/unparseable value clears the override (inherit from company).
+  void setDefaultTaskRate(String value) {
+    // `zeroIsNull` so a blank field (or a typed 0) clears the override and
+    // inherits, rather than persisting a meaningless 0 task rate.
+    final parsed = parseDouble(value, zeroIsNull: true);
+    final next = Map<String, dynamic>.from(draft.settings ?? const {});
+    if (parsed == null) {
+      next.remove('default_task_rate');
+    } else {
+      next['default_task_rate'] = parsed;
+    }
+    updateDraft(draft.copyWith(settings: next.isEmpty ? null : next));
+  }
 
   void setPrivateNotes(String value) =>
       updateDraft(draft.copyWith(privateNotes: value));

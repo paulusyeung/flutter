@@ -20,6 +20,15 @@ void main() {
       expect(sellerSubregionForCountryId('826'), SellerSubregionKind.britain);
     });
 
+    test(
+      'AD / Andorra (country_id=20) routes to the disabled AD placeholder',
+      () {
+        // React `useCalculateTaxesRegion` lists AD as a supported seller.
+        expect(sellerSubregionForCountryId('20'), SellerSubregionKind.andorra);
+        expect(kCalculateTaxesSupportedCountries.contains('AD'), isTrue);
+      },
+    );
+
     test('null / empty country_id renders no picker', () {
       expect(sellerSubregionForCountryId(null), SellerSubregionKind.none);
       expect(sellerSubregionForCountryId(''), SellerSubregionKind.none);

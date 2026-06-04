@@ -257,7 +257,39 @@ void main() {
           db.outbox,
         )..where((o) => o.id.equals(id))).getSingle();
         expect(row.state, 'pending');
+        // Fix B: the 412 handler upgrades the row (enqueued here with
+        // requiresPassword=false) so the post-prompt retry attaches the
+        // X-API-PASSWORD-BASE64 header.
+        expect(row.requiresPassword, isTrue);
         expect(events.single, isA<PasswordRequiredEvent>());
+      },
+    );
+
+    test(
+      'PasswordRequired upgrade + re-arm lets the retry drain to success',
+      () async {
+        final disp = _ProgrammableDispatcher()
+          ..queueThrow(const PasswordRequiredException())
+          ..queueSuccess();
+        final engine = makeEngine(disp);
+        final id = await enqueueClient(
+          entityId: 'c1',
+          kind: MutationKind.delete,
+        );
+
+        await engine.drainOnce(companyId: 'co');
+        await Future<void>.delayed(Duration.zero);
+        final parked = await rowById(id);
+        expect(parked, isNotNull);
+        expect(parked!.requiresPassword, isTrue);
+        expect(parked.state, 'pending');
+
+        // Simulate the password sheet: the cache is now warm, so re-arming the
+        // parked row + draining attaches the header and the row drains.
+        await engine.retryPasswordRows(companyId: 'co');
+        await Future<void>.delayed(Duration.zero);
+
+        expect(await rowById(id), isNull);
       },
     );
 
