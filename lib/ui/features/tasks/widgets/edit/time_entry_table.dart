@@ -24,11 +24,18 @@ class TimeEntryTable extends StatefulWidget {
     required this.vm,
     required this.locked,
     required this.onAddEntry,
+    this.allowBillable = true,
+    this.showDescription = true,
     this.formatter,
   });
 
   final TaskEditViewModel vm;
   final bool locked;
+
+  /// Company `allow_billable_task_items` — hides the Billable column when
+  /// false. `show_task_item_description` hides the per-row description.
+  final bool allowBillable;
+  final bool showDescription;
 
   /// Called when the trailing "+ Add row" tile is tapped. The parent
   /// section already owns the seed defaults; routing through the same
@@ -87,7 +94,7 @@ class _TimeEntryTableState extends State<TimeEntryTable> {
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Headers(tokens: tokens),
+        _Headers(tokens: tokens, allowBillable: widget.allowBillable),
         Divider(height: 1, color: tokens.border),
         // Empty-state text dropped on wide — with inline `+ Add row` the
         // user just clicks the affordance below instead of reading a
@@ -102,6 +109,8 @@ class _TimeEntryTableState extends State<TimeEntryTable> {
             actualIndex: widget.vm.draft.timeLog.length - 1 - i,
             locked: widget.locked,
             formatter: widget.formatter,
+            allowBillable: widget.allowBillable,
+            showDescription: widget.showDescription,
             // Focus the newest entry's start cell on append. `i == 0` is
             // the newest in the reversed display order.
             autofocusStart: i == 0 && shouldAutoFocus,
@@ -124,8 +133,9 @@ class _TimeEntryTableState extends State<TimeEntryTable> {
 }
 
 class _Headers extends StatelessWidget {
-  const _Headers({required this.tokens});
+  const _Headers({required this.tokens, this.allowBillable = true});
   final InTheme tokens;
+  final bool allowBillable;
 
   Widget _label(
     BuildContext context,
@@ -166,8 +176,10 @@ class _Headers extends StatelessWidget {
           const SizedBox(width: TimeEntryTable._gap),
           _label(context, 'duration', width: TimeEntryTable._wDuration),
           const SizedBox(width: TimeEntryTable._gap),
-          _label(context, 'billable', width: TimeEntryTable._wBillable),
-          const SizedBox(width: TimeEntryTable._gap),
+          if (allowBillable) ...[
+            _label(context, 'billable', width: TimeEntryTable._wBillable),
+            const SizedBox(width: TimeEntryTable._gap),
+          ],
           // Delete column has no header label — the icon is self-evident.
           const SizedBox(width: TimeEntryTable._wDelete),
         ],
@@ -184,6 +196,8 @@ class _EntryBlock extends StatelessWidget {
     required this.actualIndex,
     required this.locked,
     required this.formatter,
+    this.allowBillable = true,
+    this.showDescription = true,
     this.autofocusStart = false,
   });
 
@@ -192,6 +206,8 @@ class _EntryBlock extends StatelessWidget {
   final int actualIndex;
   final bool locked;
   final Formatter? formatter;
+  final bool allowBillable;
+  final bool showDescription;
 
   /// When `true`, the start `_TimeCell` requests focus on its first
   /// build. Set by `_TimeEntryTableState` for the newest row after an
@@ -266,15 +282,17 @@ class _EntryBlock extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: TimeEntryTable._gap),
-                SizedBox(
-                  width: TimeEntryTable._wBillable,
-                  child: _BillableCell(
-                    vm: vm,
-                    entry: entry,
-                    actualIndex: actualIndex,
+                if (allowBillable) ...[
+                  SizedBox(
+                    width: TimeEntryTable._wBillable,
+                    child: _BillableCell(
+                      vm: vm,
+                      entry: entry,
+                      actualIndex: actualIndex,
+                    ),
                   ),
-                ),
-                const SizedBox(width: TimeEntryTable._gap),
+                  const SizedBox(width: TimeEntryTable._gap),
+                ],
                 SizedBox(
                   width: TimeEntryTable._wDelete,
                   child: locked
@@ -283,8 +301,10 @@ class _EntryBlock extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: InSpacing.sm),
-            _DescriptionField(vm: vm, entry: entry, actualIndex: actualIndex),
+            if (showDescription) ...[
+              const SizedBox(height: InSpacing.sm),
+              _DescriptionField(vm: vm, entry: entry, actualIndex: actualIndex),
+            ],
           ],
         ),
       ),

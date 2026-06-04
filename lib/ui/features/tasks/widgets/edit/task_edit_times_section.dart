@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/time_entry.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/tasks/view_models/task_edit_view_model.dart';
@@ -35,13 +38,22 @@ class TaskEditTimesSection extends StatelessWidget {
   /// used to leave a 600–792px band — tablet / iPad portrait — that did).
   static const double _kTableMinWidth = 800;
 
-  Future<void> _openEditor(BuildContext context, int displayIndex) async {
+  Future<void> _openEditor(
+    BuildContext context,
+    int displayIndex, {
+    required bool allowBillable,
+    required bool showEndDate,
+    required bool showItemDescription,
+  }) async {
     final entries = vm.draft.timeLog;
     final actualIndex = entries.length - 1 - displayIndex;
     final result = await TimeEntryEditorSheet.show(
       context,
       initial: entries[actualIndex],
       formatter: formatter,
+      allowBillableToggle: allowBillable,
+      showEndDate: showEndDate,
+      showItemDescription: showItemDescription,
     );
     if (result == null) return;
     if (TimeEntryEditorSheet.isRemoveSignal(result)) {
@@ -54,7 +66,12 @@ class TaskEditTimesSection extends StatelessWidget {
   /// Mobile: open the editor sheet so the user can edit a fresh entry on
   /// a full-screen surface. Tiny inline cells aren't usable on small
   /// viewports.
-  Future<void> _addEntryViaSheet(BuildContext context) async {
+  Future<void> _addEntryViaSheet(
+    BuildContext context, {
+    required bool allowBillable,
+    required bool showEndDate,
+    required bool showItemDescription,
+  }) async {
     final result = await TimeEntryEditorSheet.show(
       context,
       initial: TimeEntry(
@@ -62,6 +79,9 @@ class TaskEditTimesSection extends StatelessWidget {
         stop: DateTime.now(),
       ),
       formatter: formatter,
+      allowBillableToggle: allowBillable,
+      showEndDate: showEndDate,
+      showItemDescription: showItemDescription,
     );
     if (result == null) return;
     if (TimeEntryEditorSheet.isRemoveSignal(result)) return;
@@ -117,124 +137,155 @@ class TaskEditTimesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    final entries = vm.draft.timeLog.reversed.toList(growable: false);
-    return Container(
-      decoration: BoxDecoration(
-        color: tokens.surface,
-        border: Border.all(color: tokens.border),
-        borderRadius: BorderRadius.circular(InRadii.r3),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          // Gate the desktop table on its real minimum width, not the
-          // generic 600px breakpoint — below it the mobile row list renders.
-          final wide = constraints.maxWidth >= _kTableMinWidth;
-          // Phones: collapse the header actions to icon-only so the title +
-          // live total + two buttons don't overflow the header Row.
-          final compact = constraints.maxWidth < 480;
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Header — same on both layouts; only the "add" action's
-              // entry point differs (inline on desktop, modal sheet on
-              // mobile). `InSpacing.lg(context)` matches the canonical card-
-              // interior padding documented in CLAUDE.md § Design
-              // system (v2) — same inset as `FormSection`,
-              // `DashboardCardShell`, and the identity card above.
-              Padding(
-                padding: EdgeInsets.all(InSpacing.lg(context)),
-                child: Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        context.tr('time_log').toUpperCase(),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: tokens.ink3,
-                          letterSpacing: 0.4,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: InSpacing.md(context)),
-                    // Live wall-clock total — ticks every second when an
-                    // entry is running, otherwise renders statically.
-                    TaskTotalDurationLabel(vm: vm),
-                    const Spacer(),
-                    if (!locked) ...[
-                      // Per-call minimumSize override: lib/app/theme.dart
-                      // sets `Size.fromHeight(40)` on OutlinedButton which
-                      // is `Size(double.infinity, 40)` — fine in a column,
-                      // fatal in this Row. Same story for the
-                      // FilledButton.tonalIcon returned by `_timerButton`.
-                      // See CLAUDE.md § Design system (v2) "Default to
-                      // side-by-side dialog actions" for the verbatim rule.
-                      if (compact)
-                        IconButton(
-                          tooltip: context.tr('add_time'),
-                          icon: const Icon(Icons.add),
-                          onPressed: wide
-                              ? _addEntryInline
-                              : () => _addEntryViaSheet(context),
-                        )
-                      else
-                        OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(64, 40),
+    final services = context.read<Services>();
+    return StreamBuilder<Company?>(
+      stream: services.company.watchCompany(vm.companyId),
+      builder: (context, companySnap) {
+        final company = companySnap.data;
+        // `show_task_end_date` defaults false (admin-portal parity: start +
+        // duration, no explicit stop date); the others default to showing.
+        final allowBillable = company?.settings.allowBillableTaskItems ?? true;
+        final showEndDate = company?.showTaskEndDate ?? false;
+        final showItemDescription =
+            company?.settings.showTaskItemDescription ?? true;
+        final tokens = context.inTheme;
+        final entries = vm.draft.timeLog.reversed.toList(growable: false);
+        return Container(
+          decoration: BoxDecoration(
+            color: tokens.surface,
+            border: Border.all(color: tokens.border),
+            borderRadius: BorderRadius.circular(InRadii.r3),
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Gate the desktop table on its real minimum width, not the
+              // generic 600px breakpoint — below it the mobile row list renders.
+              final wide = constraints.maxWidth >= _kTableMinWidth;
+              // Phones: collapse the header actions to icon-only so the title +
+              // live total + two buttons don't overflow the header Row.
+              final compact = constraints.maxWidth < 480;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Header — same on both layouts; only the "add" action's
+                  // entry point differs (inline on desktop, modal sheet on
+                  // mobile). `InSpacing.lg(context)` matches the canonical card-
+                  // interior padding documented in CLAUDE.md § Design
+                  // system (v2) — same inset as `FormSection`,
+                  // `DashboardCardShell`, and the identity card above.
+                  Padding(
+                    padding: EdgeInsets.all(InSpacing.lg(context)),
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            context.tr('time_log').toUpperCase(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: tokens.ink3,
+                              letterSpacing: 0.4,
+                            ),
                           ),
-                          icon: const Icon(Icons.add, size: 16),
-                          label: Text(context.tr('add_time')),
-                          onPressed: wide
-                              ? _addEntryInline
-                              : () => _addEntryViaSheet(context),
                         ),
-                      const SizedBox(width: InSpacing.sm),
-                      _timerButton(context, compact: compact),
-                    ],
-                  ],
-                ),
-              ),
-              Divider(height: 1, color: tokens.border),
-              // Pick between the desktop table and the mobile card list.
-              if (wide)
-                TimeEntryTable(
-                  vm: vm,
-                  locked: locked,
-                  formatter: formatter,
-                  onAddEntry: _addEntryInline,
-                )
-              else if (entries.isEmpty)
-                Padding(
-                  padding: EdgeInsets.all(InSpacing.lg(context)),
-                  child: Center(
-                    child: Text(
-                      context.tr('no_entries'),
-                      style: TextStyle(color: tokens.ink3),
+                        SizedBox(width: InSpacing.md(context)),
+                        // Live wall-clock total — ticks every second when an
+                        // entry is running, otherwise renders statically.
+                        TaskTotalDurationLabel(vm: vm),
+                        const Spacer(),
+                        if (!locked) ...[
+                          // Per-call minimumSize override: lib/app/theme.dart
+                          // sets `Size.fromHeight(40)` on OutlinedButton which
+                          // is `Size(double.infinity, 40)` — fine in a column,
+                          // fatal in this Row. Same story for the
+                          // FilledButton.tonalIcon returned by `_timerButton`.
+                          // See CLAUDE.md § Design system (v2) "Default to
+                          // side-by-side dialog actions" for the verbatim rule.
+                          if (compact)
+                            IconButton(
+                              tooltip: context.tr('add_time'),
+                              icon: const Icon(Icons.add),
+                              onPressed: wide
+                                  ? _addEntryInline
+                                  : () => _addEntryViaSheet(
+                                      context,
+                                      allowBillable: allowBillable,
+                                      showEndDate: showEndDate,
+                                      showItemDescription: showItemDescription,
+                                    ),
+                            )
+                          else
+                            OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(64, 40),
+                              ),
+                              icon: const Icon(Icons.add, size: 16),
+                              label: Text(context.tr('add_time')),
+                              onPressed: wide
+                                  ? _addEntryInline
+                                  : () => _addEntryViaSheet(
+                                      context,
+                                      allowBillable: allowBillable,
+                                      showEndDate: showEndDate,
+                                      showItemDescription: showItemDescription,
+                                    ),
+                            ),
+                          const SizedBox(width: InSpacing.sm),
+                          _timerButton(context, compact: compact),
+                        ],
+                      ],
                     ),
                   ),
-                )
-              else
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (var i = 0; i < entries.length; i++)
-                      TimeEntryRow(
-                        entry: entries[i],
-                        enabled: !locked,
-                        formatter: formatter,
-                        onTap: () => _openEditor(context, i),
-                        onRemove: () =>
-                            vm.removeEntry(vm.draft.timeLog.length - 1 - i),
+                  Divider(height: 1, color: tokens.border),
+                  // Pick between the desktop table and the mobile card list.
+                  if (wide)
+                    TimeEntryTable(
+                      vm: vm,
+                      locked: locked,
+                      formatter: formatter,
+                      onAddEntry: _addEntryInline,
+                      allowBillable: allowBillable,
+                      showDescription: showItemDescription,
+                    )
+                  else if (entries.isEmpty)
+                    Padding(
+                      padding: EdgeInsets.all(InSpacing.lg(context)),
+                      child: Center(
+                        child: Text(
+                          context.tr('no_entries'),
+                          style: TextStyle(color: tokens.ink3),
+                        ),
                       ),
-                  ],
-                ),
-            ],
-          );
-        },
-      ),
+                    )
+                  else
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (var i = 0; i < entries.length; i++)
+                          TimeEntryRow(
+                            entry: entries[i],
+                            enabled: !locked,
+                            formatter: formatter,
+                            onTap: () => _openEditor(
+                              context,
+                              i,
+                              allowBillable: allowBillable,
+                              showEndDate: showEndDate,
+                              showItemDescription: showItemDescription,
+                            ),
+                            onRemove: () =>
+                                vm.removeEntry(vm.draft.timeLog.length - 1 - i),
+                          ),
+                      ],
+                    ),
+                ],
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

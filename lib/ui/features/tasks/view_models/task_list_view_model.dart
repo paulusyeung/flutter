@@ -107,11 +107,25 @@ class TaskListViewModel extends GenericListViewModel<Task> {
   Future<void> refreshAll() => repo.refreshAll(companyId: companyId);
 
   @override
-  Iterable<BulkAction<Task>> get bulkActions => standardCrudBulkActions(
-    isArchived: isArchived,
-    isDeleted: isDeleted,
-    archive: (id) => repo.archive(companyId: companyId, id: id),
-    restore: (id) => repo.restore(companyId: companyId, id: id),
-    delete: (id) => repo.delete(companyId: companyId, id: id),
-  );
+  Iterable<BulkAction<Task>> get bulkActions => [
+    BulkAction<Task>(
+      id: 'start',
+      labelKey: 'start',
+      eligible: (t) => !t.isRunning && !t.isInvoiced && !t.isDeleted,
+      apply: (id) => repo.startTimer(companyId: companyId, taskId: id),
+    ),
+    BulkAction<Task>(
+      id: 'stop',
+      labelKey: 'stop',
+      eligible: (t) => t.isRunning && !t.isDeleted,
+      apply: (id) => repo.stopRunningTimer(companyId: companyId, taskId: id),
+    ),
+    ...standardCrudBulkActions(
+      isArchived: isArchived,
+      isDeleted: isDeleted,
+      archive: (id) => repo.archive(companyId: companyId, id: id),
+      restore: (id) => repo.restore(companyId: companyId, id: id),
+      delete: (id) => repo.delete(companyId: companyId, id: id),
+    ),
+  ];
 }

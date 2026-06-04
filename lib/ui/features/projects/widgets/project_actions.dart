@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
@@ -16,6 +17,7 @@ import 'package:admin/ui/features/expenses/view_models/expense_edit_view_model.d
 import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
 import 'package:admin/ui/features/quotes/view_models/quote_edit_view_model.dart';
+import 'package:admin/utils/url_safety.dart';
 
 /// Action set surfaced for a project. Mirrors `ProductAction` — all
 /// branches are wired.
@@ -316,6 +318,84 @@ class ProjectActions {
         );
         if (!context.mounted) return;
         Notify.success(context, context.tr('template_queued'));
+    }
+  }
+
+  /// Bulk "Invoice Project(s)": aggregate every selected project's billable
+  /// tasks + pending expenses into ONE pre-filled invoice. Mirrors
+  /// admin-portal — all selected projects must share a single client, else it
+  /// errors. Reuses [projectInvoiceLineItems]; navigates to the invoice create
+  /// screen with the line items seeded.
+  static Future<void> invoiceProjects(
+    BuildContext context,
+    Services services,
+    String companyId,
+    List<Project> projects,
+  ) async {
+    final usable = projects
+        .where((p) => !p.id.startsWith('tmp_') && !p.isDeleted)
+        .toList();
+    if (usable.isEmpty) {
+      Notify.info(context, context.tr('no_billable_tasks'));
+      return;
+    }
+    // Single-client constraint (matches admin-portal's multi-select invoice).
+    final clientIds = usable
+        .map((p) => p.clientId)
+        .where((c) => c.isNotEmpty)
+        .toSet();
+    if (clientIds.length > 1) {
+      Notify.error(context, context.tr('multiple_client_error'));
+      return;
+    }
+    final lineItems = [
+      for (final p in usable)
+        ...projectInvoiceLineItems(
+          tasks: await services.tasks
+              .watchForProject(companyId: companyId, projectId: p.id)
+              .first,
+          expenses: await services.expenses
+              .watchForProject(companyId: companyId, projectId: p.id)
+              .first,
+        ),
+    ];
+    if (!context.mounted) return;
+    if (lineItems.isEmpty) {
+      Notify.info(context, context.tr('no_billable_tasks'));
+      return;
+    }
+    goEntityCreateFullWidth(
+      context,
+      '/invoices',
+      extra: emptyInvoice().copyWith(
+        clientId: clientIds.isEmpty ? '' : clientIds.first,
+        // Carry the project link only when invoicing a single project.
+        projectId: usable.length == 1 ? usable.first.id : '',
+        lineItems: lineItems,
+      ),
+    );
+  }
+
+  /// Bulk "Download Documents": open every document attached to the selected
+  /// projects via the OS handler — the same per-document mechanism the
+  /// Documents tab uses (the server URL is directly launchable). There's no
+  /// server-side zip, so each document opens individually. Toasts when the
+  /// selection has no documents.
+  static Future<void> downloadDocuments(
+    BuildContext context,
+    List<Project> projects,
+  ) async {
+    final urls = <String>[
+      for (final p in projects)
+        for (final d in p.documents)
+          if (isSafeHttpsUrl(d.url)) d.url,
+    ];
+    if (urls.isEmpty) {
+      Notify.info(context, context.tr('no_documents_to_download'));
+      return;
+    }
+    for (final url in urls) {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     }
   }
 }

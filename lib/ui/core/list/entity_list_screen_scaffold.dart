@@ -159,6 +159,7 @@ class EntityListBulkAction {
     required this.nothingKey,
     String? labelKey,
     this.prepare,
+    this.onSelection,
   }) : labelKey = labelKey ?? tooltipKey;
 
   /// Must match a `BulkAction.id` registered on `vm.bulkActions`. Stable
@@ -185,6 +186,17 @@ class EntityListBulkAction {
 
   /// Locale key shown when no eligible rows were affected (`nothing_to_archive`).
   final String nothingKey;
+
+  /// Selection-level handler — receives the whole eligible selection at once
+  /// instead of the per-id loop. For aggregate / navigating / download actions
+  /// that don't fit a per-id mutation (e.g. "Invoice Project(s)" → one
+  /// pre-filled invoice; "Download Documents"). When set, the scaffold calls
+  /// this and skips the per-id `apply` path; the matching `BulkAction` still
+  /// supplies `eligible` (so the empty-selection guard works) and may use a
+  /// no-op `apply`. Items arrive as `List<Object?>` (covariant) — cast to the
+  /// entity type in the handler.
+  final Future<void> Function(BuildContext context, List<Object?> selected)?
+  onSelection;
 }
 
 // ─── Scaffold ────────────────────────────────────────────────────────────
@@ -532,6 +544,14 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
     // walking the user through a compose/picker dialog only to no-op after.
     if (_vm.countEligibleSelected(bulk) == 0) {
       Notify.info(context, context.tr(action.nothingKey));
+      return;
+    }
+
+    // Selection-level action (aggregate / navigate / download): hand the whole
+    // eligible selection to the screen's handler and skip the per-id loop.
+    if (action.onSelection != null) {
+      final selected = _vm.selectedItems.where(bulk.eligible).toList();
+      await action.onSelection!(context, selected);
       return;
     }
 

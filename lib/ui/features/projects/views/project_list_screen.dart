@@ -108,8 +108,8 @@ class ProjectListScreen extends StatelessWidget {
                 ),
         );
       },
-      bulkActions: const [
-        EntityListBulkAction(
+      bulkActions: [
+        const EntityListBulkAction(
           actionId: 'archive',
           icon: Icons.archive_outlined,
           tooltipKey: 'archive',
@@ -117,7 +117,7 @@ class ProjectListScreen extends StatelessWidget {
           pluralSuccessKey: 'archived_projects',
           nothingKey: 'nothing_to_archive',
         ),
-        EntityListBulkAction(
+        const EntityListBulkAction(
           actionId: 'restore',
           icon: Icons.unarchive_outlined,
           tooltipKey: 'restore',
@@ -125,13 +125,42 @@ class ProjectListScreen extends StatelessWidget {
           pluralSuccessKey: 'restored_projects',
           nothingKey: 'nothing_to_restore',
         ),
-        EntityListBulkAction(
+        const EntityListBulkAction(
           actionId: 'delete',
           icon: Icons.delete_outline,
           tooltipKey: 'delete',
           singleSuccessKey: 'deleted_project',
           pluralSuccessKey: 'deleted_projects',
           nothingKey: 'nothing_to_delete',
+        ),
+        // Selection-level actions (handled by `onSelection`, not the per-id
+        // loop). companyId comes from the session at call time.
+        EntityListBulkAction(
+          actionId: 'invoice_project',
+          icon: Icons.outbox_outlined,
+          tooltipKey: 'invoice_project',
+          singleSuccessKey: 'invoice_project',
+          pluralSuccessKey: 'invoice_project',
+          nothingKey: 'nothing_to_invoice',
+          onSelection: (ctx, sel) {
+            final services = ctx.read<Services>();
+            return ProjectActions.invoiceProjects(
+              ctx,
+              services,
+              services.auth.session.value!.currentCompanyId,
+              sel.cast<Project>(),
+            );
+          },
+        ),
+        EntityListBulkAction(
+          actionId: 'download_documents',
+          icon: Icons.download_outlined,
+          tooltipKey: 'download_documents',
+          singleSuccessKey: 'documents',
+          pluralSuccessKey: 'documents',
+          nothingKey: 'no_documents_to_download',
+          onSelection: (ctx, sel) =>
+              ProjectActions.downloadDocuments(ctx, sel.cast<Project>()),
         ),
       ],
     );

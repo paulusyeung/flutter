@@ -96,11 +96,29 @@ class ProjectListViewModel extends GenericListViewModel<Project> {
   Future<void> refreshAll() => repo.refreshAll(companyId: companyId);
 
   @override
-  Iterable<BulkAction<Project>> get bulkActions => standardCrudBulkActions(
-    isArchived: isArchived,
-    isDeleted: isDeleted,
-    archive: (id) => repo.archive(companyId: companyId, id: id),
-    restore: (id) => repo.restore(companyId: companyId, id: id),
-    delete: (id) => repo.delete(companyId: companyId, id: id),
-  );
+  Iterable<BulkAction<Project>> get bulkActions => [
+    ...standardCrudBulkActions(
+      isArchived: isArchived,
+      isDeleted: isDeleted,
+      archive: (id) => repo.archive(companyId: companyId, id: id),
+      restore: (id) => repo.restore(companyId: companyId, id: id),
+      delete: (id) => repo.delete(companyId: companyId, id: id),
+    ),
+    // Selection-level actions: the per-id `apply` is a deliberate no-op — the
+    // screen's `EntityListBulkAction.onSelection` does the real work (aggregate
+    // invoice / open documents). `eligible` still drives the empty-selection
+    // guard and the eligible-count passed to the handler.
+    BulkAction<Project>(
+      id: 'invoice_project',
+      labelKey: 'invoice_project',
+      eligible: (p) => !p.isDeleted && !p.id.startsWith('tmp_'),
+      apply: (_) async {},
+    ),
+    BulkAction<Project>(
+      id: 'download_documents',
+      labelKey: 'documents',
+      eligible: (p) => p.documents.isNotEmpty,
+      apply: (_) async {},
+    ),
+  ];
 }

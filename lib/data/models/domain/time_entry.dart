@@ -63,7 +63,15 @@ abstract class TimeEntry with _$TimeEntry {
         dt == null ? 0 : dt.millisecondsSinceEpoch ~/ 1000;
     final raw = <List<dynamic>>[
       for (final e in entries)
-        [dtToSeconds(e.start), dtToSeconds(e.stop), e.description, e.billable],
+        // Skip a transient entry with no start yet — encoding it as epoch 0
+        // (1970) would persist a bogus row the server may reject.
+        if (e.start != null)
+          [
+            dtToSeconds(e.start),
+            dtToSeconds(e.stop),
+            e.description,
+            e.billable,
+          ],
     ];
     return jsonEncode(raw);
   }

@@ -24,6 +24,7 @@ class Tasks extends Table
         EntityTimestampColumns,
         EntityCustomValueColumns,
         EntityFlagColumns,
+        EntityDocumentsColumn,
         EntityPayloadColumn {
   TextColumn get taskNumber =>
       text().named('task_number').withDefault(const Constant(''))();

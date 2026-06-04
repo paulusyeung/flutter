@@ -15883,6 +15883,17 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _documentsMeta = const VerificationMeta(
+    'documents',
+  );
+  @override
+  late final GeneratedColumn<String> documents = GeneratedColumn<String>(
+    'documents',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _payloadMeta = const VerificationMeta(
     'payload',
   );
@@ -16017,6 +16028,7 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
     customValue4,
     isDirty,
     isDeleted,
+    documents,
     payload,
     taskNumber,
     description,
@@ -16125,6 +16137,12 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
       context.handle(
         _isDeletedMeta,
         isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('documents')) {
+      context.handle(
+        _documentsMeta,
+        documents.isAcceptableOrUnknown(data['documents']!, _documentsMeta),
       );
     }
     if (data.containsKey('payload')) {
@@ -16255,6 +16273,10 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_deleted'],
       )!,
+      documents: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}documents'],
+      ),
       payload: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}payload'],
@@ -16317,6 +16339,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
   final String customValue4;
   final bool isDirty;
   final bool isDeleted;
+  final String? documents;
   final String payload;
   final String taskNumber;
   final String description;
@@ -16340,6 +16363,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     required this.customValue4,
     required this.isDirty,
     required this.isDeleted,
+    this.documents,
     required this.payload,
     required this.taskNumber,
     required this.description,
@@ -16370,6 +16394,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     map['custom_value4'] = Variable<String>(customValue4);
     map['is_dirty'] = Variable<bool>(isDirty);
     map['is_deleted'] = Variable<bool>(isDeleted);
+    if (!nullToAbsent || documents != null) {
+      map['documents'] = Variable<String>(documents);
+    }
     map['payload'] = Variable<String>(payload);
     map['task_number'] = Variable<String>(taskNumber);
     map['description'] = Variable<String>(description);
@@ -16401,6 +16428,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       customValue4: Value(customValue4),
       isDirty: Value(isDirty),
       isDeleted: Value(isDeleted),
+      documents: documents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(documents),
       payload: Value(payload),
       taskNumber: Value(taskNumber),
       description: Value(description),
@@ -16432,6 +16462,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       customValue4: serializer.fromJson<String>(json['customValue4']),
       isDirty: serializer.fromJson<bool>(json['isDirty']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      documents: serializer.fromJson<String?>(json['documents']),
       payload: serializer.fromJson<String>(json['payload']),
       taskNumber: serializer.fromJson<String>(json['taskNumber']),
       description: serializer.fromJson<String>(json['description']),
@@ -16460,6 +16491,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       'customValue4': serializer.toJson<String>(customValue4),
       'isDirty': serializer.toJson<bool>(isDirty),
       'isDeleted': serializer.toJson<bool>(isDeleted),
+      'documents': serializer.toJson<String?>(documents),
       'payload': serializer.toJson<String>(payload),
       'taskNumber': serializer.toJson<String>(taskNumber),
       'description': serializer.toJson<String>(description),
@@ -16486,6 +16518,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     String? customValue4,
     bool? isDirty,
     bool? isDeleted,
+    Value<String?> documents = const Value.absent(),
     String? payload,
     String? taskNumber,
     String? description,
@@ -16509,6 +16542,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     customValue4: customValue4 ?? this.customValue4,
     isDirty: isDirty ?? this.isDirty,
     isDeleted: isDeleted ?? this.isDeleted,
+    documents: documents.present ? documents.value : this.documents,
     payload: payload ?? this.payload,
     taskNumber: taskNumber ?? this.taskNumber,
     description: description ?? this.description,
@@ -16544,6 +16578,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           : this.customValue4,
       isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      documents: data.documents.present ? data.documents.value : this.documents,
       payload: data.payload.present ? data.payload.value : this.payload,
       taskNumber: data.taskNumber.present
           ? data.taskNumber.value
@@ -16580,6 +16615,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           ..write('customValue4: $customValue4, ')
           ..write('isDirty: $isDirty, ')
           ..write('isDeleted: $isDeleted, ')
+          ..write('documents: $documents, ')
           ..write('payload: $payload, ')
           ..write('taskNumber: $taskNumber, ')
           ..write('description: $description, ')
@@ -16608,6 +16644,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     customValue4,
     isDirty,
     isDeleted,
+    documents,
     payload,
     taskNumber,
     description,
@@ -16635,6 +16672,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           other.customValue4 == this.customValue4 &&
           other.isDirty == this.isDirty &&
           other.isDeleted == this.isDeleted &&
+          other.documents == this.documents &&
           other.payload == this.payload &&
           other.taskNumber == this.taskNumber &&
           other.description == this.description &&
@@ -16660,6 +16698,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
   final Value<String> customValue4;
   final Value<bool> isDirty;
   final Value<bool> isDeleted;
+  final Value<String?> documents;
   final Value<String> payload;
   final Value<String> taskNumber;
   final Value<String> description;
@@ -16684,6 +16723,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     this.customValue4 = const Value.absent(),
     this.isDirty = const Value.absent(),
     this.isDeleted = const Value.absent(),
+    this.documents = const Value.absent(),
     this.payload = const Value.absent(),
     this.taskNumber = const Value.absent(),
     this.description = const Value.absent(),
@@ -16709,6 +16749,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     this.customValue4 = const Value.absent(),
     this.isDirty = const Value.absent(),
     this.isDeleted = const Value.absent(),
+    this.documents = const Value.absent(),
     required String payload,
     this.taskNumber = const Value.absent(),
     this.description = const Value.absent(),
@@ -16737,6 +16778,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     Expression<String>? customValue4,
     Expression<bool>? isDirty,
     Expression<bool>? isDeleted,
+    Expression<String>? documents,
     Expression<String>? payload,
     Expression<String>? taskNumber,
     Expression<String>? description,
@@ -16762,6 +16804,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
       if (customValue4 != null) 'custom_value4': customValue4,
       if (isDirty != null) 'is_dirty': isDirty,
       if (isDeleted != null) 'is_deleted': isDeleted,
+      if (documents != null) 'documents': documents,
       if (payload != null) 'payload': payload,
       if (taskNumber != null) 'task_number': taskNumber,
       if (description != null) 'description': description,
@@ -16789,6 +16832,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     Value<String>? customValue4,
     Value<bool>? isDirty,
     Value<bool>? isDeleted,
+    Value<String?>? documents,
     Value<String>? payload,
     Value<String>? taskNumber,
     Value<String>? description,
@@ -16814,6 +16858,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
       customValue4: customValue4 ?? this.customValue4,
       isDirty: isDirty ?? this.isDirty,
       isDeleted: isDeleted ?? this.isDeleted,
+      documents: documents ?? this.documents,
       payload: payload ?? this.payload,
       taskNumber: taskNumber ?? this.taskNumber,
       description: description ?? this.description,
@@ -16867,6 +16912,9 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     if (isDeleted.present) {
       map['is_deleted'] = Variable<bool>(isDeleted.value);
     }
+    if (documents.present) {
+      map['documents'] = Variable<String>(documents.value);
+    }
     if (payload.present) {
       map['payload'] = Variable<String>(payload.value);
     }
@@ -16918,6 +16966,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
           ..write('customValue4: $customValue4, ')
           ..write('isDirty: $isDirty, ')
           ..write('isDeleted: $isDeleted, ')
+          ..write('documents: $documents, ')
           ..write('payload: $payload, ')
           ..write('taskNumber: $taskNumber, ')
           ..write('description: $description, ')
@@ -50256,6 +50305,7 @@ typedef $$TasksTableCreateCompanionBuilder =
       Value<String> customValue4,
       Value<bool> isDirty,
       Value<bool> isDeleted,
+      Value<String?> documents,
       required String payload,
       Value<String> taskNumber,
       Value<String> description,
@@ -50282,6 +50332,7 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<String> customValue4,
       Value<bool> isDirty,
       Value<bool> isDeleted,
+      Value<String?> documents,
       Value<String> payload,
       Value<String> taskNumber,
       Value<String> description,
@@ -50360,6 +50411,11 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
 
   ColumnFilters<bool> get isDeleted => $composableBuilder(
     column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get documents => $composableBuilder(
+    column: $table.documents,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -50483,6 +50539,11 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get documents => $composableBuilder(
+    column: $table.documents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get payload => $composableBuilder(
     column: $table.payload,
     builder: (column) => ColumnOrderings(column),
@@ -50589,6 +50650,9 @@ class $$TasksTableAnnotationComposer
   GeneratedColumn<bool> get isDeleted =>
       $composableBuilder(column: $table.isDeleted, builder: (column) => column);
 
+  GeneratedColumn<String> get documents =>
+      $composableBuilder(column: $table.documents, builder: (column) => column);
+
   GeneratedColumn<String> get payload =>
       $composableBuilder(column: $table.payload, builder: (column) => column);
 
@@ -50668,6 +50732,7 @@ class $$TasksTableTableManager
                 Value<String> customValue4 = const Value.absent(),
                 Value<bool> isDirty = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
+                Value<String?> documents = const Value.absent(),
                 Value<String> payload = const Value.absent(),
                 Value<String> taskNumber = const Value.absent(),
                 Value<String> description = const Value.absent(),
@@ -50692,6 +50757,7 @@ class $$TasksTableTableManager
                 customValue4: customValue4,
                 isDirty: isDirty,
                 isDeleted: isDeleted,
+                documents: documents,
                 payload: payload,
                 taskNumber: taskNumber,
                 description: description,
@@ -50718,6 +50784,7 @@ class $$TasksTableTableManager
                 Value<String> customValue4 = const Value.absent(),
                 Value<bool> isDirty = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
+                Value<String?> documents = const Value.absent(),
                 required String payload,
                 Value<String> taskNumber = const Value.absent(),
                 Value<String> description = const Value.absent(),
@@ -50742,6 +50809,7 @@ class $$TasksTableTableManager
                 customValue4: customValue4,
                 isDirty: isDirty,
                 isDeleted: isDeleted,
+                documents: documents,
                 payload: payload,
                 taskNumber: taskNumber,
                 description: description,

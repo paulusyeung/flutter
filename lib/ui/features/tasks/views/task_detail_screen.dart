@@ -5,9 +5,12 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/build_standard_documents_tab.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
+import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
+import 'package:admin/ui/features/billing_shared/activity/billing_doc_activity_tab.dart';
 import 'package:admin/ui/features/tasks/view_models/task_detail_view_model.dart';
 import 'package:admin/ui/features/tasks/widgets/detail/task_detail_cards_grid.dart';
 import 'package:admin/ui/features/tasks/widgets/detail/task_detail_header.dart';
@@ -67,12 +70,48 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
             children: [
               TaskDetailHeader(task: t, formatter: formatter),
               const SizedBox(height: InSpacing.xl),
-              TaskDetailKpiStrip(task: t, formatter: formatter),
-              SizedBox(height: InSpacing.md(context)),
-              TaskDetailCardsGrid(
-                task: t,
-                companyId: _companyId,
-                formatter: formatter,
+              EntityDetailTabs(
+                tabs: [
+                  EntityDetailTab(
+                    label: context.tr('overview'),
+                    icon: Icons.dashboard_outlined,
+                    bodyBuilder: (_) => Padding(
+                      padding: EdgeInsets.all(InSpacing.lg(context)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TaskDetailKpiStrip(task: t, formatter: formatter),
+                          SizedBox(height: InSpacing.md(context)),
+                          TaskDetailCardsGrid(
+                            task: t,
+                            companyId: _companyId,
+                            formatter: formatter,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  buildStandardDocumentsTab(
+                    context: context,
+                    companyId: _companyId,
+                    entityId: t.id,
+                    documents: t.documents,
+                    repo: _services.tasks,
+                    formatter: formatter,
+                  ),
+                  EntityDetailTab(
+                    label: context.tr('activity'),
+                    icon: Icons.history_outlined,
+                    bodyBuilder: (_) => BillingDocActivityTab(
+                      entityWireName: 'task',
+                      entityId: t.id,
+                      companyId: _companyId,
+                      activitiesApi: _services.activities,
+                      outboxDao: _services.db.outboxDao,
+                      formatter: formatter,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

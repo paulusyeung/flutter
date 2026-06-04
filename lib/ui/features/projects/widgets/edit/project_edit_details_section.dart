@@ -94,7 +94,16 @@ class _ClientPicker extends StatelessWidget {
               ? (c.name.isEmpty ? c.id : c.name)
               : c.displayName,
           idOf: (c) => c.id,
-          onChanged: (c) => vm.setClientId(c?.id ?? ''),
+          onChanged: (c) {
+            vm.setClientId(c?.id ?? '');
+            // Apply the client's default task rate when one is set (React's
+            // client resolver). Leaves the existing rate untouched otherwise.
+            final raw = c?.settings?['default_task_rate'];
+            final rate = raw is num ? raw.toDouble() : null;
+            if (rate != null && rate > 0) {
+              vm.setTaskRate(rate.toString());
+            }
+          },
           errorText: vm.fieldErrorFor('client_id'),
         );
       },

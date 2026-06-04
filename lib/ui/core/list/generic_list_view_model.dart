@@ -1116,6 +1116,12 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   int get countSelected => _selectedIds.length;
   bool isSelected(String id) => _selectedIds.contains(id);
 
+  /// Snapshot of the currently-selected items, in list order. Backs
+  /// selection-level bulk actions (`EntityListBulkAction.onSelection`) that
+  /// operate on the whole selection at once instead of the per-id loop.
+  List<T> get selectedItems =>
+      _items.where((i) => _selectedIds.contains(idOf(i))).toList();
+
   bool _bulkInFlight = false;
   bool get bulkInFlight => _bulkInFlight;
 

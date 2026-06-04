@@ -6,10 +6,10 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/company_gateway.dart';
-import 'package:admin/domain/gateway_constants.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Three info cards for the CompanyGateway detail screen body:
 ///   1. Overview — label / provider / test mode / token billing.
@@ -47,8 +47,9 @@ class _OverviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final statics = context.read<Services>().statics;
-    final providerName =
-        statics.gateway(gateway.gatewayKey)?.name ?? context.tr('custom');
+    final provider = statics.gateway(gateway.gatewayKey);
+    final providerName = provider?.name ?? context.tr('custom');
+    final events = provider?.supportedEvents() ?? const <String>[];
     return FormSection(
       title: context.tr('overview'),
       spacing: 0,
@@ -67,7 +68,38 @@ class _OverviewCard extends StatelessWidget {
           value: context.tr(gateway.tokenBilling),
         ),
         _WebhookRow(gateway: gateway, companyId: companyId),
+        if (events.isNotEmpty) _SupportedEvents(events: events),
       ],
+    );
+  }
+}
+
+/// Webhook events the selected provider emits, listed under the webhook URL.
+/// Mirrors admin-portal's gateway view. Hidden when the provider declares none.
+class _SupportedEvents extends StatelessWidget {
+  const _SupportedEvents({required this.events});
+  final List<String> events;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: InSpacing.xs),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.tr('supported_events'),
+            style: TextStyle(color: tokens.ink3),
+          ),
+          const SizedBox(height: 2),
+          for (final event in events)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(event, style: TextStyle(color: tokens.ink)),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -93,7 +125,10 @@ class _WebhookRow extends StatelessWidget {
       builder: (context, snap) {
         final key = snap.data?.companyKey ?? '';
         if (key.isEmpty) return const SizedBox.shrink();
-        final url = '$baseUrl/payment_webhook/$key/${gateway.id}';
+        // `cleanApiUrl` strips a trailing slash / `/api/v1` so a self-hosted
+        // base URL composes a valid webhook route (it isn't under /api/v1).
+        final url =
+            '${cleanApiUrl(baseUrl)}/payment_webhook/$key/${gateway.id}';
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: InSpacing.xs),
           child: Column(
@@ -189,39 +224,19 @@ class _AcceptedTypesCard extends StatelessWidget {
         enabledTypes.add(type == null ? typeId : context.tr(type.name));
       }
     });
-    final cards = <Widget>[
-      for (final bit in kCardTypeBits)
-        if (gateway.supportsCard(bit))
-          Chip(label: Text(context.tr(kCardTypeLabelKey[bit] ?? 'card'))),
-    ];
     return FormSection(
       title: context.tr('payment_methods'),
       children: [
-        if (enabledTypes.isEmpty && cards.isEmpty)
+        if (enabledTypes.isEmpty)
           Text(context.tr('no_payment_types_enabled'))
-        else ...[
-          if (enabledTypes.isNotEmpty)
-            Wrap(
-              spacing: InSpacing.sm,
-              runSpacing: InSpacing.sm,
-              children: [
-                for (final name in enabledTypes) Chip(label: Text(name)),
-              ],
-            ),
-          if (cards.isNotEmpty) ...[
-            SizedBox(height: InSpacing.md(context)),
-            Text(
-              context.tr('accepted_credit_cards'),
-              style: Theme.of(context).textTheme.labelMedium,
-            ),
-            const SizedBox(height: InSpacing.sm),
-            Wrap(
-              spacing: InSpacing.sm,
-              runSpacing: InSpacing.sm,
-              children: cards,
-            ),
-          ],
-        ],
+        else
+          Wrap(
+            spacing: InSpacing.sm,
+            runSpacing: InSpacing.sm,
+            children: [
+              for (final name in enabledTypes) Chip(label: Text(name)),
+            ],
+          ),
       ],
     );
   }

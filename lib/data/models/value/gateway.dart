@@ -59,6 +59,20 @@ class Gateway {
     }
   }
 
+  /// Union of all webhook events across this provider's payment-type options,
+  /// deduped and order-stable. Mirrors admin-portal's
+  /// `GatewayEntity.supportedEvents`. Empty when no option declares webhooks.
+  List<String> supportedEvents() {
+    final seen = <String>{};
+    final result = <String>[];
+    for (final option in options.values) {
+      for (final event in option.webhooks) {
+        if (seen.add(event)) result.add(event);
+      }
+    }
+    return result;
+  }
+
   factory Gateway.fromMap(Map<String, dynamic> json) {
     final rawOptions = json['options'];
     final options = <String, GatewayOptions>{};
@@ -89,13 +103,24 @@ class GatewayOptions {
   const GatewayOptions({
     required this.supportTokenBilling,
     required this.supportRefunds,
+    this.webhooks = const <String>[],
   });
 
   final bool supportTokenBilling;
   final bool supportRefunds;
 
+  /// Webhook event names this provider emits for the payment type (e.g.
+  /// `net.authorize.payment.void.created`). Surfaced on the gateway detail so
+  /// the merchant knows which events to expect. Empty when none are declared.
+  final List<String> webhooks;
+
   factory GatewayOptions.fromMap(Map<String, dynamic> json) => GatewayOptions(
     supportTokenBilling: json['support_token_billing'] == true,
     supportRefunds: json['support_refunds'] == true,
+    webhooks:
+        (json['webhooks'] as List?)
+            ?.map((e) => e.toString())
+            .toList(growable: false) ??
+        const <String>[],
   );
 }

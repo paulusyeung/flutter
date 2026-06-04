@@ -440,6 +440,12 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         }
         return null;
       },
+      ...documentMutationHandlers<TaskApi>(
+        documentsApi: ctx.documentsApi,
+        upload: tasksApi.uploadDocument,
+        applyChanged: taskRepo.applyDocumentChanged,
+        applyDeleted: taskRepo.applyDocumentDeleted,
+      ),
     },
   );
 

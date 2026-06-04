@@ -30,7 +30,6 @@ class GatewaySettingsTab extends StatelessWidget {
     final showTokenBilling = gateway.options.values.any(
       (o) => o.supportTokenBilling,
     );
-    final hasCreditCardType = draft.feesAndLimits.containsKey('1');
 
     return SettingsFormShell(
       sections: [
@@ -83,20 +82,6 @@ class GatewaySettingsTab extends StatelessWidget {
                   title: Text(_typeLabel(context, statics, typeId)),
                   value: draft.feesAndLimits[typeId]?.isEnabled ?? false,
                   onChanged: (v) => vm.setTypeEnabled(typeId, v),
-                  contentPadding: EdgeInsets.zero,
-                ),
-            ],
-          ),
-        if (hasCreditCardType)
-          FormSection(
-            title: context.tr('accepted_credit_cards'),
-            children: [
-              for (final bit in kCardTypeBits)
-                CheckboxListTile(
-                  title: Text(context.tr(kCardTypeLabelKey[bit] ?? 'card')),
-                  value: draft.supportsCard(bit),
-                  onChanged: (v) => vm.toggleCard(bit, selected: v ?? false),
-                  controlAffinity: ListTileControlAffinity.leading,
                   contentPadding: EdgeInsets.zero,
                 ),
             ],

@@ -321,7 +321,7 @@ the honest default.
 | Project — "New task" shortcut (prefills project) | ✅ | ✅ | ✅ | ✅ | |
 | Project — view project tasks | ✅ | ✅ | ✅ | ✅ | |
 | Project — invoice project (bill all tasks) | ✅ | ✅ | ✅ | ✅ | |
-| Project — run template | ✅ | ✅ | ✅ | | |
+| Project — run template | ✅ | ✅ | ✅ | ✅ | |
 | Project — time summary | ✅ | ✅ | ✅ | ✅ | |
 | Project — budget / hours-worked tracking | ✅ | ✅ | ✅ | ✅ | |
 | Project — documents / attachments | ✅ | ✅ | ✅ | ✅ | |
@@ -427,7 +427,7 @@ the honest default.
 | Expense — link to vendor | ✅ | ✅ | ✅ | ✅ | |
 | Expense — link to project / client | ✅ | ✅ | ✅ | ✅ | |
 | Expense — convert / add to invoice | ✅ | ✅ | ✅ | ✅ | |
-| Expense — run template | ✅ | ✅ | ✅ | | |
+| Expense — run template | ✅ | ✅ | ✅ | ✅ | |
 | Expense — documents / receipts attachment | ✅ | ✅ | ✅ | ✅ | |
 | Expense — comments | ✅ | ✅ | ✅ | ✅ | |
 | Expense — activities | ✅ | ✅ | ✅ | ✅ | |

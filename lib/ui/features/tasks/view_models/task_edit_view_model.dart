@@ -137,13 +137,25 @@ class TaskEditViewModel extends GenericEditViewModel<Task> {
     final n = now();
     final defaultedStart = start ?? n.subtract(const Duration(minutes: 30));
     final defaultedStop = stop ?? n;
-    final entry = TimeEntry(
-      start: defaultedStart,
-      stop: defaultedStop,
-      description: description,
-      billable: billable,
+    final entry = _clamp(
+      TimeEntry(
+        start: defaultedStart,
+        stop: defaultedStop,
+        description: description,
+        billable: billable,
+      ),
     );
     updateDraft(draft.copyWith(timeLog: <TimeEntry>[...draft.timeLog, entry]));
+  }
+
+  /// Clamp an inverted entry (stop before start) to zero length — matches
+  /// React's auto-correct and keeps the server from rejecting the time_log
+  /// on save (a negative interval 422s).
+  TimeEntry _clamp(TimeEntry e) {
+    final s = e.start;
+    final p = e.stop;
+    if (s != null && p != null && p.isBefore(s)) return e.copyWith(stop: s);
+    return e;
   }
 
   void removeEntry(int index) {
@@ -154,7 +166,7 @@ class TaskEditViewModel extends GenericEditViewModel<Task> {
 
   void updateEntry(int index, TimeEntry next) {
     if (index < 0 || index >= draft.timeLog.length) return;
-    final entries = <TimeEntry>[...draft.timeLog]..[index] = next;
+    final entries = <TimeEntry>[...draft.timeLog]..[index] = _clamp(next);
     updateDraft(draft.copyWith(timeLog: entries));
   }
 

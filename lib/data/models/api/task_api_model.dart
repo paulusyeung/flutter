@@ -1,5 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'package:admin/data/models/api/document_api_model.dart';
+
 part 'task_api_model.freezed.dart';
 part 'task_api_model.g.dart';
 
@@ -33,6 +35,9 @@ abstract class TaskApi with _$TaskApi {
     @JsonKey(name: 'is_deleted') @Default(false) bool isDeleted,
     @JsonKey(name: 'is_running') @Default(false) bool isRunning,
     @JsonKey(name: 'is_date_based') @Default(false) bool isDateBased,
+    // Nullable so JSON-omitted (→ null) is distinguishable from
+    // JSON-present-and-empty (→ const []). Same convention as `ExpenseApi`.
+    List<DocumentApi>? documents,
   }) = _TaskApi;
 
   factory TaskApi.fromJson(Map<String, dynamic> json) =>

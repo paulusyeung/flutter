@@ -25,6 +25,7 @@ class CompanyGatewayEditViewModel extends GenericEditViewModel<CompanyGateway> {
                requireContactEmail: true,
                requirePostalCode: true,
                tokenBilling: kAutoBillAlways,
+               acceptedCreditCards: kAllCreditCardTypes,
              ),
          original: existing,
          companyId: companyId,
@@ -39,7 +40,8 @@ class CompanyGatewayEditViewModel extends GenericEditViewModel<CompanyGateway> {
     gatewayKey: gatewayKey ?? draft.gatewayKey,
     requireContactEmail: true,
     requirePostalCode: true,
-    tokenBilling: kAutoBillOff,
+    tokenBilling: kAutoBillAlways,
+    acceptedCreditCards: kAllCreditCardTypes,
   );
 
   /// Apply a freezed `copyWith` to the draft. Tab widgets call into this

@@ -51,9 +51,20 @@ class _GatewayTypePickerState extends State<GatewayTypePicker> {
 
   @override
   Widget build(BuildContext context) {
-    final statics = context.read<Services>().statics;
-    final providers = statics.gateways.values.where((g) => g.isVisible).toList()
-      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    final services = context.read<Services>();
+    final statics = services.statics;
+    // Hide hosted-incompatible providers (PayPal Express/REST, WePay) on the
+    // hosted platform — they can't be created there. Self-hosted shows all.
+    // Mirrors React's `hostedGatewayFilter`.
+    final isHosted = services.auth.session.value?.isHosted ?? false;
+    final providers =
+        statics.gateways.values
+            .where((g) => g.isVisible)
+            .where(
+              (g) => !(isHosted && kHostedHiddenGatewayKeys.contains(g.id)),
+            )
+            .toList()
+          ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 
     if (_warming && providers.isEmpty) {
       return Center(

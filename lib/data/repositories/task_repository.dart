@@ -1,17 +1,20 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show Value, BooleanExpressionOperators;
 import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/task_dao.dart';
+import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/api/task_api_model.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/data/models/domain/time_entry.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
+import 'package:admin/data/repositories/document_bearing_repository.dart';
 import 'package:admin/data/services/tasks_api.dart';
+import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/domain/sync/mutation.dart';
@@ -25,7 +28,8 @@ final _log = Logger('TaskRepository');
 ///     for the global running-timer pill.
 ///   * `reorder` — enqueues a `MutationKind.reorder` row carrying the
 ///     bulk kanban-sort payload.
-class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
+class TaskRepository extends BaseEntityRepository<Task, TaskApi>
+    implements DocumentBearingRepository {
   TaskRepository({
     required super.db,
     required this.api,
@@ -35,7 +39,11 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
     this.pageSize = 50,
   }) : super(
          entityType: EntityType.task,
-         requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
+         requiresPasswordFor: const {
+           MutationKind.delete,
+           MutationKind.purge,
+           MutationKind.documentDelete,
+         },
        );
 
   final TasksApi api;
@@ -93,6 +101,10 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
           final result = <String, List<Task>>{};
           for (final row in rows) {
             final task = _fromRow(row);
+            // Invoiced tasks are server-immutable; React excludes them from
+            // the board so they can't be dragged / re-ordered. They remain
+            // visible in the flat list views.
+            if (task.isInvoiced) continue;
             result.putIfAbsent(task.statusId, () => <Task>[]).add(task);
           }
           return result;
@@ -148,6 +160,8 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
     extraFilters: extraFilters,
     ignoreCursor: ignoreCursor,
     excludeDeletedClients: true,
+    // `?include=documents` — same rationale as Project/Client/Expense.
+    staticFilters: const {'include': 'documents'},
     listCall: api.list,
     itemsOf: (l) => l.data,
     idOf: (a) => a.id,
@@ -257,6 +271,31 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
     if (task.timeLog.isEmpty || !task.timeLog.last.isRunning) return;
     final entries = <TimeEntry>[...task.timeLog];
     entries[entries.length - 1] = entries.last.copyWith(stop: DateTime.now());
+    await save(
+      companyId: companyId,
+      task: task.copyWith(timeLog: entries),
+    );
+  }
+
+  /// Surgical "start the timer" — appends a running entry through the outbox.
+  /// Used by the bulk-action toolbar. No-op on an invoiced task (server-
+  /// immutable) or one that's already running. Atomically stops any prior
+  /// running entry first so we never have two running at once.
+  Future<void> startTimer({
+    required String companyId,
+    required String taskId,
+  }) async {
+    final row = await db.taskDao
+        .watchById(companyId: companyId, id: taskId)
+        .first;
+    if (row == null) return;
+    final task = _fromRow(row);
+    if (task.isInvoiced || task.isRunning) return;
+    final entries = <TimeEntry>[...task.timeLog];
+    if (entries.isNotEmpty && entries.last.isRunning) {
+      entries[entries.length - 1] = entries.last.copyWith(stop: DateTime.now());
+    }
+    entries.add(TimeEntry(start: DateTime.now(), stop: null));
     await save(
       companyId: companyId,
       task: task.copyWith(timeLog: entries),
@@ -384,6 +423,107 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
     );
   }
 
+  /// Queue a document upload. Mirrors `ExpenseRepository.uploadDocument` —
+  /// the dispatcher's `MutationKind.documentUpload` handler streams the
+  /// local file via multipart upload.
+  @override
+  Future<void> uploadDocument({
+    required String companyId,
+    required String entityId,
+    required UploadSource source,
+  }) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: entityId,
+      kind: MutationKind.documentUpload,
+      payload: {'entity_id': entityId, ...source.toPayload()},
+    );
+  }
+
+  @override
+  Future<void> deleteDocument({
+    required String companyId,
+    required String entityId,
+    required String documentId,
+  }) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: entityId,
+      kind: MutationKind.documentDelete,
+      payload: {'entity_id': entityId, 'document_id': documentId},
+    );
+  }
+
+  @override
+  Future<void> setDocumentVisibility({
+    required String companyId,
+    required String entityId,
+    required String documentId,
+    required bool isPublic,
+  }) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: entityId,
+      kind: MutationKind.documentVisibility,
+      payload: {
+        'entity_id': entityId,
+        'document_id': documentId,
+        'is_public': isPublic,
+      },
+    );
+  }
+
+  /// Drop a document from the task's local `documents` JSON column. Mirror
+  /// of `ExpenseRepository.applyDocumentDeleted`.
+  Future<void> applyDocumentDeleted({
+    required String companyId,
+    required String entityId,
+    required String documentId,
+  }) async {
+    final row = await db.taskDao
+        .watchById(companyId: companyId, id: entityId)
+        .first;
+    if (row == null) return;
+    final current = decodeRawDocumentsColumn(row.documents);
+    final next = current.where((d) => d.id != documentId).toList();
+    if (next.length == current.length) return;
+    await (db.update(db.tasks)
+          ..where((t) => t.companyId.equals(companyId) & t.id.equals(entityId)))
+        .write(
+          TasksCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
+  }
+
+  /// Replace (or insert) one document in the task's local `documents` JSON
+  /// column. Mirror of `ExpenseRepository.applyDocumentChanged`.
+  Future<void> applyDocumentChanged({
+    required String companyId,
+    required String entityId,
+    required DocumentApi document,
+  }) async {
+    final row = await db.taskDao
+        .watchById(companyId: companyId, id: entityId)
+        .first;
+    if (row == null) return;
+    final current = decodeRawDocumentsColumn(row.documents);
+    final next = [
+      for (final d in current)
+        if (d.id == document.id) document else d,
+    ];
+    if (!current.any((d) => d.id == document.id)) {
+      next.add(document);
+    }
+    await (db.update(db.tasks)
+          ..where((t) => t.companyId.equals(companyId) & t.id.equals(entityId)))
+        .write(
+          TasksCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
+  }
+
   // -------------------- conversions --------------------
 
   TasksCompanion _apiToCompanion(TaskApi a, String companyId) {
@@ -410,6 +550,9 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
       customValue4: Value(a.customValue4),
       isDirty: const Value(false),
       isDeleted: Value(a.isDeleted),
+      documents: a.documents == null
+          ? const Value.absent()
+          : Value(jsonEncode(a.documents!.map((d) => d.toJson()).toList())),
       payload: jsonEncode(a.toJson()),
     );
   }
@@ -442,6 +585,9 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
       customValue4: Value(t.customValue4),
       isDirty: Value(isDirty),
       isDeleted: Value(t.isDeleted),
+      documents: Value(
+        jsonEncode(t.documents.map((d) => d.toApi().toJson()).toList()),
+      ),
       payload: jsonEncode(t.toApiJson(preserveTempId: true)),
     );
   }
@@ -449,7 +595,12 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
   Task _fromRow(TaskRow row) {
     final json = jsonDecode(row.payload) as Map<String, dynamic>;
     final api = TaskApi.fromJson(json);
-    return Task.fromApi(api).copyWith(isDirty: row.isDirty);
+    // is_dirty is local-only; documents live in their own column. Overlay
+    // both onto the API-derived domain so the UI sees current state.
+    return Task.fromApi(api).copyWith(
+      isDirty: row.isDirty,
+      documents: decodeDocumentsColumn(row.documents),
+    );
   }
 }
 

@@ -2,6 +2,7 @@ import 'package:decimal/decimal.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:admin/data/models/api/task_api_model.dart';
+import 'package:admin/data/models/domain/document.dart';
 import 'package:admin/data/models/domain/time_entry.dart';
 import 'package:admin/data/models/value/money.dart';
 import 'package:admin/data/models/value/parsing.dart';
@@ -35,6 +36,7 @@ abstract class Task with _$Task {
     required DateTime createdAt,
     required DateTime? archivedAt,
     required bool isDeleted,
+    @Default(<Document>[]) List<Document> documents,
     @Default(false) bool isDirty,
   }) = _Task;
 
@@ -58,6 +60,7 @@ abstract class Task with _$Task {
     createdAt: epochSecondsToUtc(a.createdAt),
     archivedAt: epochSecondsToUtcOrNull(a.archivedAt),
     isDeleted: a.isDeleted,
+    documents: mapDocuments(a.documents),
   );
 }
 

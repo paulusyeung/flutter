@@ -460,4 +460,28 @@ void main() {
       },
     );
   });
+
+  group('selectedItems (selection-level bulk actions)', () {
+    test('returns selected items in list order, ignoring stale ids', () async {
+      api.pages[1] = [_row('c1'), _row('c2'), _row('c3')];
+      final vm = vmFor('co');
+      await settle();
+
+      // Select out of order; a stale id (not in the list) is ignored.
+      vm.toggleSelected('c3');
+      vm.toggleSelected('c1');
+      vm.toggleSelected('ghost');
+
+      expect(vm.selectedItems.map((c) => c.id), ['c1', 'c3']);
+      vm.dispose();
+    });
+
+    test('is empty when nothing is selected', () async {
+      api.pages[1] = [_row('c1')];
+      final vm = vmFor('co');
+      await settle();
+      expect(vm.selectedItems, isEmpty);
+      vm.dispose();
+    });
+  });
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -54,7 +56,7 @@ class ProjectEditScreen extends StatelessWidget {
         if (clone == null && prefillClientId != null && existing == null) {
           clone = _seedFromClient(prefillClientId!);
         }
-        return ProjectEditViewModel(
+        final vm = ProjectEditViewModel(
           repo: services.projects,
           companyId: companyId,
           existing: existing,
@@ -62,6 +64,13 @@ class ProjectEditScreen extends StatelessWidget {
           sync: services.sync,
           connectivity: services.connectivity,
         );
+        // New projects pre-fill the company default task rate (React parity).
+        // Async because company settings aren't on the synchronous
+        // `AuthCompany`; `seedDefaultTaskRate` no-ops if the user types first.
+        if (existing == null) {
+          unawaited(_seedCompanyTaskRate(services, companyId, vm));
+        }
+        return vm;
       },
       titleWhileLoading: (ctx) =>
           existingId == null ? ctx.tr('new_project') : ctx.tr('edit'),
@@ -116,6 +125,24 @@ class ProjectEditScreen extends StatelessWidget {
         savedId: saved.id,
       ),
     );
+  }
+}
+
+/// Reads `company.settings.default_task_rate` off the company stream and seeds
+/// it as the new project's task rate. Bails if the VM was disposed before the
+/// (usually cached) company resolved. Read from `rawSettings` — the typed
+/// `CompanySettings` subset doesn't carry this field.
+Future<void> _seedCompanyTaskRate(
+  Services services,
+  String companyId,
+  ProjectEditViewModel vm,
+) async {
+  final company = await services.company.watchCompany(companyId).first;
+  if (vm.isDisposed) return;
+  final raw = company?.rawSettings['default_task_rate'];
+  final rate = raw is num ? raw.toDouble() : null;
+  if (rate != null && rate > 0) {
+    vm.seedDefaultTaskRate(Decimal.parse(rate.toString()));
   }
 }
 

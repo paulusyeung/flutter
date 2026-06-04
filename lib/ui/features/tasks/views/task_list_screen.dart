@@ -130,6 +130,22 @@ class TaskListScreen extends StatelessWidget {
       },
       bulkActions: const [
         EntityListBulkAction(
+          actionId: 'start',
+          icon: Icons.play_arrow_outlined,
+          tooltipKey: 'start',
+          singleSuccessKey: 'started_task',
+          pluralSuccessKey: 'started_tasks',
+          nothingKey: 'nothing_to_start',
+        ),
+        EntityListBulkAction(
+          actionId: 'stop',
+          icon: Icons.stop_circle_outlined,
+          tooltipKey: 'stop',
+          singleSuccessKey: 'stopped_task',
+          pluralSuccessKey: 'stopped_tasks',
+          nothingKey: 'nothing_to_stop',
+        ),
+        EntityListBulkAction(
           actionId: 'archive',
           icon: Icons.archive_outlined,
           tooltipKey: 'archive',

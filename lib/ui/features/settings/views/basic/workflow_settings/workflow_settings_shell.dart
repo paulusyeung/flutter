@@ -7,6 +7,7 @@ import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/ui/features/settings/view_models/workflow_settings_view_model.dart';
 import 'package:admin/ui/features/settings/views/basic/workflow_settings/workflow_settings_invoices_body.dart';
 import 'package:admin/ui/features/settings/views/basic/workflow_settings/workflow_settings_quotes_body.dart';
+import 'package:admin/ui/features/settings/widgets/cascade_settings_scaffold.dart';
 import 'package:admin/ui/features/settings/widgets/cascade_tabbed_settings_shell.dart';
 import 'package:admin/ui/features/settings/widgets/tabbed_settings_shell.dart';
 
@@ -23,11 +24,14 @@ import 'package:admin/ui/features/settings/widgets/tabbed_settings_shell.dart';
 ///
 /// Per-tab module gating mirrors [GeneratedNumbersShell] /
 /// `InvoiceDesignShell`: the tab list is computed at build time from
-/// `company.enabledModules` so a deep link to `/settings/workflow_settings`
-/// with one module off doesn't show that tab. The whole section is already
-/// hidden from the sidebar when both modules are off (via
-/// `SettingsSectionDef.enabledBy`); the fall-back below only guards a
-/// hand-typed URL / an unhydrated (`0`) mask on cold start.
+/// `company.enabledModules`. Three cases:
+///   * both modules on → two tabs via [CascadeTabbedSettingsShell];
+///   * exactly one on → that single body via the non-tabbed
+///     [CascadeSettingsScaffold] (the tabbed shell requires `>= 2` tabs, and a
+///     lone tab bar reads as broken);
+///   * both off → only reachable by a hand-typed URL (the sidebar and search
+///     hide the section via `SettingsSectionDef.enabledBy`), so fall back to
+///     the full two-tab set rather than an empty shell.
 class WorkflowSettingsShell extends StatelessWidget {
   const WorkflowSettingsShell({super.key, this.initialTab});
 
@@ -70,10 +74,9 @@ class WorkflowSettingsShell extends StatelessWidget {
             ),
         ];
 
-        // Both modules off — only reachable via a hand-typed URL (the
-        // sidebar/search already hide the section) or an unhydrated `0`
-        // mask on cold start. Fall back to the full set rather than an
-        // empty shell (consistent with the mask-0 fail-open policy).
+        // Both modules off — only reachable via a hand-typed URL (the sidebar
+        // and search already hide the whole section when neither module is on).
+        // Fall back to the full two-tab set rather than an empty shell.
         final resolved = tabs.isEmpty
             ? const [
                 TabbedSettingsTab(
@@ -88,6 +91,20 @@ class WorkflowSettingsShell extends StatelessWidget {
                 ),
               ]
             : tabs;
+
+        // Exactly one module on → a single tab. CascadeTabbedSettingsShell
+        // asserts `tabs.length >= 2` (and renders a stray one-tab bar in
+        // release), so drop the tab bar: render the lone body through the
+        // non-tabbed cascade scaffold. It does the same per-scope (company vs.
+        // client) VM selection, so the cascade-override behavior is unchanged.
+        if (resolved.length == 1) {
+          return CascadeSettingsScaffold(
+            titleKey: 'workflow_settings',
+            companyVmFactory: ({required repo, required companyId}) =>
+                WorkflowSettingsViewModel(repo: repo, companyId: companyId),
+            body: resolved.single.body,
+          );
+        }
 
         return CascadeTabbedSettingsShell(
           titleKey: 'workflow_settings',

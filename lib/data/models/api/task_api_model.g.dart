@@ -29,6 +29,9 @@ _TaskApi _$TaskApiFromJson(Map<String, dynamic> json) => _TaskApi(
   isDeleted: json['is_deleted'] as bool? ?? false,
   isRunning: json['is_running'] as bool? ?? false,
   isDateBased: json['is_date_based'] as bool? ?? false,
+  documents: (json['documents'] as List<dynamic>?)
+      ?.map((e) => DocumentApi.fromJson(e as Map<String, dynamic>))
+      .toList(),
 );
 
 Map<String, dynamic> _$TaskApiToJson(_TaskApi instance) => <String, dynamic>{
@@ -54,6 +57,7 @@ Map<String, dynamic> _$TaskApiToJson(_TaskApi instance) => <String, dynamic>{
   'is_deleted': instance.isDeleted,
   'is_running': instance.isRunning,
   'is_date_based': instance.isDateBased,
+  'documents': instance.documents,
 };
 
 _TaskListApi _$TaskListApiFromJson(Map<String, dynamic> json) => _TaskListApi(

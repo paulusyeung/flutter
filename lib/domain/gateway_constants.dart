@@ -49,6 +49,19 @@ const Set<String> kOAuthGatewayKeys = <String>{
   kGatewaySquare,
 };
 
+/// Gateway providers that can't be created on the **hosted** platform
+/// (invoicing.co) and so are hidden from the create picker there. Mirrors
+/// React's `hostedGatewayFilter` (`react/.../gateways/create/Create.tsx:84-88`):
+/// PayPal Express, PayPal REST, and WePay. Self-hosted shows everything —
+/// PayPal Platform / PPCP works self-hosted in current Invoice Ninja, so it is
+/// deliberately NOT hidden (only the legacy admin-portal hid it). Lookup is by
+/// `Gateway.id` / `CompanyGateway.gatewayKey`.
+const Set<String> kHostedHiddenGatewayKeys = <String>{
+  kGatewayPayPalExpress,
+  kGatewayPayPalRest,
+  kGatewayWePay,
+};
+
 /// `CompanyGateway.acceptedCreditCards` is a bitmask. Each constant maps a
 /// card brand to its bit value; helpers on the domain model wrap the bitwise
 /// math.
@@ -66,6 +79,19 @@ const List<int> kCardTypeBits = <int>[
   kCardTypeDiners,
   kCardTypeDiscover,
 ];
+
+/// All card brands OR'd together (= 31). Default `acceptedCreditCards` for a
+/// newly created gateway so we never send `accepted_credit_cards: 0` — which,
+/// if the server honors the field, would disable every brand. The per-brand
+/// editing UI is intentionally not exposed (React + admin-portal both omit
+/// it); this is purely a safe wire default. Existing gateways round-trip the
+/// server's value unchanged.
+const int kAllCreditCardTypes =
+    kCardTypeVisa |
+    kCardTypeMasterCard |
+    kCardTypeAmEx |
+    kCardTypeDiners |
+    kCardTypeDiscover;
 
 /// Localization key per card-type bit. Caller renders `context.tr(...)`.
 const Map<int, String> kCardTypeLabelKey = <int, String>{
@@ -175,4 +201,33 @@ const Map<String, String> kGatewayTypeLabelKey = <String, String>{
   '27': 'mybank',
   '28': 'pay_later',
   '29': 'advanced_cards',
+};
+
+/// Maps a gateway provider key to the `system_log.type_id` value(s) the server
+/// stamps on log rows for that provider (see `SystemLog.typeDisplay`). Used to
+/// scope the per-gateway System Logs section on the detail screen.
+///
+/// Lossy by necessity: system_log rows carry no `company_gateway_id`, and some
+/// providers share a type id (both PayPal keys → 300/323), so logs scope to the
+/// *provider*, not a single gateway instance. Providers with no known type id
+/// (bank/crypto gateways) simply show no logs.
+const Map<String, Set<int>> kGatewaySystemLogTypeIds = <String, Set<int>>{
+  kGatewayStripe: {301},
+  kGatewayStripeConnect: {301},
+  kGatewayPayPalRest: {300, 323},
+  kGatewayPayPalPlatform: {300, 323},
+  kGatewayPayPalExpress: {300, 323},
+  kGatewayCheckoutCom: {304},
+  kGatewayAuthorizeNet: {305},
+  kGatewayCustom: {306},
+  kGatewayBraintree: {307},
+  kGatewayWePay: {309},
+  kGatewayPayfast: {310},
+  kGatewayPaytrace: {311},
+  kGatewayMollie: {312},
+  kGatewayEway: {313},
+  kGatewayForte: {314},
+  kGatewaySquare: {320},
+  kGatewayGoCardlessOAuth: {321},
+  kGatewayRazorpay: {322},
 };

@@ -1,9 +1,11 @@
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/data/models/domain/task_status.dart';
@@ -248,14 +250,31 @@ class _IdentitySection extends StatelessWidget {
           SizedBox(height: InSpacing.md(context)),
           _AssignedUserPicker(vm: vm, locked: locked),
           SizedBox(height: InSpacing.md(context)),
-          TextFormField(
-            initialValue: decimalInputText(vm.draft.rate),
-            enabled: !locked,
-            textInputAction: TextInputAction.done,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(labelText: context.tr('rate')),
-            onChanged: vm.setRate,
-            onFieldSubmitted: submit,
+          StreamBuilder<Company?>(
+            stream: context.read<Services>().company.watchCompany(vm.companyId),
+            builder: (context, snap) {
+              final defaultRate = snap.data?.settings.defaultTaskRate ?? 0;
+              final showHint = vm.draft.rate == Decimal.zero && defaultRate > 0;
+              return TextFormField(
+                initialValue: decimalInputText(vm.draft.rate),
+                enabled: !locked,
+                textInputAction: TextInputAction.done,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: InputDecoration(
+                  labelText: context.tr('rate'),
+                  // Surface the inherited company default so leaving rate
+                  // blank is clearly "bill at the default" — the cascade
+                  // (resolveTaskRate) applies it on invoice.
+                  helperText: showHint
+                      ? '${context.tr('default_task_rate')}: $defaultRate'
+                      : null,
+                ),
+                onChanged: vm.setRate,
+                onFieldSubmitted: submit,
+              );
+            },
           ),
         ],
       ),

@@ -54,6 +54,18 @@ class ProjectEditViewModel extends GenericEditViewModel<Project> {
 
   void resetToEmpty() => reset(emptyDraft: _emptyProject());
 
+  /// Seed [rate] as the default task rate, but only on a fresh create where
+  /// the user hasn't entered one yet. Backs the async company-default seed
+  /// (company settings aren't on the synchronous `AuthCompany`, so the edit
+  /// screen reads them off the company stream and calls this once they
+  /// resolve). No-ops on edits or once a rate is present, so it can't clobber
+  /// a value the user already typed or a client-derived rate.
+  void seedDefaultTaskRate(Decimal rate) {
+    if (isCreate && draft.taskRate == Decimal.zero) {
+      updateDraft(draft.copyWith(taskRate: rate));
+    }
+  }
+
   // ── Field setters ──────────────────────────────────────────────────
 
   void setName(String v) => updateDraft(draft.copyWith(name: v));

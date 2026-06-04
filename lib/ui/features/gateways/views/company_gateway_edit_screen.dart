@@ -29,7 +29,6 @@ const kCompanyGatewayEditSearchKeys = <String>[
   'test_mode',
   'token_billing',
   'payment_methods',
-  'accepted_credit_cards',
 ];
 
 const _kTabSlugs = <String>[

@@ -18,6 +18,7 @@ import 'package:admin/ui/core/widgets/notify_async.dart';
 /// (Stripe Connect) lands in Phase 2.
 enum CompanyGatewayAction {
   edit,
+  clone,
   disconnect,
   importCustomers,
   verifyCustomers,
@@ -30,10 +31,11 @@ class CompanyGatewayActions {
   CompanyGatewayActions._();
 
   /// Actions the old admin-portal hid on a brand-new (unsaved) record.
-  /// Fed to `filterForEditScreen` so the create screen drops archive /
-  /// restore / delete.
+  /// Fed to `filterForEditScreen` so the create screen drops clone / archive /
+  /// restore / delete — you can't clone or manage a record that doesn't exist.
   static bool isLifecycle(CompanyGatewayAction action) {
     switch (action) {
+      case CompanyGatewayAction.clone:
       case CompanyGatewayAction.archive:
       case CompanyGatewayAction.restore:
       case CompanyGatewayAction.delete:
@@ -85,6 +87,13 @@ class CompanyGatewayActions {
           onTap: () => onTap(CompanyGatewayAction.verifyCustomers),
         ),
       ],
+      EntityActionItem(
+        kind: CompanyGatewayAction.clone,
+        icon: Icons.copy_all_outlined,
+        label: context.tr('clone'),
+        enabled: true,
+        onTap: () => onTap(CompanyGatewayAction.clone),
+      ),
       ?archiveActionItem(
         context: context,
         kind: CompanyGatewayAction.archive,
@@ -116,6 +125,40 @@ class CompanyGatewayActions {
     switch (action) {
       case CompanyGatewayAction.edit:
         goEntityEdit(context, '/settings/company_gateways', gateway.id);
+      case CompanyGatewayAction.clone:
+        {
+          // Clone client-side via the outbox create (the gateway create flow is
+          // picker-first and doesn't read a seed draft, so the generic
+          // `goEntityCreateFullWidth(extra:)` convention doesn't apply here).
+          // Strip server-owned fields; navigate to the new row's edit screen
+          // for review. Mirrors React's immediate clone semantics.
+          var cleaned = gateway.copyWith(
+            id: '',
+            label: gateway.label.isEmpty ? '' : '${gateway.label} (copy)',
+            createdAt: 0,
+            updatedAt: 0,
+            archivedAt: 0,
+            isDeleted: false,
+            isDirty: false,
+          );
+          // Don't carry an OAuth provider's connected-account credentials into
+          // the clone — clear config so it starts fresh (the user re-runs
+          // setup). Non-OAuth gateways keep their config, matching React.
+          if (gateway.isOAuthGateway) {
+            cleaned = cleaned.withConfig(const <String, dynamic>{});
+          }
+          final result = await services.companyGateways.create(
+            companyId: companyId,
+            draft: cleaned,
+          );
+          if (context.mounted) {
+            goEntityEdit(
+              context,
+              '/settings/company_gateways',
+              result.entity.id,
+            );
+          }
+        }
       case CompanyGatewayAction.disconnect:
         {
           // Stripe disconnect hits a password-gated endpoint. Prime the
@@ -209,6 +252,11 @@ class CompanyGatewayActions {
       try {
         return await op();
       } catch (e) {
+        // Wrong/expired password (or any post-prompt failure): clear the
+        // cache so the next attempt re-prompts cleanly instead of silently
+        // resending a known-bad password. Mirrors security_settings /
+        // danger_zone.
+        services.passwordCache.clear();
         if (context.mounted) {
           Notify.error(context, context.tr('could_not_save'), error: e);
         }

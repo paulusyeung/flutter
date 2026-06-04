@@ -10,10 +10,15 @@ import 'package:admin/utils/formatting.dart';
 
 typedef TaskColumn = ColumnDefinition<Task>;
 
+// Out-of-box columns mirror admin-portal / React (status, number, client,
+// description, duration) so the wide table is useful without configuration;
+// rate / project / etc. stay flippable via the column picker.
 const List<String> kDefaultTaskColumns = <String>[
+  TaskFieldIds.taskStatusId,
   TaskFieldIds.number,
+  TaskFieldIds.clientId,
   TaskFieldIds.description,
-  TaskFieldIds.rate,
+  'duration',
   TaskFieldIds.updatedAt,
 ];
 

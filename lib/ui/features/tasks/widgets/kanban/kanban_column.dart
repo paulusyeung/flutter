@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/router.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/data/models/domain/task_status.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/features/tasks/view_models/task_edit_view_model.dart'
+    show emptyTask;
 import 'package:admin/ui/features/tasks/widgets/kanban/kanban_board.dart'
     show kKanbanCardWidth;
 import 'package:admin/ui/features/tasks/widgets/kanban/kanban_card.dart';
@@ -211,6 +214,39 @@ class KanbanColumn extends StatelessWidget {
               },
             ),
           ),
+          // Per-column quick-add (admin-portal parity): seeds the new task
+          // with this column's status so it lands in the right column.
+          if (canEdit) ...[
+            Divider(height: 1, color: tokens.border),
+            InkWell(
+              onTap: () => goEntityCreateFullWidth(
+                context,
+                '/tasks',
+                extra: emptyTask().copyWith(statusId: status.id),
+              ),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(InRadii.r3),
+              ),
+              child: Padding(
+                padding: EdgeInsets.all(InSpacing.md(context)),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.add, size: 16, color: tokens.ink3),
+                    const SizedBox(width: 6),
+                    Text(
+                      context.tr('new_task'),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: tokens.ink3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

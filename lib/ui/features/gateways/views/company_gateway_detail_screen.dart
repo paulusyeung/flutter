@@ -10,6 +10,7 @@ import 'package:admin/ui/features/gateways/view_models/company_gateway_detail_vi
 import 'package:admin/ui/features/gateways/widgets/detail/company_gateway_detail_actions_row.dart';
 import 'package:admin/ui/features/gateways/widgets/detail/company_gateway_detail_cards.dart';
 import 'package:admin/ui/features/gateways/widgets/detail/company_gateway_detail_header.dart';
+import 'package:admin/ui/features/gateways/widgets/detail/company_gateway_system_logs_card.dart';
 
 /// Read-only CompanyGateway detail screen — mirrors `ProjectDetailScreen` and
 /// uses the standard `EntityDetailScaffold` for chrome.
@@ -60,6 +61,10 @@ class _CompanyGatewayDetailScreenState
             CompanyGatewayDetailHeader(gateway: gateway, companyId: _companyId),
             const SizedBox(height: InSpacing.xl),
             CompanyGatewayDetailCardsGrid(
+              gateway: gateway,
+              companyId: _companyId,
+            ),
+            CompanyGatewaySystemLogsCard(
               gateway: gateway,
               companyId: _companyId,
             ),
