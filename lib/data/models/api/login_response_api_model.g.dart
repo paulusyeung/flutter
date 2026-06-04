@@ -73,11 +73,9 @@ _UserSummaryApi _$UserSummaryApiFromJson(Map<String, dynamic> json) =>
           ? false
           : _boolFromJson(json['verified_phone_number']),
       referralCode: json['referral_code'] as String? ?? '',
-      referralMeta:
-          (json['referral_meta'] as Map<String, dynamic>?)?.map(
-            (k, e) => MapEntry(k, (e as num).toInt()),
-          ) ??
-          const <String, int>{},
+      referralMeta: json['referral_meta'] == null
+          ? const <String, int>{}
+          : _referralMetaFromJson(json['referral_meta']),
     );
 
 Map<String, dynamic> _$UserSummaryApiToJson(_UserSummaryApi instance) =>

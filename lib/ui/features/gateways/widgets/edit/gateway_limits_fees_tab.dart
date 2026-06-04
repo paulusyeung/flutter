@@ -400,20 +400,22 @@ class _FeePreview extends StatelessWidget {
     );
   }
 
-  /// Sample fee on [amount], honoring `adjust_fee_percent` and `fee_cap` —
+  /// Sample fee on [baseAmount], honoring `adjust_fee_percent` and `fee_cap` —
   /// mirrors admin-portal's `calculateSampleFee` (the correct branches; the
   /// fee-tax line is omitted, matching the prior preview, since it doesn't
   /// affect the headline fee/total the merchant tunes here).
-  double _sampleFee(double amount) {
+  double _sampleFee(double baseAmount) {
     double fee;
     if (fees.feePercent == 0) {
       fee = fees.feeAmount;
     } else if (fees.adjustFeePercent && fees.feePercent < 100) {
-      // Gross-up: charge enough that the merchant nets `amount` after the
+      // Gross-up: charge enough that the merchant nets `baseAmount` after the
       // percentage fee is taken out.
-      fee = ((fees.feeAmount + amount) / (1 - fees.feePercent / 100)) - amount;
+      fee =
+          ((fees.feeAmount + baseAmount) / (1 - fees.feePercent / 100)) -
+          baseAmount;
     } else {
-      fee = fees.feeAmount + (amount * fees.feePercent / 100);
+      fee = fees.feeAmount + (baseAmount * fees.feePercent / 100);
     }
     if (fees.feeCap > 0 && fee > fees.feeCap) fee = fees.feeCap;
     return fee < 0 ? 0 : fee;

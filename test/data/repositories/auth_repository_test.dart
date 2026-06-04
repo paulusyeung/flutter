@@ -1803,7 +1803,7 @@ void main() {
       expect(repo.session.value!.currentCompanyId, 'co_a');
     });
 
-    test('endAllSessions POSTs to /api/v1/logout with the cached password and '
+    test('endAllSessions POSTs to /api/v1/logout bare (no password gate) and '
         'runs the local logout()', () async {
       authService.queueLogin(_envelope());
       await repo.login(
@@ -1815,9 +1815,11 @@ void main() {
       expect(repo.session.value, isNotNull);
       expect(repo.credentials.value, isNotNull);
 
-      // Prime the password cache — the API expects X-API-PASSWORD-BASE64
-      // when `requiresPassword: true`, and the cache is where ApiClient
-      // reads it.
+      // Prime the password cache even though this endpoint doesn't use it —
+      // the server's /logout route carries no `password_protected` middleware
+      // and React fires it bare, so gating it would lock out OAuth-only users
+      // who have no password. The header must stay absent even when a password
+      // IS available.
       final cache = PasswordCache()..set('hunter2');
 
       http.BaseRequest? captured;
@@ -1840,11 +1842,8 @@ void main() {
       expect(captured, isNotNull);
       expect(captured!.method, 'POST');
       expect(captured!.url.path, '/api/v1/logout');
-      // Password header is base64-encoded by the client. Verify the header
-      // exists and decodes to the cached password.
-      final headerB64 = captured!.headers['X-API-PASSWORD-BASE64'];
-      expect(headerB64, isNotNull);
-      expect(utf8.decode(base64Decode(headerB64!)), 'hunter2');
+      // Fired bare: no X-API-PASSWORD-BASE64 header, even with a primed cache.
+      expect(captured!.headers['X-API-PASSWORD-BASE64'], isNull);
 
       // Local state is now logged-out: session + credentials gone, tokens
       // wiped, just like a forced logout.

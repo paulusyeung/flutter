@@ -115,10 +115,11 @@ class _SmtpMailDriverCardState extends State<SmtpMailDriverCard> {
       initialValue: _normalizeEncryption(company.smtpEncryption),
       decoration: InputDecoration(labelText: context.tr('encryption')),
       items: const [
-        // i18n-exempt: protocol identifiers. Values are the lowercase tokens
-        // the server feeds straight into Symfony Mailer (see CompanyTransformer
-        // / NinjaMailerJob): 'tls' = STARTTLS (port 587), 'ssl' = implicit
-        // TLS/SSL (port 465). Sending 'TLS'/'STARTTLS' breaks the 465 path.
+        // Values are the lowercase tokens the server feeds straight into
+        // Symfony Mailer (see CompanyTransformer / NinjaMailerJob): 'tls' =
+        // STARTTLS (port 587), 'ssl' = implicit TLS/SSL (port 465). Sending
+        // 'TLS'/'STARTTLS' breaks the 465 path.
+        // i18n-exempt: protocol identifiers (STARTTLS / SSL/TLS).
         DropdownMenuItem(value: 'tls', child: Text('STARTTLS')),
         DropdownMenuItem(value: 'ssl', child: Text('SSL/TLS')),
       ],

@@ -97,7 +97,7 @@ abstract class UserSummaryApi with _$UserSummaryApi {
     // Referral Program (hosted only). `referral_meta` is a `{plan: count}`
     // map of how many sign-ups each plan tier brought in.
     @JsonKey(name: 'referral_code') @Default('') String referralCode,
-    @JsonKey(name: 'referral_meta')
+    @JsonKey(name: 'referral_meta', fromJson: _referralMetaFromJson)
     @Default(<String, int>{})
     Map<String, int> referralMeta,
   }) = _UserSummaryApi;
@@ -114,6 +114,28 @@ bool _boolFromJson(Object? value) {
     return v == 'true' || v == '1';
   }
   return false;
+}
+
+/// `referral_meta` is the per-plan referral count map (`{free, pro,
+/// enterprise}`). The server overloads the same column with unrelated nested
+/// state — the live demo returns `calendar_connection: {status: ...}` alongside
+/// the counts — so a plain `value as num` cast crashes login deserialization
+/// for every session. Keep only the integer-valued entries (the counts the
+/// Referral Program screen renders) and silently drop any nested object/list.
+Map<String, int> _referralMetaFromJson(Object? value) {
+  if (value is! Map) return const <String, int>{};
+  final out = <String, int>{};
+  value.forEach((key, v) {
+    final k = key?.toString();
+    if (k == null) return;
+    if (v is num) {
+      out[k] = v.toInt();
+    } else if (v is String) {
+      final n = num.tryParse(v);
+      if (n != null) out[k] = n.toInt();
+    }
+  });
+  return out;
 }
 
 @freezed
