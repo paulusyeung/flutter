@@ -109,4 +109,43 @@ void main() {
       expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
     },
   );
+
+  testWidgets('does not render card-brand checkboxes (removed for parity)', (
+    tester,
+  ) async {
+    // Credit-card type ('1') enabled — this is exactly what used to surface the
+    // Visa/Mastercard/… brand checkboxes. They were removed (React +
+    // admin-portal omit them), so the tab should now contain no checkboxes.
+    final vm = CompanyGatewayEditViewModel(
+      repo: _FakeGatewayRepo(),
+      companyId: 'co-1',
+      existing: const CompanyGateway(
+        id: 'g1',
+        gatewayKey: 'k_test',
+        tokenBilling: 'always',
+        feesAndLimits: {'1': FeesAndLimits(isEnabled: true)},
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildInTheme(InTheme.light),
+        localizationsDelegates: kTestLocalizationsDelegates,
+        supportedLocales: kTestSupportedLocales,
+        home: Provider<Services>.value(
+          value: _FakeServices(statics),
+          child: Scaffold(
+            body: GatewaySettingsTab(
+              vm: vm,
+              gateway: _gatewayWithTokenBilling(),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(CheckboxListTile), findsNothing);
+  });
 }

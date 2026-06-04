@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
@@ -8,6 +9,7 @@ import 'package:admin/data/models/value/currency.dart';
 import 'package:admin/data/models/value/language.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
+import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/group_setting_edit_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_entity_edit_scaffold.dart';
@@ -70,6 +72,47 @@ class GroupSettingsEditScreen extends StatelessWidget {
             _LanguageField(vm: vm),
             _CountryField(vm: vm),
           ],
+        ),
+        // Edit mode only — entering group-scope cascade editing needs a saved
+        // group (the cascade VM reads `group.settings` from Drift).
+        if (vm.original != null) _ConfigureSettingsSection(vm: vm),
+      ],
+    );
+  }
+}
+
+/// "Configure Settings" affordance — switches the settings shell into
+/// group scope and lands on Localization, mirroring the per-client
+/// `ClientAction.settings` flow. Disabled while the Overview form has
+/// unsaved edits (they live in a separate draft the cascade VM can't see)
+/// or before the group has synced a real id.
+class _ConfigureSettingsSection extends StatelessWidget {
+  const _ConfigureSettingsSection({required this.vm});
+  final GroupSettingEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final group = vm.original!;
+    final canConfigure = !vm.isDirty && !group.id.startsWith('tmp_');
+    return FormSection(
+      title: context.tr('settings'),
+      children: [
+        ListTile(
+          leading: const Icon(Icons.tune),
+          title: Text(context.tr('configure_settings')),
+          subtitle: vm.isDirty ? Text(context.tr('unsaved_changes')) : null,
+          trailing: const Icon(Icons.chevron_right),
+          enabled: canConfigure,
+          onTap: canConfigure
+              ? () {
+                  context.read<Services>().settingsLevel.setLevel(
+                    SettingsLevel.group,
+                    targetId: group.id,
+                    targetName: group.name,
+                  );
+                  context.go('/settings/localization');
+                }
+              : null,
         ),
       ],
     );

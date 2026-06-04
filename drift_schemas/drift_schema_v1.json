@@ -3357,6 +3357,16 @@
             "dsl_features": []
           },
           {
+            "name": "documents",
+            "getter_name": "documents",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
             "name": "payload",
             "getter_name": "payload",
             "moor_type": "string",
@@ -9116,7 +9126,7 @@
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TABLE IF NOT EXISTS \"tasks\" (\"id\" TEXT NOT NULL, \"company_id\" TEXT NOT NULL, \"temp_id\" TEXT NULL, \"updated_at\" INTEGER NOT NULL, \"created_at\" INTEGER NOT NULL DEFAULT 0, \"archived_at\" INTEGER NULL, \"custom_value1\" TEXT NOT NULL DEFAULT '', \"custom_value2\" TEXT NOT NULL DEFAULT '', \"custom_value3\" TEXT NOT NULL DEFAULT '', \"custom_value4\" TEXT NOT NULL DEFAULT '', \"is_dirty\" INTEGER NOT NULL DEFAULT 0 CHECK (\"is_dirty\" IN (0, 1)), \"is_deleted\" INTEGER NOT NULL DEFAULT 0 CHECK (\"is_deleted\" IN (0, 1)), \"payload\" TEXT NOT NULL, \"task_number\" TEXT NOT NULL DEFAULT '', \"description\" TEXT NOT NULL DEFAULT '', \"rate\" TEXT NOT NULL DEFAULT '0', \"client_id\" TEXT NOT NULL DEFAULT '', \"project_id\" TEXT NOT NULL DEFAULT '', \"invoice_id\" TEXT NOT NULL DEFAULT '', \"task_status_id\" TEXT NOT NULL DEFAULT '', \"status_order\" INTEGER NOT NULL DEFAULT 0, \"is_running\" INTEGER NOT NULL DEFAULT 0 CHECK (\"is_running\" IN (0, 1)), PRIMARY KEY (\"id\"), UNIQUE (company_id, id));"
+          "sql": "CREATE TABLE IF NOT EXISTS \"tasks\" (\"id\" TEXT NOT NULL, \"company_id\" TEXT NOT NULL, \"temp_id\" TEXT NULL, \"updated_at\" INTEGER NOT NULL, \"created_at\" INTEGER NOT NULL DEFAULT 0, \"archived_at\" INTEGER NULL, \"custom_value1\" TEXT NOT NULL DEFAULT '', \"custom_value2\" TEXT NOT NULL DEFAULT '', \"custom_value3\" TEXT NOT NULL DEFAULT '', \"custom_value4\" TEXT NOT NULL DEFAULT '', \"is_dirty\" INTEGER NOT NULL DEFAULT 0 CHECK (\"is_dirty\" IN (0, 1)), \"is_deleted\" INTEGER NOT NULL DEFAULT 0 CHECK (\"is_deleted\" IN (0, 1)), \"documents\" TEXT NULL, \"payload\" TEXT NOT NULL, \"task_number\" TEXT NOT NULL DEFAULT '', \"description\" TEXT NOT NULL DEFAULT '', \"rate\" TEXT NOT NULL DEFAULT '0', \"client_id\" TEXT NOT NULL DEFAULT '', \"project_id\" TEXT NOT NULL DEFAULT '', \"invoice_id\" TEXT NOT NULL DEFAULT '', \"task_status_id\" TEXT NOT NULL DEFAULT '', \"status_order\" INTEGER NOT NULL DEFAULT 0, \"is_running\" INTEGER NOT NULL DEFAULT 0 CHECK (\"is_running\" IN (0, 1)), PRIMARY KEY (\"id\"), UNIQUE (company_id, id));"
         }
       ]
     },

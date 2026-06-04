@@ -5,9 +5,8 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
 import 'package:admin/data/repositories/company_repository.dart';
-import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
-import 'package:admin/ui/features/settings/view_models/client_settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
+import 'package:admin/ui/features/settings/widgets/cascade_draft_resolver.dart';
 import 'package:admin/ui/features/settings/widgets/settings_company_scoped_host.dart';
 import 'package:admin/ui/features/settings/widgets/settings_page_scaffold.dart';
 
@@ -68,19 +67,11 @@ class CascadeSettingsScaffold extends StatelessWidget {
     final services = context.read<Services>();
     return SettingsCompanyScopedHost<SettingsDraftHost>(
       create: (companyId) {
-        final scope = services.settingsLevel;
-        final clientId = scope.targetId;
-        final SettingsDraftHost vm;
-        if (scope.level == SettingsLevel.client && clientId != null) {
-          vm = ClientSettingsDraftViewModel(
-            repo: services.clients,
-            db: services.db,
-            companyId: companyId,
-            clientId: clientId,
-          );
-        } else {
-          vm = companyVmFactory(repo: services.company, companyId: companyId);
-        }
+        final vm = resolveCascadeDraftVm(
+          services,
+          companyId,
+          () => companyVmFactory(repo: services.company, companyId: companyId),
+        );
         unawaited(vm.load());
         return vm;
       },

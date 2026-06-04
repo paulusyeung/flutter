@@ -225,6 +225,26 @@ Quote::STATUS_REJECTED);`. Low priority — the v2 client already filters
 `rejected` **locally** as a deliberate approximation (the chip narrows
 cached rows), so this only improves server-side narrowing for large lists.
 
+### F2. `app/Filters/PaymentFilters.php` — `company_gateway_id` — **O**
+
+`payments?company_gateway_id=<id>` is **silently ignored today** — confirmed
+against the live demo server: a bogus id returns the full unfiltered set (same
+silent-no-op as `status_id` above). The v2 client wants this to power
+per-gateway stats on the Credit Cards & Banks detail (processed total + payment
+count). Until it narrows server-side, the v2 client deliberately does **not**
+render those tiles — a wrong, unfiltered number is worse than omitting them.
+
+**O.** Add a single/CSV, hashid-decoded, column-guarded filter (mirrors
+`ExpenseFilters::project_ids`):
+```php
+public function company_gateway_id(string $v=''): Builder
+{ if(strlen($v)==0) return $this->builder; return $this->builder->whereIn('company_gateway_id', $this->transformKeys(explode(',', $v))); }
+```
+- Accept: `payments?company_gateway_id=<hashid>` narrows to that gateway's
+  payments (today: unchanged — no method). A matching
+  `client_gateway_tokens?company_gateway_id=` listing would also unblock the
+  "clients with token billing" tile.
+
 ### G. Hygiene — highest leverage
 
 1. **R (non-breaking first).** Unknown filter param → surface in a

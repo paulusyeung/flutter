@@ -61,7 +61,10 @@ class _SettingsListSidebarState extends State<SettingsListSidebar> {
 
   Widget _buildList(BuildContext context) {
     final activeSlug = _activeSlug(GoRouterState.of(context).uri.path);
-    final isClient = context.watch<SettingsLevelController>().isClient;
+    // Group and client are both non-company cascade levels — they show the
+    // same overridable (cascade-aware) sections, hiding company-only ones.
+    final settingsLevel = context.watch<SettingsLevelController>();
+    final isCascade = settingsLevel.isClient || settingsLevel.isGroup;
     // Listen to session so the lock icons appear / disappear when a fresh
     // refresh lands (e.g. after the user upgrades in the portal and lands
     // back in the app), and so module-gated sections drop out reactively
@@ -72,7 +75,7 @@ class _SettingsListSidebarState extends State<SettingsListSidebar> {
       builder: (context, session, _) {
         final modules = session?.currentCompany?.enabledModules ?? 0;
         bool inScope(SettingsSectionDef s) =>
-            (!isClient || s.clientEditable) && s.isVisibleFor(modules);
+            (!isCascade || s.clientEditable) && s.isVisibleFor(modules);
         final basic = kSettingsSections.where((s) => s.isBasic && inScope(s));
         final advanced = kSettingsSections.where(
           (s) => !s.isBasic && inScope(s),

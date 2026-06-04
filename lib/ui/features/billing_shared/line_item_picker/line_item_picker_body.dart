@@ -14,6 +14,7 @@ import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/data/models/domain/expense.dart';
 import 'package:admin/data/models/domain/expense_category.dart';
 import 'package:admin/data/models/domain/product.dart';
+import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/l10n/localization.dart';
@@ -99,9 +100,10 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
   Map<String, String> _categoryNames = const {};
 
   // Loaded for the task→invoice rate cascade — a picked task at rate 0
-  // inherits the client / company `default_task_rate` instead of $0.
+  // inherits the project / client / company `default_task_rate` instead of $0.
   Company? _company;
   Client? _client;
+  Map<String, Project> _projectsById = const {};
 
   @override
   void initState() {
@@ -147,10 +149,16 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
         : await services.clients
               .watchByRealId(companyId: widget.companyId, id: widget.clientId)
               .first;
+    // Full Project objects (not just names) so a rate-0 task picks up its
+    // project's `task_rate` in the cascade.
+    final projects = await services.projects
+        .watchPage(companyId: widget.companyId, loadedPages: 100)
+        .first;
     if (!mounted) return;
     setState(() {
       _company = company;
       _client = client;
+      _projectsById = {for (final p in projects) p.id: p};
     });
   }
 
@@ -406,7 +414,14 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
     }
     for (final t in _tasks) {
       if (_selTasks.contains(t.id)) {
-        out.add(taskToLineItem(t, client: _client, company: _company));
+        out.add(
+          taskToLineItem(
+            t,
+            project: _projectsById[t.projectId],
+            client: _client,
+            company: _company,
+          ),
+        );
       }
     }
     for (final e in _expenses) {

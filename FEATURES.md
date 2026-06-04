@@ -1383,6 +1383,9 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | PayPal | ✅ | ✅ | ✅ | ✅ | |
 | Authorize.Net | ✅ | ✅ | ✅ | ✅ | |
 | Multi-gateway priority ordering | ✅ | ✅ | ✅ | ✅ | |
+| Gateway webhook supported-events list (detail) | ✅ | ✅ | ✅ | ✅ | |
+| Gateway system logs (detail) | ✅ | ✅ | 🟡 | ✅ | |
+| Gateway clone | ✅ | ❌ | ✅ | ✅ | |
 
 ---
 

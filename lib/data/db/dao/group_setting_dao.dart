@@ -99,4 +99,17 @@ class GroupSettingDao
       ..orderBy([(g) => OrderingTerm(expression: g.name.lower())]);
     return q.watch().distinctRows();
   }
+
+  /// Watch active **and** archived rows for [companyId] (excludes deleted),
+  /// sorted by name ascending. Backs the list screen's "Show archived"
+  /// toggle so an archived group stays restorable. The list scaffold splits
+  /// the active/archived sections itself via its `isArchivedOf` predicate.
+  Stream<List<GroupSettingRow>> watchAllIncludingArchived({
+    required String companyId,
+  }) {
+    final q = select(groupSettings)
+      ..where((g) => g.companyId.equals(companyId) & g.isDeleted.equals(false))
+      ..orderBy([(g) => OrderingTerm(expression: g.name.lower())]);
+    return q.watch().distinctRows();
+  }
 }

@@ -8,9 +8,8 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
-import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
-import 'package:admin/ui/features/settings/view_models/client_settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
+import 'package:admin/ui/features/settings/widgets/cascade_draft_resolver.dart';
 import 'package:admin/ui/features/settings/widgets/cascade_settings_scaffold.dart';
 import 'package:admin/ui/features/settings/widgets/settings_company_scoped_host.dart';
 import 'package:admin/ui/features/settings/widgets/settings_page_scaffold.dart';
@@ -221,22 +220,14 @@ class _CascadeTabbedSettingsShellState extends State<CascadeTabbedSettingsShell>
       // targetId flips. Mount this shell outside that helper and the level
       // change won't pick up here.
       create: (companyId) {
-        final scope = services.settingsLevel;
-        final clientId = scope.targetId;
-        final SettingsDraftHost vm;
-        if (scope.level == SettingsLevel.client && clientId != null) {
-          vm = ClientSettingsDraftViewModel(
-            repo: services.clients,
-            db: services.db,
-            companyId: companyId,
-            clientId: clientId,
-          );
-        } else {
-          vm = widget.companyVmFactory(
+        final vm = resolveCascadeDraftVm(
+          services,
+          companyId,
+          () => widget.companyVmFactory(
             repo: services.company,
             companyId: companyId,
-          );
-        }
+          ),
+        );
         unawaited(vm.load());
         return vm;
       },

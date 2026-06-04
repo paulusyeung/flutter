@@ -117,10 +117,10 @@ class GatewayOptions {
   factory GatewayOptions.fromMap(Map<String, dynamic> json) => GatewayOptions(
     supportTokenBilling: json['support_token_billing'] == true,
     supportRefunds: json['support_refunds'] == true,
-    webhooks:
-        (json['webhooks'] as List?)
-            ?.map((e) => e.toString())
-            .toList(growable: false) ??
-        const <String>[],
+    webhooks: json['webhooks'] is List
+        ? (json['webhooks'] as List)
+              .map((e) => e.toString())
+              .toList(growable: false)
+        : const <String>[],
   );
 }

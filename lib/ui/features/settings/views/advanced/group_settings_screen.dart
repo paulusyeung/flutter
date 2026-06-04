@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/group_setting.dart';
 import 'package:admin/l10n/localization.dart';
@@ -19,8 +20,9 @@ const kGroupSettingsSearchKeys = <String>[
 ];
 
 /// `/settings/group_settings` — list every group with a leading "New group"
-/// affordance. Tapping a row opens the edit screen. No archive support
-/// today (group lifecycle is create + edit + delete only).
+/// affordance. Tapping a row opens the edit screen. A "Show archived" toggle
+/// surfaces archived groups so they stay restorable (the edit overflow can
+/// archive them).
 class GroupSettingsScreen extends StatelessWidget {
   const GroupSettingsScreen({super.key});
 
@@ -46,11 +48,15 @@ class GroupSettingsScreen extends StatelessWidget {
         if (companyId.isEmpty) return;
         await repo.refreshAll(companyId: companyId);
       },
-      stream: ({required includeArchived}) =>
-          repo.watchAll(companyId: companyId),
+      supportsArchive: true,
+      stream: ({required includeArchived}) => includeArchived
+          ? repo.watchAllIncludingArchived(companyId: companyId)
+          : repo.watchAll(companyId: companyId),
       isArchivedOf: (g) => g.archivedAt != null,
       isDeletedOf: (g) => g.isDeleted,
       rowBuilder: (g) => _GroupRow(key: ValueKey(g.id), group: g),
+      archivedRowBuilder: (g) =>
+          _GroupRow.archived(key: ValueKey(g.id), group: g),
       banner: const PlanGateBanner(style: PlanGateStyle.stripe),
       canCreate: hasAccess,
     );
@@ -58,18 +64,45 @@ class GroupSettingsScreen extends StatelessWidget {
 }
 
 class _GroupRow extends StatelessWidget {
-  const _GroupRow({required this.group, super.key});
+  const _GroupRow({required this.group, super.key}) : _isArchived = false;
+
+  /// Variant rendered inside the "Archived" section — swaps the trailing
+  /// chevron for a muted "Archived" pill. Tapping still opens the edit
+  /// screen, where the overflow menu offers Restore.
+  const _GroupRow.archived({required this.group, super.key})
+    : _isArchived = true;
 
   final GroupSetting group;
+  final bool _isArchived;
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.inTheme;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         ListTile(
           title: Text(group.name.isEmpty ? context.tr('untitled') : group.name),
-          trailing: const Icon(Icons.chevron_right),
+          trailing: _isArchived
+              ? Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: tokens.draftSoft,
+                    borderRadius: BorderRadius.circular(InRadii.r1),
+                  ),
+                  child: Text(
+                    context.tr('archived'),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: tokens.draft,
+                    ),
+                  ),
+                )
+              : const Icon(Icons.chevron_right),
           onTap: () => context.go('/settings/group_settings/${group.id}'),
         ),
         const Divider(height: 1),

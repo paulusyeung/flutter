@@ -34,7 +34,11 @@ class TaskDetailKpiStrip extends StatelessWidget {
     final runningEntry = (t.isRunning && t.timeLog.isNotEmpty)
         ? t.timeLog.last
         : null;
-    final hasRunning = runningEntry?.start != null && runningEntry!.billable;
+    // Tick live whenever an entry is running — billable or not — to match the
+    // list tile / kanban card (which gate only on `isRunning`). Gating on
+    // `billable` here would freeze the duration for a non-billable timer now
+    // that the static value is the all-entries `loggedDuration`.
+    final hasRunning = runningEntry?.start != null;
     final durationText = formatDuration(t.loggedDuration(), compactDays: true);
 
     final rateText = t.rate.toDouble() == 0
@@ -49,7 +53,8 @@ class TaskDetailKpiStrip extends StatelessWidget {
         label: context.tr('duration'),
         value: hasRunning
             ? RunningDurationLabel(
-                start: runningEntry.start!,
+                // hasRunning guarantees runningEntry and its start are non-null.
+                start: runningEntry!.start!,
                 precision: const Duration(seconds: 1),
                 style: theme.textTheme.titleLarge?.copyWith(
                   color: tokens.ink,

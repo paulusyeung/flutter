@@ -3203,6 +3203,14 @@ class Tasks extends Table with TableInfo {
     $customConstraints: 'NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1))',
     defaultValue: const CustomExpression('0'),
   );
+  late final GeneratedColumn<String> documents = GeneratedColumn<String>(
+    'documents',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
   late final GeneratedColumn<String> payload = GeneratedColumn<String>(
     'payload',
     aliasedName,
@@ -3306,6 +3314,7 @@ class Tasks extends Table with TableInfo {
     customValue4,
     isDirty,
     isDeleted,
+    documents,
     payload,
     taskNumber,
     description,

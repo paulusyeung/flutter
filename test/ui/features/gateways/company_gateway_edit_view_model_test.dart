@@ -24,5 +24,20 @@ void main() {
       expect(vm.draft.tokenBilling, kAutoBillAlways);
       expect(vm.emptyDraft().tokenBilling, kAutoBillAlways);
     });
+
+    test(
+      'initialDraft and emptyDraft seed accepted_credit_cards = all brands',
+      () {
+        final vm = CompanyGatewayEditViewModel(
+          repo: _FakeGatewayRepo(),
+          companyId: 'co-1',
+        );
+        // Seeded to all brands (31) so a new gateway never sends
+        // `accepted_credit_cards: 0` — which would disable every card brand if
+        // the server honors the field. The brand-picker UI is intentionally gone.
+        expect(vm.draft.acceptedCreditCards, kAllCreditCardTypes);
+        expect(vm.emptyDraft().acceptedCreditCards, kAllCreditCardTypes);
+      },
+    );
   });
 }

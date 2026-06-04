@@ -8,10 +8,9 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
-import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
-import 'package:admin/ui/features/settings/view_models/client_settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/view_models/online_payments_view_model.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
+import 'package:admin/ui/features/settings/widgets/cascade_draft_resolver.dart';
 import 'package:admin/ui/features/settings/views/basic/online_payments/online_payments_defaults_body.dart';
 import 'package:admin/ui/features/settings/views/basic/online_payments/online_payments_emails_body.dart';
 import 'package:admin/ui/features/settings/views/basic/online_payments/online_payments_general_body.dart';
@@ -122,22 +121,14 @@ class _OnlinePaymentsShellState extends State<OnlinePaymentsShell>
       // `tabbedSettingsRoutePair` wraps this shell in `_SettingsLevelKeyed`,
       // which remounts the whole subtree on level/targetId flips.
       create: (companyId) {
-        final scope = services.settingsLevel;
-        final clientId = scope.targetId;
-        final SettingsDraftHost vm;
-        if (scope.level == SettingsLevel.client && clientId != null) {
-          vm = ClientSettingsDraftViewModel(
-            repo: services.clients,
-            db: services.db,
-            companyId: companyId,
-            clientId: clientId,
-          );
-        } else {
-          vm = OnlinePaymentsViewModel(
+        final vm = resolveCascadeDraftVm(
+          services,
+          companyId,
+          () => OnlinePaymentsViewModel(
             repo: services.company,
             companyId: companyId,
-          );
-        }
+          ),
+        );
         unawaited(vm.load());
         return vm;
       },

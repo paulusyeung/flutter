@@ -72,6 +72,14 @@ class GroupSettingRepository
       .watchAll(companyId: companyId)
       .map((rows) => rows.map(_fromRow).toList(growable: false));
 
+  /// Watch active + archived groups for [companyId] (excludes deleted).
+  /// Backs the list screen's "Show archived" toggle.
+  Stream<List<GroupSetting>> watchAllIncludingArchived({
+    required String companyId,
+  }) => db.groupSettingDao
+      .watchAllIncludingArchived(companyId: companyId)
+      .map((rows) => rows.map(_fromRow).toList(growable: false));
+
   Stream<int> watchCount({required String companyId}) =>
       db.groupSettingDao.watchCount(companyId: companyId);
 

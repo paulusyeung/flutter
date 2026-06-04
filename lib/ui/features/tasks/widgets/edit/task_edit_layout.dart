@@ -90,7 +90,7 @@ class TaskEditLayout extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _IdentitySection(vm: vm, locked: locked),
+              _IdentitySection(vm: vm, locked: locked, formatter: formatter),
               SizedBox(height: InSpacing.lg(context)),
               _CustomFieldsSection(
                 vm: vm,
@@ -117,7 +117,7 @@ class TaskEditLayout extends StatelessWidget {
               _LockoutBanner(),
               SizedBox(height: InSpacing.lg(context)),
             ],
-            _IdentitySection(vm: vm, locked: locked),
+            _IdentitySection(vm: vm, locked: locked, formatter: formatter),
             SizedBox(height: InSpacing.lg(context)),
             _CustomFieldsSection(vm: vm, formatter: formatter, locked: locked),
             SizedBox(height: InSpacing.lg(context)),
@@ -198,9 +198,14 @@ class _LockoutBanner extends StatelessWidget {
 }
 
 class _IdentitySection extends StatelessWidget {
-  const _IdentitySection({required this.vm, required this.locked});
+  const _IdentitySection({
+    required this.vm,
+    required this.locked,
+    this.formatter,
+  });
   final TaskEditViewModel vm;
   final bool locked;
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
@@ -253,7 +258,7 @@ class _IdentitySection extends StatelessWidget {
           StreamBuilder<Company?>(
             stream: context.read<Services>().company.watchCompany(vm.companyId),
             builder: (context, snap) {
-              final defaultRate = snap.data?.settings.defaultTaskRate ?? 0;
+              final defaultRate = snap.data?.settings.defaultTaskRate ?? 0.0;
               final showHint = vm.draft.rate == Decimal.zero && defaultRate > 0;
               return TextFormField(
                 initialValue: decimalInputText(vm.draft.rate),
@@ -268,7 +273,8 @@ class _IdentitySection extends StatelessWidget {
                   // blank is clearly "bill at the default" — the cascade
                   // (resolveTaskRate) applies it on invoice.
                   helperText: showHint
-                      ? '${context.tr('default_task_rate')}: $defaultRate'
+                      ? '${context.tr('default_task_rate')}: '
+                            '${formatter?.money(Decimal.parse(defaultRate.toString())) ?? defaultRate}'
                       : null,
                 ),
                 onChanged: vm.setRate,
