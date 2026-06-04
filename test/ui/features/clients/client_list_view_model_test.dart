@@ -484,4 +484,39 @@ void main() {
       vm.dispose();
     });
   });
+
+  group('clients-in-group scope (embedded tab)', () {
+    ClientListViewModel scopedVm(String companyId, String groupId) =>
+        ClientListViewModel(
+          repo: repo,
+          navStateDao: db.navStateDao,
+          userSettings: UserSettingsRepository(db: db),
+          companyId: companyId,
+          groupSettingsId: groupId,
+          searchDebounce: const Duration(milliseconds: 1),
+          persistDebounce: const Duration(milliseconds: 1),
+        );
+
+    test('skips the network fetch so the shared client cursor is not '
+        'advanced', () async {
+      api.pages[1] = [_row('c1')];
+      final vm = scopedVm('co', 'g1');
+      await settle();
+      // The embedded group tab serves from the already-synced local cache —
+      // no ensurePageLoaded call that would corrupt the main list's delta
+      // cursor with a `group=` filter.
+      expect(api.calls, isEmpty);
+      vm.dispose();
+    });
+
+    test(
+      'exposes a locked "group" filter so the scope cannot be cleared',
+      () async {
+        final vm = scopedVm('co', 'g1');
+        await settle();
+        expect(vm.lockedFilterKeyIds, contains('group'));
+        vm.dispose();
+      },
+    );
+  });
 }

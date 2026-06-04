@@ -160,9 +160,11 @@ class _PlanCard extends StatelessWidget {
   String _secondaryLine(BuildContext context, AuthSession s) {
     if (!s.isHosted) return '';
     if (s.isTrial || s.plan.isEmpty) {
-      // On free / trial, show client cap if known.
+      // On free / trial, show the client cap when known. The server sends the
+      // limit (`hosted_client_count`), not a live current-count, so we render
+      // the limit alone rather than a misleading `0 / N`.
       if (s.hostedClientCount > 0) {
-        return '${context.tr('clients')}: 0 / ${s.hostedClientCount}';
+        return '${context.tr('client_limit')}: ${s.hostedClientCount}';
       }
       return '';
     }

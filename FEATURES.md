@@ -1278,6 +1278,8 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Group archive / restore / delete | ✅ | ✅ | ✅ | ✅ | |
 | Assign clients to group | ✅ | ✅ | ✅ | ✅ | |
 | Group-level cascading settings override | ✅ | ✅ | ✅ | ✅ | |
+| Group → Clients tab (members + New client shortcut) | ✅ | ✅ | ✅ | | |
+| Group documents (upload / manage) | ✅ | ✅ | ✅ | | |
 
 ### Payment Links
 

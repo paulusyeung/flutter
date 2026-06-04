@@ -19,7 +19,12 @@ import 'package:admin/ui/features/clients/widgets/edit/client_edit_layout.dart';
 /// fetch the existing row, how to build the VM, the title, and the form
 /// body.
 class ClientEditScreen extends StatelessWidget {
-  const ClientEditScreen({this.existingId, this.cloneFrom, super.key});
+  const ClientEditScreen({
+    this.existingId,
+    this.cloneFrom,
+    this.prefillGroupId,
+    super.key,
+  });
 
   final String? existingId;
 
@@ -28,6 +33,11 @@ class ClientEditScreen extends StatelessWidget {
   /// number, balances, timestamps, contact ids) are stripped by the
   /// caller before navigating.
   final Client? cloneFrom;
+
+  /// Optional group seed for the create form. Set when "New client" is
+  /// launched from a group's Clients tab (`/clients/new?group=<id>`) so the
+  /// new client lands pre-assigned to that group.
+  final String? prefillGroupId;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +51,7 @@ class ClientEditScreen extends StatelessWidget {
         companyId: companyId,
         existing: existing,
         cloneFrom: cloneFrom,
+        prefillGroupId: prefillGroupId,
         sync: services.sync,
         connectivity: services.connectivity,
       ),

@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:admin/data/models/api/group_setting_api_model.dart';
+import 'package:admin/data/models/domain/document.dart';
 import 'package:admin/data/models/value/parsing.dart';
 
 part 'group_setting.freezed.dart';
@@ -30,6 +31,7 @@ abstract class GroupSetting with _$GroupSetting {
     // Sparse cascade overrides. Stored raw because keys vary widely;
     // the typed `CompanySettings` view is reconstructed on demand.
     Map<String, dynamic>? settings,
+    @Default(<Document>[]) List<Document> documents,
     @Default(false) bool isDirty,
   }) = _GroupSetting;
 
@@ -68,6 +70,7 @@ abstract class GroupSetting with _$GroupSetting {
     archivedAt: epochSecondsToUtcOrNull(a.archivedAt),
     isDeleted: a.isDeleted,
     settings: a.settings,
+    documents: mapDocuments(a.documents),
   );
 }
 

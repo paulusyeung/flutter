@@ -194,7 +194,7 @@ class _QuickbooksScreenState extends State<QuickbooksScreen> {
     );
     if (confirm != true || !mounted) return;
     final messenger = ScaffoldMessenger.maybeOf(context);
-    final successMsg = context.tr('disconnect');
+    final successMsg = context.tr('disconnected');
     final errorMsg = context.tr('error_refresh_page');
     setState(() => _disconnecting = true);
     try {

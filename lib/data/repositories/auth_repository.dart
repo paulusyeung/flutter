@@ -372,23 +372,19 @@ class AuthRepository {
     await _refreshSession(preserveActiveCompanyId: activeCompanyId);
   }
 
-  /// Server-side "end all sessions" — `POST /api/v1/logout` clears every
+  /// Server-side "end all sessions" — `POST /api/v1/logout` rotates every
   /// active token attached to the account. Used by Settings → Account
   /// Management → Security Settings to nuke other devices in one shot.
   ///
-  /// Caller must prime the password cache via [showConfirmPasswordSheet] (or
-  /// `passwordCache.set`) before calling — the server enforces
-  /// `X-API-PASSWORD-BASE64` for this endpoint. On success we run the local
-  /// [logout] end-to-end so this device drops back to `/login`; the server's
-  /// session invalidation would force the next request to 401 anyway, but
-  /// pre-emptively logging out avoids a brief authenticated-with-revoked-
+  /// No password gate: the server does not require `X-API-PASSWORD-BASE64` for
+  /// this endpoint (React fires it bare in production), and gating it would
+  /// lock out OAuth-only users who have no password. On success we run the
+  /// local [logout] end-to-end so this device drops back to `/login`; the
+  /// server's session invalidation would force the next request to 401 anyway,
+  /// but pre-emptively logging out avoids a brief authenticated-with-revoked-
   /// token window.
   Future<void> endAllSessions() async {
-    await _requireApi.postJson(
-      '/api/v1/logout',
-      body: const {},
-      requiresPassword: true,
-    );
+    await _requireApi.postJson('/api/v1/logout', body: const {});
     await logout();
   }
 

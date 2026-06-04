@@ -93,15 +93,6 @@ const int kAllCreditCardTypes =
     kCardTypeDiners |
     kCardTypeDiscover;
 
-/// Localization key per card-type bit. Caller renders `context.tr(...)`.
-const Map<int, String> kCardTypeLabelKey = <int, String>{
-  kCardTypeVisa: 'visa',
-  kCardTypeMasterCard: 'mastercard',
-  kCardTypeAmEx: 'amex',
-  kCardTypeDiners: 'diners',
-  kCardTypeDiscover: 'discover',
-};
-
 /// `CompanyGateway.tokenBilling` accepted values. Matches the legacy
 /// `kAutoBill*` constants on the company model — the server normalizes
 /// these to the same wire strings.

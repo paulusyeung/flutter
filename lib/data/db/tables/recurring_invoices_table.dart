@@ -24,6 +24,12 @@ class RecurringInvoices extends Table
       text().named('vendor_id').withDefault(const Constant(''))();
   TextColumn get projectId =>
       text().named('project_id').withDefault(const Constant(''))();
+
+  /// Set when the recurring invoice belongs to a payment link
+  /// (subscription). Denormalized so the Payment Link detail screen can
+  /// list its recurring invoices via a cheap `subscription_id` filter.
+  TextColumn get subscriptionId =>
+      text().named('subscription_id').withDefault(const Constant(''))();
   TextColumn get date => text().named('date').withDefault(const Constant(''))();
   TextColumn get dueDate =>
       text().named('due_date').withDefault(const Constant(''))();

@@ -6,7 +6,6 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/core/widgets/confirm_password_sheet.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
@@ -62,16 +61,14 @@ class _AccountManagementSecuritySettingsScreenState
 
   Future<void> _onEndAllSessions() async {
     final services = context.read<Services>();
-    final ok = await showConfirmPasswordSheet(
-      context,
-      cache: services.passwordCache,
-    );
-    if (!mounted || !ok) return;
     final messenger = ScaffoldMessenger.maybeOf(context);
-    final successMsg = context.tr('end_all_sessions');
+    final successMsg = context.tr('ended_all_sessions');
     final errorMsg = context.tr('error_refresh_page');
     setState(() => _endingSessions = true);
     try {
+      // Matches React: POST /api/v1/logout with no password gate. The server
+      // rotates every token on the account (ending all sessions); we then run
+      // the local logout so this device drops to /login.
       await services.auth.endAllSessions();
       if (!mounted) return;
       Notify.success(context, successMsg, messenger: messenger);
@@ -82,7 +79,6 @@ class _AccountManagementSecuritySettingsScreenState
       context.go('/login');
     } catch (e) {
       if (!mounted) return;
-      services.passwordCache.clear();
       Notify.error(context, errorMsg, error: e, messenger: messenger);
     } finally {
       if (mounted) setState(() => _endingSessions = false);
@@ -154,26 +150,42 @@ class _AccountManagementSecuritySettingsScreenState
                     applyAndSave(company.copyWith(sessionTimeout: v));
                   },
                 ),
-                DropdownButtonFormField<bool>(
-                  initialValue: company.oauthPasswordRequired,
-                  decoration: InputDecoration(
-                    labelText: context.tr('require_password_with_social_login'),
-                    border: const OutlineInputBorder(),
-                  ),
-                  items: [
-                    DropdownMenuItem<bool>(
-                      value: false,
-                      child: Text(context.tr('no')),
+                // Two-choice field → radio group (CLAUDE.md § Forms), so both
+                // options stay visible instead of hiding one behind a tap.
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: InSpacing.sm),
+                    Text(
+                      context.tr('require_password_with_social_login'),
+                      style: TextStyle(color: context.inTheme.ink2),
                     ),
-                    DropdownMenuItem<bool>(
-                      value: true,
-                      child: Text(context.tr('yes')),
+                    RadioGroup<bool>(
+                      groupValue: company.oauthPasswordRequired,
+                      onChanged: (v) {
+                        if (v == null) return;
+                        applyAndSave(
+                          company.copyWith(oauthPasswordRequired: v),
+                        );
+                      },
+                      child: Column(
+                        children: [
+                          RadioListTile<bool>(
+                            value: true,
+                            title: Text(context.tr('yes')),
+                            contentPadding: EdgeInsets.zero,
+                            dense: true,
+                          ),
+                          RadioListTile<bool>(
+                            value: false,
+                            title: Text(context.tr('no')),
+                            contentPadding: EdgeInsets.zero,
+                            dense: true,
+                          ),
+                        ],
+                      ),
                     ),
                   ],
-                  onChanged: (v) {
-                    if (v == null) return;
-                    applyAndSave(company.copyWith(oauthPasswordRequired: v));
-                  },
                 ),
               ],
             ),

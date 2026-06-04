@@ -159,8 +159,11 @@ class ProjectListScreen extends StatelessWidget {
           singleSuccessKey: 'documents',
           pluralSuccessKey: 'documents',
           nothingKey: 'no_documents_to_download',
-          onSelection: (ctx, sel) =>
-              ProjectActions.downloadDocuments(ctx, sel.cast<Project>()),
+          onSelection: (ctx, sel) => ProjectActions.downloadDocuments(
+            ctx,
+            ctx.read<Services>(),
+            sel.cast<Project>(),
+          ),
         ),
       ],
     );

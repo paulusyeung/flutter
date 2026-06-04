@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -150,6 +151,15 @@ class _HostedActionsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final hasPortalUrl = session.ninjaPortalUrl.isNotEmpty;
+    // On iOS / Android the button drives in-app purchase and needs no portal
+    // URL; everywhere else it opens the hosted billing portal, so with no URL
+    // there's nowhere to send the user (launchUpgrade would otherwise fall
+    // back to this same screen). Disable it in that dead-end case.
+    final isStore =
+        !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.android);
+    final canUpgrade = isStore || hasPortalUrl;
     // Decide button label: free → "Upgrade Plan"; paid → "Change Plan";
     // trial → "Upgrade Plan" so the user knows they're paying.
     final labelKey = session.isPaidPlanSlug && !session.isTrial
@@ -173,15 +183,15 @@ class _HostedActionsCard extends StatelessWidget {
                 style: FilledButton.styleFrom(minimumSize: const Size(160, 44)),
                 icon: const Icon(Icons.open_in_new, size: 18),
                 label: Text(context.tr(labelKey)),
-                // Single platform-conditional seam: store IAP on
-                // iOS/Android, portal on web/desktop. Always enabled — the
-                // launcher resolves its own destination/fallback.
-                onPressed: () => launchUpgrade(context),
+                // Store IAP on iOS/Android; hosted portal on web/desktop.
+                // Disabled only on the web/desktop dead-end where no portal
+                // URL is available yet (transient pre-refresh state).
+                onPressed: canUpgrade ? () => launchUpgrade(context) : null,
               ),
             ],
           ),
         ),
-        if (!hasPortalUrl)
+        if (!canUpgrade)
           Padding(
             padding: EdgeInsets.only(top: InSpacing.sm),
             child: Text(

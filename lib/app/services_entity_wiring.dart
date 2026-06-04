@@ -743,6 +743,12 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     type: EntityType.group,
     api: groupSettingsApi,
     repo: groupSettingRepo,
+    customActions: documentMutationHandlers<GroupSettingApi>(
+      documentsApi: ctx.documentsApi,
+      upload: groupSettingsApi.uploadDocument,
+      applyChanged: groupSettingRepo.applyDocumentChanged,
+      applyDeleted: groupSettingRepo.applyDocumentDeleted,
+    ),
   );
 
   // ---- PaymentLink (wire: `subscription`) ---------------------------------

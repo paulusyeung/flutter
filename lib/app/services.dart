@@ -238,6 +238,7 @@ class Services implements SidebarBadgeContext {
     required this.activities,
     required this.emails,
     required this.search,
+    required this.documents,
     required this.sync,
     required this.refreshScheduler,
     required this.entityRegistry,
@@ -454,6 +455,11 @@ class Services implements SidebarBadgeContext {
   /// No Drift / outbox-backed entity — the ViewModel fetches live.
   final EmailsApi emails;
   final SearchApi search;
+
+  /// Shared `/api/v1/documents` surface addressed by document id — bulk
+  /// download (server-side zip+email export). Per-entity uploads live on
+  /// each entity's own api (the URL is entity-scoped).
+  final DocumentsApi documents;
 
   /// Reads/writes the authenticated user's profile (the row behind
   /// Settings > User Details). Distinct from [userSettings], which only
@@ -1016,6 +1022,7 @@ class Services implements SidebarBadgeContext {
       activities: activitiesApi,
       emails: emailsApi,
       search: searchApi,
+      documents: documentsApi,
       sync: sync,
       refreshScheduler: refreshScheduler,
       entityRegistry: registry,

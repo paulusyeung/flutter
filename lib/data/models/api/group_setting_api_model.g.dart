@@ -21,6 +21,9 @@ _GroupSettingApi _$GroupSettingApiFromJson(Map<String, dynamic> json) =>
       archivedAt: (json['archived_at'] as num?)?.toInt() ?? 0,
       isDeleted: json['is_deleted'] as bool? ?? false,
       settings: json['settings'] as Map<String, dynamic>?,
+      documents: (json['documents'] as List<dynamic>?)
+          ?.map((e) => DocumentApi.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
 
 Map<String, dynamic> _$GroupSettingApiToJson(_GroupSettingApi instance) =>
@@ -38,6 +41,7 @@ Map<String, dynamic> _$GroupSettingApiToJson(_GroupSettingApi instance) =>
       'archived_at': instance.archivedAt,
       'is_deleted': instance.isDeleted,
       'settings': ?instance.settings,
+      'documents': instance.documents,
     };
 
 _GroupSettingListApi _$GroupSettingListApiFromJson(Map<String, dynamic> json) =>

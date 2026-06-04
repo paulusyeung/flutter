@@ -245,7 +245,11 @@ Future<void> _openDangerDialog(
           top: InSpacing.lg(ctx),
           bottom: InSpacing.lg(ctx) + MediaQuery.viewInsetsOf(ctx).bottom,
         ),
-        child: _DangerDialogBody(kind: kind, services: services),
+        child: _DangerDialogBody(
+          kind: kind,
+          services: services,
+          showTitle: true,
+        ),
       ),
     );
   } else {
@@ -282,10 +286,20 @@ class _DangerDialogShell extends StatelessWidget {
 }
 
 class _DangerDialogBody extends StatefulWidget {
-  const _DangerDialogBody({required this.kind, required this.services});
+  const _DangerDialogBody({
+    required this.kind,
+    required this.services,
+    this.showTitle = false,
+  });
 
   final _DangerKind kind;
   final Services services;
+
+  /// Render the action title at the top of the scroll body. The bottom-sheet
+  /// (narrow) path uses this since it has no `AlertDialog` title chrome of its
+  /// own; the wide `_DangerDialogShell` supplies the title via
+  /// `AlertDialog.title` and leaves this false.
+  final bool showTitle;
 
   @override
   State<_DangerDialogBody> createState() => _DangerDialogBodyState();
@@ -644,6 +658,13 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (widget.showTitle) ...[
+                Text(
+                  _titleFor(context, widget.kind, services),
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                SizedBox(height: InSpacing.md(context)),
+              ],
               if (_topBannerError != null) ...[
                 _ErrorBanner(message: _topBannerError!),
                 SizedBox(height: InSpacing.md(context)),

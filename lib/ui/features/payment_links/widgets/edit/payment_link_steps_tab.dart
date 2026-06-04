@@ -96,42 +96,54 @@ class _StepPickers extends StatelessWidget {
     final otherOptions = catalog
         .where((s) => !s.id.startsWith('auth.') && !selected.contains(s.id))
         .toList(growable: false);
-    return Row(
-      children: [
-        Expanded(
-          child: DropdownButtonFormField<String>(
-            initialValue: null,
-            decoration: InputDecoration(
-              labelText: context.tr('authentication'),
-            ),
-            // "Auth-only-one": once an auth step is in the list, hide the
-            // rest. Matches React's behavior.
-            items: hasAuth
-                ? const <DropdownMenuItem<String>>[]
-                : [
-                    for (final s in authOptions)
-                      DropdownMenuItem(value: s.id, child: Text(s.label)),
-                  ],
-            onChanged: (id) {
-              if (id != null) vm.addStep(id);
-            },
-          ),
-        ),
-        SizedBox(width: InSpacing.md(context)),
-        Expanded(
-          child: DropdownButtonFormField<String>(
-            initialValue: null,
-            decoration: InputDecoration(labelText: context.tr('other_steps')),
-            items: [
-              for (final s in otherOptions)
+    final authPicker = DropdownButtonFormField<String>(
+      initialValue: null,
+      decoration: InputDecoration(labelText: context.tr('authentication')),
+      // "Auth-only-one": once an auth step is in the list, hide the rest.
+      // Matches React's behavior.
+      items: hasAuth
+          ? const <DropdownMenuItem<String>>[]
+          : [
+              for (final s in authOptions)
                 DropdownMenuItem(value: s.id, child: Text(s.label)),
             ],
-            onChanged: (id) {
-              if (id != null) vm.addStep(id);
-            },
-          ),
-        ),
+      onChanged: (id) {
+        if (id != null) vm.addStep(id);
+      },
+    );
+    final otherPicker = DropdownButtonFormField<String>(
+      initialValue: null,
+      decoration: InputDecoration(labelText: context.tr('other_steps')),
+      items: [
+        for (final s in otherOptions)
+          DropdownMenuItem(value: s.id, child: Text(s.label)),
       ],
+      onChanged: (id) {
+        if (id != null) vm.addStep(id);
+      },
+    );
+    // Two-up on roomy widths; stack on a narrow phone so neither picker's
+    // label/menu gets crushed to ~half a phone width.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 360) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              authPicker,
+              SizedBox(height: InSpacing.sm),
+              otherPicker,
+            ],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: authPicker),
+            SizedBox(width: InSpacing.md(context)),
+            Expanded(child: otherPicker),
+          ],
+        );
+      },
     );
   }
 }

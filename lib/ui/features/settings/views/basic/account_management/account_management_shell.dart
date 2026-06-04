@@ -80,6 +80,7 @@ class _AccountManagementShellState extends State<AccountManagementShell>
   }
 
   void _onTabSettled() {
+    if (!mounted) return;
     if (_controller.indexIsChanging) return;
     final tab = _tabs[_controller.index];
     final desired = tab.slug.isEmpty ? _basePath : '$_basePath/${tab.slug}';

@@ -8,19 +8,24 @@ import 'package:admin/data/models/value/country.dart';
 import 'package:admin/data/models/value/currency.dart';
 import 'package:admin/data/models/value/language.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/build_standard_documents_tab.dart';
+import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
+import 'package:admin/ui/features/clients/views/client_list_screen.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/group_setting_edit_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_entity_edit_scaffold.dart';
+import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_text_field.dart';
 
 /// `/settings/group_settings/new` and `/settings/group_settings/:id`.
 ///
-/// Edit-or-create form for a group. Lifecycle, AppBar, and the
-/// archive/restore/delete overflow are owned by
-/// [SettingsEntityEditScaffold] — this widget just declares the four
-/// form fields (name + three cascade-override dropdowns).
+/// Create mode shows the Overview form alone. Edit mode wraps it in a
+/// three-tab shell (Overview / Clients / Documents) mirroring React's group
+/// edit screen. Lifecycle, AppBar, and the archive/restore/delete overflow
+/// are owned by [SettingsEntityEditScaffold]; the tabbed body rides
+/// `customBodyBuilder`.
 class GroupSettingsEditScreen extends StatelessWidget {
   const GroupSettingsEditScreen({this.existingId, super.key});
 
@@ -56,29 +61,72 @@ class GroupSettingsEditScreen extends StatelessWidget {
       // (a no-op save would still enqueue an outbox row and bump
       // `updated_at`).
       canSave: (vm) => !vm.isSaving && vm.isDirty,
-      bodyBuilder: (context, vm) => [
-        FormSection(
-          title: context.tr('group'),
-          children: [
-            SettingsTextField(
-              initialValue: vm.draft.name,
-              labelKey: 'name',
-              onChanged: vm.setName,
-              errorText: vm.fieldErrorFor('name'),
-              textInputAction: TextInputAction.next,
-              externalSyncKey: vm.original?.id,
-            ),
-            _CurrencyField(vm: vm),
-            _LanguageField(vm: vm),
-            _CountryField(vm: vm),
-          ],
+      customBodyBuilder: (context, vm) => _buildBody(context, vm, companyId),
+    );
+  }
+
+  /// Create mode: the Overview form alone (width-capped). Edit mode: a
+  /// 3-tab shell. The Clients/Documents tabs need a saved group id, so they
+  /// only appear once [GroupSettingEditViewModel.isCreate] is false.
+  Widget _buildBody(
+    BuildContext context,
+    GroupSettingEditViewModel vm,
+    String companyId,
+  ) {
+    if (vm.isCreate) {
+      return SettingsFormShell(sections: _overviewSections(context, vm));
+    }
+    final id = vm.original!.id;
+    final services = context.read<Services>();
+    return EntityDetailTabs(
+      tabs: [
+        EntityDetailTab(
+          label: context.tr('overview'),
+          icon: Icons.tune_outlined,
+          bodyBuilder: (_) =>
+              SettingsFormShell(sections: _overviewSections(context, vm)),
         ),
-        // Edit mode only — entering group-scope cascade editing needs a saved
-        // group (the cascade VM reads `group.settings` from Drift).
-        if (vm.original != null) _ConfigureSettingsSection(vm: vm),
+        EntityDetailTab(
+          label: context.tr('clients'),
+          icon: Icons.people_outline,
+          bodyBuilder: (_) =>
+              ClientListScreen(groupSettingsId: id, embedded: true),
+        ),
+        buildStandardDocumentsTab(
+          context: context,
+          companyId: companyId,
+          entityId: id,
+          documents: vm.draft.documents,
+          repo: services.groupSettings,
+        ),
       ],
     );
   }
+
+  List<Widget> _overviewSections(
+    BuildContext context,
+    GroupSettingEditViewModel vm,
+  ) => [
+    FormSection(
+      title: context.tr('group'),
+      children: [
+        SettingsTextField(
+          initialValue: vm.draft.name,
+          labelKey: 'name',
+          onChanged: vm.setName,
+          errorText: vm.fieldErrorFor('name'),
+          textInputAction: TextInputAction.next,
+          externalSyncKey: vm.original?.id,
+        ),
+        _CurrencyField(vm: vm),
+        _LanguageField(vm: vm),
+        _CountryField(vm: vm),
+      ],
+    ),
+    // Edit mode only — entering group-scope cascade editing needs a saved
+    // group (the cascade VM reads `group.settings` from Drift).
+    if (vm.original != null) _ConfigureSettingsSection(vm: vm),
+  ];
 }
 
 /// "Configure Settings" affordance — switches the settings shell into

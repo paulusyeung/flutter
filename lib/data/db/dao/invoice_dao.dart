@@ -257,6 +257,34 @@ class InvoiceDao extends BaseEntityDao<$InvoicesTable, InvoiceRow>
     return q.watch().distinctRows();
   }
 
+  /// Cheap stream used by the Payment Link detail page's "Invoices" card.
+  /// Filters by `subscription_id` + excludes deleted rows by default.
+  Stream<List<InvoiceRow>> watchForSubscription({
+    required String companyId,
+    required String subscriptionId,
+    Set<EntityState> states = const {EntityState.active},
+  }) {
+    final q = select(invoices)
+      ..where(
+        (e) =>
+            e.companyId.equals(companyId) &
+            e.subscriptionId.equals(subscriptionId),
+      );
+    if (states.isNotEmpty) {
+      q.where(
+        (e) => entityStateFilter(
+          states: states,
+          archivedAt: e.archivedAt,
+          isDeleted: e.isDeleted,
+        ),
+      );
+    }
+    q.orderBy([
+      (e) => OrderingTerm(expression: e.date, mode: OrderingMode.desc),
+    ]);
+    return q.watch().distinctRows();
+  }
+
   Stream<List<InvoiceRow>> watchForProject({
     required String companyId,
     required String projectId,

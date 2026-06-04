@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
@@ -22,14 +23,31 @@ import 'package:admin/ui/features/clients/widgets/client_token_search_field.dart
 /// [EntityListScreenScaffold]; this class just plugs Clients-specific bits
 /// into it.
 class ClientListScreen extends StatelessWidget {
-  const ClientListScreen({super.key});
+  const ClientListScreen({
+    super.key,
+    this.groupSettingsId,
+    this.embedded = false,
+  });
+
+  /// When set, the list is filtered to one group (the clients-in-group tab).
+  final String? groupSettingsId;
+
+  /// True when this list lives inside another screen's body.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context) {
+    final gid = groupSettingsId;
     return EntityListScreenScaffold<Client, ClientListViewModel>(
       titleKey: 'clients',
       newRoute: '/clients/new',
       newLabelKey: 'new_client',
+      embedded: embedded,
+      // Client's createBuilder reads `?group=` (prefillGroupId) so a new
+      // client lands pre-assigned to this group.
+      embeddedNewOverride: gid == null
+          ? null
+          : (ctx) => ctx.go('/clients/new?group=$gid'),
       // Money columns — let the scaffold wire `FormatterHostMixin` so the
       // tile renders the per-client currency cascade.
       wantsFormatter: true,
@@ -39,6 +57,7 @@ class ClientListScreen extends StatelessWidget {
         userSettings: services.userSettings,
         savedViews: services.savedViews,
         companyId: companyId,
+        groupSettingsId: groupSettingsId,
       ),
       sortOptions: (context) => [
         SortOption(id: ClientFieldIds.name, label: context.tr('name')),

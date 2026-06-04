@@ -296,4 +296,14 @@ class _RecordingDocumentsApi implements DocumentsApi {
     });
     return setVisibilityReturn;
   }
+
+  final bulkDownloadCalls = <Map<String, dynamic>>[];
+
+  @override
+  Future<void> bulkDownload({
+    required List<String> ids,
+    required String idempotencyKey,
+  }) async {
+    bulkDownloadCalls.add({'ids': ids, 'idempotencyKey': idempotencyKey});
+  }
 }

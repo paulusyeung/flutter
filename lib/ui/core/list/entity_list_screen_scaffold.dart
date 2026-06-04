@@ -552,6 +552,9 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
     if (action.onSelection != null) {
       final selected = _vm.selectedItems.where(bulk.eligible).toList();
       await action.onSelection!(context, selected);
+      // Exit multiselect (React parity, `setSelected([])`) and close the
+      // double-tap window — the handler ran once on this selection.
+      if (mounted) _vm.clearSelection();
       return;
     }
 

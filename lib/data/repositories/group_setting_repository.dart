@@ -1,16 +1,19 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show Value, BooleanExpressionOperators;
 import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/group_setting_dao.dart';
+import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/api/group_setting_api_model.dart';
 import 'package:admin/data/models/domain/group_setting.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
+import 'package:admin/data/repositories/document_bearing_repository.dart';
 import 'package:admin/data/services/group_settings_api.dart';
+import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/domain/sync/mutation.dart';
@@ -21,7 +24,8 @@ final _log = Logger('GroupSettingRepository');
 /// UI watches Drift; the network only writes. Every mutation goes through
 /// the outbox.
 class GroupSettingRepository
-    extends BaseEntityRepository<GroupSetting, GroupSettingApi> {
+    extends BaseEntityRepository<GroupSetting, GroupSettingApi>
+    implements DocumentBearingRepository {
   GroupSettingRepository({
     required super.db,
     required this.api,
@@ -31,7 +35,10 @@ class GroupSettingRepository
     this.pageSize = 50,
   }) : super(
          entityType: EntityType.group,
-         requiresPasswordFor: const {MutationKind.delete},
+         requiresPasswordFor: const {
+           MutationKind.delete,
+           MutationKind.documentDelete,
+         },
        );
 
   final GroupSettingsApi api;
@@ -133,7 +140,12 @@ class GroupSettingRepository
             entityType: entityTypeName,
           );
 
-    final filters = <String, String>{...stateQueryParams(states)};
+    // `?include=documents` so a paged refresh carries each group's
+    // attachments into the local `documents` column.
+    final filters = <String, String>{
+      'include': 'documents',
+      ...stateQueryParams(states),
+    };
 
     final result = await api.list(
       page: page,
@@ -246,6 +258,60 @@ class GroupSettingRepository
     return SaveResult(entity: group, outboxRowId: rowId);
   }
 
+  /// Queue a document upload for this group. Mirrors
+  /// `ProductRepository.uploadDocument` — same payload shape, same outbox
+  /// kind. The upload returns the refreshed group (with `documents`), applied
+  /// via [applyUpdateResponse].
+  @override
+  Future<void> uploadDocument({
+    required String companyId,
+    required String entityId,
+    required UploadSource source,
+  }) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: entityId,
+      kind: MutationKind.documentUpload,
+      payload: {'entity_id': entityId, ...source.toPayload()},
+    );
+  }
+
+  /// Delete one document attached to a group. Password-gated — see
+  /// `requiresPasswordFor` above.
+  @override
+  Future<void> deleteDocument({
+    required String companyId,
+    required String entityId,
+    required String documentId,
+  }) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: entityId,
+      kind: MutationKind.documentDelete,
+      payload: {'entity_id': entityId, 'document_id': documentId},
+    );
+  }
+
+  /// Flip a document's public/private flag.
+  @override
+  Future<void> setDocumentVisibility({
+    required String companyId,
+    required String entityId,
+    required String documentId,
+    required bool isPublic,
+  }) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: entityId,
+      kind: MutationKind.documentVisibility,
+      payload: {
+        'entity_id': entityId,
+        'document_id': documentId,
+        'is_public': isPublic,
+      },
+    );
+  }
+
   @override
   Future<void> deleteLocalById({
     required String companyId,
@@ -307,6 +373,11 @@ class GroupSettingRepository
       customValue4: Value(a.customValue4),
       isDirty: const Value(false),
       isDeleted: Value(a.isDeleted),
+      // Nullable DTO distinguishes JSON-omitted from JSON-empty;
+      // `Value.absent()` preserves the prior column on the UPDATE branch.
+      documents: a.documents == null
+          ? const Value.absent()
+          : Value(jsonEncode(a.documents!.map((d) => d.toJson()).toList())),
       payload: jsonEncode(a.toJson()),
     );
   }
@@ -331,13 +402,72 @@ class GroupSettingRepository
       customValue4: Value(g.customValue4),
       isDirty: Value(isDirty),
       isDeleted: Value(g.isDeleted),
+      documents: Value(
+        jsonEncode(g.documents.map((d) => d.toApi().toJson()).toList()),
+      ),
       payload: jsonEncode(g.toApiJson(preserveTempId: true)),
     );
+  }
+
+  /// Drop a document from the group's local `documents` JSON column.
+  /// Mirror of `ProductRepository.applyDocumentDeleted`.
+  Future<void> applyDocumentDeleted({
+    required String companyId,
+    required String entityId,
+    required String documentId,
+  }) async {
+    final row = await db.groupSettingDao
+        .watchById(companyId: companyId, id: entityId)
+        .first;
+    if (row == null) return;
+    final current = decodeRawDocumentsColumn(row.documents);
+    final next = current.where((d) => d.id != documentId).toList();
+    if (next.length == current.length) return;
+    await (db.update(db.groupSettings)
+          ..where((g) => g.companyId.equals(companyId) & g.id.equals(entityId)))
+        .write(
+          GroupSettingsCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
+  }
+
+  /// Replace (or insert) one document in the group's local `documents` JSON
+  /// column. Mirror of `ProductRepository.applyDocumentChanged`.
+  Future<void> applyDocumentChanged({
+    required String companyId,
+    required String entityId,
+    required DocumentApi document,
+  }) async {
+    final row = await db.groupSettingDao
+        .watchById(companyId: companyId, id: entityId)
+        .first;
+    if (row == null) return;
+    final current = decodeRawDocumentsColumn(row.documents);
+    final next = [
+      for (final d in current)
+        if (d.id == document.id) document else d,
+    ];
+    if (!current.any((d) => d.id == document.id)) {
+      next.add(document);
+    }
+    await (db.update(db.groupSettings)
+          ..where((g) => g.companyId.equals(companyId) & g.id.equals(entityId)))
+        .write(
+          GroupSettingsCompanion(
+            documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+          ),
+        );
   }
 
   GroupSetting _fromRow(GroupSettingRow row) {
     final json = jsonDecode(row.payload) as Map<String, dynamic>;
     final api = GroupSettingApi.fromJson(json);
-    return GroupSetting.fromApi(api).copyWith(isDirty: row.isDirty);
+    // is_dirty + documents are local-only columns (documents lives in its own
+    // column; `toApiJson` omits it) — overlay both from the Drift row.
+    return GroupSetting.fromApi(api).copyWith(
+      isDirty: row.isDirty,
+      documents: decodeDocumentsColumn(row.documents),
+    );
   }
 }

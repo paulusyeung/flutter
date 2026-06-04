@@ -180,6 +180,9 @@ final kWiredEntityModules = <EntityModuleSpec>[
     listBuilder: (context, state) => const ClientListScreen(),
     createBuilder: (context, state) => ClientEditScreen(
       cloneFrom: state.extra is Client ? state.extra as Client : null,
+      // `?group=<id>` seeds the group when "New client" is launched from a
+      // group's Clients tab.
+      prefillGroupId: state.uri.queryParameters['group'],
     ),
     detailBuilder: (context, state) =>
         ClientDetailScreen(id: state.pathParameters['id']!),
@@ -292,7 +295,10 @@ final kWiredEntityModules = <EntityModuleSpec>[
     labelKey: 'group_settings',
     sidebarSection: SidebarSection.none,
     sidebarOrder: 210,
-    requiresPasswordFor: const {MutationKind.delete},
+    requiresPasswordFor: const {
+      MutationKind.delete,
+      MutationKind.documentDelete,
+    },
   ),
   // DI: wireEntity<TaskStatusItemApi, TaskStatusApi>(...) in lib/app/services.dart.
   EntityModuleSpec(

@@ -62,10 +62,17 @@ class _AccountManagementIntegrationsScreenState
 
   void _syncFromCompany(Company c) {
     if (_dirty) return; // Don't trample the user's in-progress edits.
-    _gaCtrl.text = c.googleAnalyticsKey;
-    _matomoIdCtrl.text = c.matomoId;
-    _matomoUrlCtrl.text = c.matomoUrl;
+    // Only reassign when the value differs — a blind `controller.text =` on
+    // every Drift tick resets the cursor/selection to offset 0 mid-view
+    // (before the user's first keystroke flips `_dirty`).
+    _seedController(_gaCtrl, c.googleAnalyticsKey);
+    _seedController(_matomoIdCtrl, c.matomoId);
+    _seedController(_matomoUrlCtrl, c.matomoUrl);
     _company = c;
+  }
+
+  static void _seedController(TextEditingController ctrl, String value) {
+    if (ctrl.text != value) ctrl.text = value;
   }
 
   void _markDirty() {
@@ -107,6 +114,7 @@ class _AccountManagementIntegrationsScreenState
   Widget build(BuildContext context) {
     super.build(context); // AutomaticKeepAliveClientMixin contract.
     final services = context.read<Services>();
+    final session = services.auth.session.value;
     final companyId = services.auth.session.value?.currentCompanyId;
     final canSave = _dirty && !_saving;
 
@@ -187,11 +195,17 @@ class _AccountManagementIntegrationsScreenState
               title: context.tr('api_tokens'),
               spacing: 0,
               children: [
-                _IntegrationTile(
-                  icon: Icons.lock_outline,
-                  labelKey: 'api_tokens',
-                  onTap: () => context.go('/settings/integrations/api_tokens'),
-                ),
+                // API Tokens is Pro+/self-hosted only — mirrors React, which
+                // hides the tile for free hosted accounts. Webhooks / docs /
+                // Zapier / QuickBooks stay ungated.
+                if (session != null &&
+                    (session.isSelfHosted || session.hasProAccess))
+                  _IntegrationTile(
+                    icon: Icons.lock_outline,
+                    labelKey: 'api_tokens',
+                    onTap: () =>
+                        context.go('/settings/integrations/api_tokens'),
+                  ),
                 _IntegrationTile(
                   icon: Icons.webhook_outlined,
                   labelKey: 'api_webhooks',

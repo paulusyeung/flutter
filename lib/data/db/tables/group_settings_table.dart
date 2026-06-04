@@ -17,6 +17,7 @@ class GroupSettings extends Table
         EntityTimestampColumns,
         EntityCustomValueColumns,
         EntityFlagColumns,
+        EntityDocumentsColumn,
         EntityPayloadColumn {
   TextColumn get name => text()();
 

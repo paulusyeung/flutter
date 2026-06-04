@@ -209,6 +209,34 @@ class RecurringInvoiceDao
     ]);
     return q.watch().distinctRows();
   }
+
+  /// Cheap stream used by the Payment Link detail page's "Recurring
+  /// Invoices" card. Filters by `subscription_id` + excludes deleted rows.
+  Stream<List<RecurringInvoiceRow>> watchForSubscription({
+    required String companyId,
+    required String subscriptionId,
+    Set<EntityState> states = const {EntityState.active},
+  }) {
+    final q = select(recurringInvoices)
+      ..where(
+        (e) =>
+            e.companyId.equals(companyId) &
+            e.subscriptionId.equals(subscriptionId),
+      );
+    if (states.isNotEmpty) {
+      q.where(
+        (e) => entityStateFilter(
+          states: states,
+          archivedAt: e.archivedAt,
+          isDeleted: e.isDeleted,
+        ),
+      );
+    }
+    q.orderBy([
+      (e) => OrderingTerm(expression: e.date, mode: OrderingMode.desc),
+    ]);
+    return q.watch().distinctRows();
+  }
 }
 
 extension on RecurringInvoices {

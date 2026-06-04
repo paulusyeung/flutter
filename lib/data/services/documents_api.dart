@@ -58,4 +58,21 @@ class DocumentsApi {
     }
     return null;
   }
+
+  /// `POST /api/v1/documents/bulk {action:'download', ids}` — server-side
+  /// export: the server zips the documents and emails them to the user, so
+  /// there's nothing to download client-side (parity with admin-portal +
+  /// React; the caller toasts `exported_data`). The response is a document
+  /// list we don't need, so this returns void.
+  Future<void> bulkDownload({
+    required List<String> ids,
+    required String idempotencyKey,
+  }) async {
+    await _client.mutate(
+      method: 'POST',
+      path: '$_basePath/bulk',
+      idempotencyKey: idempotencyKey,
+      body: {'action': 'download', 'ids': ids},
+    );
+  }
 }

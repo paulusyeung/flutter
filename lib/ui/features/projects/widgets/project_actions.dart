@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:uuid/uuid.dart';
 
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
@@ -17,7 +17,6 @@ import 'package:admin/ui/features/expenses/view_models/expense_edit_view_model.d
 import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
 import 'package:admin/ui/features/quotes/view_models/quote_edit_view_model.dart';
-import 'package:admin/utils/url_safety.dart';
 
 /// Action set surfaced for a project. Mirrors `ProductAction` — all
 /// branches are wired.
@@ -376,26 +375,34 @@ class ProjectActions {
     );
   }
 
-  /// Bulk "Download Documents": open every document attached to the selected
-  /// projects via the OS handler — the same per-document mechanism the
-  /// Documents tab uses (the server URL is directly launchable). There's no
-  /// server-side zip, so each document opens individually. Toasts when the
-  /// selection has no documents.
+  /// Bulk "Download Documents": collect every document id across the selected
+  /// projects and fire the server-side export (`POST /documents/bulk
+  /// {action:'download'}`) — the server zips and emails them, matching
+  /// admin-portal + React. Works identically on web/native (one POST, no
+  /// client download). Toasts when the selection has no documents.
   static Future<void> downloadDocuments(
     BuildContext context,
+    Services services,
     List<Project> projects,
   ) async {
-    final urls = <String>[
+    final ids = <String>[
       for (final p in projects)
-        for (final d in p.documents)
-          if (isSafeHttpsUrl(d.url)) d.url,
+        for (final d in p.documents) d.id,
     ];
-    if (urls.isEmpty) {
+    if (ids.isEmpty) {
       Notify.info(context, context.tr('no_documents_to_download'));
       return;
     }
-    for (final url in urls) {
-      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    try {
+      await services.documents.bulkDownload(
+        ids: ids,
+        idempotencyKey: const Uuid().v4(),
+      );
+      if (!context.mounted) return;
+      Notify.success(context, context.tr('exported_data'));
+    } catch (e) {
+      if (!context.mounted) return;
+      Notify.error(context, context.tr('an_error_occurred'), error: e);
     }
   }
 }

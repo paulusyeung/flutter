@@ -1,5 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'package:admin/data/models/api/document_api_model.dart';
+
 part 'group_setting_api_model.freezed.dart';
 part 'group_setting_api_model.g.dart';
 
@@ -23,6 +25,10 @@ abstract class GroupSettingApi with _$GroupSettingApi {
     @JsonKey(name: 'is_deleted') @Default(false) bool isDeleted,
     @JsonKey(name: 'settings', includeIfNull: false)
     Map<String, dynamic>? settings,
+    // Nullable to distinguish JSON-omitted (list endpoint without
+    // `?include=documents`) from JSON-present-and-empty. Lives in its own
+    // Drift column; the repo's `_fromRow` overlays it. See `ClientApi.documents`.
+    List<DocumentApi>? documents,
   }) = _GroupSettingApi;
 
   factory GroupSettingApi.fromJson(Map<String, dynamic> json) =>

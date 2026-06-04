@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/api/group_setting_api_model.dart';
 import 'package:admin/data/models/domain/group_setting.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
@@ -231,6 +232,119 @@ void main() {
         entityType: 'group',
       );
       expect(cursor.isEmpty, isTrue);
+    });
+
+    test('watchAllIncludingArchived returns active + archived, not '
+        'deleted', () async {
+      final repo = makeRepo();
+      await repo.applyCreateResponse(
+        companyId: 'co',
+        tempId: 'g_active',
+        serverResponse: const GroupSettingApi(
+          id: 'g_active',
+          name: 'Active',
+          updatedAt: 1700000000,
+        ),
+      );
+      await repo.applyCreateResponse(
+        companyId: 'co',
+        tempId: 'g_arch',
+        serverResponse: const GroupSettingApi(
+          id: 'g_arch',
+          name: 'Archived',
+          updatedAt: 1700000000,
+          archivedAt: 1700000000,
+        ),
+      );
+      await repo.applyCreateResponse(
+        companyId: 'co',
+        tempId: 'g_del',
+        serverResponse: const GroupSettingApi(
+          id: 'g_del',
+          name: 'Deleted',
+          updatedAt: 1700000000,
+        ),
+      );
+      await repo.applyDeleteResponse(companyId: 'co', id: 'g_del');
+
+      final all = await repo.watchAllIncludingArchived(companyId: 'co').first;
+      expect(all.map((g) => g.id).toSet(), {'g_active', 'g_arch'});
+      // The active-only stream still excludes the archived row.
+      final active = await repo.watchAll(companyId: 'co').first;
+      expect(active.map((g) => g.id).toList(), ['g_active']);
+    });
+
+    test(
+      'applyCreateResponse stores documents; _fromRow overlays them',
+      () async {
+        final repo = makeRepo();
+        await repo.applyCreateResponse(
+          companyId: 'co',
+          tempId: 'g_1',
+          serverResponse: const GroupSettingApi(
+            id: 'g_1',
+            name: 'Docs',
+            updatedAt: 1700000000,
+            documents: [DocumentApi(id: 'd1', name: 'Contract.pdf')],
+          ),
+        );
+        final group = (await repo.watchAll(companyId: 'co').first).single;
+        expect(group.documents.single.id, 'd1');
+        expect(group.documents.single.name, 'Contract.pdf');
+      },
+    );
+
+    test('applyDocumentChanged inserts then replaces by id', () async {
+      final repo = makeRepo();
+      await repo.applyCreateResponse(
+        companyId: 'co',
+        tempId: 'g_1',
+        serverResponse: const GroupSettingApi(
+          id: 'g_1',
+          name: 'Docs',
+          updatedAt: 1700000000,
+        ),
+      );
+      await repo.applyDocumentChanged(
+        companyId: 'co',
+        entityId: 'g_1',
+        document: const DocumentApi(id: 'd1', name: 'First.pdf'),
+      );
+      var group = (await repo.watchAll(companyId: 'co').first).single;
+      expect(group.documents.single.name, 'First.pdf');
+
+      await repo.applyDocumentChanged(
+        companyId: 'co',
+        entityId: 'g_1',
+        document: const DocumentApi(id: 'd1', name: 'Renamed.pdf'),
+      );
+      group = (await repo.watchAll(companyId: 'co').first).single;
+      expect(group.documents, hasLength(1));
+      expect(group.documents.single.name, 'Renamed.pdf');
+    });
+
+    test('applyDocumentDeleted drops the matching document', () async {
+      final repo = makeRepo();
+      await repo.applyCreateResponse(
+        companyId: 'co',
+        tempId: 'g_1',
+        serverResponse: const GroupSettingApi(
+          id: 'g_1',
+          name: 'Docs',
+          updatedAt: 1700000000,
+          documents: [
+            DocumentApi(id: 'd1'),
+            DocumentApi(id: 'd2'),
+          ],
+        ),
+      );
+      await repo.applyDocumentDeleted(
+        companyId: 'co',
+        entityId: 'g_1',
+        documentId: 'd1',
+      );
+      final group = (await repo.watchAll(companyId: 'co').first).single;
+      expect(group.documents.map((d) => d.id).toList(), ['d2']);
     });
 
     test('applyBundle preserves the local payload of an is_dirty row '

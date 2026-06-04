@@ -161,6 +161,11 @@ abstract class CompanyGateway with _$CompanyGateway {
     return copyWith(config: jsonEncode(sorted));
   }
 
+  /// Bitmask accessors for [acceptedCreditCards]. The per-brand editing UI was
+  /// intentionally removed (React + admin-portal omit it), but the field is
+  /// still round-tripped to/from the server, so these are retained as the model
+  /// API for it rather than deleted as dead code.
+  ///
   /// Whether the [card] bit is set in [acceptedCreditCards].
   bool supportsCard(int card) => acceptedCreditCards & card == card;
 

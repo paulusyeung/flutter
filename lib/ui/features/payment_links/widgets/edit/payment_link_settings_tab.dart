@@ -20,7 +20,10 @@ const _kRefundOrTrialSeconds = <int>[
 ];
 
 const _kAutoBillOptions = <String, String>{
-  '': 'off',
+  // Empty value = "inherit / unset"; rendered with a blank label (matches
+  // React's empty <option> and admin-portal's showBlank). Keep it distinct
+  // from the explicit 'off' entry — both are valid server values.
+  '': '',
   'always': 'always',
   'optout': 'optout',
   'optin': 'optin',
@@ -50,17 +53,11 @@ class PaymentLinkSettingsTab extends StatelessWidget {
           ],
         ),
         FormSection(
+          // Promo-only group. A flat `price` field is intentionally NOT
+          // exposed — a payment link's price derives from its products
+          // server-side (matches React + admin-portal, which both omit it).
           title: context.tr('price'),
           children: [
-            SettingsTextField(
-              initialValue: _decimalText(vm.draft.price.toString()),
-              labelKey: 'price',
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              onChanged: vm.setPrice,
-              externalSyncKey: vm.original?.id,
-            ),
             SettingsTextField(
               initialValue: vm.draft.promoCode,
               labelKey: 'promo_code',
@@ -211,7 +208,7 @@ class _AutoBillDropdown extends StatelessWidget {
       for (final entry in _kAutoBillOptions.entries)
         DropdownMenuItem(
           value: entry.key,
-          child: Text(context.tr(entry.value)),
+          child: Text(entry.value.isEmpty ? '' : context.tr(entry.value)),
         ),
     ];
     return DropdownButtonFormField<String>(
@@ -267,34 +264,44 @@ class _PromoDiscountRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 140,
-          child: DropdownButtonFormField<bool>(
-            initialValue: vm.draft.isAmountDiscount,
-            items: [
-              DropdownMenuItem(value: true, child: Text(context.tr('amount'))),
-              DropdownMenuItem(
-                value: false,
-                child: Text(context.tr('percent')),
-              ),
-            ],
-            decoration: InputDecoration(labelText: context.tr('type')),
-            onChanged: (v) => vm.setIsAmountDiscount(v ?? true),
-          ),
-        ),
-        SizedBox(width: InSpacing.md(context)),
-        Expanded(
-          child: SettingsTextField(
-            initialValue: _decimalText(vm.draft.promoDiscount.toString()),
-            labelKey: 'promo_discount',
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            onChanged: vm.setPromoDiscount,
-            externalSyncKey: vm.original?.id,
-          ),
-        ),
+    final typeField = DropdownButtonFormField<bool>(
+      initialValue: vm.draft.isAmountDiscount,
+      items: [
+        DropdownMenuItem(value: true, child: Text(context.tr('amount'))),
+        DropdownMenuItem(value: false, child: Text(context.tr('percent'))),
       ],
+      decoration: InputDecoration(labelText: context.tr('type')),
+      onChanged: (v) => vm.setIsAmountDiscount(v ?? true),
+    );
+    final valueField = SettingsTextField(
+      initialValue: _decimalText(vm.draft.promoDiscount.toString()),
+      labelKey: 'promo_discount',
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      onChanged: vm.setPromoDiscount,
+      externalSyncKey: vm.original?.id,
+    );
+    // Side-by-side on roomy widths; stack on a narrow phone so the 140px
+    // type dropdown doesn't squeeze the discount field to an unusable width.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 360) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              typeField,
+              SizedBox(height: InSpacing.sm),
+              valueField,
+            ],
+          );
+        }
+        return Row(
+          children: [
+            SizedBox(width: 140, child: typeField),
+            SizedBox(width: InSpacing.md(context)),
+            Expanded(child: valueField),
+          ],
+        );
+      },
     );
   }
 }

@@ -15072,6 +15072,17 @@ class $GroupSettingsTable extends GroupSettings
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _documentsMeta = const VerificationMeta(
+    'documents',
+  );
+  @override
+  late final GeneratedColumn<String> documents = GeneratedColumn<String>(
+    'documents',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _payloadMeta = const VerificationMeta(
     'payload',
   );
@@ -15106,6 +15117,7 @@ class $GroupSettingsTable extends GroupSettings
     customValue4,
     isDirty,
     isDeleted,
+    documents,
     payload,
     name,
   ];
@@ -15208,6 +15220,12 @@ class $GroupSettingsTable extends GroupSettings
         isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
       );
     }
+    if (data.containsKey('documents')) {
+      context.handle(
+        _documentsMeta,
+        documents.isAcceptableOrUnknown(data['documents']!, _documentsMeta),
+      );
+    }
     if (data.containsKey('payload')) {
       context.handle(
         _payloadMeta,
@@ -15281,6 +15299,10 @@ class $GroupSettingsTable extends GroupSettings
         DriftSqlType.bool,
         data['${effectivePrefix}is_deleted'],
       )!,
+      documents: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}documents'],
+      ),
       payload: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}payload'],
@@ -15311,6 +15333,7 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
   final String customValue4;
   final bool isDirty;
   final bool isDeleted;
+  final String? documents;
   final String payload;
   final String name;
   const GroupSettingRow({
@@ -15326,6 +15349,7 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
     required this.customValue4,
     required this.isDirty,
     required this.isDeleted,
+    this.documents,
     required this.payload,
     required this.name,
   });
@@ -15348,6 +15372,9 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
     map['custom_value4'] = Variable<String>(customValue4);
     map['is_dirty'] = Variable<bool>(isDirty);
     map['is_deleted'] = Variable<bool>(isDeleted);
+    if (!nullToAbsent || documents != null) {
+      map['documents'] = Variable<String>(documents);
+    }
     map['payload'] = Variable<String>(payload);
     map['name'] = Variable<String>(name);
     return map;
@@ -15371,6 +15398,9 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
       customValue4: Value(customValue4),
       isDirty: Value(isDirty),
       isDeleted: Value(isDeleted),
+      documents: documents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(documents),
       payload: Value(payload),
       name: Value(name),
     );
@@ -15394,6 +15424,7 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
       customValue4: serializer.fromJson<String>(json['customValue4']),
       isDirty: serializer.fromJson<bool>(json['isDirty']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      documents: serializer.fromJson<String?>(json['documents']),
       payload: serializer.fromJson<String>(json['payload']),
       name: serializer.fromJson<String>(json['name']),
     );
@@ -15414,6 +15445,7 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
       'customValue4': serializer.toJson<String>(customValue4),
       'isDirty': serializer.toJson<bool>(isDirty),
       'isDeleted': serializer.toJson<bool>(isDeleted),
+      'documents': serializer.toJson<String?>(documents),
       'payload': serializer.toJson<String>(payload),
       'name': serializer.toJson<String>(name),
     };
@@ -15432,6 +15464,7 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
     String? customValue4,
     bool? isDirty,
     bool? isDeleted,
+    Value<String?> documents = const Value.absent(),
     String? payload,
     String? name,
   }) => GroupSettingRow(
@@ -15447,6 +15480,7 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
     customValue4: customValue4 ?? this.customValue4,
     isDirty: isDirty ?? this.isDirty,
     isDeleted: isDeleted ?? this.isDeleted,
+    documents: documents.present ? documents.value : this.documents,
     payload: payload ?? this.payload,
     name: name ?? this.name,
   );
@@ -15474,6 +15508,7 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
           : this.customValue4,
       isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      documents: data.documents.present ? data.documents.value : this.documents,
       payload: data.payload.present ? data.payload.value : this.payload,
       name: data.name.present ? data.name.value : this.name,
     );
@@ -15494,6 +15529,7 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
           ..write('customValue4: $customValue4, ')
           ..write('isDirty: $isDirty, ')
           ..write('isDeleted: $isDeleted, ')
+          ..write('documents: $documents, ')
           ..write('payload: $payload, ')
           ..write('name: $name')
           ..write(')'))
@@ -15514,6 +15550,7 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
     customValue4,
     isDirty,
     isDeleted,
+    documents,
     payload,
     name,
   );
@@ -15533,6 +15570,7 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
           other.customValue4 == this.customValue4 &&
           other.isDirty == this.isDirty &&
           other.isDeleted == this.isDeleted &&
+          other.documents == this.documents &&
           other.payload == this.payload &&
           other.name == this.name);
 }
@@ -15550,6 +15588,7 @@ class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
   final Value<String> customValue4;
   final Value<bool> isDirty;
   final Value<bool> isDeleted;
+  final Value<String?> documents;
   final Value<String> payload;
   final Value<String> name;
   final Value<int> rowid;
@@ -15566,6 +15605,7 @@ class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
     this.customValue4 = const Value.absent(),
     this.isDirty = const Value.absent(),
     this.isDeleted = const Value.absent(),
+    this.documents = const Value.absent(),
     this.payload = const Value.absent(),
     this.name = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -15583,6 +15623,7 @@ class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
     this.customValue4 = const Value.absent(),
     this.isDirty = const Value.absent(),
     this.isDeleted = const Value.absent(),
+    this.documents = const Value.absent(),
     required String payload,
     required String name,
     this.rowid = const Value.absent(),
@@ -15604,6 +15645,7 @@ class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
     Expression<String>? customValue4,
     Expression<bool>? isDirty,
     Expression<bool>? isDeleted,
+    Expression<String>? documents,
     Expression<String>? payload,
     Expression<String>? name,
     Expression<int>? rowid,
@@ -15621,6 +15663,7 @@ class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
       if (customValue4 != null) 'custom_value4': customValue4,
       if (isDirty != null) 'is_dirty': isDirty,
       if (isDeleted != null) 'is_deleted': isDeleted,
+      if (documents != null) 'documents': documents,
       if (payload != null) 'payload': payload,
       if (name != null) 'name': name,
       if (rowid != null) 'rowid': rowid,
@@ -15640,6 +15683,7 @@ class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
     Value<String>? customValue4,
     Value<bool>? isDirty,
     Value<bool>? isDeleted,
+    Value<String?>? documents,
     Value<String>? payload,
     Value<String>? name,
     Value<int>? rowid,
@@ -15657,6 +15701,7 @@ class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
       customValue4: customValue4 ?? this.customValue4,
       isDirty: isDirty ?? this.isDirty,
       isDeleted: isDeleted ?? this.isDeleted,
+      documents: documents ?? this.documents,
       payload: payload ?? this.payload,
       name: name ?? this.name,
       rowid: rowid ?? this.rowid,
@@ -15702,6 +15747,9 @@ class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
     if (isDeleted.present) {
       map['is_deleted'] = Variable<bool>(isDeleted.value);
     }
+    if (documents.present) {
+      map['documents'] = Variable<String>(documents.value);
+    }
     if (payload.present) {
       map['payload'] = Variable<String>(payload.value);
     }
@@ -15729,6 +15777,7 @@ class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
           ..write('customValue4: $customValue4, ')
           ..write('isDirty: $isDirty, ')
           ..write('isDeleted: $isDeleted, ')
+          ..write('documents: $documents, ')
           ..write('payload: $payload, ')
           ..write('name: $name, ')
           ..write('rowid: $rowid')
@@ -28657,6 +28706,18 @@ class $InvoicesTable extends Invoices
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _subscriptionIdMeta = const VerificationMeta(
+    'subscriptionId',
+  );
+  @override
+  late final GeneratedColumn<String> subscriptionId = GeneratedColumn<String>(
+    'subscription_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _dateMeta = const VerificationMeta('date');
   @override
   late final GeneratedColumn<String> date = GeneratedColumn<String>(
@@ -28820,6 +28881,7 @@ class $InvoicesTable extends Invoices
     clientId,
     vendorId,
     projectId,
+    subscriptionId,
     date,
     dueDate,
     partialDueDate,
@@ -28974,6 +29036,15 @@ class $InvoicesTable extends Invoices
       context.handle(
         _projectIdMeta,
         projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
+      );
+    }
+    if (data.containsKey('subscription_id')) {
+      context.handle(
+        _subscriptionIdMeta,
+        subscriptionId.isAcceptableOrUnknown(
+          data['subscription_id']!,
+          _subscriptionIdMeta,
+        ),
       );
     }
     if (data.containsKey('date')) {
@@ -29142,6 +29213,10 @@ class $InvoicesTable extends Invoices
         DriftSqlType.string,
         data['${effectivePrefix}project_id'],
       )!,
+      subscriptionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subscription_id'],
+      )!,
       date: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}date'],
@@ -29225,6 +29300,11 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
   final String vendorId;
   final String projectId;
 
+  /// Set when the invoice was generated by a payment link (subscription).
+  /// Denormalized so the Payment Link detail screen can list its invoices
+  /// via a cheap `subscription_id` filter (mirrors `client_id`).
+  final String subscriptionId;
+
   /// `YYYY-MM-DD` invoice date. Empty when the user hasn't set one.
   final String date;
 
@@ -29278,6 +29358,7 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
     required this.clientId,
     required this.vendorId,
     required this.projectId,
+    required this.subscriptionId,
     required this.date,
     required this.dueDate,
     required this.partialDueDate,
@@ -29319,6 +29400,7 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
     map['client_id'] = Variable<String>(clientId);
     map['vendor_id'] = Variable<String>(vendorId);
     map['project_id'] = Variable<String>(projectId);
+    map['subscription_id'] = Variable<String>(subscriptionId);
     map['date'] = Variable<String>(date);
     map['due_date'] = Variable<String>(dueDate);
     map['partial_due_date'] = Variable<String>(partialDueDate);
@@ -29363,6 +29445,7 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
       clientId: Value(clientId),
       vendorId: Value(vendorId),
       projectId: Value(projectId),
+      subscriptionId: Value(subscriptionId),
       date: Value(date),
       dueDate: Value(dueDate),
       partialDueDate: Value(partialDueDate),
@@ -29405,6 +29488,7 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
       clientId: serializer.fromJson<String>(json['clientId']),
       vendorId: serializer.fromJson<String>(json['vendorId']),
       projectId: serializer.fromJson<String>(json['projectId']),
+      subscriptionId: serializer.fromJson<String>(json['subscriptionId']),
       date: serializer.fromJson<String>(json['date']),
       dueDate: serializer.fromJson<String>(json['dueDate']),
       partialDueDate: serializer.fromJson<String>(json['partialDueDate']),
@@ -29442,6 +29526,7 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
       'clientId': serializer.toJson<String>(clientId),
       'vendorId': serializer.toJson<String>(vendorId),
       'projectId': serializer.toJson<String>(projectId),
+      'subscriptionId': serializer.toJson<String>(subscriptionId),
       'date': serializer.toJson<String>(date),
       'dueDate': serializer.toJson<String>(dueDate),
       'partialDueDate': serializer.toJson<String>(partialDueDate),
@@ -29477,6 +29562,7 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
     String? clientId,
     String? vendorId,
     String? projectId,
+    String? subscriptionId,
     String? date,
     String? dueDate,
     String? partialDueDate,
@@ -29509,6 +29595,7 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
     clientId: clientId ?? this.clientId,
     vendorId: vendorId ?? this.vendorId,
     projectId: projectId ?? this.projectId,
+    subscriptionId: subscriptionId ?? this.subscriptionId,
     date: date ?? this.date,
     dueDate: dueDate ?? this.dueDate,
     partialDueDate: partialDueDate ?? this.partialDueDate,
@@ -29553,6 +29640,9 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
       clientId: data.clientId.present ? data.clientId.value : this.clientId,
       vendorId: data.vendorId.present ? data.vendorId.value : this.vendorId,
       projectId: data.projectId.present ? data.projectId.value : this.projectId,
+      subscriptionId: data.subscriptionId.present
+          ? data.subscriptionId.value
+          : this.subscriptionId,
       date: data.date.present ? data.date.value : this.date,
       dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
       partialDueDate: data.partialDueDate.present
@@ -29596,6 +29686,7 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
           ..write('clientId: $clientId, ')
           ..write('vendorId: $vendorId, ')
           ..write('projectId: $projectId, ')
+          ..write('subscriptionId: $subscriptionId, ')
           ..write('date: $date, ')
           ..write('dueDate: $dueDate, ')
           ..write('partialDueDate: $partialDueDate, ')
@@ -29633,6 +29724,7 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
     clientId,
     vendorId,
     projectId,
+    subscriptionId,
     date,
     dueDate,
     partialDueDate,
@@ -29669,6 +29761,7 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
           other.clientId == this.clientId &&
           other.vendorId == this.vendorId &&
           other.projectId == this.projectId &&
+          other.subscriptionId == this.subscriptionId &&
           other.date == this.date &&
           other.dueDate == this.dueDate &&
           other.partialDueDate == this.partialDueDate &&
@@ -29703,6 +29796,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
   final Value<String> clientId;
   final Value<String> vendorId;
   final Value<String> projectId;
+  final Value<String> subscriptionId;
   final Value<String> date;
   final Value<String> dueDate;
   final Value<String> partialDueDate;
@@ -29736,6 +29830,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
     this.clientId = const Value.absent(),
     this.vendorId = const Value.absent(),
     this.projectId = const Value.absent(),
+    this.subscriptionId = const Value.absent(),
     this.date = const Value.absent(),
     this.dueDate = const Value.absent(),
     this.partialDueDate = const Value.absent(),
@@ -29770,6 +29865,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
     this.clientId = const Value.absent(),
     this.vendorId = const Value.absent(),
     this.projectId = const Value.absent(),
+    this.subscriptionId = const Value.absent(),
     this.date = const Value.absent(),
     this.dueDate = const Value.absent(),
     this.partialDueDate = const Value.absent(),
@@ -29807,6 +29903,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
     Expression<String>? clientId,
     Expression<String>? vendorId,
     Expression<String>? projectId,
+    Expression<String>? subscriptionId,
     Expression<String>? date,
     Expression<String>? dueDate,
     Expression<String>? partialDueDate,
@@ -29841,6 +29938,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
       if (clientId != null) 'client_id': clientId,
       if (vendorId != null) 'vendor_id': vendorId,
       if (projectId != null) 'project_id': projectId,
+      if (subscriptionId != null) 'subscription_id': subscriptionId,
       if (date != null) 'date': date,
       if (dueDate != null) 'due_date': dueDate,
       if (partialDueDate != null) 'partial_due_date': partialDueDate,
@@ -29877,6 +29975,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
     Value<String>? clientId,
     Value<String>? vendorId,
     Value<String>? projectId,
+    Value<String>? subscriptionId,
     Value<String>? date,
     Value<String>? dueDate,
     Value<String>? partialDueDate,
@@ -29911,6 +30010,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
       clientId: clientId ?? this.clientId,
       vendorId: vendorId ?? this.vendorId,
       projectId: projectId ?? this.projectId,
+      subscriptionId: subscriptionId ?? this.subscriptionId,
       date: date ?? this.date,
       dueDate: dueDate ?? this.dueDate,
       partialDueDate: partialDueDate ?? this.partialDueDate,
@@ -29987,6 +30087,9 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
     if (projectId.present) {
       map['project_id'] = Variable<String>(projectId.value);
     }
+    if (subscriptionId.present) {
+      map['subscription_id'] = Variable<String>(subscriptionId.value);
+    }
     if (date.present) {
       map['date'] = Variable<String>(date.value);
     }
@@ -30051,6 +30154,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
           ..write('clientId: $clientId, ')
           ..write('vendorId: $vendorId, ')
           ..write('projectId: $projectId, ')
+          ..write('subscriptionId: $subscriptionId, ')
           ..write('date: $date, ')
           ..write('dueDate: $dueDate, ')
           ..write('partialDueDate: $partialDueDate, ')
@@ -34536,6 +34640,18 @@ class $RecurringInvoicesTable extends RecurringInvoices
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _subscriptionIdMeta = const VerificationMeta(
+    'subscriptionId',
+  );
+  @override
+  late final GeneratedColumn<String> subscriptionId = GeneratedColumn<String>(
+    'subscription_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _dateMeta = const VerificationMeta('date');
   @override
   late final GeneratedColumn<String> date = GeneratedColumn<String>(
@@ -34685,6 +34801,7 @@ class $RecurringInvoicesTable extends RecurringInvoices
     clientId,
     vendorId,
     projectId,
+    subscriptionId,
     date,
     dueDate,
     amount,
@@ -34838,6 +34955,15 @@ class $RecurringInvoicesTable extends RecurringInvoices
       context.handle(
         _projectIdMeta,
         projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
+      );
+    }
+    if (data.containsKey('subscription_id')) {
+      context.handle(
+        _subscriptionIdMeta,
+        subscriptionId.isAcceptableOrUnknown(
+          data['subscription_id']!,
+          _subscriptionIdMeta,
+        ),
       );
     }
     if (data.containsKey('date')) {
@@ -35003,6 +35129,10 @@ class $RecurringInvoicesTable extends RecurringInvoices
         DriftSqlType.string,
         data['${effectivePrefix}project_id'],
       )!,
+      subscriptionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subscription_id'],
+      )!,
       date: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}date'],
@@ -35077,6 +35207,11 @@ class RecurringInvoiceRow extends DataClass
   final String clientId;
   final String vendorId;
   final String projectId;
+
+  /// Set when the recurring invoice belongs to a payment link
+  /// (subscription). Denormalized so the Payment Link detail screen can
+  /// list its recurring invoices via a cheap `subscription_id` filter.
+  final String subscriptionId;
   final String date;
   final String dueDate;
   final String amount;
@@ -35108,6 +35243,7 @@ class RecurringInvoiceRow extends DataClass
     required this.clientId,
     required this.vendorId,
     required this.projectId,
+    required this.subscriptionId,
     required this.date,
     required this.dueDate,
     required this.amount,
@@ -35148,6 +35284,7 @@ class RecurringInvoiceRow extends DataClass
     map['client_id'] = Variable<String>(clientId);
     map['vendor_id'] = Variable<String>(vendorId);
     map['project_id'] = Variable<String>(projectId);
+    map['subscription_id'] = Variable<String>(subscriptionId);
     map['date'] = Variable<String>(date);
     map['due_date'] = Variable<String>(dueDate);
     map['amount'] = Variable<String>(amount);
@@ -35189,6 +35326,7 @@ class RecurringInvoiceRow extends DataClass
       clientId: Value(clientId),
       vendorId: Value(vendorId),
       projectId: Value(projectId),
+      subscriptionId: Value(subscriptionId),
       date: Value(date),
       dueDate: Value(dueDate),
       amount: Value(amount),
@@ -35228,6 +35366,7 @@ class RecurringInvoiceRow extends DataClass
       clientId: serializer.fromJson<String>(json['clientId']),
       vendorId: serializer.fromJson<String>(json['vendorId']),
       projectId: serializer.fromJson<String>(json['projectId']),
+      subscriptionId: serializer.fromJson<String>(json['subscriptionId']),
       date: serializer.fromJson<String>(json['date']),
       dueDate: serializer.fromJson<String>(json['dueDate']),
       amount: serializer.fromJson<String>(json['amount']),
@@ -35264,6 +35403,7 @@ class RecurringInvoiceRow extends DataClass
       'clientId': serializer.toJson<String>(clientId),
       'vendorId': serializer.toJson<String>(vendorId),
       'projectId': serializer.toJson<String>(projectId),
+      'subscriptionId': serializer.toJson<String>(subscriptionId),
       'date': serializer.toJson<String>(date),
       'dueDate': serializer.toJson<String>(dueDate),
       'amount': serializer.toJson<String>(amount),
@@ -35298,6 +35438,7 @@ class RecurringInvoiceRow extends DataClass
     String? clientId,
     String? vendorId,
     String? projectId,
+    String? subscriptionId,
     String? date,
     String? dueDate,
     String? amount,
@@ -35329,6 +35470,7 @@ class RecurringInvoiceRow extends DataClass
     clientId: clientId ?? this.clientId,
     vendorId: vendorId ?? this.vendorId,
     projectId: projectId ?? this.projectId,
+    subscriptionId: subscriptionId ?? this.subscriptionId,
     date: date ?? this.date,
     dueDate: dueDate ?? this.dueDate,
     amount: amount ?? this.amount,
@@ -35372,6 +35514,9 @@ class RecurringInvoiceRow extends DataClass
       clientId: data.clientId.present ? data.clientId.value : this.clientId,
       vendorId: data.vendorId.present ? data.vendorId.value : this.vendorId,
       projectId: data.projectId.present ? data.projectId.value : this.projectId,
+      subscriptionId: data.subscriptionId.present
+          ? data.subscriptionId.value
+          : this.subscriptionId,
       date: data.date.present ? data.date.value : this.date,
       dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
       amount: data.amount.present ? data.amount.value : this.amount,
@@ -35416,6 +35561,7 @@ class RecurringInvoiceRow extends DataClass
           ..write('clientId: $clientId, ')
           ..write('vendorId: $vendorId, ')
           ..write('projectId: $projectId, ')
+          ..write('subscriptionId: $subscriptionId, ')
           ..write('date: $date, ')
           ..write('dueDate: $dueDate, ')
           ..write('amount: $amount, ')
@@ -35452,6 +35598,7 @@ class RecurringInvoiceRow extends DataClass
     clientId,
     vendorId,
     projectId,
+    subscriptionId,
     date,
     dueDate,
     amount,
@@ -35487,6 +35634,7 @@ class RecurringInvoiceRow extends DataClass
           other.clientId == this.clientId &&
           other.vendorId == this.vendorId &&
           other.projectId == this.projectId &&
+          other.subscriptionId == this.subscriptionId &&
           other.date == this.date &&
           other.dueDate == this.dueDate &&
           other.amount == this.amount &&
@@ -35520,6 +35668,7 @@ class RecurringInvoicesCompanion extends UpdateCompanion<RecurringInvoiceRow> {
   final Value<String> clientId;
   final Value<String> vendorId;
   final Value<String> projectId;
+  final Value<String> subscriptionId;
   final Value<String> date;
   final Value<String> dueDate;
   final Value<String> amount;
@@ -35552,6 +35701,7 @@ class RecurringInvoicesCompanion extends UpdateCompanion<RecurringInvoiceRow> {
     this.clientId = const Value.absent(),
     this.vendorId = const Value.absent(),
     this.projectId = const Value.absent(),
+    this.subscriptionId = const Value.absent(),
     this.date = const Value.absent(),
     this.dueDate = const Value.absent(),
     this.amount = const Value.absent(),
@@ -35585,6 +35735,7 @@ class RecurringInvoicesCompanion extends UpdateCompanion<RecurringInvoiceRow> {
     this.clientId = const Value.absent(),
     this.vendorId = const Value.absent(),
     this.projectId = const Value.absent(),
+    this.subscriptionId = const Value.absent(),
     this.date = const Value.absent(),
     this.dueDate = const Value.absent(),
     this.amount = const Value.absent(),
@@ -35621,6 +35772,7 @@ class RecurringInvoicesCompanion extends UpdateCompanion<RecurringInvoiceRow> {
     Expression<String>? clientId,
     Expression<String>? vendorId,
     Expression<String>? projectId,
+    Expression<String>? subscriptionId,
     Expression<String>? date,
     Expression<String>? dueDate,
     Expression<String>? amount,
@@ -35654,6 +35806,7 @@ class RecurringInvoicesCompanion extends UpdateCompanion<RecurringInvoiceRow> {
       if (clientId != null) 'client_id': clientId,
       if (vendorId != null) 'vendor_id': vendorId,
       if (projectId != null) 'project_id': projectId,
+      if (subscriptionId != null) 'subscription_id': subscriptionId,
       if (date != null) 'date': date,
       if (dueDate != null) 'due_date': dueDate,
       if (amount != null) 'amount': amount,
@@ -35689,6 +35842,7 @@ class RecurringInvoicesCompanion extends UpdateCompanion<RecurringInvoiceRow> {
     Value<String>? clientId,
     Value<String>? vendorId,
     Value<String>? projectId,
+    Value<String>? subscriptionId,
     Value<String>? date,
     Value<String>? dueDate,
     Value<String>? amount,
@@ -35722,6 +35876,7 @@ class RecurringInvoicesCompanion extends UpdateCompanion<RecurringInvoiceRow> {
       clientId: clientId ?? this.clientId,
       vendorId: vendorId ?? this.vendorId,
       projectId: projectId ?? this.projectId,
+      subscriptionId: subscriptionId ?? this.subscriptionId,
       date: date ?? this.date,
       dueDate: dueDate ?? this.dueDate,
       amount: amount ?? this.amount,
@@ -35797,6 +35952,9 @@ class RecurringInvoicesCompanion extends UpdateCompanion<RecurringInvoiceRow> {
     if (projectId.present) {
       map['project_id'] = Variable<String>(projectId.value);
     }
+    if (subscriptionId.present) {
+      map['subscription_id'] = Variable<String>(subscriptionId.value);
+    }
     if (date.present) {
       map['date'] = Variable<String>(date.value);
     }
@@ -35858,6 +36016,7 @@ class RecurringInvoicesCompanion extends UpdateCompanion<RecurringInvoiceRow> {
           ..write('clientId: $clientId, ')
           ..write('vendorId: $vendorId, ')
           ..write('projectId: $projectId, ')
+          ..write('subscriptionId: $subscriptionId, ')
           ..write('date: $date, ')
           ..write('dueDate: $dueDate, ')
           ..write('amount: $amount, ')
@@ -49924,6 +50083,7 @@ typedef $$GroupSettingsTableCreateCompanionBuilder =
       Value<String> customValue4,
       Value<bool> isDirty,
       Value<bool> isDeleted,
+      Value<String?> documents,
       required String payload,
       required String name,
       Value<int> rowid,
@@ -49942,6 +50102,7 @@ typedef $$GroupSettingsTableUpdateCompanionBuilder =
       Value<String> customValue4,
       Value<bool> isDirty,
       Value<bool> isDeleted,
+      Value<String?> documents,
       Value<String> payload,
       Value<String> name,
       Value<int> rowid,
@@ -50013,6 +50174,11 @@ class $$GroupSettingsTableFilterComposer
 
   ColumnFilters<bool> get isDeleted => $composableBuilder(
     column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get documents => $composableBuilder(
+    column: $table.documents,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -50096,6 +50262,11 @@ class $$GroupSettingsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get documents => $composableBuilder(
+    column: $table.documents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get payload => $composableBuilder(
     column: $table.payload,
     builder: (column) => ColumnOrderings(column),
@@ -50162,6 +50333,9 @@ class $$GroupSettingsTableAnnotationComposer
   GeneratedColumn<bool> get isDeleted =>
       $composableBuilder(column: $table.isDeleted, builder: (column) => column);
 
+  GeneratedColumn<String> get documents =>
+      $composableBuilder(column: $table.documents, builder: (column) => column);
+
   GeneratedColumn<String> get payload =>
       $composableBuilder(column: $table.payload, builder: (column) => column);
 
@@ -50212,6 +50386,7 @@ class $$GroupSettingsTableTableManager
                 Value<String> customValue4 = const Value.absent(),
                 Value<bool> isDirty = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
+                Value<String?> documents = const Value.absent(),
                 Value<String> payload = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -50228,6 +50403,7 @@ class $$GroupSettingsTableTableManager
                 customValue4: customValue4,
                 isDirty: isDirty,
                 isDeleted: isDeleted,
+                documents: documents,
                 payload: payload,
                 name: name,
                 rowid: rowid,
@@ -50246,6 +50422,7 @@ class $$GroupSettingsTableTableManager
                 Value<String> customValue4 = const Value.absent(),
                 Value<bool> isDirty = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
+                Value<String?> documents = const Value.absent(),
                 required String payload,
                 required String name,
                 Value<int> rowid = const Value.absent(),
@@ -50262,6 +50439,7 @@ class $$GroupSettingsTableTableManager
                 customValue4: customValue4,
                 isDirty: isDirty,
                 isDeleted: isDeleted,
+                documents: documents,
                 payload: payload,
                 name: name,
                 rowid: rowid,
@@ -56139,6 +56317,7 @@ typedef $$InvoicesTableCreateCompanionBuilder =
       Value<String> clientId,
       Value<String> vendorId,
       Value<String> projectId,
+      Value<String> subscriptionId,
       Value<String> date,
       Value<String> dueDate,
       Value<String> partialDueDate,
@@ -56174,6 +56353,7 @@ typedef $$InvoicesTableUpdateCompanionBuilder =
       Value<String> clientId,
       Value<String> vendorId,
       Value<String> projectId,
+      Value<String> subscriptionId,
       Value<String> date,
       Value<String> dueDate,
       Value<String> partialDueDate,
@@ -56290,6 +56470,11 @@ class $$InvoicesTableFilterComposer
 
   ColumnFilters<String> get projectId => $composableBuilder(
     column: $table.projectId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get subscriptionId => $composableBuilder(
+    column: $table.subscriptionId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -56458,6 +56643,11 @@ class $$InvoicesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get subscriptionId => $composableBuilder(
+    column: $table.subscriptionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get date => $composableBuilder(
     column: $table.date,
     builder: (column) => ColumnOrderings(column),
@@ -56595,6 +56785,11 @@ class $$InvoicesTableAnnotationComposer
   GeneratedColumn<String> get projectId =>
       $composableBuilder(column: $table.projectId, builder: (column) => column);
 
+  GeneratedColumn<String> get subscriptionId => $composableBuilder(
+    column: $table.subscriptionId,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get date =>
       $composableBuilder(column: $table.date, builder: (column) => column);
 
@@ -56688,6 +56883,7 @@ class $$InvoicesTableTableManager
                 Value<String> clientId = const Value.absent(),
                 Value<String> vendorId = const Value.absent(),
                 Value<String> projectId = const Value.absent(),
+                Value<String> subscriptionId = const Value.absent(),
                 Value<String> date = const Value.absent(),
                 Value<String> dueDate = const Value.absent(),
                 Value<String> partialDueDate = const Value.absent(),
@@ -56721,6 +56917,7 @@ class $$InvoicesTableTableManager
                 clientId: clientId,
                 vendorId: vendorId,
                 projectId: projectId,
+                subscriptionId: subscriptionId,
                 date: date,
                 dueDate: dueDate,
                 partialDueDate: partialDueDate,
@@ -56756,6 +56953,7 @@ class $$InvoicesTableTableManager
                 Value<String> clientId = const Value.absent(),
                 Value<String> vendorId = const Value.absent(),
                 Value<String> projectId = const Value.absent(),
+                Value<String> subscriptionId = const Value.absent(),
                 Value<String> date = const Value.absent(),
                 Value<String> dueDate = const Value.absent(),
                 Value<String> partialDueDate = const Value.absent(),
@@ -56789,6 +56987,7 @@ class $$InvoicesTableTableManager
                 clientId: clientId,
                 vendorId: vendorId,
                 projectId: projectId,
+                subscriptionId: subscriptionId,
                 date: date,
                 dueDate: dueDate,
                 partialDueDate: partialDueDate,
@@ -58732,6 +58931,7 @@ typedef $$RecurringInvoicesTableCreateCompanionBuilder =
       Value<String> clientId,
       Value<String> vendorId,
       Value<String> projectId,
+      Value<String> subscriptionId,
       Value<String> date,
       Value<String> dueDate,
       Value<String> amount,
@@ -58766,6 +58966,7 @@ typedef $$RecurringInvoicesTableUpdateCompanionBuilder =
       Value<String> clientId,
       Value<String> vendorId,
       Value<String> projectId,
+      Value<String> subscriptionId,
       Value<String> date,
       Value<String> dueDate,
       Value<String> amount,
@@ -58881,6 +59082,11 @@ class $$RecurringInvoicesTableFilterComposer
 
   ColumnFilters<String> get projectId => $composableBuilder(
     column: $table.projectId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get subscriptionId => $composableBuilder(
+    column: $table.subscriptionId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -59044,6 +59250,11 @@ class $$RecurringInvoicesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get subscriptionId => $composableBuilder(
+    column: $table.subscriptionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get date => $composableBuilder(
     column: $table.date,
     builder: (column) => ColumnOrderings(column),
@@ -59176,6 +59387,11 @@ class $$RecurringInvoicesTableAnnotationComposer
   GeneratedColumn<String> get projectId =>
       $composableBuilder(column: $table.projectId, builder: (column) => column);
 
+  GeneratedColumn<String> get subscriptionId => $composableBuilder(
+    column: $table.subscriptionId,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get date =>
       $composableBuilder(column: $table.date, builder: (column) => column);
 
@@ -59277,6 +59493,7 @@ class $$RecurringInvoicesTableTableManager
                 Value<String> clientId = const Value.absent(),
                 Value<String> vendorId = const Value.absent(),
                 Value<String> projectId = const Value.absent(),
+                Value<String> subscriptionId = const Value.absent(),
                 Value<String> date = const Value.absent(),
                 Value<String> dueDate = const Value.absent(),
                 Value<String> amount = const Value.absent(),
@@ -59309,6 +59526,7 @@ class $$RecurringInvoicesTableTableManager
                 clientId: clientId,
                 vendorId: vendorId,
                 projectId: projectId,
+                subscriptionId: subscriptionId,
                 date: date,
                 dueDate: dueDate,
                 amount: amount,
@@ -59343,6 +59561,7 @@ class $$RecurringInvoicesTableTableManager
                 Value<String> clientId = const Value.absent(),
                 Value<String> vendorId = const Value.absent(),
                 Value<String> projectId = const Value.absent(),
+                Value<String> subscriptionId = const Value.absent(),
                 Value<String> date = const Value.absent(),
                 Value<String> dueDate = const Value.absent(),
                 Value<String> amount = const Value.absent(),
@@ -59375,6 +59594,7 @@ class $$RecurringInvoicesTableTableManager
                 clientId: clientId,
                 vendorId: vendorId,
                 projectId: projectId,
+                subscriptionId: subscriptionId,
                 date: date,
                 dueDate: dueDate,
                 amount: amount,

@@ -83,11 +83,6 @@ class CompanyGatewayEditViewModel extends GenericEditViewModel<CompanyGateway> {
     updateDraft(draft.copyWith(feesAndLimits: next));
   }
 
-  /// Toggle a card brand on / off in the bitmask.
-  void toggleCard(int cardBit, {required bool selected}) {
-    updateDraft(draft.toggleCard(cardBit, selected: selected));
-  }
-
   /// Routes a field-error key to its tab slug. Used by the screen's
   /// `TabBar` to render a red dot when a 422 lands on a non-active tab.
   String? errorTabSlug() {
@@ -100,7 +95,6 @@ class CompanyGatewayEditViewModel extends GenericEditViewModel<CompanyGateway> {
       }
       if (key == 'label' ||
           key == 'token_billing' ||
-          key == 'accepted_credit_cards' ||
           key.startsWith('fees_and_limits')) {
         return 'settings';
       }

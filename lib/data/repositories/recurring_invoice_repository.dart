@@ -89,6 +89,23 @@ class RecurringInvoiceRepository
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }
 
+  /// Recurring invoices belonging to a payment link (subscription). Used by
+  /// the Payment Link detail screen's embedded "Recurring Invoices" card.
+  Stream<List<RecurringInvoice>> watchForSubscription({
+    required String companyId,
+    required String subscriptionId,
+  }) {
+    if (subscriptionId.isEmpty) {
+      return Stream<List<RecurringInvoice>>.value(const <RecurringInvoice>[]);
+    }
+    return db.recurringInvoiceDao
+        .watchForSubscription(
+          companyId: companyId,
+          subscriptionId: subscriptionId,
+        )
+        .map((rows) => rows.map(_fromRow).toList(growable: false));
+  }
+
   @override
   Stream<RecurringInvoice?> watchByRealId({
     required String companyId,
@@ -111,16 +128,17 @@ class RecurringInvoiceRepository
             companyId: companyId,
             entityType: entityTypeName,
           );
+    final resolvedExtra = resolveRelativeFilterTokens(extraFilters);
     // Hide rows of soft-deleted clients (React parity) unless the fetch is
     // already scoped to a specific client (then the detail tab needs them).
     final hasClientScope =
-        extraFilters.containsKey('client_id') ||
-        extraFilters.containsKey('client_ids');
+        resolvedExtra.containsKey('client_id') ||
+        resolvedExtra.containsKey('client_ids');
     final filters = <String, String>{
       ...stateQueryParams(states),
       'include': 'documents',
       if (!hasClientScope) 'without_deleted_clients': 'true',
-      for (final entry in extraFilters.entries)
+      for (final entry in resolvedExtra.entries)
         if (entry.value.isNotEmpty)
           entry.key: (entry.value.toList()..sort()).join(','),
     };
@@ -571,6 +589,7 @@ class RecurringInvoiceRepository
       clientId: Value(a.clientId),
       vendorId: Value(a.vendorId),
       projectId: Value(a.projectId),
+      subscriptionId: Value(a.subscriptionId),
       date: Value(a.date),
       dueDate: Value(a.dueDate),
       amount: Value(_moneyString(a.amount)),
@@ -611,6 +630,7 @@ class RecurringInvoiceRepository
       clientId: Value(r.clientId),
       vendorId: Value(r.vendorId),
       projectId: Value(r.projectId),
+      subscriptionId: Value(r.subscriptionId),
       date: Value(r.date?.toIso() ?? ''),
       dueDate: Value(r.dueDate?.toIso() ?? ''),
       amount: Value(r.amount.toString()),

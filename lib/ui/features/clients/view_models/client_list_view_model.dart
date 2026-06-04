@@ -25,11 +25,20 @@ class ClientListViewModel extends GenericListViewModel<Client> {
     super.searchDebounce,
     super.persistDebounce,
     super.now,
+    this.groupSettingsId,
   });
 
   final ClientRepository repo;
 
+  /// When non-null, scopes the list to one group (the embedded
+  /// clients-in-group tab). Drives a locked `group` filter + a forced
+  /// `group_settings_id` predicate on the local watch.
+  final String? groupSettingsId;
+
   // ── Configuration ──────────────────────────────────────────────────
+
+  @override
+  Set<String> get lockedFilterKeyIds => {if (groupSettingsId != null) 'group'};
 
   @override
   EntityType get entityType => EntityType.client;
@@ -66,7 +75,7 @@ class ClientListViewModel extends GenericListViewModel<Client> {
     sortField: sortField,
     sortAscending: sortAscending,
     customFilters: customFilters,
-    extraFilters: extraFilters,
+    extraFilters: _scopedExtraFilters(extraFilters),
   );
 
   @override
@@ -76,14 +85,31 @@ class ClientListViewModel extends GenericListViewModel<Client> {
     required Set<EntityState> states,
     required Map<String, Set<String>> extraFilters,
     required bool ignoreCursor,
-  }) => repo.ensurePageLoaded(
-    companyId: companyId,
-    page: page,
-    search: search,
-    states: states,
-    extraFilters: extraFilters,
-    ignoreCursor: ignoreCursor,
-  );
+  }) {
+    // Embedded clients-in-group tab: clients are already synced workspace-wide
+    // (sidebar prefetch + main Clients list). Skip the network pull so a
+    // `group=` server filter never advances — and corrupts — the shared
+    // `client` delta cursor. Serve purely from the local Drift watch.
+    if (groupSettingsId != null) return Future.value(false);
+    return repo.ensurePageLoaded(
+      companyId: companyId,
+      page: page,
+      search: search,
+      states: states,
+      extraFilters: extraFilters,
+      ignoreCursor: ignoreCursor,
+    );
+  }
+
+  /// Force the group predicate onto the local watch when scoped. The locked
+  /// `group` filter keeps the user from clearing it in the token search.
+  Map<String, Set<String>> _scopedExtraFilters(Map<String, Set<String>> base) =>
+      groupSettingsId == null
+      ? base
+      : {
+          ...base,
+          'group_settings_id': {groupSettingsId!},
+        };
 
   @override
   Future<void> refreshAll() => repo.refreshAll(companyId: companyId);

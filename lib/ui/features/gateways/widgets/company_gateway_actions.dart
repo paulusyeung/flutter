@@ -130,8 +130,9 @@ class CompanyGatewayActions {
           // Clone client-side via the outbox create (the gateway create flow is
           // picker-first and doesn't read a seed draft, so the generic
           // `goEntityCreateFullWidth(extra:)` convention doesn't apply here).
-          // Strip server-owned fields; navigate to the new row's edit screen
-          // for review. Mirrors React's immediate clone semantics.
+          // Strip server-owned fields; navigate to the new row's edit screen for
+          // review. (React clones server-side via `POST .../clone`; we clone
+          // offline through the outbox instead — same outcome, different path.)
           var cleaned = gateway.copyWith(
             id: '',
             label: gateway.label.isEmpty ? '' : '${gateway.label} (copy)',
