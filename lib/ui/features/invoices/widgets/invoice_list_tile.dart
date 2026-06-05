@@ -12,6 +12,7 @@ import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
 import 'package:admin/ui/core/widgets/formatter_scope.dart';
+import 'package:admin/ui/core/widgets/party_money_cell.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_actions.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_status_pill.dart';
 
@@ -129,16 +130,10 @@ class _InvoiceListTileState extends State<InvoiceListTile> {
 
   Widget _narrow(BuildContext context, InTheme tokens) {
     final w = widget;
-    // Invoice carries no row currency (only clientId), so this formats
-    // with the company default — correct symbol/precision, matching the
-    // wide table's `cellMoney`. Falls back to locale-only when no
-    // FormatterScope is in the tree.
-    final formatter = FormatterScope.maybeOf(context);
+    // Invoice amounts are denominated in the *client's* currency — resolve it
+    // per-row (Drift dedupes with the client name label's watch) and fall back
+    // to locale-only when no FormatterScope is in the tree.
     final amount = w.invoice.balanceOrAmount;
-    final formatted = formatter?.money(amount);
-    final amountText = (formatted != null && formatted.isNotEmpty)
-        ? formatted
-        : _invoiceAmountFallback.format(amount.toDouble());
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -150,12 +145,25 @@ class _InvoiceListTileState extends State<InvoiceListTile> {
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              amountText,
-              style: TextStyle(
-                color: w.invoice.isPastDue ? tokens.overdue : tokens.ink,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
+            PartyCurrencyBuilder(
+              clientId: w.invoice.clientId,
+              builder: (context, currencyId) {
+                final formatter = FormatterScope.maybeOf(context);
+                final formatted = formatter?.money(
+                  amount,
+                  clientCurrencyId: currencyId,
+                );
+                final amountText = (formatted != null && formatted.isNotEmpty)
+                    ? formatted
+                    : _invoiceAmountFallback.format(amount.toDouble());
+                return Text(
+                  amountText,
+                  style: TextStyle(
+                    color: w.invoice.isPastDue ? tokens.overdue : tokens.ink,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 4),
             InvoiceStatusPill(

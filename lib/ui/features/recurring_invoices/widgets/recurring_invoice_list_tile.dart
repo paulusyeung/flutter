@@ -11,8 +11,17 @@ import 'package:admin/ui/core/list/selectable_list_row.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
+import 'package:admin/ui/core/widgets/formatter_scope.dart';
+import 'package:admin/ui/core/widgets/party_money_cell.dart';
 import 'package:admin/ui/features/recurring_invoices/widgets/recurring_invoice_actions.dart';
 import 'package:admin/ui/features/recurring_invoices/widgets/recurring_invoice_status_pill.dart';
+
+/// Cached locale-only fallback for the narrow-tile amount when no
+/// `FormatterScope` is in the tree (never allocate `NumberFormat` per build).
+final NumberFormat _recurringInvoiceAmountFallback =
+    NumberFormat.decimalPattern()
+      ..minimumFractionDigits = 2
+      ..maximumFractionDigits = 2;
 
 class RecurringInvoiceListTile extends StatefulWidget {
   const RecurringInvoiceListTile({
@@ -119,9 +128,7 @@ class _RecurringInvoiceListTileState extends State<RecurringInvoiceListTile> {
 
   Widget _narrow(BuildContext context, InTheme tokens) {
     final w = widget;
-    final fmt = NumberFormat.decimalPattern()
-      ..minimumFractionDigits = 2
-      ..maximumFractionDigits = 2;
+    final amount = w.recurringInvoice.amount;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -133,12 +140,25 @@ class _RecurringInvoiceListTileState extends State<RecurringInvoiceListTile> {
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              fmt.format(w.recurringInvoice.amount.toDouble()),
-              style: TextStyle(
-                color: tokens.ink,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
+            PartyCurrencyBuilder(
+              clientId: w.recurringInvoice.clientId,
+              builder: (context, currencyId) {
+                final formatter = FormatterScope.maybeOf(context);
+                final formatted = formatter?.money(
+                  amount,
+                  clientCurrencyId: currencyId,
+                );
+                final amountText = (formatted != null && formatted.isNotEmpty)
+                    ? formatted
+                    : _recurringInvoiceAmountFallback.format(amount.toDouble());
+                return Text(
+                  amountText,
+                  style: TextStyle(
+                    color: tokens.ink,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 4),
             RecurringInvoiceStatusPill(

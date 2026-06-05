@@ -12,6 +12,7 @@ import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
 import 'package:admin/ui/core/widgets/formatter_scope.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
+import 'package:admin/ui/core/widgets/party_money_cell.dart';
 import 'package:admin/ui/features/credits/widgets/credit_actions.dart';
 import 'package:admin/ui/features/credits/widgets/credit_status_pill.dart';
 
@@ -121,15 +122,10 @@ class _CreditListTileState extends State<CreditListTile> {
 
   Widget _narrow(BuildContext context, InTheme tokens) {
     final w = widget;
-    // Credit carries no row currency (only clientId), so this formats with the
-    // company default — correct symbol/precision, matching the wide table's
-    // money column. Falls back to locale-only when no FormatterScope is present.
-    final formatter = FormatterScope.maybeOf(context);
+    // Credit amounts are denominated in the *client's* currency — resolve it
+    // per-row (Drift dedupes with the client name label's watch) and fall back
+    // to locale-only when no FormatterScope is present.
     final amount = w.credit.amount;
-    final formatted = formatter?.money(amount);
-    final amountText = (formatted != null && formatted.isNotEmpty)
-        ? formatted
-        : _creditAmountFallback.format(amount.toDouble());
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -141,12 +137,25 @@ class _CreditListTileState extends State<CreditListTile> {
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              amountText,
-              style: TextStyle(
-                color: tokens.ink,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
+            PartyCurrencyBuilder(
+              clientId: w.credit.clientId,
+              builder: (context, currencyId) {
+                final formatter = FormatterScope.maybeOf(context);
+                final formatted = formatter?.money(
+                  amount,
+                  clientCurrencyId: currencyId,
+                );
+                final amountText = (formatted != null && formatted.isNotEmpty)
+                    ? formatted
+                    : _creditAmountFallback.format(amount.toDouble());
+                return Text(
+                  amountText,
+                  style: TextStyle(
+                    color: tokens.ink,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 4),
             CreditStatusPill(
