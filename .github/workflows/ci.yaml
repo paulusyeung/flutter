@@ -207,61 +207,6 @@ jobs:
       - name: Select Xcode 26.4.1
         run: sudo xcode-select -s /Applications/Xcode_26.4.1.app
 
-      # Xcode 26 unbundled the Metal toolchain into a ~700 MB on-demand component
-      # the macos-26 image may not have version-matched for the selected Xcode.
-      # Flutter's macOS Impeller renderer needs it; without a USABLE toolchain
-      # the app crashes on launch and every integration file dies with "Error
-      # waiting for a debug connection: The log reader stopped unexpectedly."
-      # `-downloadComponent` can exit 0 yet leave the toolchain non-functional
-      # (stale per-user xcrun_db cache, or a partial CDN download), so the exit
-      # code is NOT proof — we retry, clear the xcrun cache, then VERIFY by
-      # compiling a shader. NO sudo: the per-user index plist must belong to the
-      # runner user that later runs `flutter test -d macos`. Run AFTER
-      # xcode-select so it resolves for the selected Xcode. continue-on-error
-      # makes this loud-but-non-blocking — the Skia fallback below keeps the
-      # integration tests green even if the toolchain can't be installed, while
-      # the iOS/macOS Impeller builds stay faithful when it can. Remove once
-      # actions/runner-images#13080 bakes a matched toolchain into the image.
-      - name: Install & verify Metal toolchain (best-effort)
-        continue-on-error: true
-        run: |
-          set -uo pipefail
-          echo "Selected Xcode: $(xcode-select -p)"
-          functional() { xcrun -f metal >/dev/null 2>&1 && xcrun metal --version >/dev/null 2>&1; }
-
-          if functional; then
-            echo "Metal toolchain already usable: $(xcrun -f metal)"
-          else
-            attempt=1; max=3
-            until [ "$attempt" -gt "$max" ]; do
-              echo "::group::downloadComponent MetalToolchain (attempt $attempt/$max)"
-              xcodebuild -downloadComponent MetalToolchain && rc=0 || rc=$?
-              echo "xcodebuild exited $rc"
-              echo "::endgroup::"
-              # Clear a possibly-stale xcrun resolver cache — the classic
-              # "installed but not found" cause (MacPorts #73008/#73262).
-              rm -f "$(getconf DARWIN_USER_TEMP_DIR)/xcrun_db" 2>/dev/null || true
-              functional && break
-              attempt=$((attempt + 1)); sleep 15
-            done
-          fi
-
-          # Loud verification: resolve the tools and compile+link a trivial
-          # shader end-to-end (the closest cheap proxy for what Impeller does).
-          echo "metal    -> $(xcrun -f metal 2>&1 || true)"
-          echo "metallib -> $(xcrun -f metallib 2>&1 || true)"
-          shader="$(mktemp -t metalcheck).metal"
-          printf '#include <metal_stdlib>\nusing namespace metal;\nkernel void k() {}\n' > "$shader"
-          if xcrun -sdk macosx metal -c "$shader" -o "$shader.air" \
-             && xcrun -sdk macosx metallib "$shader.air" -o "$shader.metallib"; then
-            echo "Metal toolchain verified: compiles + links a shader."
-            rm -f "$shader" "$shader.air" "$shader.metallib"
-          else
-            rm -f "$shader" "$shader.air" "$shader.metallib"
-            echo "::error::Metal toolchain not functional — Impeller builds may be degraded; Skia fallback covers the integration tests."
-            exit 1
-          fi
-
       - name: Install dependencies
         run: flutter pub get
 
@@ -286,30 +231,48 @@ jobs:
             PROVISIONING_PROFILE_SPECIFIER= \
             build
 
+      # TEMPORARY forensics (continue-on-error) — proves WHY the macOS-desktop
+      # app won't launch on a hosted GitHub runner, before we drop the suite from
+      # CI. Hosted macOS runners are headless and MTLCreateSystemDefaultDevice()
+      # can return nil (actions/runner-images#1779, flutter/flutter#118469), so a
+      # Flutter desktop app can't create its Metal renderer (Impeller OR Skia) and
+      # dies before the VM-service line → "The log reader stopped unexpectedly."
+      # The Swift Metal probe is decisive; the direct app-launch is the
+      # discriminator (renderer crash = GPU problem; clean launch = test-path
+      # issue). Removed in Stage 2 once the proof is captured.
+      - name: Forensics — why won't the macOS app launch?
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          echo "::group::Metal device probe (decisive)"
+          probe="$(mktemp -t metaldev).swift"
+          printf 'import Metal\nlet d = MTLCreateSystemDefaultDevice()\nprint("MTLCreateSystemDefaultDevice -> \\(d.map { $0.name } ?? "nil")")\nprint("MTLCopyAllDevices count -> \\(MTLCopyAllDevices().count)")\n' > "$probe"
+          xcrun swift "$probe" 2>&1 || echo "swift probe failed rc=$?"
+          rm -f "$probe"
+          echo "::endgroup::"
+          echo "::group::GPU / display / GUI session"
+          system_profiler SPDisplaysDataType 2>&1 | head -60 || true
+          ioreg -rc IOAccelerator 2>&1 | head -30 || true
+          launchctl print "gui/$(id -u)" 2>&1 | grep -iE 'WindowServer|Aqua|loginwindow' | head -5 || true
+          echo "::endgroup::"
+          echo "::group::Direct-launch the built Release app (discriminator)"
+          bin="$(find build -type f -path '*Release*Invoice Ninja.app/Contents/MacOS/Invoice Ninja' 2>/dev/null | head -1)"
+          [ -n "$bin" ] || bin="$(find "$HOME/Library/Developer/Xcode/DerivedData" -type f -path '*Release*Invoice Ninja.app/Contents/MacOS/Invoice Ninja' 2>/dev/null | head -1)"
+          echo "binary: ${bin:-<not found>}"
+          if [ -n "$bin" ] && [ -x "$bin" ]; then ( "$bin" & p=$!; sleep 12; kill "$p" 2>/dev/null || true ) 2>&1 | head -150; fi
+          echo "::endgroup::"
+          echo "::group::Unified log + crash reports"
+          log show --last 5m --predicate 'process == "Invoice Ninja"' --style compact 2>&1 | tail -100 || true
+          for d in "$HOME/Library/Logs/DiagnosticReports" "/Library/Logs/DiagnosticReports"; do for f in "$d"/*Invoice*; do [ -e "$f" ] || continue; echo "== $f =="; sed -n '1,80p' "$f"; done; done
+          echo "::endgroup::"
+
       # Integration tests run against macOS desktop. They take over the
       # foreground app, so they must NEVER be run on a developer's dev box —
       # this is the only place they execute. See CLAUDE.md "Integration
       # tests".
       - name: Enable macOS desktop
+        if: false  # TEMP (Stage 1): desktop suite disabled while we capture launch forensics; deleted in Stage 2.
         run: flutter config --enable-macos-desktop
-
-      # CI-ONLY: force the legacy Skia renderer for the macOS integration build
-      # by disabling Impeller. Patches the working-tree Info.plist (NEVER
-      # committed — ephemeral checkout, and contents:read forbids pushing back),
-      # so the `flutter test -d macos` rebuild in run_integration_local.sh bakes
-      # FLTEnableImpeller=false into the test app and the embedder honors it at
-      # launch. Skia compiles shaders at runtime via the OS Metal framework and
-      # does NOT invoke the offline `metal` compiler, sidestepping the toolchain
-      # launch crash. Placed AFTER the iOS/macOS release builds above so those
-      # stay Impeller-faithful. Production ships Impeller — this key is added
-      # only here on CI. The Add||Set pair is idempotent (key is absent in the
-      # committed plist today, so Add creates it; Set updates it if ever added).
-      - name: Force Skia for macOS integration tests (CI-only, not committed)
-        run: |
-          set -euo pipefail
-          /usr/libexec/PlistBuddy -c "Add :FLTEnableImpeller bool false" macos/Runner/Info.plist 2>/dev/null \
-            || /usr/libexec/PlistBuddy -c "Set :FLTEnableImpeller false" macos/Runner/Info.plist
-          /usr/libexec/PlistBuddy -c "Print :FLTEnableImpeller" macos/Runner/Info.plist
 
       # Integration tests, ONE FILE PER `flutter test` invocation
       # (tools/run_integration_local.sh) — the flutter/flutter#135673 workaround:
@@ -326,6 +289,7 @@ jobs:
       # sign ad-hoc (-) rather than disabling signing. Flutter forwards
       # FLUTTER_XCODE_* to xcodebuild (build_macos.dart) — no Xcode changes.
       - name: Integration tests (macOS, per-file, incl. live demo API)
+        if: false  # TEMP (Stage 1): skipped to keep the proof dispatch cheap on the 10x runner; deleted in Stage 2.
         timeout-minutes: 50
         env:
           FLUTTER_XCODE_CODE_SIGN_STYLE: Manual
