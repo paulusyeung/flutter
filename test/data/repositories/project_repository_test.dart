@@ -300,6 +300,28 @@ void main() {
       );
       expect(await idsFor(EntityState.archived), isNot(contains('p1')));
     });
+
+    test('watchDistinctCustomValues returns sorted distinct non-empty values '
+        'for the given column', () async {
+      final repo = makeRepo();
+      Future<void> seed(String id, String cv1) => repo.applyUpdateResponse(
+        companyId: 'co',
+        serverResponse: ProjectApi(
+          id: id,
+          name: id,
+          customValue1: cv1,
+          updatedAt: 1700000000,
+        ),
+      );
+      await seed('p1', 'Beta');
+      await seed('p2', 'Alpha');
+      await seed('p3', 'Beta'); // duplicate — collapsed
+      await seed('p4', ''); // empty — excluded
+      final values = await repo
+          .watchDistinctCustomValues(companyId: 'co', columnIndex: 1)
+          .first;
+      expect(values, ['Alpha', 'Beta']);
+    });
   });
 
   group('ProjectRepository — deleted-client filter', () {

@@ -99,6 +99,8 @@ void main() {
     ProjectEditViewModel vm({required bool useComma}) => ProjectEditViewModel(
       repo: ProjectRepository(db: db, api: _FakeProjectsApi()),
       companyId: 'co',
+      nameRequiredMessage: 'name required',
+      clientRequiredMessage: 'client required',
       useCommaAsDecimalPlace: useComma,
     );
 

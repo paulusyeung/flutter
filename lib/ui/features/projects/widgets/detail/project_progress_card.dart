@@ -138,15 +138,18 @@ class _CardBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    // Anchor the time axis in local time so the `createdAt`-relative geometry
+    // lines up with the local-bucketed series (`buildCumulativeSeries` →
+    // `.toLocal()`), the local `now`, and `dueDate.toDateTime()` (local
+    // midnight). `project.createdAt` is stored UTC; mixing it with the local
+    // anchors skewed the projection line / day-axis ticks by the viewer's UTC
+    // offset. The pure helpers stay timezone-agnostic — we hand them a
+    // consistent local set here.
+    final createdAt = project.createdAt.toLocal();
     final series = buildCumulativeSeries(tasks, now);
     final logged = series.isEmpty ? 0.0 : series.last.hours;
     final budgeted = project.budgetedHours;
-    final projected = computeProjected(
-      logged,
-      project.createdAt,
-      project.dueDate,
-      now,
-    );
+    final projected = computeProjected(logged, createdAt, project.dueDate, now);
     final status = deriveStatus(
       logged,
       budgeted,
@@ -183,7 +186,7 @@ class _CardBody extends StatelessWidget {
                   return _ProgressBarPart(
                     logged: logged,
                     budgeted: budgeted,
-                    createdAt: project.createdAt,
+                    createdAt: createdAt,
                     dueDate: project.dueDate,
                     now: now,
                     tokens: tokens,
@@ -194,7 +197,7 @@ class _CardBody extends StatelessWidget {
                   logged: logged,
                   budgeted: budgeted,
                   projected: projected,
-                  createdAt: project.createdAt,
+                  createdAt: createdAt,
                   dueDate: project.dueDate,
                   now: now,
                   maxWidth: constraints.maxWidth,

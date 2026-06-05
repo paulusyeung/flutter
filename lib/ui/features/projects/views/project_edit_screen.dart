@@ -59,6 +59,8 @@ class ProjectEditScreen extends StatelessWidget {
         final vm = ProjectEditViewModel(
           repo: services.projects,
           companyId: companyId,
+          nameRequiredMessage: ctx.tr('please_enter_a_name'),
+          clientRequiredMessage: ctx.tr('please_select_a_client'),
           existing: existing,
           cloneFrom: clone,
           useCommaAsDecimalPlace:

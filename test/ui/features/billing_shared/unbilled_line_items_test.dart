@@ -1,10 +1,14 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:admin/data/models/api/company_settings_api_model.dart';
 import 'package:admin/data/models/api/expense_api_model.dart';
+import 'package:admin/data/models/api/project_api_model.dart';
 import 'package:admin/data/models/api/task_api_model.dart';
 import 'package:admin/data/models/domain/billing/line_item_type.dart';
+import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/expense.dart';
+import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/ui/features/billing_shared/add_unbilled/unbilled_line_items.dart';
 
@@ -46,6 +50,14 @@ Expense _expense({
     invoiceId: invoiceId,
     shouldBeInvoiced: shouldBeInvoiced,
   ),
+);
+
+Project _project({String taskRate = '0'}) =>
+    Project.fromApi(ProjectApi(id: 'p1', name: 'P', taskRate: taskRate));
+
+Company _company({double? defaultTaskRate}) => Company(
+  id: 'co',
+  settings: CompanySettingsApi(defaultTaskRate: defaultTaskRate),
 );
 
 // A stopped, billable, 1-hour entry.
@@ -177,6 +189,36 @@ void main() {
         expenses: [_expense(id: 'e_nb')],
       );
       expect(items, isEmpty);
+    });
+
+    test('rate-0 task inherits the project→company cascade when project + '
+        r'company are passed (the bulk-invoice $0 fix)', () {
+      // project.taskRate wins over the company default for a rate-0 task.
+      final viaProject = projectInvoiceLineItems(
+        tasks: [_task(id: 't1', rate: '0', timeLog: _stopped1h)],
+        expenses: const [],
+        project: _project(taskRate: '90'),
+        company: _company(defaultTaskRate: 75),
+      );
+      expect(viaProject.single.cost, Decimal.parse('90'));
+
+      // project.taskRate 0 → falls through to company default_task_rate.
+      final viaCompany = projectInvoiceLineItems(
+        tasks: [_task(id: 't1', rate: '0', timeLog: _stopped1h)],
+        expenses: const [],
+        project: _project(taskRate: '0'),
+        company: _company(defaultTaskRate: 75),
+      );
+      expect(viaCompany.single.cost, Decimal.parse('75'));
+    });
+
+    test('without project/company a rate-0 task bills at 0 (old bulk-path '
+        'behavior — the regression Fix 3 addresses)', () {
+      final noCascade = projectInvoiceLineItems(
+        tasks: [_task(id: 't1', rate: '0', timeLog: _stopped1h)],
+        expenses: const [],
+      );
+      expect(noCascade.single.cost, Decimal.zero);
     });
   });
 }

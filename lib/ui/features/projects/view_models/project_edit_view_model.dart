@@ -14,6 +14,8 @@ class ProjectEditViewModel extends GenericEditViewModel<Project> {
   ProjectEditViewModel({
     required this.repo,
     required this.companyId,
+    required this.nameRequiredMessage,
+    required this.clientRequiredMessage,
     Project? existing,
     Project? cloneFrom,
     super.sync,
@@ -27,6 +29,29 @@ class ProjectEditViewModel extends GenericEditViewModel<Project> {
 
   final ProjectRepository repo;
   final String companyId;
+
+  /// Localized "please enter a name" — injected from the edit screen's
+  /// `buildVm` (the VM has no `BuildContext` to localize with). Mirrors the
+  /// billing VMs' `clientRequiredMessage` injection.
+  final String nameRequiredMessage;
+
+  /// Localized "please select a client" — same injection rationale.
+  final String clientRequiredMessage;
+
+  /// Create-only required-field guard. `StoreProjectRequest` requires `name`
+  /// and `client_id`; `UpdateProjectRequest` drops the `name` rule and locks
+  /// `client_id` to the original, so an edit must never block on either. Runs
+  /// in `GenericEditViewModel.save` *before* the optimistic Drift write +
+  /// outbox enqueue, surfacing inline via `fieldErrorFor('name')` /
+  /// `fieldErrorFor('client_id')` instead of a deferred server 422 / dead row.
+  @override
+  Map<String, List<String>> validate() {
+    if (!isCreate) return const {};
+    return {
+      if (draft.name.trim().isEmpty) 'name': [nameRequiredMessage],
+      if (draft.clientId.isEmpty) 'client_id': [clientRequiredMessage],
+    };
+  }
 
   @override
   bool draftIsNonEmpty() {

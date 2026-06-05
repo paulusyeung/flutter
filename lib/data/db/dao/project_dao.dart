@@ -203,4 +203,25 @@ class ProjectDao extends BaseEntityDao<$ProjectsTable, ProjectRow>
     q.orderBy([(p) => OrderingTerm(expression: p.name.lower())]);
     return q.watch().distinctRows();
   }
+
+  /// Distinct non-empty values of `custom_value{columnIndex}` for the given
+  /// company, ordered ascending. Drives the bottom-sheet option list for
+  /// custom-field filtering (mirrors `ClientDao`).
+  Stream<List<String>> watchDistinctCustomValues({
+    required String companyId,
+    required int columnIndex,
+  }) {
+    final column = switch (columnIndex) {
+      1 => projects.customValue1,
+      2 => projects.customValue2,
+      3 => projects.customValue3,
+      4 => projects.customValue4,
+      _ => throw ArgumentError('columnIndex must be 1..4 (got $columnIndex)'),
+    };
+    final q = selectOnly(projects, distinct: true)
+      ..addColumns([column])
+      ..where(projects.companyId.equals(companyId) & column.equals('').not())
+      ..orderBy([OrderingTerm(expression: column)]);
+    return q.map((row) => row.read(column)!).watch().distinctRows();
+  }
 }

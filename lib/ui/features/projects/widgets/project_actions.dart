@@ -347,6 +347,10 @@ class ProjectActions {
       Notify.error(context, context.tr('multiple_client_error'));
       return;
     }
+    // Load the company once so a task at rate 0 inherits project.taskRate →
+    // company.settings.default_task_rate instead of invoicing at $0 — the same
+    // cascade the single-project `invoiceProject` path applies.
+    final company = await services.company.get(companyId);
     final lineItems = [
       for (final p in usable)
         ...projectInvoiceLineItems(
@@ -356,6 +360,8 @@ class ProjectActions {
           expenses: await services.expenses
               .watchForProject(companyId: companyId, projectId: p.id)
               .first,
+          project: p,
+          company: company,
         ),
     ];
     if (!context.mounted) return;

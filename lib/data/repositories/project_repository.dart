@@ -92,6 +92,17 @@ class ProjectRepository extends BaseEntityRepository<Project, ProjectApi>
   Stream<int> watchCount({required String companyId}) =>
       db.projectDao.watchCount(companyId: companyId);
 
+  /// Distinct non-empty values populated by projects in `companyId` for the
+  /// given custom column (1..4). Drives the custom-field filter option list
+  /// (mirrors `ClientRepository`).
+  Stream<List<String>> watchDistinctCustomValues({
+    required String companyId,
+    required int columnIndex,
+  }) => db.projectDao.watchDistinctCustomValues(
+    companyId: companyId,
+    columnIndex: columnIndex,
+  );
+
   /// Cheap `(id, name)` stream for active projects — used by the Task
   /// list's project filter key (suggestion menu + chip display name).
   /// Selects only the two columns needed; orders by name.

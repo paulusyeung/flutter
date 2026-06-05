@@ -96,6 +96,13 @@ class ProjectListViewModel extends GenericListViewModel<Project> {
   Future<void> refreshAll() => repo.refreshAll(companyId: companyId);
 
   @override
+  Stream<List<String>> watchDistinctCustomValues(int columnIndex) =>
+      repo.watchDistinctCustomValues(
+        companyId: companyId,
+        columnIndex: columnIndex,
+      );
+
+  @override
   Iterable<BulkAction<Project>> get bulkActions => [
     ...standardCrudBulkActions(
       isArchived: isArchived,

@@ -132,10 +132,9 @@ extension VendorPayload on Vendor {
     'custom_value2': customValue2,
     'custom_value3': customValue3,
     'custom_value4': customValue4,
-    // Read-only — emitted only for the local Drift payload round-trip
-    // (`_domainToCompanion` uses `preserveTempId: true`), never on the wire.
-    // The server ignores it on save, so the outbox payload omits it.
-    if (preserveTempId && lastLogin != null)
+    // Read-only, but included so the local Drift payload round-trip
+    // (`_domainToCompanion`) preserves it; the server ignores it on save.
+    if (lastLogin != null)
       'last_login': lastLogin!.millisecondsSinceEpoch ~/ 1000,
     'contacts': contacts
         .map((c) => c.toApiJson(preserveTempId: preserveTempId))
