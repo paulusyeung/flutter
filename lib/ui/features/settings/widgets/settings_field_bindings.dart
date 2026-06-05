@@ -721,10 +721,10 @@ final Map<String, SettingsBinding> _bindings = <String, SettingsBinding>{
     read: (s) => s.signatureOnPdf?.toString(),
     write: (s, v) => s.copyWith(signatureOnPdf: _parseBool(v)),
   ),
-  'client_can_register': (
-    read: (s) => s.clientCanRegister?.toString(),
-    write: (s, v) => s.copyWith(clientCanRegister: _parseBool(v)),
-  ),
+  // NOTE: `client_can_register` is intentionally NOT bound here. It is a
+  // top-level `company.*` column (the server gates registration on it; the
+  // `settings` copy is deprecated), edited directly via `host.updateCompany`
+  // on the Registration tab — not through the settings cascade.
   'custom_message_dashboard': (
     read: (s) => s.customMessageDashboard,
     write: (s, v) => s.copyWith(customMessageDashboard: v),

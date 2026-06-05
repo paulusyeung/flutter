@@ -59,6 +59,9 @@ abstract class CompanyApi with _$CompanyApi {
     @JsonKey(name: 'subdomain') @Default('') String subdomain,
     @JsonKey(name: 'portal_domain') @Default('') String portalDomain,
     @JsonKey(name: 'portal_mode') @Default('') String portalMode,
+    @JsonKey(name: 'client_can_register')
+    @Default(false)
+    bool clientCanRegister,
     @JsonKey(name: 'client_registration_fields')
     @Default(<ClientRegistrationFieldApi>[])
     List<ClientRegistrationFieldApi> clientRegistrationFields,

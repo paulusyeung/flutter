@@ -939,6 +939,7 @@ class AuthRepository {
             subdomain: Value(uc.company.subdomain),
             portalDomain: Value(uc.company.portalDomain),
             portalMode: Value(uc.company.portalMode),
+            clientCanRegister: Value(uc.company.clientCanRegister),
             companyKey: Value(uc.company.companyKey),
             clientRegistrationFields: Value(
               jsonEncode(

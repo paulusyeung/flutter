@@ -324,6 +324,9 @@ class Companies extends Table {
       text().named('portal_domain').withDefault(const Constant(''))();
   TextColumn get portalMode =>
       text().named('portal_mode').withDefault(const Constant(''))();
+  BoolColumn get clientCanRegister => boolean()
+      .named('client_can_register')
+      .withDefault(const Constant(false))();
   TextColumn get companyKey =>
       text().named('company_key').withDefault(const Constant(''))();
   TextColumn get clientRegistrationFields => text()

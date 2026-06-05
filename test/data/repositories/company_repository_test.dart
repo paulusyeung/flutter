@@ -187,6 +187,7 @@ void main() {
         subdomain: 'acme',
         portalDomain: 'https://billing.acme.test',
         portalMode: 'subdomain',
+        clientCanRegister: true,
         companyKey: 'CK1',
         clientRegistrationFields: [
           const ClientRegistrationFieldApi(
@@ -207,6 +208,7 @@ void main() {
       expect(row!.subdomain, 'acme');
       expect(row.portalDomain, 'https://billing.acme.test');
       expect(row.portalMode, 'subdomain');
+      expect(row.clientCanRegister, true);
       expect(row.companyKey, 'CK1');
       final decoded = jsonDecode(row.clientRegistrationFields) as List;
       expect(decoded, hasLength(2));
@@ -218,6 +220,10 @@ void main() {
 
       final reloaded = await repo.get(companyId);
       expect(reloaded!.subdomain, 'acme');
+      expect(reloaded.clientCanRegister, true);
+      // Top-level field must be in the PUT body, not the settings blob —
+      // the server gates registration on `company.client_can_register`.
+      expect(reloaded.toApiJson()['client_can_register'], true);
       expect(reloaded.clientRegistrationFields, hasLength(2));
       expect(reloaded.clientRegistrationFields.first.key, 'email');
       expect(reloaded.clientRegistrationFields.first.required, true);

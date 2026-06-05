@@ -11,8 +11,8 @@ import 'package:admin/ui/features/settings/widgets/cascade_settings_scaffold.dar
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_field.dart';
+import 'package:admin/ui/features/settings/widgets/overridable_number_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_switch_field.dart';
-import 'package:admin/ui/features/settings/widgets/overridable_text_field.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_switch_tile.dart';
 
@@ -91,17 +91,14 @@ class _TaskSettingsBody extends StatelessWidget {
         FormSection(
           title: context.tr('tasks'),
           children: [
-            // `default_task_rate` is `double?`. We use `OverridableTextField`
-            // (not `OverridableCurrencyField`) because the currency field
-            // needs a synchronous `Formatter`, which requires async
-            // bootstrap. Matches `online_payments_general_body.dart` for
-            // `client_initiated_payments_minimum` — same money/double shape.
-            OverridableTextField(
+            // `default_task_rate` is `double?`. We use `OverridableNumberField`
+            // (not `OverridableCurrencyField`) because the currency field needs
+            // a synchronous `Formatter` (async bootstrap); the number field
+            // renders empty-for-zero and strips the trailing `.0` without it.
+            // Matches `online_payments_general_body.dart`'s payment minimums.
+            OverridableNumberField(
               label: context.tr('default_task_rate'),
               apiKey: 'default_task_rate',
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
             ),
             if (isCompanyScope) ...[
               SettingsSwitchTile(

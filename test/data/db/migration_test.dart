@@ -67,6 +67,9 @@ void main() {
           await columnsOf('companies'),
           contains('use_comma_as_decimal_place'),
         );
+        // Top-level Client Portal registration toggle (the server gates
+        // registration on this column, not the deprecated settings copy).
+        expect(await columnsOf('companies'), contains('client_can_register'));
         await db.close();
       },
     );

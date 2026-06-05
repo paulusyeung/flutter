@@ -7,8 +7,8 @@ import 'package:admin/ui/features/settings/state/settings_level_controller.dart'
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_dropdown_field.dart';
+import 'package:admin/ui/features/settings/widgets/overridable_number_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_switch_field.dart';
-import 'package:admin/ui/features/settings/widgets/overridable_text_field.dart';
 
 /// Online Payments — General tab. Field labels surfaced by the in-app search.
 const kOnlinePaymentsGeneralSearchKeys = <String>[
@@ -110,12 +110,9 @@ class OnlinePaymentsGeneralBody extends StatelessWidget {
               subtitle: context.tr('client_initiated_payments_help'),
             ),
             if (clientInitiated)
-              OverridableTextField(
+              OverridableNumberField(
                 label: context.tr('minimum_payment_amount'),
                 apiKey: 'client_initiated_payments_minimum',
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
               ),
             OverridableSwitchField(
               label: context.tr('allow_over_payment'),
@@ -128,12 +125,9 @@ class OnlinePaymentsGeneralBody extends StatelessWidget {
               subtitle: context.tr('allow_under_payment_help'),
             ),
             if (allowUnderPayment)
-              OverridableTextField(
+              OverridableNumberField(
                 label: context.tr('minimum_under_payment_amount'),
                 apiKey: 'client_portal_under_payment_minimum',
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
               ),
             OverridableSwitchField(
               label: context.tr('one_page_checkout'),

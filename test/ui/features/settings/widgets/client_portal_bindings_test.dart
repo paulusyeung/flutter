@@ -30,8 +30,6 @@ void main() {
       'require_quote_signature',
       'require_purchase_order_signature',
       'signature_on_pdf',
-      // Registration tab
-      'client_can_register',
       // Messages tab
       'custom_message_dashboard',
       'custom_message_unpaid_invoice',
@@ -74,7 +72,6 @@ void main() {
         'require_quote_signature',
         'require_purchase_order_signature',
         'signature_on_pdf',
-        'client_can_register',
       ];
       for (final key in boolKeys) {
         final b = settingsBindingOf(key);

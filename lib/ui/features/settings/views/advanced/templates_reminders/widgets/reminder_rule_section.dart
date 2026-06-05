@@ -8,6 +8,7 @@ import 'package:admin/ui/features/settings/views/advanced/templates_reminders/te
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_currency_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_dropdown_field.dart';
+import 'package:admin/ui/features/settings/widgets/overridable_number_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_switch_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_text_field.dart';
 import 'package:admin/utils/formatting.dart';
@@ -139,10 +140,9 @@ class _ScheduledRuleSection extends StatelessWidget {
           formatter: formatter,
           currencyId: currencyId,
         ),
-        OverridableTextField(
+        OverridableNumberField(
           label: context.tr('late_fee_percent'),
           apiKey: _percentKey,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
         ),
       ],
     );

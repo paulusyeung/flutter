@@ -235,6 +235,7 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
           subdomain: Value(draft.subdomain),
           portalDomain: Value(draft.portalDomain),
           portalMode: Value(draft.portalMode),
+          clientCanRegister: Value(draft.clientCanRegister),
           companyKey: Value(draft.companyKey),
           clientRegistrationFields: Value(
             _encodeRegistrationFields(draft.clientRegistrationFields),
@@ -688,6 +689,7 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
         subdomain: Value(serverResponse.subdomain),
         portalDomain: Value(serverResponse.portalDomain),
         portalMode: Value(serverResponse.portalMode),
+        clientCanRegister: Value(serverResponse.clientCanRegister),
         companyKey: Value(serverResponse.companyKey),
         clientRegistrationFields: Value(
           _encodeRegistrationFields(serverResponse.clientRegistrationFields),
@@ -852,6 +854,7 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
       subdomain: row.subdomain,
       portalDomain: row.portalDomain,
       portalMode: row.portalMode,
+      clientCanRegister: row.clientCanRegister,
       companyKey: row.companyKey,
       clientRegistrationFields: _decodeRegistrationFields(
         row.clientRegistrationFields,

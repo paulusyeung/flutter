@@ -14,8 +14,8 @@ import 'package:admin/ui/features/settings/view_models/settings_draft_view_model
 import 'package:admin/ui/features/settings/views/advanced/client_portal/widgets/portal_url_display.dart';
 import 'package:admin/ui/features/settings/views/advanced/client_portal/widgets/subdomain_field.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
-import 'package:admin/ui/features/settings/widgets/overridable_markdown_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_switch_field.dart';
+import 'package:admin/ui/features/settings/widgets/overridable_text_field.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
 /// Searchable label keys rendered by the Settings tab. Aggregated into the
@@ -141,14 +141,16 @@ class ClientPortalScreen extends StatelessWidget {
     final legalSection = FormSection(
       title: context.tr('legal'),
       children: [
-        OverridableMarkdownField(
+        OverridableTextField(
           label: context.tr('terms_of_service'),
           apiKey: 'client_portal_terms',
+          maxLines: 6,
         ),
         SizedBox(height: InSpacing.md(context)),
-        OverridableMarkdownField(
+        OverridableTextField(
           label: context.tr('privacy_policy'),
           apiKey: 'client_portal_privacy_policy',
+          maxLines: 6,
         ),
       ],
     );

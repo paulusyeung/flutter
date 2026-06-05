@@ -6947,6 +6947,21 @@ class $CompaniesTable extends Companies
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _clientCanRegisterMeta = const VerificationMeta(
+    'clientCanRegister',
+  );
+  @override
+  late final GeneratedColumn<bool> clientCanRegister = GeneratedColumn<bool>(
+    'client_can_register',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("client_can_register" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _companyKeyMeta = const VerificationMeta(
     'companyKey',
   );
@@ -7092,6 +7107,7 @@ class $CompaniesTable extends Companies
     subdomain,
     portalDomain,
     portalMode,
+    clientCanRegister,
     companyKey,
     clientRegistrationFields,
     updatedAt,
@@ -7928,6 +7944,15 @@ class $CompaniesTable extends Companies
         portalMode.isAcceptableOrUnknown(data['portal_mode']!, _portalModeMeta),
       );
     }
+    if (data.containsKey('client_can_register')) {
+      context.handle(
+        _clientCanRegisterMeta,
+        clientCanRegister.isAcceptableOrUnknown(
+          data['client_can_register']!,
+          _clientCanRegisterMeta,
+        ),
+      );
+    }
     if (data.containsKey('company_key')) {
       context.handle(
         _companyKeyMeta,
@@ -8353,6 +8378,10 @@ class $CompaniesTable extends Companies
         DriftSqlType.string,
         data['${effectivePrefix}portal_mode'],
       )!,
+      clientCanRegister: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}client_can_register'],
+      )!,
       companyKey: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}company_key'],
@@ -8475,6 +8504,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
   final String subdomain;
   final String portalDomain;
   final String portalMode;
+  final bool clientCanRegister;
   final String companyKey;
   final String clientRegistrationFields;
   final int updatedAt;
@@ -8583,6 +8613,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     required this.subdomain,
     required this.portalDomain,
     required this.portalMode,
+    required this.clientCanRegister,
     required this.companyKey,
     required this.clientRegistrationFields,
     required this.updatedAt,
@@ -8725,6 +8756,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     map['subdomain'] = Variable<String>(subdomain);
     map['portal_domain'] = Variable<String>(portalDomain);
     map['portal_mode'] = Variable<String>(portalMode);
+    map['client_can_register'] = Variable<bool>(clientCanRegister);
     map['company_key'] = Variable<String>(companyKey);
     map['client_registration_fields'] = Variable<String>(
       clientRegistrationFields,
@@ -8844,6 +8876,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       subdomain: Value(subdomain),
       portalDomain: Value(portalDomain),
       portalMode: Value(portalMode),
+      clientCanRegister: Value(clientCanRegister),
       companyKey: Value(companyKey),
       clientRegistrationFields: Value(clientRegistrationFields),
       updatedAt: Value(updatedAt),
@@ -9033,6 +9066,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       subdomain: serializer.fromJson<String>(json['subdomain']),
       portalDomain: serializer.fromJson<String>(json['portalDomain']),
       portalMode: serializer.fromJson<String>(json['portalMode']),
+      clientCanRegister: serializer.fromJson<bool>(json['clientCanRegister']),
       companyKey: serializer.fromJson<String>(json['companyKey']),
       clientRegistrationFields: serializer.fromJson<String>(
         json['clientRegistrationFields'],
@@ -9171,6 +9205,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       'subdomain': serializer.toJson<String>(subdomain),
       'portalDomain': serializer.toJson<String>(portalDomain),
       'portalMode': serializer.toJson<String>(portalMode),
+      'clientCanRegister': serializer.toJson<bool>(clientCanRegister),
       'companyKey': serializer.toJson<String>(companyKey),
       'clientRegistrationFields': serializer.toJson<String>(
         clientRegistrationFields,
@@ -9277,6 +9312,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     String? subdomain,
     String? portalDomain,
     String? portalMode,
+    bool? clientCanRegister,
     String? companyKey,
     String? clientRegistrationFields,
     int? updatedAt,
@@ -9403,6 +9439,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     subdomain: subdomain ?? this.subdomain,
     portalDomain: portalDomain ?? this.portalDomain,
     portalMode: portalMode ?? this.portalMode,
+    clientCanRegister: clientCanRegister ?? this.clientCanRegister,
     companyKey: companyKey ?? this.companyKey,
     clientRegistrationFields:
         clientRegistrationFields ?? this.clientRegistrationFields,
@@ -9672,6 +9709,9 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       portalMode: data.portalMode.present
           ? data.portalMode.value
           : this.portalMode,
+      clientCanRegister: data.clientCanRegister.present
+          ? data.clientCanRegister.value
+          : this.clientCanRegister,
       companyKey: data.companyKey.present
           ? data.companyKey.value
           : this.companyKey,
@@ -9792,6 +9832,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           ..write('subdomain: $subdomain, ')
           ..write('portalDomain: $portalDomain, ')
           ..write('portalMode: $portalMode, ')
+          ..write('clientCanRegister: $clientCanRegister, ')
           ..write('companyKey: $companyKey, ')
           ..write('clientRegistrationFields: $clientRegistrationFields, ')
           ..write('updatedAt: $updatedAt, ')
@@ -9898,6 +9939,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     subdomain,
     portalDomain,
     portalMode,
+    clientCanRegister,
     companyKey,
     clientRegistrationFields,
     updatedAt,
@@ -10008,6 +10050,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           other.subdomain == this.subdomain &&
           other.portalDomain == this.portalDomain &&
           other.portalMode == this.portalMode &&
+          other.clientCanRegister == this.clientCanRegister &&
           other.companyKey == this.companyKey &&
           other.clientRegistrationFields == this.clientRegistrationFields &&
           other.updatedAt == this.updatedAt &&
@@ -10111,6 +10154,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
   final Value<String> subdomain;
   final Value<String> portalDomain;
   final Value<String> portalMode;
+  final Value<bool> clientCanRegister;
   final Value<String> companyKey;
   final Value<String> clientRegistrationFields;
   final Value<int> updatedAt;
@@ -10213,6 +10257,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.subdomain = const Value.absent(),
     this.portalDomain = const Value.absent(),
     this.portalMode = const Value.absent(),
+    this.clientCanRegister = const Value.absent(),
     this.companyKey = const Value.absent(),
     this.clientRegistrationFields = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -10316,6 +10361,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.subdomain = const Value.absent(),
     this.portalDomain = const Value.absent(),
     this.portalMode = const Value.absent(),
+    this.clientCanRegister = const Value.absent(),
     this.companyKey = const Value.absent(),
     this.clientRegistrationFields = const Value.absent(),
     required int updatedAt,
@@ -10425,6 +10471,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Expression<String>? subdomain,
     Expression<String>? portalDomain,
     Expression<String>? portalMode,
+    Expression<bool>? clientCanRegister,
     Expression<String>? companyKey,
     Expression<String>? clientRegistrationFields,
     Expression<int>? updatedAt,
@@ -10573,6 +10620,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       if (subdomain != null) 'subdomain': subdomain,
       if (portalDomain != null) 'portal_domain': portalDomain,
       if (portalMode != null) 'portal_mode': portalMode,
+      if (clientCanRegister != null) 'client_can_register': clientCanRegister,
       if (companyKey != null) 'company_key': companyKey,
       if (clientRegistrationFields != null)
         'client_registration_fields': clientRegistrationFields,
@@ -10679,6 +10727,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Value<String>? subdomain,
     Value<String>? portalDomain,
     Value<String>? portalMode,
+    Value<bool>? clientCanRegister,
     Value<String>? companyKey,
     Value<String>? clientRegistrationFields,
     Value<int>? updatedAt,
@@ -10815,6 +10864,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       subdomain: subdomain ?? this.subdomain,
       portalDomain: portalDomain ?? this.portalDomain,
       portalMode: portalMode ?? this.portalMode,
+      clientCanRegister: clientCanRegister ?? this.clientCanRegister,
       companyKey: companyKey ?? this.companyKey,
       clientRegistrationFields:
           clientRegistrationFields ?? this.clientRegistrationFields,
@@ -11187,6 +11237,9 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     if (portalMode.present) {
       map['portal_mode'] = Variable<String>(portalMode.value);
     }
+    if (clientCanRegister.present) {
+      map['client_can_register'] = Variable<bool>(clientCanRegister.value);
+    }
     if (companyKey.present) {
       map['company_key'] = Variable<String>(companyKey.value);
     }
@@ -11314,6 +11367,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
           ..write('subdomain: $subdomain, ')
           ..write('portalDomain: $portalDomain, ')
           ..write('portalMode: $portalMode, ')
+          ..write('clientCanRegister: $clientCanRegister, ')
           ..write('companyKey: $companyKey, ')
           ..write('clientRegistrationFields: $clientRegistrationFields, ')
           ..write('updatedAt: $updatedAt, ')
@@ -46167,6 +46221,7 @@ typedef $$CompaniesTableCreateCompanionBuilder =
       Value<String> subdomain,
       Value<String> portalDomain,
       Value<String> portalMode,
+      Value<bool> clientCanRegister,
       Value<String> companyKey,
       Value<String> clientRegistrationFields,
       required int updatedAt,
@@ -46271,6 +46326,7 @@ typedef $$CompaniesTableUpdateCompanionBuilder =
       Value<String> subdomain,
       Value<String> portalDomain,
       Value<String> portalMode,
+      Value<bool> clientCanRegister,
       Value<String> companyKey,
       Value<String> clientRegistrationFields,
       Value<int> updatedAt,
@@ -46765,6 +46821,11 @@ class $$CompaniesTableFilterComposer
 
   ColumnFilters<String> get portalMode => $composableBuilder(
     column: $table.portalMode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get clientCanRegister => $composableBuilder(
+    column: $table.clientCanRegister,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -47281,6 +47342,11 @@ class $$CompaniesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get clientCanRegister => $composableBuilder(
+    column: $table.clientCanRegister,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get companyKey => $composableBuilder(
     column: $table.companyKey,
     builder: (column) => ColumnOrderings(column),
@@ -47764,6 +47830,11 @@ class $$CompaniesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get clientCanRegister => $composableBuilder(
+    column: $table.clientCanRegister,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get companyKey => $composableBuilder(
     column: $table.companyKey,
     builder: (column) => column,
@@ -47914,6 +47985,7 @@ class $$CompaniesTableTableManager
                 Value<String> subdomain = const Value.absent(),
                 Value<String> portalDomain = const Value.absent(),
                 Value<String> portalMode = const Value.absent(),
+                Value<bool> clientCanRegister = const Value.absent(),
                 Value<String> companyKey = const Value.absent(),
                 Value<String> clientRegistrationFields = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
@@ -48018,6 +48090,7 @@ class $$CompaniesTableTableManager
                 subdomain: subdomain,
                 portalDomain: portalDomain,
                 portalMode: portalMode,
+                clientCanRegister: clientCanRegister,
                 companyKey: companyKey,
                 clientRegistrationFields: clientRegistrationFields,
                 updatedAt: updatedAt,
@@ -48126,6 +48199,7 @@ class $$CompaniesTableTableManager
                 Value<String> subdomain = const Value.absent(),
                 Value<String> portalDomain = const Value.absent(),
                 Value<String> portalMode = const Value.absent(),
+                Value<bool> clientCanRegister = const Value.absent(),
                 Value<String> companyKey = const Value.absent(),
                 Value<String> clientRegistrationFields = const Value.absent(),
                 required int updatedAt,
@@ -48230,6 +48304,7 @@ class $$CompaniesTableTableManager
                 subdomain: subdomain,
                 portalDomain: portalDomain,
                 portalMode: portalMode,
+                clientCanRegister: clientCanRegister,
                 companyKey: companyKey,
                 clientRegistrationFields: clientRegistrationFields,
                 updatedAt: updatedAt,

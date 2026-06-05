@@ -132,8 +132,12 @@ class _OverridableNumberFieldState extends State<OverridableNumberField> {
     return OverridableField.bind(
       apiKey: widget.apiKey,
       label: widget.label,
-      cascadedValueOnEnable: () =>
-          _displayFor(_read(host.settings), useComma: useComma),
+      // Seed the override from the RAW cascaded value, not the zero-blanked
+      // display: a 0 company-default must seed "0"/"0.0" (→ parses back to 0,
+      // which latches the override) rather than "" (→ null, leaving the
+      // checkbox unable to latch — isOverridden is `containsKey && != null`).
+      // The displayed text still blanks zero via _displayFor in build().
+      cascadedValueOnEnable: () => _read(host.settings),
       child: field,
     );
   }

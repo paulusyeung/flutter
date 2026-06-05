@@ -109,6 +109,7 @@ _CompanyEnvelopeApi _$CompanyEnvelopeApiFromJson(
   subdomain: json['subdomain'] as String? ?? '',
   portalDomain: json['portal_domain'] as String? ?? '',
   portalMode: json['portal_mode'] as String? ?? '',
+  clientCanRegister: json['client_can_register'] as bool? ?? false,
   clientRegistrationFields:
       (json['client_registration_fields'] as List<dynamic>?)
           ?.map(
@@ -256,6 +257,7 @@ Map<String, dynamic> _$CompanyEnvelopeApiToJson(
   'subdomain': instance.subdomain,
   'portal_domain': instance.portalDomain,
   'portal_mode': instance.portalMode,
+  'client_can_register': instance.clientCanRegister,
   'client_registration_fields': instance.clientRegistrationFields,
   'custom_fields': instance.customFields,
   'documents': instance.documents,

@@ -9,7 +9,6 @@ import 'package:admin/ui/features/settings/view_models/settings_draft_view_model
 import 'package:admin/ui/features/settings/views/advanced/client_portal/widgets/portal_url_display.dart';
 import 'package:admin/ui/features/settings/views/advanced/client_portal/widgets/registration_fields_configurator.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
-import 'package:admin/ui/features/settings/widgets/overridable_switch_field.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
 /// Searchable label keys rendered by the Registration tab. Mirrors the field
@@ -36,11 +35,15 @@ class ClientPortalRegistrationScreen extends StatelessWidget {
       );
     }
     final host = context.watch<SettingsDraftHost>();
-    final canRegister = host.settings.clientCanRegister ?? false;
     final draft = host.draft;
+    // `client_can_register` is a top-level company column (the server gates
+    // registration on it; the `settings` copy is deprecated). Read + write the
+    // company draft directly, not the cascade — this tab is company-scope only.
+    final canRegister = draft?.clientCanRegister ?? false;
     final companyKey = draft?.companyKey ?? '';
     final portalDomain = draft?.portalDomain ?? '';
     final subdomain = draft?.subdomain ?? '';
+    final registrationHelp = context.trIfDefined('client_registration_help');
     final registrationUrl = _registrationUrl(
       subdomain: subdomain,
       portalDomain: portalDomain,
@@ -52,10 +55,15 @@ class ClientPortalRegistrationScreen extends StatelessWidget {
         FormSection(
           title: context.tr('registration'),
           children: [
-            OverridableSwitchField(
-              label: context.tr('client_registration'),
-              apiKey: 'client_can_register',
-              subtitle: context.trIfDefined('client_registration_help'),
+            SwitchListTile(
+              title: Text(context.tr('client_registration')),
+              subtitle: registrationHelp == null
+                  ? null
+                  : Text(registrationHelp),
+              value: canRegister,
+              onChanged: (v) =>
+                  host.updateCompany((c) => c.copyWith(clientCanRegister: v)),
+              contentPadding: EdgeInsets.zero,
             ),
             if (canRegister && registrationUrl.isNotEmpty) ...[
               SizedBox(height: InSpacing.md(context)),

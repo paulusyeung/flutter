@@ -57,6 +57,10 @@ abstract class Company with _$Company {
     @Default('') String subdomain,
     @Default('') String portalDomain,
     @Default('') String portalMode,
+    // Top-level company column (the server gates registration on
+    // `companies.client_can_register`; the copy inside `settings` is
+    // server-deprecated). Round-trips alongside the other portal fields.
+    @Default(false) bool clientCanRegister,
     @Default(<ClientRegistrationFieldApi>[])
     List<ClientRegistrationFieldApi> clientRegistrationFields,
     @Default(<String, String>{}) Map<String, String> customFields,
@@ -182,6 +186,7 @@ abstract class Company with _$Company {
     subdomain: api.subdomain,
     portalDomain: api.portalDomain,
     portalMode: api.portalMode,
+    clientCanRegister: api.clientCanRegister,
     clientRegistrationFields: api.clientRegistrationFields,
     customFields: api.customFields,
     rawSettings: api.settings,
@@ -288,6 +293,7 @@ abstract class Company with _$Company {
       subdomain: subdomain,
       portalDomain: portalDomain,
       portalMode: portalMode,
+      clientCanRegister: clientCanRegister,
       clientRegistrationFields: clientRegistrationFields,
       customFields: customFields,
       settings: mergedSettings,

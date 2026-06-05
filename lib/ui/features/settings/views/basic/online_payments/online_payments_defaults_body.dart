@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/data/models/domain/payment_term.dart';
 import 'package:admin/data/models/value/payment_type.dart';
 import 'package:admin/l10n/localization.dart';
@@ -28,6 +29,14 @@ class OnlinePaymentsDefaultsBody extends StatelessWidget {
     final companyId = services.auth.session.value?.currentCompanyId ?? '';
     final statics = services.statics;
     final host = context.watch<SettingsDraftHost>();
+    // Mirror the legacy admin-portal: the term pickers are module-gated so a
+    // company with invoices/quotes switched off doesn't see an irrelevant
+    // default. Read off the active company (resolves at company + client/group
+    // scope), matching settings_screen.dart's sidebar gating.
+    final modules =
+        services.auth.session.value?.currentCompany?.enabledModules ?? 0;
+    final invoicesOn = isModuleEnabled(modules, EnabledModule.invoices);
+    final quotesOn = isModuleEnabled(modules, EnabledModule.quotes);
 
     final paymentTypes = statics.paymentTypes.values.toList()
       ..sort((a, b) => a.name.compareTo(b.name));
@@ -75,28 +84,30 @@ class OnlinePaymentsDefaultsBody extends StatelessWidget {
             // empty (brand-new company), the field renders disabled with
             // the `no_payment_terms` hint — the "Configure payment terms"
             // button below is the create path.
-            OverridableSearchableDropdownField<PaymentTerm>(
-              label: context.tr('invoice_payment_terms'),
-              apiKey: 'payment_terms',
-              value: host.settings.paymentTerms,
-              items: terms,
-              displayString: termDisplay,
-              idOf: (t) => t.numDays.toString(),
-              emptyHintKey: 'no_payment_terms',
-              onChanged: (v) =>
-                  host.updateSettings((s) => s.copyWith(paymentTerms: v)),
-            ),
-            OverridableSearchableDropdownField<PaymentTerm>(
-              label: context.tr('quote_valid_until'),
-              apiKey: 'valid_until',
-              value: host.settings.validUntil,
-              items: terms,
-              displayString: termDisplay,
-              idOf: (t) => t.numDays.toString(),
-              emptyHintKey: 'no_payment_terms',
-              onChanged: (v) =>
-                  host.updateSettings((s) => s.copyWith(validUntil: v)),
-            ),
+            if (invoicesOn)
+              OverridableSearchableDropdownField<PaymentTerm>(
+                label: context.tr('invoice_payment_terms'),
+                apiKey: 'payment_terms',
+                value: host.settings.paymentTerms,
+                items: terms,
+                displayString: termDisplay,
+                idOf: (t) => t.numDays.toString(),
+                emptyHintKey: 'no_payment_terms',
+                onChanged: (v) =>
+                    host.updateSettings((s) => s.copyWith(paymentTerms: v)),
+              ),
+            if (quotesOn)
+              OverridableSearchableDropdownField<PaymentTerm>(
+                label: context.tr('quote_valid_until'),
+                apiKey: 'valid_until',
+                value: host.settings.validUntil,
+                items: terms,
+                displayString: termDisplay,
+                idOf: (t) => t.numDays.toString(),
+                emptyHintKey: 'no_payment_terms',
+                onChanged: (v) =>
+                    host.updateSettings((s) => s.copyWith(validUntil: v)),
+              ),
             Align(
               alignment: AlignmentDirectional.centerStart,
               child: OutlinedButton.icon(

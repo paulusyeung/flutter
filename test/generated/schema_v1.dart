@@ -2038,6 +2038,16 @@ class Companies extends Table with TableInfo {
     $customConstraints: 'NOT NULL DEFAULT \'\'',
     defaultValue: const CustomExpression('\'\''),
   );
+  late final GeneratedColumn<int> clientCanRegister = GeneratedColumn<int>(
+    'client_can_register',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints:
+        'NOT NULL DEFAULT 0 CHECK (client_can_register IN (0, 1))',
+    defaultValue: const CustomExpression('0'),
+  );
   late final GeneratedColumn<String> companyKey = GeneratedColumn<String>(
     'company_key',
     aliasedName,
@@ -2172,6 +2182,7 @@ class Companies extends Table with TableInfo {
     subdomain,
     portalDomain,
     portalMode,
+    clientCanRegister,
     companyKey,
     clientRegistrationFields,
     updatedAt,
