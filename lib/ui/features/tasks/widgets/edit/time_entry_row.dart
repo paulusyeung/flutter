@@ -30,6 +30,12 @@ class TimeEntryRow extends StatelessWidget {
   /// to ISO `YYYY-MM-DD` when null (e.g. unit-test contexts).
   final Formatter? formatter;
 
+  /// Below this width the single-row layout (fixed 220px date column +
+  /// duration + non-billable icon + delete button) overflows the smallest
+  /// phones, so the row stacks the description under a
+  /// [date · duration · actions] header instead.
+  static const double _narrowWidth = 400;
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
@@ -40,6 +46,45 @@ class TimeEntryRow extends StatelessWidget {
         : '${_formatDate(start.toLocal())} '
               '${_hhmm(start.toLocal())}'
               '${stop == null ? '' : ' – ${_hhmm(stop.toLocal())}'}';
+
+    Widget durationWidget() => entry.isRunning && entry.start != null
+        ? RunningDurationLabel(start: entry.start!)
+        : Text(
+            formatDuration(
+              start != null && stop != null
+                  ? stop.difference(start)
+                  : Duration.zero,
+              compactDays: true,
+            ),
+            style: TextStyle(
+              color: tokens.ink,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          );
+
+    final billableIcon = entry.billable
+        ? null
+        : Tooltip(
+            message: context.tr('non_billable'),
+            child: Icon(Icons.money_off_outlined, size: 14, color: tokens.ink3),
+          );
+
+    final deleteButton = enabled
+        ? IconButton(
+            tooltip: context.tr('remove'),
+            icon: const Icon(Icons.close, size: 16),
+            onPressed: onRemove,
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          )
+        : null;
+
+    final description = Text(
+      entry.description.isEmpty ? '—' : entry.description,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(color: tokens.ink, fontSize: 13),
+    );
 
     return InkWell(
       onTap: enabled ? onTap : null,
@@ -54,62 +99,67 @@ class TimeEntryRow extends StatelessWidget {
               : null,
           border: Border(bottom: BorderSide(color: tokens.border)),
         ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 220,
-              child: Text(
-                dateLabel,
-                style: TextStyle(color: tokens.ink2, fontSize: 13),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                entry.description.isEmpty ? '—' : entry.description,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: tokens.ink, fontSize: 13),
-              ),
-            ),
-            const SizedBox(width: 12),
-            if (entry.isRunning && entry.start != null)
-              RunningDurationLabel(start: entry.start!)
-            else
-              Text(
-                formatDuration(
-                  start != null && stop != null
-                      ? stop.difference(start)
-                      : Duration.zero,
-                  compactDays: true,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth < _narrowWidth) {
+              // Phone: [date · duration · actions] then description below.
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          dateLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: tokens.ink2, fontSize: 13),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      durationWidget(),
+                      if (billableIcon != null) ...[
+                        const SizedBox(width: 6),
+                        billableIcon,
+                      ],
+                      if (deleteButton != null) ...[
+                        const SizedBox(width: 4),
+                        deleteButton,
+                      ],
+                    ],
+                  ),
+                  if (entry.description.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    description,
+                  ],
+                ],
+              );
+            }
+            return Row(
+              children: [
+                SizedBox(
+                  width: 220,
+                  child: Text(
+                    dateLabel,
+                    style: TextStyle(color: tokens.ink2, fontSize: 13),
+                  ),
                 ),
-                style: TextStyle(
-                  color: tokens.ink,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-            if (!entry.billable) ...[
-              const SizedBox(width: 6),
-              Tooltip(
-                message: context.tr('non_billable'),
-                child: Icon(
-                  Icons.money_off_outlined,
-                  size: 14,
-                  color: tokens.ink3,
-                ),
-              ),
-            ],
-            if (enabled) ...[
-              const SizedBox(width: 6),
-              IconButton(
-                tooltip: context.tr('remove'),
-                icon: const Icon(Icons.close, size: 16),
-                onPressed: onRemove,
-                visualDensity: VisualDensity.compact,
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-              ),
-            ],
-          ],
+                const SizedBox(width: 12),
+                Expanded(child: description),
+                const SizedBox(width: 12),
+                durationWidget(),
+                if (billableIcon != null) ...[
+                  const SizedBox(width: 6),
+                  billableIcon,
+                ],
+                if (deleteButton != null) ...[
+                  const SizedBox(width: 6),
+                  deleteButton,
+                ],
+              ],
+            );
+          },
         ),
       ),
     );

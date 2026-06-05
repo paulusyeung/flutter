@@ -125,9 +125,16 @@ class _TimeEntryEditorSheetState extends State<TimeEntryEditorSheet> {
   void initState() {
     super.initState();
     final now = DateTime.now();
-    _start = widget.initial.start ?? now.subtract(const Duration(minutes: 30));
+    // Keep _start/_stop in LOCAL time throughout: the date/time pickers and
+    // every compose path read their wall-clock fields (`_start.hour`,
+    // `_start.year`, …), so a UTC-backed value would mix zones and shift the
+    // entry for non-UTC users. `TimeEntry.encodeLog` serializes via
+    // `millisecondsSinceEpoch`, so the local value still round-trips to the
+    // correct instant. Mirrors the desktop time-table cells.
+    _start = (widget.initial.start ?? now.subtract(const Duration(minutes: 30)))
+        .toLocal();
     _isRunning = widget.initial.isRunning;
-    _stop = widget.initial.stop ?? now;
+    _stop = (widget.initial.stop ?? now).toLocal();
     _description = TextEditingController(text: widget.initial.description);
     _duration = TextEditingController(
       text: formatDuration(_stop.difference(_start), compactDays: true),

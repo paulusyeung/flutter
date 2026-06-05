@@ -716,12 +716,19 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     repo: taskStatusRepo,
     customActions: {
       MutationKind.reorder: ({required row, required payload}) async {
-        await taskStatusesApi.sort(
-          payload: payload,
+        // No bulk sort endpoint for task statuses — PUT the single moved
+        // status; the server shifts + renumbers its siblings (1..N). See
+        // `TaskStatusRepository.reorder`.
+        final movedPayload = (payload['status'] as Map).cast<String, dynamic>();
+        final movedId = movedPayload['id'] as String;
+        await taskStatusesApi.reorderOne(
+          id: movedId,
+          payload: movedPayload,
           idempotencyKey: row.idempotencyKey,
         );
-        final ids =
-            (payload['status_ids'] as List?)?.cast<String>() ?? const [];
+        // Local rows already carry the new ordering — just drop the
+        // optimistic `is_dirty` flags so a later delta can refresh them.
+        final ids = (payload['all_ids'] as List?)?.cast<String>() ?? const [];
         if (ids.isNotEmpty) {
           await taskStatusRepo.clearDirtyForReorder(
             companyId: row.companyId,

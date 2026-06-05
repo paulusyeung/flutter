@@ -168,13 +168,15 @@ void main() {
   });
 
   group('emptyPaymentLink defaults', () {
-    test('matches admin-portal defaults (frequency=monthly, cycles=-1, '
-        'amount_discount=true, steps=cart+auth)', () {
+    test('matches React/server defaults (frequency=monthly, cycles=-1, '
+        'amount_discount=false/percent, steps=cart+auth)', () {
       final s = emptyPaymentLink();
       expect(s.frequencyId, '5'); // kRecurringFrequencyMonthly
       expect(s.remainingCycles, -1);
       expect(s.autoBill, '');
-      expect(s.isAmountDiscount, isTrue);
+      // Percent (false) matches the React create-template / server DB default,
+      // not admin-portal (which defaulted to amount/true).
+      expect(s.isAmountDiscount, isFalse);
       expect(s.steps, 'cart,auth.login-or-register');
       expect(s.allowCancellation, isFalse);
       expect(s.trialEnabled, isFalse);

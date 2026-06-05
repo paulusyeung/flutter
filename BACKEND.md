@@ -245,6 +245,26 @@ public function company_gateway_id(string $v=''): Builder
   `client_gateway_tokens?company_gateway_id=` listing would also unblock the
   "clients with token billing" tile.
 
+### H. `task_statuses/sort` endpoint — **O** (client now works around it)
+
+There is **no** `POST /api/v1/task_statuses/sort` route (only `tasks/sort`
+exists; `routes/api.php` registers the `task_statuses` resource + `/bulk`
+only, and `TaskStatusController` has no `sort` method). The v2 client
+previously POSTed there to persist drag-reorder of task statuses (Settings →
+Task Statuses and the kanban column headers) → **404** (treated as a
+conflict on outbox drain).
+
+**Fixed client-side (no PR required):** the v2 client now reorders a status
+the way `TaskStatusController::update` already supports — a single
+`PUT /api/v1/task_statuses/{id}` carrying the moved status's new
+`status_order`, which trips `$task_status->isDirty('status_order')` and runs
+`TaskStatusRepository::reorder()` to shift + renumber every sibling (1..N).
+The client sends the insertion slot = the moved status's new successor's
+current `status_order`. **O.** If you later add a `task_statuses/sort` route
+mirroring `TaskController::sort` (`{status_ids}` → renumber), the client
+could batch a multi-move into one request; until then per-move PUTs are
+correct and sufficient (status counts are tiny).
+
 ### G. Hygiene — highest leverage
 
 1. **R (non-breaking first).** Unknown filter param → surface in a

@@ -44,7 +44,7 @@ abstract class SubscriptionApi with _$SubscriptionApi {
     @JsonKey(name: 'promo_code') @Default('') String promoCode,
     @JsonKey(name: 'promo_discount') @Default('0') Object promoDiscount,
     @JsonKey(name: 'promo_price') @Default('0') Object promoPrice,
-    @JsonKey(name: 'is_amount_discount') @Default(true) bool isAmountDiscount,
+    @JsonKey(name: 'is_amount_discount') @Default(false) bool isAmountDiscount,
     @JsonKey(name: 'allow_cancellation') @Default(false) bool allowCancellation,
     @JsonKey(name: 'allow_plan_changes') @Default(false) bool allowPlanChanges,
     @JsonKey(name: 'allow_query_overrides')

@@ -302,32 +302,23 @@ class _TimeEntrySummary extends StatelessWidget {
         ? '—'
         : '${_formatDate(start.toLocal())} '
               '${_hhmm(start.toLocal())}';
-    return Row(
-      children: [
-        SizedBox(
-          width: 200,
-          child: Text(
-            dateLabel,
-            style: TextStyle(color: tokens.ink2, fontSize: 13),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            entry.description.isEmpty ? '—' : entry.description,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: tokens.ink, fontSize: 13),
-          ),
-        ),
-        const SizedBox(width: 12),
-        if (entry.isRunning && entry.start != null)
-          RunningDurationLabel(
+
+    final dateText = Text(
+      dateLabel,
+      style: TextStyle(color: tokens.ink2, fontSize: 13),
+    );
+    final descriptionText = Text(
+      entry.description.isEmpty ? '—' : entry.description,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(color: tokens.ink, fontSize: 13),
+    );
+    final durationWidget = entry.isRunning && entry.start != null
+        ? RunningDurationLabel(
             start: entry.start!,
             precision: const Duration(seconds: 1),
           )
-        else
-          Text(
+        : Text(
             formatDuration(
               stop == null || start == null
                   ? Duration.zero
@@ -338,15 +329,53 @@ class _TimeEntrySummary extends StatelessWidget {
               color: tokens.ink,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
-          ),
-        if (!entry.billable) ...[
-          const SizedBox(width: 8),
-          Tooltip(
+          );
+    final billableIcon = entry.billable
+        ? null
+        : Tooltip(
             message: context.tr('non_billable'),
             child: Icon(Icons.money_off_outlined, size: 14, color: tokens.ink3),
-          ),
-        ],
-      ],
+          );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 400) {
+          // Phone: date on its own line above the description + duration so
+          // the fixed 200px date column doesn't squeeze the description.
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              dateText,
+              const SizedBox(height: 2),
+              Row(
+                children: [
+                  Expanded(child: descriptionText),
+                  const SizedBox(width: 12),
+                  durationWidget,
+                  if (billableIcon != null) ...[
+                    const SizedBox(width: 8),
+                    billableIcon,
+                  ],
+                ],
+              ),
+            ],
+          );
+        }
+        return Row(
+          children: [
+            SizedBox(width: 200, child: dateText),
+            const SizedBox(width: 12),
+            Expanded(child: descriptionText),
+            const SizedBox(width: 12),
+            durationWidget,
+            if (billableIcon != null) ...[
+              const SizedBox(width: 8),
+              billableIcon,
+            ],
+          ],
+        );
+      },
     );
   }
 

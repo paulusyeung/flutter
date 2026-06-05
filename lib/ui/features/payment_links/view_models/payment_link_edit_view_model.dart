@@ -38,6 +38,9 @@ class PaymentLinkEditViewModel extends GenericEditViewModel<PaymentLink> {
   String? _stepsError;
   List<String> _serverStepErrors = const <String>[];
   Timer? _checkDebounce;
+  // Bumped every time a server check is (re)scheduled so a slow earlier
+  // response can't overwrite the errors from a newer step edit.
+  int _checkSeq = 0;
 
   /// Step catalog fetched from `GET /subscriptions/steps`. Null until
   /// the tab first opens; the screen kicks [loadSteps] in its initState.
@@ -69,7 +72,8 @@ class PaymentLinkEditViewModel extends GenericEditViewModel<PaymentLink> {
       _stepsError = e.toString();
     } finally {
       _stepsLoading = false;
-      notifyListeners();
+      // The screen may have unmounted while the fetch was in flight.
+      if (!isDisposed) notifyListeners();
     }
   }
 
@@ -137,6 +141,7 @@ class PaymentLinkEditViewModel extends GenericEditViewModel<PaymentLink> {
 
   void _scheduleServerCheck(List<String> ids) {
     _checkDebounce?.cancel();
+    final seq = ++_checkSeq;
     if (ids.isEmpty) {
       _serverStepErrors = const <String>[];
       notifyListeners();
@@ -145,6 +150,9 @@ class PaymentLinkEditViewModel extends GenericEditViewModel<PaymentLink> {
     _checkDebounce = Timer(const Duration(milliseconds: 300), () async {
       try {
         final errors = await repo.checkSteps(ids);
+        // Drop a response superseded by a newer step edit, and never
+        // notify after the screen has been disposed.
+        if (seq != _checkSeq || isDisposed) return;
         _serverStepErrors = errors;
         notifyListeners();
       } catch (_) {
@@ -235,8 +243,6 @@ class PaymentLinkEditViewModel extends GenericEditViewModel<PaymentLink> {
 
   void setMaxSeatsLimit(String input) =>
       setInt((d, n) => d.copyWith(maxSeatsLimit: n), input);
-
-  void setPrice(String input) => setDec((d, n) => d.copyWith(price: n), input);
 
   // -------- Webhook tab setters --------
 

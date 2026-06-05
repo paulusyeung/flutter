@@ -228,36 +228,102 @@ class TaskStatusRepository
     return SaveResult(entity: status, outboxRowId: rowId);
   }
 
-  /// Hard-delete on the server. Password-gated per [requiresPasswordFor]; the
-  /// outbox handler attaches the cached password header before POST.
-  /// Reorder statuses by passing the new id sequence. Updates `status_order`
-  /// locally + enqueues one `MutationKind.reorder` row for `/task_statuses/sort`.
+  /// Reorder statuses by passing the new full id sequence (the Settings
+  /// `ReorderableListView` and the kanban column drag both produce one).
+  ///
+  /// The server has **no** bulk sort endpoint for statuses, so we mirror
+  /// `TaskStatusController::update`: a single `PUT /task_statuses/{id}`
+  /// carrying the moved status's new `status_order` makes the server shift
+  /// + renumber every sibling (1..N). We therefore:
+  ///   1. detect the single moved status (the one whose removal makes the
+  ///      old and new sequences identical),
+  ///   2. compute its insertion `status_order` = the *current* order of the
+  ///      status it should now precede (or `maxOrder + 1` to append) — the
+  ///      slot the server's reorder pass opens, and
+  ///   3. optimistically renumber every row **1-based** (the same space the
+  ///      server renumbers into, so consecutive reorders stay consistent)
+  ///      with `is_dirty = true` so an inbound delta can't clobber the new
+  ///      order before the PUT drains.
+  /// The `MutationKind.reorder` handler PUTs the moved status, then clears
+  /// the optimistic dirty flags via [clearDirtyForReorder].
   Future<void> reorder({
     required String companyId,
     required List<String> orderedStatusIds,
   }) async {
+    if (orderedStatusIds.isEmpty) return;
     await db.transaction(() async {
-      // Single SELECT for every status we're about to renumber, then one
-      // batched upsertAll.
       final rows = await db.taskStatusDao.getByIds(
         companyId: companyId,
         ids: orderedStatusIds,
       );
       final byId = {for (final r in rows) r.id: r};
+
+      // Pre-move order: current status_order asc, id as a stable tiebreak.
+      final oldOrder = [...orderedStatusIds]
+        ..sort((a, b) {
+          final oa = byId[a]?.statusOrder ?? 0;
+          final ob = byId[b]?.statusOrder ?? 0;
+          return oa != ob ? oa.compareTo(ob) : a.compareTo(b);
+        });
+
+      // Nothing actually moved — bail before the detection loop, which
+      // would otherwise match the first element (removing any single id
+      // from two identical sequences leaves them equal).
+      var changed = false;
+      for (var i = 0; i < orderedStatusIds.length; i++) {
+        if (oldOrder[i] != orderedStatusIds[i]) {
+          changed = true;
+          break;
+        }
+      }
+      if (!changed) return;
+
+      // The moved status is the one whose removal makes the old and new
+      // sequences identical. (An adjacent swap has two valid candidates
+      // that yield the same final order — the first match is correct.)
+      String? movedId;
+      for (final candidate in orderedStatusIds) {
+        if (_sequencesEqualExcept(oldOrder, orderedStatusIds, candidate)) {
+          movedId = candidate;
+          break;
+        }
+      }
+      if (movedId == null) return; // nothing actually moved
+
+      // Insertion slot = current order of the moved status's new successor
+      // (or past the max to append), matching the server's reorder pass.
+      final newIdx = orderedStatusIds.indexOf(movedId);
+      final successorId = newIdx + 1 < orderedStatusIds.length
+          ? orderedStatusIds[newIdx + 1]
+          : null;
+      final maxOrder = rows.fold<int>(
+        0,
+        (m, r) => r.statusOrder > m ? r.statusOrder : m,
+      );
+      final insertionOrder = successorId != null
+          ? (byId[successorId]?.statusOrder ?? 0)
+          : maxOrder + 1;
+
+      // Optimistic renumber, 1-based to match the server's renumber space.
       final companions = <TaskStatusesCompanion>[];
       for (var i = 0; i < orderedStatusIds.length; i++) {
-        final id = orderedStatusIds[i];
-        final row = byId[id];
+        final row = byId[orderedStatusIds[i]];
         if (row == null) continue;
-        final domain = _fromRow(row).copyWith(statusOrder: i);
+        final domain = _fromRow(row).copyWith(statusOrder: i + 1);
         companions.add(_domainToCompanion(domain, companyId, isDirty: true));
       }
       await db.taskStatusDao.upsertAll(companions);
+
+      // One standard PUT for the moved status; the server renumbers the
+      // rest. `all_ids` lets the handler clear every optimistic dirty flag.
+      final movedPayload = _fromRow(
+        byId[movedId]!,
+      ).copyWith(statusOrder: insertionOrder).toApiJson(preserveTempId: true);
       await enqueueMutation(
         companyId: companyId,
-        entityId: kReorderEntityId,
+        entityId: movedId,
         kind: MutationKind.reorder,
-        payload: {'status_ids': orderedStatusIds},
+        payload: {'status': movedPayload, 'all_ids': orderedStatusIds},
       );
     });
   }
@@ -376,3 +442,31 @@ class TaskStatusRepository
 }
 
 int _secs(DateTime d) => d.millisecondsSinceEpoch ~/ 1000;
+
+/// True when removing every occurrence of [skip] from [a] and [b] yields
+/// identical sequences — i.e. [a] and [b] differ only by the position of
+/// [skip]. Used to detect the single moved status in a reorder.
+bool _sequencesEqualExcept(List<String> a, List<String> b, String skip) {
+  var i = 0;
+  var j = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] == skip) {
+      i++;
+      continue;
+    }
+    if (b[j] == skip) {
+      j++;
+      continue;
+    }
+    if (a[i] != b[j]) return false;
+    i++;
+    j++;
+  }
+  while (i < a.length && a[i] == skip) {
+    i++;
+  }
+  while (j < b.length && b[j] == skip) {
+    j++;
+  }
+  return i == a.length && j == b.length;
+}

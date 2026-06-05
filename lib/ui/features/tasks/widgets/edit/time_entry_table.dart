@@ -101,9 +101,11 @@ class _TimeEntryTableState extends State<TimeEntryTable> {
         // placeholder string.
         for (var i = 0; i < entries.length; i++)
           _EntryBlock(
-            key: ValueKey(
-              'entry-${entries[i].start?.millisecondsSinceEpoch ?? -i}',
-            ),
+            // Key by the entry's stable position in the (non-reversed)
+            // timeLog — unique per row (so equal start timestamps can't
+            // collide) and stable under append so existing rows keep their
+            // cell state + focus.
+            key: ValueKey('entry-${widget.vm.draft.timeLog.length - 1 - i}'),
             vm: widget.vm,
             entry: entries[i],
             actualIndex: widget.vm.draft.timeLog.length - 1 - i,

@@ -241,7 +241,7 @@ PaymentLink emptyPaymentLink() => PaymentLink(
   promoCode: '',
   promoDiscount: Decimal.zero,
   promoPrice: Decimal.zero,
-  isAmountDiscount: true,
+  isAmountDiscount: false,
   allowCancellation: false,
   allowPlanChanges: false,
   allowQueryOverrides: false,

@@ -66,6 +66,19 @@ class _PaymentLinkStepsTabState extends State<PaymentLinkStepsTab> {
                   ),
                 ),
             ],
+            // Save-time 422 on `steps` (server-only rule the live check
+            // didn't model) — surface it on this tab so the generic
+            // "save rejected" banner has a pointer here (matches React).
+            // Suppressed when the live check is already showing errors so
+            // the same server message can't render twice.
+            if (vm.serverStepErrors.isEmpty &&
+                vm.fieldErrorFor('steps') != null) ...[
+              SizedBox(height: InSpacing.md(context)),
+              Text(
+                vm.fieldErrorFor('steps')!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
             SizedBox(height: InSpacing.sm),
             Text(
               context.tr('steps_order_help'),
@@ -215,7 +228,7 @@ class _StepRow extends StatelessWidget {
           ReorderableDragStartListener(
             index: index,
             child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
+              padding: EdgeInsets.symmetric(horizontal: InSpacing.sm),
               child: Icon(Icons.drag_indicator, size: 18),
             ),
           ),
@@ -237,6 +250,8 @@ class _StepRow extends StatelessWidget {
           Expanded(
             child: Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: hasError ? theme.colorScheme.error : tokens.ink,
               ),

@@ -47,6 +47,11 @@ class GroupSettingEditViewModel extends GenericEditViewModel<GroupSetting> {
   void _onGroupsEmitted(List<GroupSetting> groups) {
     final names = <String>{};
     for (final g in groups) {
+      // Exclude this entity. `recoveryTempId` is timing-safe to read here:
+      // `performSave` sets it synchronously right after `repo.create()`
+      // returns (no await between), so it's already populated before any
+      // post-create watch emission is delivered — the just-created row never
+      // flags its own name as a duplicate.
       if (g.id == original?.id || g.id == recoveryTempId) continue;
       final n = g.name.trim().toLowerCase();
       if (n.isNotEmpty) names.add(n);
@@ -75,6 +80,9 @@ class GroupSettingEditViewModel extends GenericEditViewModel<GroupSetting> {
 
   @override
   bool draftIsNonEmpty() {
+    // Create mode: only `name` can make the draft dirty — cascade `settings`
+    // are configured post-save via "Configure Settings". The `settings`
+    // branch only matters in edit mode, where a saved group may carry them.
     final d = draft;
     return d.name.isNotEmpty || (d.settings?.isNotEmpty ?? false);
   }

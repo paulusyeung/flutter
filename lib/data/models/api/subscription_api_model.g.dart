@@ -30,7 +30,7 @@ _SubscriptionApi _$SubscriptionApiFromJson(Map<String, dynamic> json) =>
       promoCode: json['promo_code'] as String? ?? '',
       promoDiscount: json['promo_discount'] as Object? ?? '0',
       promoPrice: json['promo_price'] as Object? ?? '0',
-      isAmountDiscount: json['is_amount_discount'] as bool? ?? true,
+      isAmountDiscount: json['is_amount_discount'] as bool? ?? false,
       allowCancellation: json['allow_cancellation'] as bool? ?? false,
       allowPlanChanges: json['allow_plan_changes'] as bool? ?? false,
       allowQueryOverrides: json['allow_query_overrides'] as bool? ?? false,

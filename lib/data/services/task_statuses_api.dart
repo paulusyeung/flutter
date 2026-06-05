@@ -1,7 +1,7 @@
 import 'package:admin/data/models/api/task_status_api_model.dart';
 import 'package:admin/data/services/base_entity_api.dart';
 
-/// Concrete API for `/api/v1/task_statuses`. Adds [sort] for the
+/// Concrete API for `/api/v1/task_statuses`. Adds [reorderOne] for the
 /// drag-handle reorder under Settings → Advanced → Task Statuses (and the
 /// long-press-header reorder on the kanban board).
 class TaskStatusesApi
@@ -19,15 +19,20 @@ class TaskStatusesApi
   TaskStatusItemApi parseItem(Object json) =>
       TaskStatusItemApi.fromJson(json as Map<String, dynamic>);
 
-  /// Bulk reorder. Payload `{ "status_ids": ["<id>", ...] }` in the new
-  /// order. Routed through `MutationKind.reorder` like the tasks variant.
-  Future<void> sort({
+  /// Persist a single status's new `status_order` via a normal update
+  /// `PUT /task_statuses/{id}`. The server (`TaskStatusController::update`)
+  /// shifts + renumbers every sibling around it — there is **no** bulk
+  /// `/task_statuses/sort` endpoint (only `/tasks/sort` exists), so a
+  /// reorder is modeled as a single-status move. Routed through
+  /// `MutationKind.reorder`; see `TaskStatusRepository.reorder`.
+  Future<void> reorderOne({
+    required String id,
     required Map<String, dynamic> payload,
     required String idempotencyKey,
   }) async {
     await client.mutate(
-      method: 'POST',
-      path: '$basePath/sort',
+      method: 'PUT',
+      path: '$basePath/$id',
       idempotencyKey: idempotencyKey,
       body: payload,
     );

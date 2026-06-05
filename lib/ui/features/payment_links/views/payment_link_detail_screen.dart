@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
@@ -21,6 +22,7 @@ import 'package:admin/ui/features/recurring_invoices/widgets/recurring_invoice_s
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/utils/formatting.dart';
+import 'package:admin/utils/url_safety.dart';
 
 /// Read-only Payment Link detail screen. Reached only via the Settings
 /// sidebar. Body wraps [SettingsFormShell] so widths line up with the
@@ -196,6 +198,12 @@ class _PurchasePageRow extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+            if (hasUrl && isSafeWebUrl(url))
+              IconButton(
+                icon: const Icon(Icons.open_in_new, size: 18),
+                tooltip: context.tr('view'),
+                onPressed: () => _open(context),
+              ),
             if (hasUrl)
               IconButton(
                 icon: const Icon(Icons.copy_outlined, size: 18),
@@ -211,6 +219,23 @@ class _PurchasePageRow extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _open(BuildContext context) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final errorMessage = context.tr('failed_to_open_url');
+    final uri = Uri.parse(url);
+    try {
+      if (await canLaunchUrl(uri)) {
+        final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (ok) return;
+      }
+    } catch (_) {
+      /* fall through to the error toast */
+    }
+    if (messenger == null) return;
+    // ignore: use_build_context_synchronously
+    Notify.error(messenger.context, errorMessage, messenger: messenger);
   }
 }
 

@@ -20,8 +20,8 @@ const _kRefundOrTrialSeconds = <int>[
 ];
 
 const _kAutoBillOptions = <String, String>{
-  // Empty value = "inherit / unset"; rendered with a blank label (matches
-  // React's empty <option> and admin-portal's showBlank). Keep it distinct
+  // Empty value = "inherit / unset"; the empty string is the sentinel the
+  // dropdown maps to a `tr('select')` placeholder label. Keep it distinct
   // from the explicit 'off' entry — both are valid server values.
   '': '',
   'always': 'always',
