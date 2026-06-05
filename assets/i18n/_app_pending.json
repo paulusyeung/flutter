@@ -357,7 +357,7 @@
   "unlock": "Unlock",
   "enable_biometric_description": "Use Face ID or Touch ID to unlock the app instead of typing your password.",
   "confirm_to_enable_biometric": "Confirm to enable biometric login",
-  "force_resync_description": "Re-download all clients from the server. Use this if the local cache feels out of date.",
+  "force_resync_description": "Re-download all data from the server. Use this if the local cache feels out of date.",
   "client_version_constant": "Client version constant",
   "min_server_version": "Min server version",
   "server_version_label": "Server version",

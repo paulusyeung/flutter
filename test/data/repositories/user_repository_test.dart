@@ -122,7 +122,8 @@ void main() {
     });
 
     test(
-      'resendEmail enqueues an inviteUser outbox row keyed by user id',
+      'resendEmail enqueues an inviteUser outbox row keyed by user id, '
+      'requiresPassword=true (POST /users/{id}/invite is password-gated)',
       () async {
         final repo = makeRepo();
         await repo.resendEmail(companyId: 'co_1', userId: 'u_2');
@@ -131,6 +132,9 @@ void main() {
         expect(rows.first.entityType, 'user');
         expect(rows.first.entityId, 'u_2');
         expect(rows.first.mutationKind, MutationKind.inviteUser.wireName);
+        // Without this flag the drain never attaches X-API-PASSWORD-BASE64 and
+        // the invite 412-loops forever.
+        expect(rows.first.requiresPassword, isTrue);
       },
     );
 

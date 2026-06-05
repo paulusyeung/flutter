@@ -14,6 +14,12 @@ import 'package:admin/domain/sync/mutation.dart';
 /// /users/{id}`) that don't exist server-side. Users expose these lifecycle
 /// ops ONLY via `POST /users/bulk` (password-gated). The recording fake throws
 /// on any per-id `action()` / `delete()`, so a regression fails loudly.
+///
+/// Also guards two pre-launch fixes:
+///   * `create` must send `?include=company_user` so the new user's permissions
+///     / is_admin aren't blanked locally (the create response is opt-in).
+///   * `inviteUser` must forward `requiresPassword` so the password-gated
+///     `/users/{id}/invite` route doesn't 412-loop.
 void main() {
   late AppDatabase db;
 
@@ -77,6 +83,36 @@ void main() {
       expect(api.bulkCalls.single.requiresPassword, isTrue);
     },
   );
+
+  test('create → POST /users with include=company_user + password, and the '
+      'echoed company_user lands on the local row (not blanked)', () async {
+    final api = _RecordingUsersApi();
+    final repo = UserRepository(db: db, api: api);
+    final dispatcher = UserSyncDispatcher(
+      api: api,
+      repo: repo,
+      auth: _FakeAuth(),
+    );
+    await dispatcher.dispatch(
+      row: rowFor(MutationKind.create),
+      kind: MutationKind.create,
+    );
+    expect(api.createCalls, hasLength(1));
+    expect(api.createCalls.single.query, {'include': 'company_user'});
+    expect(api.createCalls.single.requiresPassword, isTrue);
+    // The whole point of the include: the new user keeps its role locally.
+    final user = await repo.get(companyId: 'co', userId: 'u1');
+    expect(user, isNotNull);
+    expect(user!.companyUser.isAdmin, isTrue);
+    expect(user.companyUser.permissions, 'create_all');
+  });
+
+  test('inviteUser → POST /users/{id}/invite forwards the password', () async {
+    final api = await dispatch(MutationKind.inviteUser);
+    expect(api.inviteCalls, hasLength(1));
+    expect(api.inviteCalls.single.id, 'u1');
+    expect(api.inviteCalls.single.requiresPassword, isTrue);
+  });
 }
 
 class _RecordingUsersApi implements UsersApi {
@@ -89,6 +125,10 @@ class _RecordingUsersApi implements UsersApi {
     })
   >
   bulkCalls = [];
+
+  final List<({Map<String, String>? query, bool requiresPassword})>
+  createCalls = [];
+  final List<({String id, bool requiresPassword})> inviteCalls = [];
 
   @override
   Future<UserItemApi?> bulkActionOne({
@@ -117,6 +157,41 @@ class _RecordingUsersApi implements UsersApi {
         ),
       ),
     );
+  }
+
+  @override
+  Future<UserItemApi> create({
+    required Map<String, dynamic> payload,
+    required String idempotencyKey,
+    bool requiresPassword = false,
+    Map<String, String>? query,
+  }) async {
+    createCalls.add((query: query, requiresPassword: requiresPassword));
+    // Mirror the server's opt-in transformer: `company_user` is echoed back
+    // ONLY when `?include=company_user` is requested. This makes the persisted-
+    // permissions assertion a real regression guard — drop the dispatcher's
+    // `query:` and the new user lands with blank permissions, failing the test.
+    final includeCompanyUser = query?['include'] == 'company_user';
+    return UserItemApi(
+      data: UserApi(
+        id: 'u1',
+        firstName: 'New',
+        email: 'new@example.com',
+        updatedAt: 1700000000,
+        companyUser: includeCompanyUser
+            ? const CompanyUserApi(permissions: 'create_all', isAdmin: true)
+            : null,
+      ),
+    );
+  }
+
+  @override
+  Future<void> resendEmail({
+    required String id,
+    required String idempotencyKey,
+    bool requiresPassword = false,
+  }) async {
+    inviteCalls.add((id: id, requiresPassword: requiresPassword));
   }
 
   @override

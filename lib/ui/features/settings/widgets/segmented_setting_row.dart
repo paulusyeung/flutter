@@ -43,12 +43,22 @@ class SegmentedSettingRow extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.control,
+    this.scrollableTrailing = false,
   });
 
   final Widget leading;
   final String title;
   final String subtitle;
   final Widget control;
+
+  /// Set when [control] can grow past the trailing slot — a natural-width
+  /// [SegmentedButton] (e.g. the font-size row's "Small / … / Extra Large"),
+  /// which at a large text scale would otherwise trip `_RenderListTile`'s
+  /// "Trailing widget consumes the entire tile width" assert. The wide layout
+  /// then caps + horizontally scrolls the control; the narrow layout already
+  /// scrolls. Fixed-width rows (the theme mode/palette rows whose 80px labels
+  /// ellipsise) leave this off.
+  final bool scrollableTrailing;
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +69,22 @@ class SegmentedSettingRow extends StatelessWidget {
             leading: leading,
             title: Text(title),
             subtitle: Text(subtitle),
-            trailing: control,
+            trailing: scrollableTrailing
+                // Cap the control at ~60% of the row and let it scroll
+                // horizontally so a wide/large-scale button can't starve the
+                // title (which throws inside `_RenderListTile`). `reverse`
+                // keeps the trailing edge — the selected segment side — visible.
+                ? ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: constraints.maxWidth * 0.6,
+                    ),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      reverse: true,
+                      child: control,
+                    ),
+                  )
+                : control,
           );
         }
         return Column(

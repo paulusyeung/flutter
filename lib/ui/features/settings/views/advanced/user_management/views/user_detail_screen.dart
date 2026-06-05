@@ -440,20 +440,31 @@ class _SummaryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final theme = Theme.of(context);
+    final label = Text(
+      _literalLabel ?? context.tr(labelKey),
+      style: theme.textTheme.bodySmall?.copyWith(color: tokens.ink3),
+    );
+    final valueText = Text(value, style: theme.textTheme.bodyMedium);
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 6, horizontal: InSpacing.sm),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 140,
-            child: Text(
-              _literalLabel ?? context.tr(labelKey),
-              style: theme.textTheme.bodySmall?.copyWith(color: tokens.ink3),
-            ),
-          ),
-          Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Narrow phones: stack label above value so the fixed label column
+          // doesn't crush the value. Wide: side-by-side label / value.
+          if (constraints.maxWidth < 480) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [label, const SizedBox(height: 2), valueText],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(width: 140, child: label),
+              Expanded(child: valueText),
+            ],
+          );
+        },
       ),
     );
   }

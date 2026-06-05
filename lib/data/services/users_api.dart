@@ -60,15 +60,19 @@ class UsersApi extends BaseEntityApi<UserListApi, UserItemApi> {
   }
 
   /// `POST /api/v1/users/{id}/invite` — resend the invitation email to a
-  /// pending user. Returns no body on success.
+  /// pending user. Returns no body on success. Password-gated server-side
+  /// (`password_protected`), so callers must pass [requiresPassword] = true to
+  /// attach `X-API-PASSWORD-BASE64` — otherwise the server 412s every attempt.
   Future<void> resendEmail({
     required String id,
     required String idempotencyKey,
+    bool requiresPassword = false,
   }) async {
     await client.mutate(
       method: 'POST',
       path: '$basePath/$id/invite',
       idempotencyKey: idempotencyKey,
+      requiresPassword: requiresPassword,
     );
   }
 
@@ -98,6 +102,10 @@ class UsersApi extends BaseEntityApi<UserListApi, UserItemApi> {
     final raw = await client.mutate(
       method: 'POST',
       path: '/api/v1/users/$id/disconnect_oauth',
+      // Opt-in include so the echoed user keeps its company_user block —
+      // applyApiResponse upserts verbatim (no carry-forward) and would
+      // otherwise blank the auth user's permissions / is_admin locally.
+      query: const {'include': 'company_user'},
       idempotencyKey: idempotencyKey,
       requiresPassword: requiresPassword,
     );
@@ -141,6 +149,10 @@ class UsersApi extends BaseEntityApi<UserListApi, UserItemApi> {
     final raw = await client.mutate(
       method: 'POST',
       path: '/api/v1/users/$id/disconnect_mailer',
+      // Opt-in include so the echoed user keeps its company_user block (see
+      // disconnectOauth) — otherwise applyApiResponse blanks the auth user's
+      // permissions / is_admin locally until the next refresh.
+      query: const {'include': 'company_user'},
       idempotencyKey: idempotencyKey,
       requiresPassword: requiresPassword,
     );

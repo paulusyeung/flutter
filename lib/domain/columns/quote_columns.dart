@@ -5,6 +5,7 @@ import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
 import 'package:admin/ui/core/widgets/invoice_name_label.dart';
+import 'package:admin/ui/core/widgets/party_money_cell.dart';
 import 'package:admin/ui/features/projects/widgets/project_name_label.dart';
 import 'package:admin/ui/features/quotes/widgets/quote_status_pill.dart';
 
@@ -73,7 +74,8 @@ final List<QuoteColumn> kAllQuoteColumns = <QuoteColumn>[
     labelKey: 'amount',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (q, context) => cellMoney(q.amount, context),
+    cellBuilder: (q, context) =>
+        cellPartyMoney(q.amount, context, clientId: q.clientId),
     valueBuilder: (q) => cellMoneyValue(q.amount),
   ),
   QuoteColumn(

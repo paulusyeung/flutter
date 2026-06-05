@@ -60,3 +60,16 @@ extension InvitationPayload on Invitation {
     if (vendorContactId.isNotEmpty) 'vendor_contact_id': vendorContactId,
   };
 }
+
+extension InvitationClone on Invitation {
+  /// An invitation copy suitable for a *cloned* billing doc: preserves the
+  /// recipient (the contact ids) but drops every per-send lifecycle field —
+  /// the server `id`/`key`/portal `link`, the sent/viewed/opened dates, and
+  /// the delivery status/error/`messageId`. Without this a clone inherits the
+  /// source's sent/viewed/bounced state (e.g. a bounce badge or a vendor-portal
+  /// link pointing at the original doc) onto a brand-new draft.
+  Invitation freshClone() => Invitation(
+    clientContactId: clientContactId,
+    vendorContactId: vendorContactId,
+  );
+}

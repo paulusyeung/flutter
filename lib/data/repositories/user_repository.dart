@@ -44,6 +44,8 @@ class UserRepository extends BaseEntityRepository<User, UserApi> {
          // outbox row must carry `requiresPassword=true` so the drain attaches
          // `X-API-PASSWORD-BASE64` (else the server 412s). archive/restore go
          // through `/users/bulk`, which is gated too — hence included here.
+         // inviteUser hits `POST /users/{id}/invite`, also password_protected,
+         // so it carries the header too (else a permanent 412 retry loop).
          requiresPasswordFor: const {
            MutationKind.create,
            MutationKind.update,
@@ -52,6 +54,7 @@ class UserRepository extends BaseEntityRepository<User, UserApi> {
            MutationKind.restore,
            MutationKind.purge,
            MutationKind.detachFromCompany,
+           MutationKind.inviteUser,
          },
        );
 

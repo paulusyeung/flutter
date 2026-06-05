@@ -4,6 +4,7 @@ import 'package:admin/data/models/domain/credit.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
+import 'package:admin/ui/core/widgets/party_money_cell.dart';
 import 'package:admin/ui/features/credits/widgets/credit_status_pill.dart';
 
 typedef CreditColumn = ColumnDefinition<Credit>;
@@ -72,7 +73,8 @@ final List<CreditColumn> kAllCreditColumns = <CreditColumn>[
     labelKey: 'amount',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (c, context) => cellMoney(c.amount, context),
+    cellBuilder: (c, context) =>
+        cellPartyMoney(c.amount, context, clientId: c.clientId),
     valueBuilder: (c) => cellMoneyValue(c.amount),
   ),
   CreditColumn(
@@ -80,7 +82,8 @@ final List<CreditColumn> kAllCreditColumns = <CreditColumn>[
     labelKey: 'balance',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (c, context) => cellMoney(c.balance, context),
+    cellBuilder: (c, context) =>
+        cellPartyMoney(c.balance, context, clientId: c.clientId),
     valueBuilder: (c) => cellMoneyValue(c.balance),
   ),
   CreditColumn(
@@ -88,7 +91,8 @@ final List<CreditColumn> kAllCreditColumns = <CreditColumn>[
     labelKey: 'applied',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (c, context) => cellMoney(c.paidToDate, context),
+    cellBuilder: (c, context) =>
+        cellPartyMoney(c.paidToDate, context, clientId: c.clientId),
     valueBuilder: (c) => cellMoneyValue(c.paidToDate),
   ),
   CreditColumn(

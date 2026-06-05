@@ -130,12 +130,13 @@ abstract class Expense with _$Expense {
 extension ExpenseStatus on Expense {
   bool get isInvoiced => invoiceId.isNotEmpty;
 
-  /// Paid is asserted when *any* of the payment metadata triple is set —
-  /// matches admin-portal's `expense_model.dart:673-676`.
-  bool get isPaid =>
-      (paymentDate != null) ||
-      paymentTypeId.isNotEmpty ||
-      transactionReference.isNotEmpty;
+  /// Paid is asserted from `payment_date` / `transaction_reference` only —
+  /// matches the server's `client_status` list filter
+  /// (`ExpenseFilters::clientStatus`), so the local status badge and the
+  /// "Paid"/"Unpaid" list filter agree with the server. `payment_type_id`
+  /// alone does NOT mark an expense paid server-side; the edit "mark paid"
+  /// toggle still surfaces the type field via its own triple check.
+  bool get isPaid => (paymentDate != null) || transactionReference.isNotEmpty;
 
   /// "Pending" = scheduled for invoicing but not yet invoiced.
   bool get isPending => !isInvoiced && shouldBeInvoiced;

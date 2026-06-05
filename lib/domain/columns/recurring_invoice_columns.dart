@@ -6,6 +6,7 @@ import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/domain/recurring_frequency.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
+import 'package:admin/ui/core/widgets/party_money_cell.dart';
 import 'package:admin/ui/features/recurring_invoices/widgets/recurring_invoice_status_pill.dart';
 
 typedef RecurringInvoiceColumn = ColumnDefinition<RecurringInvoice>;
@@ -56,7 +57,8 @@ final List<RecurringInvoiceColumn> kAllRecurringInvoiceColumns =
         labelKey: 'amount',
         width: 130,
         align: ColumnAlign.end,
-        cellBuilder: (r, context) => cellMoney(r.amount, context),
+        cellBuilder: (r, context) =>
+            cellPartyMoney(r.amount, context, clientId: r.clientId),
         valueBuilder: (r) => cellMoneyValue(r.amount),
       ),
       RecurringInvoiceColumn(
@@ -64,7 +66,8 @@ final List<RecurringInvoiceColumn> kAllRecurringInvoiceColumns =
         labelKey: 'balance',
         width: 130,
         align: ColumnAlign.end,
-        cellBuilder: (r, context) => cellMoney(r.balance, context),
+        cellBuilder: (r, context) =>
+            cellPartyMoney(r.balance, context, clientId: r.clientId),
         valueBuilder: (r) => cellMoneyValue(r.balance),
       ),
       RecurringInvoiceColumn(

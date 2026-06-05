@@ -4,6 +4,7 @@ import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
+import 'package:admin/ui/core/widgets/party_money_cell.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_status_pill.dart';
 import 'package:admin/ui/features/projects/widgets/project_name_label.dart';
 
@@ -79,7 +80,8 @@ final List<InvoiceColumn> kAllInvoiceColumns = <InvoiceColumn>[
     labelKey: 'amount',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (i, context) => cellMoney(i.amount, context),
+    cellBuilder: (i, context) =>
+        cellPartyMoney(i.amount, context, clientId: i.clientId),
     valueBuilder: (i) => cellMoneyValue(i.amount),
   ),
   InvoiceColumn(
@@ -87,7 +89,8 @@ final List<InvoiceColumn> kAllInvoiceColumns = <InvoiceColumn>[
     labelKey: 'balance',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (i, context) => cellMoney(i.balance, context),
+    cellBuilder: (i, context) =>
+        cellPartyMoney(i.balance, context, clientId: i.clientId),
     valueBuilder: (i) => cellMoneyValue(i.balance),
   ),
   InvoiceColumn(
@@ -95,7 +98,8 @@ final List<InvoiceColumn> kAllInvoiceColumns = <InvoiceColumn>[
     labelKey: 'paid_to_date',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (i, context) => cellMoney(i.paidToDate, context),
+    cellBuilder: (i, context) =>
+        cellPartyMoney(i.paidToDate, context, clientId: i.clientId),
     valueBuilder: (i) => cellMoneyValue(i.paidToDate),
   ),
   InvoiceColumn(
@@ -103,7 +107,8 @@ final List<InvoiceColumn> kAllInvoiceColumns = <InvoiceColumn>[
     labelKey: 'partial',
     width: 120,
     align: ColumnAlign.end,
-    cellBuilder: (i, context) => cellMoney(i.partial, context),
+    cellBuilder: (i, context) =>
+        cellPartyMoney(i.partial, context, clientId: i.clientId),
     valueBuilder: (i) => cellMoneyValue(i.partial),
   ),
   InvoiceColumn(

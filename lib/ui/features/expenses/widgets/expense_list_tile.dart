@@ -9,10 +9,17 @@ import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/list/selectable_list_row.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
+import 'package:admin/ui/core/widgets/formatter_scope.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
 import 'package:admin/ui/core/widgets/vendor_name_label.dart';
 import 'package:admin/ui/features/expenses/widgets/expense_status_pill.dart';
 import 'package:admin/ui/features/expenses/widgets/expense_actions.dart';
+
+/// Cached locale-only fallback for the narrow-tile amount when no
+/// `FormatterScope` is in the tree. Mirrors `PaymentListTile`.
+final NumberFormat _expenseAmountFallback = NumberFormat.decimalPattern()
+  ..minimumFractionDigits = 2
+  ..maximumFractionDigits = 2;
 
 /// One row in the expenses list.
 ///
@@ -123,10 +130,17 @@ class _ExpenseListTileState extends State<ExpenseListTile> {
 
   Widget _narrow(BuildContext context, InTheme tokens) {
     final w = widget;
-    final amountFmt = NumberFormat.decimalPattern()
-      ..minimumFractionDigits = 2
-      ..maximumFractionDigits = 2;
-    final amountText = amountFmt.format(w.expense.amount.toDouble());
+    // Expense carries its own `currencyId` — format through it so narrow
+    // matches the wide table's `cellMoney`. Locale-only fallback when no
+    // FormatterScope is in the tree.
+    final formatter = FormatterScope.maybeOf(context);
+    final formatted = formatter?.money(
+      w.expense.amount,
+      currencyId: w.expense.currencyId,
+    );
+    final amountText = (formatted != null && formatted.isNotEmpty)
+        ? formatted
+        : _expenseAmountFallback.format(w.expense.amount.toDouble());
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [

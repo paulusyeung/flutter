@@ -62,6 +62,66 @@ void main() {
   });
 
   testWidgets(
+    'scrollableTrailing wraps a wide control in a horizontal scroll view so a '
+    'large text scale cannot overflow the trailing slot',
+    (tester) async {
+      // The font-size row uses natural-width labels and opts into
+      // `scrollableTrailing`; at Extra Large (1.4x) an unguarded button would
+      // overflow `ListTile.trailing` and trip `_RenderListTile`.
+      SegmentedButton<int> wideControl() => SegmentedButton<int>(
+        showSelectedIcon: false,
+        segments: const [
+          ButtonSegment(value: 0, label: Text('Small')),
+          ButtonSegment(value: 1, label: Text('Normal')),
+          ButtonSegment(value: 2, label: Text('Large')),
+          ButtonSegment(value: 3, label: Text('Extra Large')),
+        ],
+        selected: const {3},
+        onSelectionChanged: (_) {},
+      );
+
+      await pumpAt(
+        tester,
+        600, // >= 520 → wide / trailing-slot branch
+        Builder(
+          builder: (context) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(1.4)),
+            child: SegmentedSettingRow(
+              leading: const Icon(Icons.format_size_outlined),
+              title: 'Font size',
+              subtitle: 'Extra Large',
+              scrollableTrailing: true,
+              control: wideControl(),
+            ),
+          ),
+        ),
+      );
+      expectNoOverflow(tester);
+
+      // Still the wide (ListTile) branch, but the control now sits inside a
+      // horizontal scroll view that absorbs the overflow.
+      expect(find.byType(ListTile), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(ListTile),
+          matching: find.byType(SingleChildScrollView),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(ListTile),
+          matching: find.byType(SegmentedButton<int>),
+        ),
+        findsOneWidget,
+        reason: 'control stays in the trailing slot, just scrollable',
+      );
+    },
+  );
+
+  testWidgets(
     'right-aligned FilledButton in a FormSection sizes to content, not full width',
     (tester) async {
       // Regression for the Device Settings "Download" button: the themed

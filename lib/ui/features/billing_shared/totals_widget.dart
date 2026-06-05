@@ -254,7 +254,10 @@ class TotalsWidget extends StatelessWidget {
     final sign = subtractive && amount > Decimal.zero ? '-' : '';
     final f = formatter;
     if (f != null) {
-      return '$sign${f.money(amount, clientCurrencyId: currencyId)}';
+      // [currencyId] is the already-resolved party currency (client *or*
+      // vendor) — pass it through the explicit slot so it's unambiguous for
+      // vendor docs (purchase orders) too, not just clients.
+      return '$sign${f.money(amount, currencyId: currencyId)}';
     }
     final numberFormat = NumberFormat.decimalPattern()
       ..minimumFractionDigits = 2

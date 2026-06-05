@@ -132,4 +132,53 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle();
   });
+
+  testWidgets(
+    'forceResync surfaces a failure snackbar when the server is unreachable '
+    'and leaves the active session intact (orchestration error path)',
+    (tester) async {
+      // forceResync now fans out across every entity via
+      // Services.resyncAllEntities (a full auth refresh + per-entity
+      // refreshAll). The fan-out and dirty-row preservation are covered by the
+      // per-entity repo tests (e.g. client_repository_test's "ensurePageLoaded
+      // preserves is_dirty=true rows") and auth_repository_test; this guards
+      // the orchestration's error handling — an unreachable server must report
+      // failure rather than a misleading "complete", without crashing or
+      // dropping the session.
+      final fixture = await buildFixture(
+        companies: const [
+          FakeCompany(id: 'c1', name: 'Acme Co', token: 'tok-c1'),
+        ],
+        currentCompanyId: 'c1',
+        online: true, // attempt the request so the fail-fast client errors
+      );
+      addTearDown(fixture.dispose);
+
+      await tester.pumpWidget(
+        wrapWithShell(
+          fixture.services,
+          Builder(
+            builder: (context) => TextButton(
+              onPressed: () => SettingsActions.forceResync(context),
+              child: const Text('trigger-resync'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('trigger-resync'));
+      await tester.pumpAndSettle();
+
+      // Default failureKey = resync_failed; either the leading auth refresh
+      // throws or every entity refresh is collected as failed — both report it.
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(find.text('Resync failed'), findsOneWidget);
+      expect(fixture.services.auth.session.value?.currentCompanyId, 'c1');
+
+      fixture.services.recentlyViewed.dispose();
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    },
+  );
 }

@@ -380,48 +380,78 @@ class _UserRow extends StatelessWidget {
         ? 'administrator'
         : 'user';
     final subtitle = user.email.isNotEmpty ? user.email : user.phone;
+    final badges = <Widget>[
+      _Badge(labelKey: roleKey),
+      if (user.isPending)
+        _Badge(labelKey: 'pending_invite', tone: _BadgeTone.warning),
+      if (isArchived) _Badge(labelKey: 'archived', tone: _BadgeTone.muted),
+    ];
 
-    return ListTile(
-      key: ValueKey(user.id),
-      selected: selected,
-      selectedTileColor: tokens.accentSoft,
-      leading: selectionActive
-          ? Checkbox(
-              value: selected,
-              onChanged: onToggle == null ? null : (_) => onToggle!(),
-            )
-          : CircleAvatar(
-              backgroundColor: tokens.surfaceAlt,
-              foregroundColor: tokens.ink2,
-              child: Text(
-                _initialsOf(user),
-                style: theme.textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Below ~480 px the role + pending badges in `trailing` crush the name
+        // into ellipsis, so move them onto a second line under the subtitle and
+        // leave only the chevron in `trailing`. Wide layout keeps badges inline.
+        final narrow = constraints.maxWidth < 480;
+        final chevron = !selectionActive
+            ? const Icon(Icons.chevron_right, size: 18)
+            : null;
+        final trailing = narrow
+            ? chevron
+            : Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                children: [...badges, if (chevron != null) chevron],
+              );
+
+        return ListTile(
+          key: ValueKey(user.id),
+          selected: selected,
+          selectedTileColor: tokens.accentSoft,
+          leading: selectionActive
+              ? Checkbox(
+                  value: selected,
+                  onChanged: onToggle == null ? null : (_) => onToggle!(),
+                )
+              : CircleAvatar(
+                  backgroundColor: tokens.surfaceAlt,
+                  foregroundColor: tokens.ink2,
+                  child: Text(
+                    _initialsOf(user),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-      title: Text(
-        user.displayName.isNotEmpty ? user.displayName : user.email,
-        style: theme.textTheme.bodyLarge,
-      ),
-      subtitle: subtitle.isNotEmpty
-          ? Text(subtitle, style: theme.textTheme.bodySmall)
-          : null,
-      trailing: Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 8,
-        children: [
-          _Badge(labelKey: roleKey),
-          if (user.isPending)
-            _Badge(labelKey: 'pending_invite', tone: _BadgeTone.warning),
-          if (isArchived) _Badge(labelKey: 'archived', tone: _BadgeTone.muted),
-          if (!selectionActive) const Icon(Icons.chevron_right, size: 18),
-        ],
-      ),
-      onLongPress: onToggle,
-      onTap: selectionActive
-          ? onToggle
-          : () => context.go('/settings/users/${user.id}'),
+          title: Text(
+            user.displayName.isNotEmpty ? user.displayName : user.email,
+            style: theme.textTheme.bodyLarge,
+          ),
+          subtitle: (subtitle.isNotEmpty || narrow)
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (subtitle.isNotEmpty)
+                      Text(subtitle, style: theme.textTheme.bodySmall),
+                    if (narrow)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
+                          children: badges,
+                        ),
+                      ),
+                  ],
+                )
+              : null,
+          trailing: trailing,
+          onLongPress: onToggle,
+          onTap: selectionActive
+              ? onToggle
+              : () => context.go('/settings/users/${user.id}'),
+        );
+      },
     );
   }
 

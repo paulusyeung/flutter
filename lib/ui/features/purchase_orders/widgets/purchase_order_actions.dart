@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/billing/invitation.dart';
 import 'package:admin/data/models/domain/purchase_order.dart';
 import 'package:admin/data/models/domain/purchase_order_status.dart';
 import 'package:admin/data/models/value/date.dart';
@@ -118,10 +119,10 @@ class PurchaseOrderActions {
     final canCreate = me?.can('create_purchase_order') ?? false;
     final canDelete = me?.can('delete_purchase_order') ?? false;
     final canMarkSent = canEdit && po.isDraft;
-    // Server only cancels a PO while `status_id <= SENT`; it silently no-ops
-    // for Accepted/Received. So gate on Sent (the only meaningful case —
-    // an unsent draft is deleted, not cancelled).
-    final canCancel = canEdit && po.isSent;
+    // Server cancels a PO while `status_id <= SENT` (Draft or Sent) and
+    // silently no-ops for Accepted/Received (`PurchaseOrderController` cancel
+    // guard). Match that — a Draft can be cancelled as well as deleted.
+    final canCancel = canEdit && (po.isDraft || po.isSent);
     // `add_to_inventory` moves an Accepted PO → Received (server guards on
     // `status_id < RECEIVED`). Matches React/legacy (Accepted-only).
     final canAddToInventory = canEdit && po.isAccepted;
@@ -401,7 +402,9 @@ class PurchaseOrderActions {
         // `expenseId` conversion link, and the e-invoice block. POs are
         // vendor-centric — the `vendorId` is the core party, so it is kept.
         // POs have no `partial` / `partialDueDate` / `paidToDate` /
-        // `subscriptionId` fields.
+        // `subscriptionId` fields. Invitations keep their vendor contacts but
+        // drop the source's sent/viewed/bounced state (`freshClone`) so the
+        // clone doesn't show a stale bounce badge / old-PO portal link.
         final draft = po.copyWith(
           id: '',
           number: '',
@@ -413,6 +416,7 @@ class PurchaseOrderActions {
           exchangeRate: Decimal.one,
           projectId: '',
           expenseId: '',
+          invitations: po.invitations.map((i) => i.freshClone()).toList(),
           eInvoice: null,
           archivedAt: null,
           isDeleted: false,

@@ -9,10 +9,18 @@ import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/list/selectable_list_row.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
+import 'package:admin/ui/core/widgets/formatter_scope.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
+import 'package:admin/ui/core/widgets/party_money_cell.dart';
 import 'package:admin/ui/core/widgets/vendor_name_label.dart';
 import 'package:admin/ui/features/purchase_orders/widgets/purchase_order_actions.dart';
 import 'package:admin/ui/features/purchase_orders/widgets/purchase_order_status_pill.dart';
+
+/// Locale-only fallback when no [FormatterScope] is in the tree (mirrors the
+/// invoice/quote tiles — never allocate `NumberFormat` per build).
+final NumberFormat _poAmountFallback = NumberFormat.decimalPattern()
+  ..minimumFractionDigits = 2
+  ..maximumFractionDigits = 2;
 
 class PurchaseOrderListTile extends StatefulWidget {
   const PurchaseOrderListTile({
@@ -118,9 +126,6 @@ class _PurchaseOrderListTileState extends State<PurchaseOrderListTile> {
 
   Widget _narrow(BuildContext context, InTheme tokens) {
     final w = widget;
-    final fmt = NumberFormat.decimalPattern()
-      ..minimumFractionDigits = 2
-      ..maximumFractionDigits = 2;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -132,12 +137,26 @@ class _PurchaseOrderListTileState extends State<PurchaseOrderListTile> {
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              fmt.format(w.purchaseOrder.amount.toDouble()),
-              style: TextStyle(
-                color: tokens.ink,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
+            PartyCurrencyBuilder(
+              vendorId: w.purchaseOrder.vendorId,
+              builder: (context, currencyId) {
+                final formatter = FormatterScope.maybeOf(context);
+                final amount = w.purchaseOrder.amount;
+                final formatted = formatter?.money(
+                  amount,
+                  vendorCurrencyId: currencyId,
+                );
+                final amountText = (formatted != null && formatted.isNotEmpty)
+                    ? formatted
+                    : _poAmountFallback.format(amount.toDouble());
+                return Text(
+                  amountText,
+                  style: TextStyle(
+                    color: tokens.ink,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 4),
             PurchaseOrderStatusPill(

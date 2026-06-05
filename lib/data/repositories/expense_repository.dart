@@ -443,10 +443,10 @@ class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi>
   // -------------------- conversions --------------------
 
   ExpensesCompanion _apiToCompanion(ExpenseApi a, String companyId) {
+    // Server-aligned paid flag (`payment_date` / `transaction_reference` only)
+    // so the local status filter matches `ExpenseFilters::clientStatus`.
     final isPaid =
-        a.paymentDate.isNotEmpty ||
-        a.paymentTypeId.isNotEmpty ||
-        a.transactionReference.isNotEmpty;
+        a.paymentDate.isNotEmpty || a.transactionReference.isNotEmpty;
     return ExpensesCompanion.insert(
       id: a.id,
       companyId: companyId,
@@ -483,10 +483,8 @@ class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi>
     String companyId, {
     required bool isDirty,
   }) {
-    final isPaid =
-        (e.paymentDate != null) ||
-        e.paymentTypeId.isNotEmpty ||
-        e.transactionReference.isNotEmpty;
+    // Server-aligned paid flag — see `_apiToCompanion`.
+    final isPaid = (e.paymentDate != null) || e.transactionReference.isNotEmpty;
     return ExpensesCompanion.insert(
       id: e.id,
       companyId: companyId,

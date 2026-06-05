@@ -222,6 +222,22 @@ void main() {
       expect(await numbersFor(repo, {'invoiced', 'paid'}), {'I', 'D'});
     });
 
+    test('payment_type_id alone is not paid (server-aligned)', () async {
+      // The server's `client_status` filter keys paid/unpaid on payment_date /
+      // transaction_reference only — a payment type with no date/reference is
+      // NOT paid. (Diverges from admin-portal, which counted the type too.)
+      final repo = ExpenseRepository(db: db, api: _FakeExpensesApi());
+      await repo.create(
+        companyId: co,
+        draft: Expense.fromApi(
+          const ExpenseApi(id: 'tmp_t', number: 'T', paymentTypeId: 'pt1'),
+        ),
+      );
+      expect(await numbersFor(repo, {'paid'}), <String>{});
+      expect(await numbersFor(repo, {'unpaid'}), {'T'});
+      expect(await numbersFor(repo, {'logged'}), {'T'});
+    });
+
     test('empty status set returns all', () async {
       final repo = ExpenseRepository(db: db, api: _FakeExpensesApi());
       await seed(repo);

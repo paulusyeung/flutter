@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -92,6 +94,10 @@ class _FontSizeRow extends StatelessWidget {
           leading: const Icon(Icons.format_size_outlined),
           title: context.tr('font_size'),
           subtitle: context.tr(textScaleLabelKey(scale)),
+          // Natural-width 4-segment button (vs the fixed-width theme rows):
+          // cap + scroll it in the trailing slot so "Extra Large" at a large
+          // text scale can't overflow the ListTile.
+          scrollableTrailing: true,
           control: SegmentedButton<double>(
             showSelectedIcon: false,
             segments: [
@@ -123,11 +129,23 @@ class _DataSection extends StatefulWidget {
 class _DataSectionState extends State<_DataSection> {
   bool _running = false;
   int? _lastSyncAt;
+  Timer? _ticker;
 
   @override
   void initState() {
     super.initState();
     _loadLastSync();
+    // Keep the relative "last updated" label fresh while the screen is open
+    // ("just now" → "2m ago") without needing a manual refresh.
+    _ticker = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
   }
 
   /// Read the active company's last-sync high-water mark so the user can see

@@ -174,7 +174,10 @@ class ExpenseDetailCardsGrid extends StatelessWidget {
         ),
       );
     }
-    if (e.isPaid) {
+    // Show the payment card whenever *any* payment metadata is set — including
+    // a payment type alone, which no longer counts as "paid" status but is
+    // still worth surfacing.
+    if (_hasPaymentInfo(e)) {
       cards.add(_PaymentMetadataCard(expense: e, formatter: formatter));
     }
     if (_hasAnyCustomValue(e)) {
@@ -220,6 +223,11 @@ bool _hasAnyCustomValue(Expense e) =>
 bool _hasAnyNote(Expense e) =>
     e.publicNotes.isNotEmpty || e.privateNotes.isNotEmpty;
 
+bool _hasPaymentInfo(Expense e) =>
+    e.paymentDate != null ||
+    e.paymentTypeId.isNotEmpty ||
+    e.transactionReference.isNotEmpty;
+
 class _Row extends StatelessWidget {
   const _Row({required this.label, required this.value});
   final String label;
@@ -245,7 +253,7 @@ class _Row extends StatelessWidget {
               style: TextStyle(fontSize: 13, color: tokens.ink3),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: InSpacing.sm),
           Expanded(
             child: DefaultTextStyle.merge(
               child: value,

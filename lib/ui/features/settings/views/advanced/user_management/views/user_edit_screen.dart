@@ -227,7 +227,7 @@ class _UserEditBody extends StatelessWidget {
       if (context.mounted) {
         Notify.success(
           context,
-          context.tr(isCreate ? 'createdUser' : 'updatedUser'),
+          context.tr(isCreate ? 'created_user' : 'updated_user'),
         );
         context.go('/settings/users');
       }

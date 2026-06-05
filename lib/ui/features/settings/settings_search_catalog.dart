@@ -444,7 +444,7 @@ const kSettingsSearchCatalog = <String, List<String>>{
     'theme',
     'font_size',
     'customize_colors',
-    'refresh_data',
+    'download',
     'security',
     'biometric_authentication',
   ],

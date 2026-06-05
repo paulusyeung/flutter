@@ -24,6 +24,7 @@ import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/domain/reports/report_filter_options.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/widgets/in_date_field.dart';
 import 'package:admin/ui/core/widgets/multi_entity_picker.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
@@ -158,15 +159,16 @@ class _TemplatePickerLanding extends StatelessWidget {
         const SizedBox(height: 12),
         LayoutBuilder(
           builder: (context, constraints) {
-            final wide = constraints.maxWidth >= 560;
+            final wide = constraints.maxWidth >= Breakpoints.wide;
             final cols = wide ? 2 : 1;
+            final gap = InSpacing.md(context);
             return Wrap(
-              spacing: 12,
-              runSpacing: 12,
+              spacing: gap,
+              runSpacing: gap,
               children: [
                 for (final t in kScheduleTemplates)
                   SizedBox(
-                    width: (constraints.maxWidth - 12 * (cols - 1)) / cols,
+                    width: (constraints.maxWidth - gap * (cols - 1)) / cols,
                     child: _TemplateCard(
                       templateKey: t,
                       onTap: () => vm.setTemplate(t),
@@ -576,16 +578,17 @@ class _EmailReportSectionState extends State<_EmailReportSection> {
     final reportName = vm.draft.reportName;
     final fields =
         kEmailReportFieldsByReport[reportName] ?? kDefaultEmailReportFields;
+    final options = _reportOptions(context);
 
     return FormSection(
       title: context.tr('email_report'),
       children: [
         SearchableDropdownField<_ReportOption>(
           label: context.tr('report'),
-          items: _reportOptions(context),
-          initialValue: _reportOptions(context).firstWhere(
+          items: options,
+          initialValue: options.firstWhere(
             (o) => o.id == reportName,
-            orElse: () => _reportOptions(context).first,
+            orElse: () => options.first,
           ),
           displayString: (o) => o.display,
           idOf: (o) => o.id,
@@ -1100,7 +1103,7 @@ class _PaymentScheduleRowTileState extends State<_PaymentScheduleRowTile> {
                 },
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: InSpacing.md(context)),
             Expanded(
               flex: 2,
               child: TextField(
@@ -1134,7 +1137,7 @@ class _PaymentScheduleRowTileState extends State<_PaymentScheduleRowTile> {
                 },
               ),
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: InSpacing.xs),
             IconButton(
               onPressed: isPast ? null : widget.onRemove,
               icon: const Icon(Icons.remove_circle_outline),

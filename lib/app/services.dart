@@ -10,6 +10,7 @@ import 'package:admin/app/entity_modules.dart';
 import 'package:admin/app/search_focus_registry.dart';
 import 'package:admin/app/services_entity_wiring.dart';
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/data/models/value/company_format_settings.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/data/repositories/bank_account_repository.dart';
@@ -621,6 +622,120 @@ class Services implements SidebarBadgeContext {
   /// company is seen does this hit the network for every entity.
   Future<void> prefetchSidebarEntities(String companyId) =>
       _runSidebarPrefetch(_firstPagePrefetchers, companyId);
+
+  /// Re-download every user-browsable ("own route") entity for [companyId] in a
+  /// single user-initiated pass — the Settings "Download all data" / "Force full
+  /// resync" action. Runs a full [AuthRepository.refresh] first (re-bundles the
+  /// `first_load` reference data and advances the company `lastSyncAt` cursor),
+  /// then a forced `refreshAll(full: true)` per entity.
+  ///
+  /// Skips entities whose module the company has switched off (Settings →
+  /// Account Management → Enabled Modules) — they aren't browsable in the nav,
+  /// so there's nothing to cache for offline use. The mask is read *after* the
+  /// refresh so a just-changed module setting is honored. The covered set is the
+  /// workspace-sidebar list entities (see [_resyncSteps] / [resyncEntityTypes]).
+  ///
+  /// Sequential by design: a large account's full pull shouldn't open dozens of
+  /// parallel connections, and it keeps the load gentle on the server. Per-entity
+  /// failures are caught and collected so one bad entity can't abort the rest —
+  /// the returned list names the entities that failed (empty == all clean). A
+  /// failing auth refresh throws (the pass is meaningless without it).
+  ///
+  /// Non-destructive: each `refreshAll` writes pages through
+  /// `upsertAllPreservingDirty`, so unsynced offline edits (`is_dirty` rows) and
+  /// their queued outbox payloads survive the refresh. Bundled/settings entities
+  /// (task statuses, gateways, designs, payment terms, …) are intentionally
+  /// omitted — `auth.refresh(fullSync: true)` already re-bundles those.
+  Future<List<String>> resyncAllEntities({required String companyId}) async {
+    await auth.refresh(fullSync: true);
+    final enabledModules =
+        (await db.companiesDao.byId(companyId))?.enabledModules ?? 0;
+    final failed = <String>[];
+    for (final (type, run) in _resyncSteps(companyId)) {
+      if (!isEntityModuleEnabledForCompany(type, enabledModules)) continue;
+      try {
+        await run();
+      } catch (e, st) {
+        _servicesLog.warning('resyncAllEntities: "${type.name}" failed', e, st);
+        failed.add(type.name);
+      }
+    }
+    return failed;
+  }
+
+  /// The own-route entities "Download all data" re-pulls, each paired with the
+  /// repo call that loads it — the single source of truth for
+  /// [resyncAllEntities] and [resyncEntityTypes]. Covers exactly the
+  /// workspace-sidebar ([SidebarSection.top]) list entities; the bank-feature
+  /// config (`bankAccount`, `transactionRule`) is reached via Settings, not a
+  /// browsable list, so it's excluded. `resync_coverage_test` guards this set
+  /// against drift. Clients first so client-referencing entities resolve.
+  List<(EntityType, Future<void> Function())> _resyncSteps(
+    String companyId,
+  ) => [
+    (
+      EntityType.client,
+      () => clients.refreshAll(companyId: companyId, full: true),
+    ),
+    (
+      EntityType.product,
+      () => products.refreshAll(companyId: companyId, full: true),
+    ),
+    (
+      EntityType.invoice,
+      () => invoices.refreshAll(companyId: companyId, full: true),
+    ),
+    (
+      EntityType.recurringInvoice,
+      () => recurringInvoices.refreshAll(companyId: companyId, full: true),
+    ),
+    (
+      EntityType.quote,
+      () => quotes.refreshAll(companyId: companyId, full: true),
+    ),
+    (
+      EntityType.credit,
+      () => credits.refreshAll(companyId: companyId, full: true),
+    ),
+    (
+      EntityType.payment,
+      () => payments.refreshAll(companyId: companyId, full: true),
+    ),
+    (EntityType.task, () => tasks.refreshAll(companyId: companyId, full: true)),
+    (
+      EntityType.project,
+      () => projects.refreshAll(companyId: companyId, full: true),
+    ),
+    (
+      EntityType.expense,
+      () => expenses.refreshAll(companyId: companyId, full: true),
+    ),
+    (
+      EntityType.recurringExpense,
+      () => recurringExpenses.refreshAll(companyId: companyId, full: true),
+    ),
+    (
+      EntityType.vendor,
+      () => vendors.refreshAll(companyId: companyId, full: true),
+    ),
+    (
+      EntityType.purchaseOrder,
+      () => purchaseOrders.refreshAll(companyId: companyId, full: true),
+    ),
+    (
+      EntityType.transaction,
+      () => bankTransactions.refreshAll(companyId: companyId, full: true),
+    ),
+  ];
+
+  /// EntityTypes covered by [resyncAllEntities] (module-gating aside), derived
+  /// from [_resyncSteps] so the list and the coverage set can't drift. The empty
+  /// [companyId] is irrelevant here — only the types are read; the thunks are
+  /// never invoked. `resync_coverage_test` asserts this set covers every
+  /// workspace-sidebar list entity.
+  Set<EntityType> get resyncEntityTypes => {
+    for (final (type, _) in _resyncSteps('')) type,
+  };
 
   /// Build a [Formatter] bound to the given company. Awaits
   /// `statics.ensureLoaded()` (idempotent — a no-op once warm) and reads the

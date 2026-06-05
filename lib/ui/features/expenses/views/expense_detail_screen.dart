@@ -9,6 +9,7 @@ import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
 import 'package:admin/ui/core/detail/build_standard_documents_tab.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
+import 'package:admin/ui/features/billing_shared/activity/billing_doc_activity_tab.dart';
 import 'package:admin/ui/features/expenses/view_models/expense_detail_view_model.dart';
 import 'package:admin/ui/features/expenses/widgets/detail/expense_detail_actions_row.dart';
 import 'package:admin/ui/features/expenses/widgets/detail/expense_detail_cards_grid.dart';
@@ -98,6 +99,18 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
                     documents: e.documents,
                     repo: _services.expenses,
                     formatter: formatter,
+                  ),
+                  EntityDetailTab(
+                    label: context.tr('activity'),
+                    icon: Icons.history_outlined,
+                    bodyBuilder: (_) => BillingDocActivityTab(
+                      entityWireName: 'expense',
+                      entityId: e.id,
+                      companyId: _companyId,
+                      activitiesApi: _services.activities,
+                      outboxDao: _services.db.outboxDao,
+                      formatter: formatter,
+                    ),
                   ),
                 ],
               ),

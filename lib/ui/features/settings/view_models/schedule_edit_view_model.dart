@@ -111,6 +111,10 @@ class ScheduleEditViewModel extends GenericEditViewModel<Schedule> {
   // ----- email_record parameters -----
 
   void setRecordEntityType(String v) {
+    // No-op on re-select. The DropdownButtonFormField fires onChanged even
+    // when the same item is chosen, and clearing entity_id below would wipe
+    // the user's chosen record.
+    if (v == draft.recordEntityType) return;
     // Switching entity type clears the entity id (it's only valid for one
     // type) and resets the email template to the entity's first option.
     final templates = kEmailRecordTemplatesPerEntity[v];
@@ -130,7 +134,27 @@ class ScheduleEditViewModel extends GenericEditViewModel<Schedule> {
 
   // ----- email_report parameters -----
 
-  void setReportName(String v) => _patchParameters({'report_name': v});
+  void setReportName(String v) {
+    // No-op when the report didn't actually change. SearchableDropdownField
+    // fires onChanged on every option tap (including re-selecting the current
+    // report), and the reset below would otherwise wipe the params the user
+    // just configured.
+    if (v == draft.reportName) return;
+    // Switching report type resets the parameters to the email_report
+    // defaults (then sets the new name), so the previous report's fields
+    // don't leak onto the wire. `toApiJson` serializes `parameters`
+    // verbatim, and the server reads e.g. `template_id` for *every* report
+    // (a stale one silently turns a CSV report into a templated PDF) and
+    // validates a stale `clients` id (a since-deleted client 422s on a
+    // field the form no longer shows). A stale `custom` date_range would
+    // also re-trigger the start/end requirement. Mirrors React
+    // (`useHandleChange` resets on report change) and the `withTemplate`
+    // reset pattern.
+    final reset = draft.withTemplate(kScheduleTemplateEmailReport);
+    final next = Map<String, dynamic>.from(reset.parameters)
+      ..['report_name'] = v;
+    updateDraft(reset.copyWith(parameters: next));
+  }
 
   void setReportDateRange(String v) => _patchParameters({'date_range': v});
 
@@ -204,9 +228,26 @@ class ScheduleEditViewModel extends GenericEditViewModel<Schedule> {
 
     switch (d.template) {
       case kScheduleTemplateEmailStatement:
-      case kScheduleTemplateEmailReport:
       case kScheduleTemplateInvoiceOutstandingTasks:
         return d.nextRun != null && d.frequencyId.isNotEmpty;
+      case kScheduleTemplateEmailReport:
+        if (d.nextRun == null || d.frequencyId.isEmpty) return false;
+        // A custom date range makes start/end required on the server
+        // (`StoreSchedulerRequest`: start_date/end_date are
+        // `required_if:parameters.date_range,custom`, end after_or_equal
+        // start). Gate Save so the form can't 422 on hidden-until-custom
+        // fields.
+        if (d.reportDateRange == 'custom') {
+          if (d.reportStartDate.isEmpty || d.reportEndDate.isEmpty) {
+            return false;
+          }
+          final start = Date.tryParse(d.reportStartDate);
+          final end = Date.tryParse(d.reportEndDate);
+          if (start != null && end != null && end.compareTo(start) < 0) {
+            return false;
+          }
+        }
+        return true;
       case kScheduleTemplateEmailRecord:
         return d.nextRun != null &&
             d.recordEntityId.isNotEmpty &&

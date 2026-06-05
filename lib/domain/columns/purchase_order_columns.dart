@@ -3,6 +3,7 @@ import 'package:admin/data/db/dao/purchase_order_dao.dart';
 import 'package:admin/data/models/domain/purchase_order.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/ui/core/widgets/party_money_cell.dart';
 import 'package:admin/ui/core/widgets/vendor_name_label.dart';
 import 'package:admin/ui/features/purchase_orders/widgets/purchase_order_status_pill.dart';
 
@@ -71,7 +72,8 @@ final List<PurchaseOrderColumn> kAllPurchaseOrderColumns =
         labelKey: 'amount',
         width: 130,
         align: ColumnAlign.end,
-        cellBuilder: (p, context) => cellMoney(p.amount, context),
+        cellBuilder: (p, context) =>
+            cellPartyMoney(p.amount, context, vendorId: p.vendorId),
         valueBuilder: (p) => cellMoneyValue(p.amount),
       ),
       PurchaseOrderColumn(
@@ -79,7 +81,8 @@ final List<PurchaseOrderColumn> kAllPurchaseOrderColumns =
         labelKey: 'balance',
         width: 130,
         align: ColumnAlign.end,
-        cellBuilder: (p, context) => cellMoney(p.balance, context),
+        cellBuilder: (p, context) =>
+            cellPartyMoney(p.balance, context, vendorId: p.vendorId),
         valueBuilder: (p) => cellMoneyValue(p.balance),
       ),
       PurchaseOrderColumn(

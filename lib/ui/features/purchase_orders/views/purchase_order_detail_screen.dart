@@ -16,6 +16,7 @@ import 'package:admin/ui/core/detail/recent_visit_recorder.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/detail/entity_documents_tab.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
+import 'package:admin/ui/core/widgets/party_money_cell.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/billing_shared/activity/billing_doc_activity_tab.dart';
 import 'package:admin/ui/features/billing_shared/sends/billing_doc_sends_tab.dart';
@@ -267,32 +268,44 @@ class _Header extends StatelessWidget {
             style: TextStyle(color: tokens.ink3),
           ),
           const SizedBox(height: 16),
-          Wrap(
-            spacing: 24,
-            runSpacing: 12,
-            children: [
-              _LabelValue(
-                label: context.tr('amount'),
-                value:
-                    formatter?.money(purchaseOrder.amount) ??
-                    purchaseOrder.amount.toString(),
-              ),
-              _LabelValue(
-                label: context.tr('balance'),
-                value:
-                    formatter?.money(purchaseOrder.balance) ??
-                    purchaseOrder.balance.toString(),
-              ),
-              if (purchaseOrder.dueDate != null)
+          // Purchase orders are denominated in the *vendor's* currency, not the
+          // company default — resolve it once and thread it through the money
+          // values (mirrors how invoice/quote detail resolve client currency).
+          PartyCurrencyBuilder(
+            vendorId: purchaseOrder.vendorId,
+            builder: (context, currencyId) => Wrap(
+              spacing: 24,
+              runSpacing: 12,
+              children: [
                 _LabelValue(
-                  label: context.tr('due_date'),
+                  label: context.tr('amount'),
                   value:
-                      formatter?.date(purchaseOrder.dueDate!.toIso()) ??
-                      purchaseOrder.dueDate!.toIso(),
+                      formatter?.money(
+                        purchaseOrder.amount,
+                        vendorCurrencyId: currencyId,
+                      ) ??
+                      purchaseOrder.amount.toString(),
                 ),
-              if (purchaseOrder.expenseId.isNotEmpty)
-                _ExpenseLink(expenseId: purchaseOrder.expenseId),
-            ],
+                _LabelValue(
+                  label: context.tr('balance'),
+                  value:
+                      formatter?.money(
+                        purchaseOrder.balance,
+                        vendorCurrencyId: currencyId,
+                      ) ??
+                      purchaseOrder.balance.toString(),
+                ),
+                if (purchaseOrder.dueDate != null)
+                  _LabelValue(
+                    label: context.tr('due_date'),
+                    value:
+                        formatter?.date(purchaseOrder.dueDate!.toIso()) ??
+                        purchaseOrder.dueDate!.toIso(),
+                  ),
+                if (purchaseOrder.expenseId.isNotEmpty)
+                  _ExpenseLink(expenseId: purchaseOrder.expenseId),
+              ],
+            ),
           ),
         ],
       ),

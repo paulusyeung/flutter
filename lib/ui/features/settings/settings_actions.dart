@@ -66,13 +66,14 @@ class SettingsActions {
     return true;
   }
 
-  /// Re-download every client for the active company. Used by the Account
-  /// Management overview as a recovery path when the local cache feels
-  /// stale; will grow as more entities become resync-capable.
+  /// Re-download all data for the active company — a full auth refresh plus a
+  /// forced `refreshAll` over every user-browsable entity (see
+  /// [Services.resyncAllEntities]). Backs both the Device Settings "Download"
+  /// action and the Account Management overview's "Force full resync" recovery
+  /// path. Non-destructive to unsynced offline edits.
   ///
-  /// Reports success / failure via SnackBar. Caller surfaces the in-flight
-  /// state — `await`ing this returns when the work is done (success or
-  /// caught failure).
+  /// Reports success / (partial-or-total) failure via SnackBar. Caller surfaces
+  /// the in-flight state — `await`ing this returns when the work is done.
   static Future<void> forceResync(
     BuildContext context, {
     String successKey = 'resync_complete',
@@ -82,9 +83,15 @@ class SettingsActions {
     final companyId = services.auth.session.value?.currentCompanyId;
     if (companyId == null) return;
     try {
-      await services.clients.refreshAll(companyId: companyId, full: true);
+      final failed = await services.resyncAllEntities(companyId: companyId);
       if (!context.mounted) return;
-      Notify.success(context, context.tr(successKey));
+      if (failed.isEmpty) {
+        Notify.success(context, context.tr(successKey));
+      } else {
+        // Some entities landed, some didn't — report failure rather than a
+        // misleading "complete" (the auth refresh + the rest still applied).
+        Notify.error(context, context.tr(failureKey));
+      }
     } catch (e) {
       if (!context.mounted) return;
       Notify.error(context, context.tr(failureKey), error: e);

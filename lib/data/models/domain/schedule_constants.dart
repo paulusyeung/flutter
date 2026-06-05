@@ -387,13 +387,18 @@ const List<String> kStatementDateRangeOptions = <String>[
   'all_time',
 ];
 
-/// Date-range options for `email_report`. Matches React's `ranges`
+/// Date-range options for `email_report`. Superset of React's `ranges`
 /// constant (`reports/index/Reports.tsx`) — includes `all` and `custom`
-/// (the report section renders start/end fields when `custom` is picked).
+/// (the report section renders start/end fields when `custom` is picked),
+/// plus `last365_days`: it's a server-valid range that the reports
+/// "Schedule" launcher (`report_schedule.dart`) can seed through verbatim,
+/// so the dropdown must be able to display it rather than render blank
+/// (React omits it and shows an empty selection for such schedules).
 const List<String> kReportDateRangeOptions = <String>[
   'all',
   'last7_days',
   'last30_days',
+  'last365_days',
   'this_month',
   'last_month',
   'this_quarter',

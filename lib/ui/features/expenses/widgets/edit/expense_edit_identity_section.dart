@@ -127,6 +127,16 @@ class _ClientPicker extends StatelessWidget {
                 c.currencyId.isNotEmpty &&
                 vm.draft.invoiceCurrencyId.isEmpty) {
               vm.setInvoiceCurrencyId(c.currencyId);
+              // Seed the exchange rate from the expense vs. client currency so
+              // the converted amount is right immediately — same as the
+              // currency-conversion section's picker. Left at the current rate
+              // when it can't be resolved (no expense currency yet / unknown).
+              final rate = crossCurrencyRate(
+                services.statics.currencies,
+                fromExpenseCurrencyId: vm.draft.currencyId,
+                toInvoiceCurrencyId: c.currencyId,
+              );
+              if (rate != null) vm.setExchangeRate(rate.toString());
             }
             // If the user picks a client, narrow the project picker
             // automatically. The project picker re-evaluates against the

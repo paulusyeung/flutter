@@ -145,7 +145,16 @@ class PurchaseOrderEditViewModel
   // ── Setters ────────────────────────────────────────────────────────
 
   void setClientId(String v) => updateDraft(draft.copyWith(clientId: v));
-  void setVendorId(String v) => updateDraft(draft.copyWith(vendorId: v));
+  // Changing the vendor must drop any invitations selected for the *previous*
+  // vendor — they point at the old vendor's contacts (`vendor_contact_id`) and
+  // are invisible in the Contacts tab once the vendor changes, but would still
+  // be serialized on save (wrong-vendor recipient). The client-doc path clears
+  // these via `selectClient`; vendor docs have no equivalent, so do it here.
+  void setVendorId(String v) => updateDraft(
+    v == draft.vendorId
+        ? draft.copyWith(vendorId: v)
+        : draft.copyWith(vendorId: v, invitations: const []),
+  );
   void setProjectId(String v) => updateDraft(draft.copyWith(projectId: v));
   void setExpenseId(String v) => updateDraft(draft.copyWith(expenseId: v));
   void setAssignedUserId(String v) =>

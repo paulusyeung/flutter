@@ -96,9 +96,14 @@ class UserSyncDispatcher implements SyncDispatcher {
         auth.applyUserUpdate(response);
 
       case MutationKind.create:
+        // `?include=company_user` so the echoed user carries its permissions /
+        // is_admin block — `company_user` is an opt-in include server-side, and
+        // applyCreateResponse (no carry-forward, unlike applyUpdateResponse)
+        // would otherwise blank those columns until the next refresh.
         final item = await api.create(
           payload: body,
           idempotencyKey: row.idempotencyKey,
+          query: const {'include': 'company_user'},
           requiresPassword: row.requiresPassword,
         );
         await repo.applyCreateResponse(
@@ -179,9 +184,12 @@ class UserSyncDispatcher implements SyncDispatcher {
         );
 
       case MutationKind.inviteUser:
+        // `/users/{id}/invite` is password_protected — forward the flag so the
+        // header is attached (the outbox row carries requiresPassword=true).
         await api.resendEmail(
           id: row.entityId,
           idempotencyKey: row.idempotencyKey,
+          requiresPassword: row.requiresPassword,
         );
 
       case MutationKind.detachFromCompany:

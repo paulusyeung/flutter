@@ -7,6 +7,7 @@ import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/expense.dart';
+import 'package:admin/data/models/value/date.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/domain/expense_recurring_conversion.dart';
 import 'package:admin/l10n/localization.dart';
@@ -151,6 +152,10 @@ class ExpenseActions {
         final draft = expense.copyWith(
           id: '',
           number: '',
+          // Mirror admin-portal's clone: drop attachments and reset the date
+          // to today so the copy starts fresh.
+          documents: const [],
+          date: Date.today(),
           archivedAt: null,
           isDeleted: false,
           isDirty: false,
@@ -210,12 +215,7 @@ class ExpenseActions {
           Notify.error(context, context.tr('expense_already_invoiced'));
           return;
         }
-        final lineItem = emptyLineItem().copyWith(
-          expenseId: expense.id,
-          notes: expense.publicNotes,
-          quantity: Decimal.one,
-          cost: expense.amount,
-        );
+        final lineItem = _expenseLineItem(expense);
         final draft = emptyInvoice().copyWith(
           clientId: expense.clientId,
           projectId: expense.projectId,
@@ -260,18 +260,35 @@ class ExpenseActions {
           formatter: formatter,
         );
         if (target == null || !context.mounted) return;
-        final addItem = emptyLineItem().copyWith(
-          expenseId: expense.id,
-          notes: expense.publicNotes,
-          quantity: Decimal.one,
-          cost: expense.amount,
-        );
+        final addItem = _expenseLineItem(expense);
         context.go(
           '/invoices/${target.id}/edit',
           extra: target.copyWith(lineItems: [...target.lineItems, addItem]),
         );
     }
   }
+}
+
+/// Build the invoice line item for "Invoice expense" / "Add to invoice".
+/// Carries the expense's tax rates onto the line item (rate mode only — line
+/// items are rate-based, so by-amount taxes are skipped) so the generated
+/// invoice mirrors the expense's tax, matching admin-portal.
+LineItem _expenseLineItem(Expense expense) {
+  final item = emptyLineItem().copyWith(
+    expenseId: expense.id,
+    notes: expense.publicNotes,
+    quantity: Decimal.one,
+    cost: expense.amount,
+  );
+  if (expense.calculateTaxByAmount) return item;
+  return item.copyWith(
+    taxName1: expense.taxName1,
+    taxRate1: expense.taxRate1,
+    taxName2: expense.taxName2,
+    taxRate2: expense.taxRate2,
+    taxName3: expense.taxName3,
+    taxRate3: expense.taxRate3,
+  );
 }
 
 Future<void> _promptAddComment(

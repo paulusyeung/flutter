@@ -6,11 +6,13 @@ import 'package:admin/data/repositories/auth/auth_session.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 
-/// Settings → User Details → Biometric Authentication toggle.
+/// Settings → Device Settings → Security → Biometric Authentication toggle.
 ///
-/// Hidden when `BiometricService.isAvailable()` returns false. Enabling
-/// prompts the device first (verifying intent) before persisting; disabling
-/// is immediate. Mirrors admin-portal's `device_settings_vm.dart:157-173`.
+/// Assumes the caller only mounts it when biometrics are available — the Device
+/// Settings screen gates the whole Security section on
+/// `BiometricService.isAvailable()`, so this tile doesn't re-check. Enabling
+/// prompts the device first (verifying intent) before persisting; disabling is
+/// immediate. Mirrors admin-portal's `device_settings_vm.dart:157-173`.
 class BiometricToggleTile extends StatefulWidget {
   const BiometricToggleTile({super.key});
 
@@ -19,14 +21,7 @@ class BiometricToggleTile extends StatefulWidget {
 }
 
 class _BiometricToggleTileState extends State<BiometricToggleTile> {
-  late final Future<bool> _availableFuture;
   bool _busy = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _availableFuture = context.read<Services>().biometric.isAvailable();
-  }
 
   Future<void> _onChanged(bool value) async {
     if (_busy) return;
@@ -56,22 +51,16 @@ class _BiometricToggleTileState extends State<BiometricToggleTile> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: _availableFuture,
-      builder: (context, snap) {
-        if (snap.data != true) return const SizedBox.shrink();
-        return ValueListenableBuilder<AuthSession?>(
-          valueListenable: context.read<Services>().auth.session,
-          builder: (context, session, _) {
-            final enabled = session?.biometricEnabled ?? false;
-            return SwitchListTile(
-              secondary: const Icon(Icons.fingerprint),
-              title: Text(context.tr('biometric_authentication')),
-              subtitle: Text(context.tr('enable_biometric_description')),
-              value: enabled,
-              onChanged: _busy ? null : _onChanged,
-            );
-          },
+    return ValueListenableBuilder<AuthSession?>(
+      valueListenable: context.read<Services>().auth.session,
+      builder: (context, session, _) {
+        final enabled = session?.biometricEnabled ?? false;
+        return SwitchListTile(
+          secondary: const Icon(Icons.fingerprint),
+          title: Text(context.tr('biometric_authentication')),
+          subtitle: Text(context.tr('enable_biometric_description')),
+          value: enabled,
+          onChanged: _busy ? null : _onChanged,
         );
       },
     );

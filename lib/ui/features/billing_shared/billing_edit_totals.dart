@@ -110,8 +110,9 @@ class _BillingEditTotalsState extends State<BillingEditTotals> {
       builder: (context, snap) {
         final raw = snap.data;
         final currencyId = (raw != null && raw.isNotEmpty) ? raw : null;
-        final precision =
-            formatter?.precisionFor(clientCurrencyId: currencyId) ?? 2;
+        // Resolved party currency (client or vendor) → explicit slot, so the
+        // precision is right for vendor docs (purchase orders) as well.
+        final precision = formatter?.precisionFor(currencyId: currencyId) ?? 2;
         return TotalsWidget(
           totals: widget.totalsAt(precision),
           discount: widget.discount,
