@@ -203,6 +203,8 @@ class _ItemCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       detail,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: tokens.ink3, fontSize: 12),
                     ),
                   ],

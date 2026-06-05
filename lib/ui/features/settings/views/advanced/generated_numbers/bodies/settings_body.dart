@@ -125,7 +125,10 @@ class _GeneratedNumbersSettingsBodyState
             OverridableDropdownField<String>(
               label: context.tr('number_padding'),
               apiKey: 'counter_padding',
-              value: host.settings.counterPadding?.toString(),
+              // Display-only fallback to the server default (4) so a null/unset
+              // value shows "0001" rather than blank (matches React). Never
+              // written — onChanged below is the only writer.
+              value: (host.settings.counterPadding ?? 4).toString(),
               items: _paddingOptions(),
               onChanged: (v) => host.updateSettings(
                 (s) => s.copyWith(
@@ -136,7 +139,8 @@ class _GeneratedNumbersSettingsBodyState
             OverridableDropdownField<String>(
               label: context.tr('generate_number'),
               apiKey: 'counter_number_applied',
-              value: host.settings.counterNumberApplied,
+              // Display-only fallback to the server default (matches React).
+              value: host.settings.counterNumberApplied ?? 'when_saved',
               items: [
                 DropdownMenuItem(
                   value: 'when_saved',
@@ -171,7 +175,11 @@ class _GeneratedNumbersSettingsBodyState
             OverridableDropdownField<String>(
               label: context.tr('reset_counter'),
               apiKey: 'reset_counter_frequency_id',
-              value: host.settings.resetCounterFrequencyId?.toString(),
+              // Display-only fallback to the server default 0 (Never) so an
+              // unset value shows "Never" rather than blank (matches React).
+              // `showNextReset` above reads the real model value, so this
+              // fallback can't reveal the Next Reset field.
+              value: (host.settings.resetCounterFrequencyId ?? 0).toString(),
               items: [
                 for (final (id, labelKey) in _kFrequencyOptions)
                   DropdownMenuItem<String>(

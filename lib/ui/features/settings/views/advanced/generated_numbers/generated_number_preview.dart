@@ -32,6 +32,7 @@ String buildNumberPreview({
   required bool showClient,
   required bool showVendor,
   required Company company,
+  bool showVendorIdNumber = false,
 }) {
   final padded = counter.toString().padLeft(padding, '0');
 
@@ -72,10 +73,11 @@ String buildNumberPreview({
       r'{$client_number}': _kSampleNumber,
       r'{$client_id_number}': _kSampleIdNumber,
     },
-    if (showVendor) ...{
-      r'{$vendor_number}': _kSampleNumber,
+    if (showVendor) r'{$vendor_number}': _kSampleNumber,
+    // {$vendor_id_number} is the one vendor token the backend substitutes for a
+    // Vendor entity too (not just Expense), so the Vendors tab shows it alone.
+    if (showVendor || showVendorIdNumber)
       r'{$vendor_id_number}': _kSampleIdNumber,
-    },
   };
   replacements.forEach((token, value) {
     result = result.replaceAll(token, value);

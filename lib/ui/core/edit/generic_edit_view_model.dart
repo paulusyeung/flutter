@@ -281,6 +281,13 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
   void setBool(T Function(T, bool) write, bool v) =>
       updateDraft(write(_draft, v));
 
+  /// The company's decimal-comma setting, for subclasses that parse numeric
+  /// input outside [setDec] (e.g. a setter that writes two fields, or one with
+  /// a non-zero default). Pass it to [parseDecimal] — never `Decimal.tryParse`
+  /// on raw input, which silently zeroes `"1,5"` for comma-locale users.
+  @protected
+  bool get useCommaAsDecimalPlace => _useCommaAsDecimalPlace;
+
   @protected
   void setDec(T Function(T, Decimal) write, String input) => updateDraft(
     write(

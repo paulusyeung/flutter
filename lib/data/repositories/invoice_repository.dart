@@ -304,7 +304,7 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
-        payload: _withSaveQuery(stored.toApiJson(), extraQuery),
+        payload: _withSaveQuery(_forMutation(stored.toApiJson()), extraQuery),
       );
     });
     return SaveResult(entity: stored, outboxRowId: rowId);
@@ -350,7 +350,7 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>
         entityId: invoice.id,
         kind: MutationKind.update,
         payload: _withSaveQuery(
-          invoice.toApiJson(preserveTempId: true),
+          _forMutation(invoice.toApiJson(preserveTempId: true)),
           extraQuery,
         ),
       );
@@ -368,6 +368,21 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>
     if (extraQuery != null && extraQuery.isNotEmpty) {
       payload[kSaveQueryPayloadKey] = extraQuery;
     }
+    return payload;
+  }
+
+  /// Strip server-derived fields the client must not assert on a mutation.
+  ///
+  /// `paid_to_date` is computed server-side from Payment records;
+  /// `UpdateInvoiceRequest` 422s (`invoice_status_changed`) if the submitted
+  /// value differs from the server's *current* value. Offline-first means our
+  /// cached copy can be stale (a payment landed via the portal / auto-bill /
+  /// another device while an edit sat in the outbox), so sending it would dead-
+  /// letter the edit. The field stays in the *display* payload (`_domainToCompanion`)
+  /// and the live-preview body — this only trims the outbound create/update body.
+  /// Mutates and returns the passed map (`toApiJson` hands us a fresh one).
+  Map<String, dynamic> _forMutation(Map<String, dynamic> payload) {
+    payload.remove('paid_to_date');
     return payload;
   }
 

@@ -9,6 +9,7 @@ import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/quote_repository.dart';
 import 'package:admin/domain/billing/totals_calculator.dart';
 import 'package:admin/ui/features/billing_shared/view_models/billing_doc_edit_view_model.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Drives the Quote edit + create screen. Inherits the shared
 /// line-item / invitation / eInvoice / totals plumbing from
@@ -24,6 +25,7 @@ class QuoteEditViewModel extends GenericBillingDocEditViewModel<Quote> {
     Quote? existing,
     Quote? cloneFrom,
     super.currencyPrecision,
+    super.useCommaAsDecimalPlace,
     super.sync,
     super.connectivity,
   }) : super(
@@ -158,17 +160,31 @@ class QuoteEditViewModel extends GenericBillingDocEditViewModel<Quote> {
   void setDate(Date? d) => updateDraft(draft.copyWith(date: d));
   void setDueDate(Date? d) => updateDraft(draft.copyWith(dueDate: d));
   void setPartial(String input) => updateDraft(
-    draft.copyWith(partial: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+    draft.copyWith(
+      partial:
+          parseDecimal(input, useCommaAsDecimalPlace: useCommaAsDecimalPlace) ??
+          Decimal.zero,
+    ),
   );
   void setPartialDueDate(Date? d) =>
       updateDraft(draft.copyWith(partialDueDate: d));
   void setDesignId(String v) => updateDraft(draft.copyWith(designId: v));
   void setExchangeRate(String input) => updateDraft(
-    draft.copyWith(exchangeRate: Decimal.tryParse(input.trim()) ?? Decimal.one),
+    draft.copyWith(
+      exchangeRate:
+          parseDecimal(
+            input,
+            zeroIsNull: true,
+            useCommaAsDecimalPlace: useCommaAsDecimalPlace,
+          ) ??
+          Decimal.one,
+    ),
   );
   void setDiscount(String input, {required bool isAmount}) => updateDraft(
     draft.copyWith(
-      discount: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+      discount:
+          parseDecimal(input, useCommaAsDecimalPlace: useCommaAsDecimalPlace) ??
+          Decimal.zero,
       isAmountDiscount: isAmount,
     ),
   );
@@ -179,33 +195,53 @@ class QuoteEditViewModel extends GenericBillingDocEditViewModel<Quote> {
   void setTaxName2(String v) => updateDraft(draft.copyWith(taxName2: v));
   void setTaxName3(String v) => updateDraft(draft.copyWith(taxName3: v));
   void setTaxRate1(String input) => updateDraft(
-    draft.copyWith(taxRate1: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+    draft.copyWith(
+      taxRate1:
+          parseDecimal(input, useCommaAsDecimalPlace: useCommaAsDecimalPlace) ??
+          Decimal.zero,
+    ),
   );
   void setTaxRate2(String input) => updateDraft(
-    draft.copyWith(taxRate2: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+    draft.copyWith(
+      taxRate2:
+          parseDecimal(input, useCommaAsDecimalPlace: useCommaAsDecimalPlace) ??
+          Decimal.zero,
+    ),
   );
   void setTaxRate3(String input) => updateDraft(
-    draft.copyWith(taxRate3: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+    draft.copyWith(
+      taxRate3:
+          parseDecimal(input, useCommaAsDecimalPlace: useCommaAsDecimalPlace) ??
+          Decimal.zero,
+    ),
   );
 
   void setCustomSurcharge1(String input) => updateDraft(
     draft.copyWith(
-      customSurcharge1: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+      customSurcharge1:
+          parseDecimal(input, useCommaAsDecimalPlace: useCommaAsDecimalPlace) ??
+          Decimal.zero,
     ),
   );
   void setCustomSurcharge2(String input) => updateDraft(
     draft.copyWith(
-      customSurcharge2: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+      customSurcharge2:
+          parseDecimal(input, useCommaAsDecimalPlace: useCommaAsDecimalPlace) ??
+          Decimal.zero,
     ),
   );
   void setCustomSurcharge3(String input) => updateDraft(
     draft.copyWith(
-      customSurcharge3: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+      customSurcharge3:
+          parseDecimal(input, useCommaAsDecimalPlace: useCommaAsDecimalPlace) ??
+          Decimal.zero,
     ),
   );
   void setCustomSurcharge4(String input) => updateDraft(
     draft.copyWith(
-      customSurcharge4: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+      customSurcharge4:
+          parseDecimal(input, useCommaAsDecimalPlace: useCommaAsDecimalPlace) ??
+          Decimal.zero,
     ),
   );
   void setCustomTaxes1(bool v) => updateDraft(draft.copyWith(customTaxes1: v));

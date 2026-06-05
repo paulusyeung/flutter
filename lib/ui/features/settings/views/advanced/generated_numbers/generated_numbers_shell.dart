@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/enabled_modules.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/view_models/generated_numbers_view_model.dart';
 import 'package:admin/ui/features/settings/views/advanced/generated_numbers/bodies/entity_body.dart';
 import 'package:admin/ui/features/settings/views/advanced/generated_numbers/bodies/settings_body.dart';
@@ -62,6 +63,7 @@ class GeneratedNumbersShell extends StatelessWidget {
       required String counterKey,
       bool showClientTokens = false,
       bool showVendorTokens = false,
+      bool showVendorIdNumberOnly = false,
     }) {
       return TabbedSettingsTab(
         slug: slug,
@@ -74,6 +76,7 @@ class GeneratedNumbersShell extends StatelessWidget {
           titleKey: slug,
           showClientTokens: showClientTokens,
           showVendorTokens: showVendorTokens,
+          showVendorIdNumberOnly: showVendorIdNumberOnly,
         ),
       );
     }
@@ -147,6 +150,10 @@ class GeneratedNumbersShell extends StatelessWidget {
           slug: 'vendors',
           patternKey: 'vendor_number_pattern',
           counterKey: 'vendor_number_counter',
+          // Server substitutes {$vendor_id_number} for a Vendor entity (the
+          // `instanceof Vendor` branch), so the Vendors tab offers that one
+          // vendor token — not the full set, which is Expense-only.
+          showVendorIdNumberOnly: true,
         ),
       if (isOn(EnabledModule.purchaseOrders))
         entityTab(
@@ -177,12 +184,23 @@ class GeneratedNumbersShell extends StatelessWidget {
         ),
     ];
 
+    // Localized once here (the VM has no BuildContext) and captured by the
+    // factory closure: the hard save-block message for a pattern that would
+    // mint duplicate numbers across clients. `:`→`$` matches the legacy app.
+    final patternError = context
+        .tr('counter_pattern_error')
+        .replaceAll(':', r'$');
+
     return CascadeTabbedSettingsShell(
       titleKey: 'generated_numbers',
       basePath: '/settings/generated_numbers',
       initialTab: initialTab,
       companyVmFactory: ({required repo, required companyId}) =>
-          GeneratedNumbersViewModel(repo: repo, companyId: companyId),
+          GeneratedNumbersViewModel(
+            repo: repo,
+            companyId: companyId,
+            patternError: patternError,
+          ),
       banner: const PlanGateBanner(style: PlanGateStyle.stripe),
       tabs: tabs,
     );

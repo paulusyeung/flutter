@@ -18,6 +18,7 @@ void main() {
     int padding = 4,
     bool showClient = false,
     bool showVendor = false,
+    bool showVendorIdNumber = false,
     Company company = const Company(),
   }) {
     return buildNumberPreview(
@@ -27,6 +28,7 @@ void main() {
       now: now,
       showClient: showClient,
       showVendor: showVendor,
+      showVendorIdNumber: showVendorIdNumber,
       company: company,
     );
   }
@@ -111,6 +113,20 @@ void main() {
     test('vendor tokens are gated on showVendor', () {
       expect(preview(r'{$vendor_number}'), r'{$vendor_number}');
       expect(preview(r'{$vendor_number}', showVendor: true), '0001');
+    });
+
+    test('{\$vendor_id_number} renders alone for the Vendors tab', () {
+      // The Vendors tab passes showVendorIdNumber (not showVendor): the backend
+      // substitutes {$vendor_id_number} for a Vendor entity but not the other
+      // vendor tokens, so those stay literal.
+      expect(
+        preview(r'{$vendor_id_number}', showVendorIdNumber: true),
+        'ID-0001',
+      );
+      expect(
+        preview(r'{$vendor_number}', showVendorIdNumber: true),
+        r'{$vendor_number}',
+      );
     });
 
     test('custom-field token → the configured label when set', () {

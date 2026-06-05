@@ -22,6 +22,7 @@ import 'package:admin/data/services/companies_api.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/core/unsaved_changes/unsaved_changes_guard.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
+import 'package:admin/ui/features/settings/view_models/generated_numbers_view_model.dart';
 import 'package:admin/ui/features/settings/views/advanced/e_invoice/e_invoice_constants.dart';
 import 'package:admin/ui/features/settings/views/advanced/generated_numbers/generated_numbers_shell.dart';
 
@@ -39,6 +40,10 @@ class _StubCompanyRepo extends CompanyRepository {
   final Company company;
   final _controllers = <String, StreamController<Company?>>{};
 
+  /// Set when `updateCompany` is invoked — lets a test assert that an aborted
+  /// save (e.g. blocked by `preSaveError`) never reached the write path.
+  bool updateCompanyCalled = false;
+
   @override
   Stream<Company?> watchCompany(String companyId) {
     final c = _controllers.putIfAbsent(
@@ -53,6 +58,14 @@ class _StubCompanyRepo extends CompanyRepository {
 
   @override
   Future<void> refresh(String companyId) async {}
+
+  @override
+  Future<void> updateCompany({
+    required Company draft,
+    Map<String, dynamic>? extraOutboxPayload,
+  }) async {
+    updateCompanyCalled = true;
+  }
 }
 
 class _FakeCompaniesApi implements CompaniesApi {
@@ -506,10 +519,12 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  // Vendor tokens are backend-substituted only for Expense entities
-  // (GeneratesCounter.applyNumberPattern gates on `instanceof Expense`).
-  // Purchase orders and recurring expenses must NOT offer the chip, or users
-  // would build patterns whose {$vendor_*} tokens render literally.
+  // The full vendor token set ({$vendor_number} + {$vendor_custom*}) is
+  // backend-substituted only for Expense entities (GeneratesCounter
+  // .applyNumberPattern gates on `instanceof Expense`); {$vendor_id_number}
+  // also applies to a Vendor entity (covered by the Vendors-tab test below).
+  // Purchase orders and recurring expenses must NOT offer these chips, or
+  // users would build patterns whose {$vendor_*} tokens render literally.
   testWidgets(
     'vendor token chips show on Expenses only, not PO / Recurring Expenses',
     (tester) async {
@@ -592,6 +607,172 @@ void main() {
     await settle(tester);
 
     expect(generateNumberField(tester).onChanged, isNotNull);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  // Fix A — the legacy `{$client_counter}` guard restored as an inline error:
+  // a pattern using the per-client counter without a distinguishing token would
+  // mint duplicate numbers across clients, and the server doesn't reject it.
+  testWidgets(
+    '{\$client_counter} without a distinguisher shows an inline error',
+    (tester) async {
+      await pumpOnTab(
+        tester,
+        company: const Company(id: 'co-A', enabledModules: 0),
+        tabLabel: 'Clients',
+      );
+      final fieldFinder = find.widgetWithText(TextField, 'Number Pattern');
+      TextField field() => tester.widget<TextField>(fieldFinder);
+
+      await tester.enterText(fieldFinder, r'{$client_counter}');
+      await tester.pumpAndSettle();
+      // `:`→`$` render → message mentions "$client_counter". Read the field's
+      // errorText directly so the typed text isn't mistaken for the error.
+      expect(field().decoration!.errorText, contains(r'$client_counter'));
+
+      // Adding {$counter} resolves the collision → error clears.
+      await tester.enterText(fieldFinder, r'{$client_counter}{$counter}');
+      await tester.pumpAndSettle();
+      expect(field().decoration!.errorText, isNull);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  // Fix A — the same guard hard-blocks the save via `preSaveError` (company
+  // scope), so an invalid pattern never reaches the network.
+  test('preSaveError blocks a {\$client_counter}-only pattern', () {
+    final repo = _StubCompanyRepo(
+      db: db,
+      api: companiesApi,
+      company: const Company(),
+    );
+    final vm = GeneratedNumbersViewModel(
+      repo: repo,
+      companyId: 'co-A',
+      patternError: 'ERR',
+    );
+    addTearDown(vm.dispose);
+
+    expect(
+      vm.preSaveError(
+        const Company(
+          settings: CompanySettings(invoiceNumberPattern: r'{$client_counter}'),
+        ),
+      ),
+      'ERR',
+    );
+    expect(
+      vm.preSaveError(
+        const Company(
+          settings: CompanySettings(
+            invoiceNumberPattern: r'{$client_counter}{$counter}',
+          ),
+        ),
+      ),
+      isNull,
+    );
+    expect(vm.preSaveError(const Company()), isNull);
+  });
+
+  // Fix A — verify the block is actually wired into the save path (not just the
+  // preSaveError predicate): a violating draft must abort before the write, and
+  // a valid one must still save through.
+  test('save() aborts the write when a pattern is invalid', () async {
+    final badRepo = _StubCompanyRepo(
+      db: db,
+      api: companiesApi,
+      company: const Company(
+        id: 'co-A',
+        settings: CompanySettings(invoiceNumberPattern: r'{$client_counter}'),
+      ),
+    );
+    final badVm = GeneratedNumbersViewModel(
+      repo: badRepo,
+      companyId: 'co-A',
+      patternError: 'ERR',
+    );
+    addTearDown(badVm.dispose);
+    await badVm.load();
+    await pumpEventQueue(); // drain the watchCompany microtask → _draft set
+
+    expect(await badVm.save(), isNull);
+    expect(badRepo.updateCompanyCalled, isFalse);
+    expect(badVm.submitError, 'ERR');
+
+    // Control: a valid pattern saves through, proving the block is specific.
+    final okRepo = _StubCompanyRepo(
+      db: db,
+      api: companiesApi,
+      company: const Company(
+        id: 'co-A',
+        settings: CompanySettings(invoiceNumberPattern: r'{$counter}'),
+      ),
+    );
+    final okVm = GeneratedNumbersViewModel(
+      repo: okRepo,
+      companyId: 'co-A',
+      patternError: 'ERR',
+    );
+    addTearDown(okVm.dispose);
+    await okVm.load();
+    await pumpEventQueue();
+
+    expect(await okVm.save(), isNotNull);
+    expect(okRepo.updateCompanyCalled, isTrue);
+  });
+
+  // Fix B — Settings dropdowns fall back to the server defaults (4 / when_saved
+  // / 0) when the value is unset, instead of rendering blank (matches React).
+  testWidgets('Settings dropdowns show server defaults when unset', (
+    tester,
+  ) async {
+    final services = makeServices(
+      company: const Company(id: 'co-A', enabledModules: 0),
+    );
+    await tester.pumpWidget(_host(services: services));
+    await settle(tester);
+
+    DropdownButtonFormField<String> dd(String label) =>
+        tester.widget<DropdownButtonFormField<String>>(
+          find.widgetWithText(DropdownButtonFormField<String>, label),
+        );
+    expect(dd('Number Padding').initialValue, '4');
+    expect(dd('Generate Number').initialValue, 'when_saved');
+    expect(dd('Reset Counter').initialValue, '0');
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  // Fix C — the Vendors tab offers only {$vendor_id_number} (the backend
+  // substitutes it for a Vendor entity); the Expense-only vendor tokens stay off.
+  testWidgets('Vendors tab offers {\$vendor_id_number} only', (tester) async {
+    await pumpOnTab(
+      tester,
+      company: Company(
+        id: 'co-A',
+        enabledModules: EnabledModule.vendors.bitmask,
+      ),
+      tabLabel: 'Vendors',
+    );
+    expect(
+      find.widgetWithText(ActionChip, '{\$vendor_id_number}'),
+      findsOneWidget,
+    );
+    expect(find.widgetWithText(ActionChip, '{\$vendor_number}'), findsNothing);
+
+    // Tapping inserts it and the preview renders the sample id.
+    await tester.tap(find.widgetWithText(ActionChip, '{\$vendor_id_number}'));
+    await tester.pumpAndSettle();
+    final patternField = tester.widget<TextField>(
+      find.widgetWithText(TextField, 'Number Pattern'),
+    );
+    expect(patternField.controller!.text, contains('{\$vendor_id_number}'));
+    expect(
+      tester.widget<SelectableText>(find.byType(SelectableText)).data,
+      contains('ID-0001'),
+    );
 
     await tester.pumpWidget(const SizedBox.shrink());
   });

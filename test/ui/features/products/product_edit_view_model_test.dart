@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/product_api_model.dart';
 import 'package:admin/data/models/domain/product.dart';
@@ -114,5 +116,53 @@ void main() {
       expect(pending.single.mutationKind, MutationKind.create.wireName);
       vm.dispose();
     });
+  });
+
+  group('save — in_stock_quantity flag', () {
+    test('editing the stock count rides update_in_stock_quantity into the '
+        'outbox payload', () async {
+      final vm = ProductEditViewModel(
+        repo: repo,
+        companyId: 'co',
+        existing: existing(),
+      );
+      vm.setInStockQuantity('5');
+
+      await vm.save();
+
+      final pending = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 1 << 60,
+      );
+      final payload =
+          jsonDecode(pending.single.payload) as Map<String, dynamic>;
+      expect(payload[kSaveQueryPayloadKey], {
+        'update_in_stock_quantity': 'true',
+      });
+      vm.dispose();
+    });
+
+    test(
+      'editing a non-stock field does NOT send update_in_stock_quantity',
+      () async {
+        final vm = ProductEditViewModel(
+          repo: repo,
+          companyId: 'co',
+          existing: existing(),
+        );
+        vm.setProductKey('Renamed');
+
+        await vm.save();
+
+        final pending = await db.outboxDao.nextReady(
+          companyId: 'co',
+          now: 1 << 60,
+        );
+        final payload =
+            jsonDecode(pending.single.payload) as Map<String, dynamic>;
+        expect(payload.containsKey(kSaveQueryPayloadKey), isFalse);
+        vm.dispose();
+      },
+    );
   });
 }

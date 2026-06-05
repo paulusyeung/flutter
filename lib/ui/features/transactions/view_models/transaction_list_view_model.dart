@@ -33,6 +33,18 @@ class TransactionListViewModel extends GenericListViewModel<BankTransaction> {
   /// transactions. Used by `BankAccountDetailScreen`'s embedded list.
   final String? bankAccountId;
 
+  // Embedded (bank-account-scoped) list: lock a filter dimension so the base
+  // `GenericListViewModel.isEmbedded` is true and this list neither reads nor
+  // writes the standalone `/transactions` nav_state slot. Bank scope isn't a
+  // user-facing filter chip (it's threaded via `bank_integration_ids`), so
+  // there's nothing to actually suppress — this is purely the embedded signal.
+  // Empty when standalone (`bankAccountId == null`), so the main list persists
+  // its filters normally.
+  @override
+  Set<String> get lockedFilterKeyIds => {
+    if (bankAccountId != null) 'bank_account',
+  };
+
   @override
   EntityType get entityType => EntityType.transaction;
 

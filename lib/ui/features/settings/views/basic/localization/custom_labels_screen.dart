@@ -6,6 +6,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company_settings.dart';
 import 'package:admin/data/models/value/country.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
@@ -159,41 +160,87 @@ class _AddRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: SearchableDropdownField<String>(
-            label: context.tr('add_label'),
-            items: available,
-            initialValue: null,
-            displayString: (k) => context.tr(k),
-            idOf: (k) => k,
-            onChanged: (k) {
-              if (k == null) return;
-              _addLabel(host, k);
-            },
+    // On a phone the dropdown + two text buttons squeeze the dropdown to a
+    // sliver and long localized labels can overflow the row. Below the wide
+    // breakpoint, collapse the two actions to icon-only (label → tooltip).
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < Breakpoints.wide;
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: SearchableDropdownField<String>(
+                label: context.tr('add_label'),
+                items: available,
+                initialValue: null,
+                displayString: (k) => context.tr(k),
+                idOf: (k) => k,
+                onChanged: (k) {
+                  if (k == null) return;
+                  // Predefined keys already in the map are filtered out of
+                  // `available`, so this can't duplicate — ignore the result.
+                  _addLabel(host, k);
+                },
+              ),
+            ),
+            SizedBox(width: InSpacing.md(context)),
+            _addButton(
+              context,
+              icon: Icons.add,
+              labelKey: 'add_custom',
+              compact: compact,
+              onPressed: () => _openCustomDialog(context),
+            ),
+            SizedBox(width: InSpacing.md(context)),
+            _addButton(
+              context,
+              icon: Icons.public_outlined,
+              labelKey: 'add_country',
+              compact: compact,
+              onPressed: () => _openCountryDialog(context),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Add-action button: icon+label on wide layouts, icon-only (with a tooltip
+  /// carrying the label) on narrow ones. Keeps the design-system rounded-rect
+  /// shape via `OutlinedButton` (not the pill-shaped `IconButton.outlined`).
+  Widget _addButton(
+    BuildContext context, {
+    required IconData icon,
+    required String labelKey,
+    required bool compact,
+    required VoidCallback onPressed,
+  }) {
+    if (compact) {
+      return Tooltip(
+        message: context.tr(labelKey),
+        child: OutlinedButton(
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(48, 40),
+            padding: EdgeInsets.zero,
           ),
+          onPressed: onPressed,
+          child: Icon(icon),
         ),
-        SizedBox(width: InSpacing.md(context)),
-        OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
-          onPressed: () => _openCustomDialog(context),
-          icon: const Icon(Icons.add),
-          label: Text(context.tr('add_custom')),
-        ),
-        SizedBox(width: InSpacing.md(context)),
-        OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
-          onPressed: () => _openCountryDialog(context),
-          icon: const Icon(Icons.public_outlined),
-          label: Text(context.tr('add_country')),
-        ),
-      ],
+      );
+    }
+    return OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+      onPressed: onPressed,
+      icon: Icon(icon),
+      label: Text(context.tr(labelKey)),
     );
   }
 
   Future<void> _openCustomDialog(BuildContext context) async {
+    // Capture before the async gap so we don't touch `context` after `await`.
+    final messenger = ScaffoldMessenger.of(context);
+    final duplicateMessage = context.tr('label_already_added');
     final controller = TextEditingController();
     try {
       final key = await showDialog<String>(
@@ -225,13 +272,18 @@ class _AddRow extends StatelessWidget {
         ),
       );
       if (key == null || key.isEmpty) return;
-      _addLabel(host, key);
+      if (!_addLabel(host, key)) {
+        messenger.showSnackBar(SnackBar(content: Text(duplicateMessage)));
+      }
     } finally {
       controller.dispose();
     }
   }
 
   Future<void> _openCountryDialog(BuildContext context) async {
+    // Capture before the async gap so we don't touch `context` after `await`.
+    final messenger = ScaffoldMessenger.of(context);
+    final duplicateMessage = context.tr('label_already_added');
     final countries = services.statics.countries.values.toList()
       ..sort((a, b) => a.name.compareTo(b.name));
     final country = await showDialog<Country>(
@@ -239,7 +291,9 @@ class _AddRow extends StatelessWidget {
       builder: (dialogContext) => _AddCountryDialog(countries: countries),
     );
     if (country == null) return;
-    _addLabel(host, '$_countryKeyPrefix${country.name}');
+    if (!_addLabel(host, '$_countryKeyPrefix${country.name}')) {
+      messenger.showSnackBar(SnackBar(content: Text(duplicateMessage)));
+    }
   }
 }
 
@@ -416,14 +470,17 @@ SettingsBinding _bindingFor(String key) => (
   },
 );
 
-void _addLabel(SettingsDraftHost host, String key) {
-  if (key.isEmpty) return;
+/// Adds an empty entry for [key]. Returns `false` (without mutating) when the
+/// key is blank or already present, so callers can surface a "duplicate" toast.
+bool _addLabel(SettingsDraftHost host, String key) {
+  if (key.isEmpty) return false;
+  if ((host.settings.translations ?? const {}).containsKey(key)) return false;
   host.updateSettings((s) {
     final map = Map<String, dynamic>.of(s.translations ?? const {});
-    if (map.containsKey(key)) return s;
     map[key] = '';
     return s.copyWith(translations: map);
   });
+  return true;
 }
 
 void _removeLabel(SettingsDraftHost host, String key) {

@@ -35,6 +35,7 @@ abstract class GenericBillingDocEditViewModel<T>
     super.sync,
     super.connectivity,
     super.companyId,
+    super.useCommaAsDecimalPlace,
     this.currencyPrecision = 2,
   });
 

@@ -47,6 +47,12 @@ class PurchaseOrderEditScreen extends StatelessWidget {
           vendorRequiredMessage: ctx.tr('please_select_a_vendor'),
           existing: existing,
           cloneFrom: cloneFrom,
+          useCommaAsDecimalPlace:
+              services
+                  .formatterIfReady(companyId)
+                  ?.settings
+                  .useCommaAsDecimalPlace ??
+              false,
           sync: services.sync,
           connectivity: services.connectivity,
         );

@@ -205,7 +205,7 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
-        payload: _withSaveQuery(stored.toApiJson(), extraQuery),
+        payload: _withSaveQuery(_forMutation(stored.toApiJson()), extraQuery),
       );
     });
     return SaveResult(entity: stored, outboxRowId: rowId);
@@ -230,7 +230,7 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
         entityId: credit.id,
         kind: MutationKind.update,
         payload: _withSaveQuery(
-          credit.toApiJson(preserveTempId: true),
+          _forMutation(credit.toApiJson(preserveTempId: true)),
           extraQuery,
         ),
       );
@@ -248,6 +248,17 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
     if (extraQuery != null && extraQuery.isNotEmpty) {
       payload[kSaveQueryPayloadKey] = extraQuery;
     }
+    return payload;
+  }
+
+  /// Strip server-derived fields the client must not assert on a mutation.
+  /// `paid_to_date` is computed server-side from Payment records; we never
+  /// own it. Unlike `UpdateInvoiceRequest`, the credit update request has no
+  /// "must match" guard today, so this is defensive/consistency-only — but it
+  /// keeps the outbound body clean and future-proofs against the server adding
+  /// the same rule. Stays in the display payload (`_domainToCompanion`).
+  Map<String, dynamic> _forMutation(Map<String, dynamic> payload) {
+    payload.remove('paid_to_date');
     return payload;
   }
 

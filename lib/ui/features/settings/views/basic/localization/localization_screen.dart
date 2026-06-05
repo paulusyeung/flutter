@@ -50,7 +50,8 @@ class LocalizationSettingsBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statics = context.read<Services>().statics;
+    final services = context.read<Services>();
+    final statics = services.statics;
     final host = context.watch<SettingsDraftHost>();
     final scope = context.watch<SettingsLevelController>();
 
@@ -61,6 +62,14 @@ class LocalizationSettingsBody extends StatelessWidget {
     final timezones = statics.timezones.values.toList()
       ..sort((a, b) => a.name.compareTo(b.name));
     final dateFormats = statics.dateFormats.values.toList();
+    // Locale for the date-format dropdown previews, so MMM month names match
+    // how dates render elsewhere. Uses the already-warmed company Formatter
+    // (null on a cold deep-link → DateFormat falls back to the default locale;
+    // the _dateFormatPreview try/catch guards either way).
+    final companyId = services.auth.session.value?.currentCompanyId;
+    final previewLocale = companyId == null
+        ? null
+        : services.formatterIfReady(companyId)?.settings.locale;
     // First Month of the Year is a top-level company field (not cascade) — read
     // it off the company draft, mirroring Company Details' size / industry.
     final months = _monthOptions(context);
@@ -75,8 +84,7 @@ class LocalizationSettingsBody extends StatelessWidget {
     // Demo accounts can't change the UI language — would conflict with the
     // hosted demo's tour scripting. Mirrors admin-portal's `AppState.isDemo`,
     // which compares the session's base URL against `kDemoBaseUrl`.
-    final isDemoSession =
-        context.read<Services>().auth.session.value?.isDemo ?? false;
+    final isDemoSession = services.auth.session.value?.isDemo ?? false;
     final showLanguage = !isDemoSession;
 
     return SettingsFormShell(
@@ -121,7 +129,7 @@ class LocalizationSettingsBody extends StatelessWidget {
               apiKey: 'date_format_id',
               value: host.settings.dateFormatId,
               items: dateFormats,
-              displayString: _dateFormatPreview,
+              displayString: (f) => _dateFormatPreview(f, previewLocale),
               idOf: (f) => f.id,
               onChanged: (v) =>
                   host.updateSettings((s) => s.copyWith(dateFormatId: v)),
@@ -238,10 +246,13 @@ class LocalizationSettingsBody extends StatelessWidget {
     );
   }
 
-  static String _dateFormatPreview(DatetimeFormat f) {
+  static String _dateFormatPreview(DatetimeFormat f, [String? locale]) {
     if (f.format.isEmpty) return f.id;
     try {
-      return DateFormat(f.format).format(DateTime.now());
+      return DateFormat(
+        f.format,
+        (locale == null || locale.isEmpty) ? null : locale,
+      ).format(DateTime.now());
     } catch (_) {
       return f.format;
     }

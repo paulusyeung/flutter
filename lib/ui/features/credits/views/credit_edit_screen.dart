@@ -35,6 +35,12 @@ class CreditEditScreen extends StatelessWidget {
           partialInvalidMessage: ctx.tr('partial_value'),
           existing: existing,
           cloneFrom: cloneFrom,
+          useCommaAsDecimalPlace:
+              services
+                  .formatterIfReady(companyId)
+                  ?.settings
+                  .useCommaAsDecimalPlace ??
+              false,
           sync: services.sync,
           connectivity: services.connectivity,
         );

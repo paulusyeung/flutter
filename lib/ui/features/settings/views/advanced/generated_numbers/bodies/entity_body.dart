@@ -13,6 +13,7 @@ import 'package:admin/ui/core/widgets/link_text.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/views/advanced/generated_numbers/generated_number_preview.dart';
+import 'package:admin/ui/features/settings/views/advanced/generated_numbers/generated_numbers_validation.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_number_field.dart';
@@ -57,6 +58,7 @@ class GeneratedNumbersEntityBody extends StatefulWidget {
     required this.titleKey,
     required this.showClientTokens,
     required this.showVendorTokens,
+    this.showVendorIdNumberOnly = false,
   });
 
   /// Active company — the source of the custom-field labels that decide which
@@ -83,6 +85,12 @@ class GeneratedNumbersEntityBody extends StatefulWidget {
   /// substitutes `{$vendor_*}` only for `Expense` entities; purchase orders and
   /// recurring expenses leave those tokens literal, so they don't show them.
   final bool showVendorTokens;
+
+  /// Show only the `{$vendor_id_number}` chip — set on the Vendors tab. The
+  /// backend substitutes `{$vendor_id_number}` for a `Vendor` entity (the
+  /// `instanceof Vendor` branch in `GeneratesCounter`) but NOT the other vendor
+  /// tokens (those are Expense-only), so this is narrower than [showVendorTokens].
+  final bool showVendorIdNumberOnly;
 
   @override
   State<GeneratedNumbersEntityBody> createState() =>
@@ -162,6 +170,7 @@ class _GeneratedNumbersEntityBodyState
       now: DateTime.now(),
       showClient: widget.showClientTokens,
       showVendor: widget.showVendorTokens,
+      showVendorIdNumber: widget.showVendorIdNumberOnly,
       company: widget.company,
     );
     return SettingsFormShell(
@@ -192,6 +201,7 @@ class _GeneratedNumbersEntityBodyState
                   onChanged: _writePattern,
                   showClientTokens: widget.showClientTokens,
                   showVendorTokens: widget.showVendorTokens,
+                  showVendorIdNumberOnly: widget.showVendorIdNumberOnly,
                 ),
               ),
             ),
@@ -235,9 +245,17 @@ class _PatternField extends StatelessWidget {
     final binding = settingsBindingOf(apiKey);
     final scope = FormSaveScope.maybeOf(context);
     final errors = host.fieldErrors[apiKey];
-    final errorText = (errors != null && errors.isNotEmpty)
+    final serverError = (errors != null && errors.isNotEmpty)
         ? errors.first
         : null;
+    // Client-side guard ported from the legacy app: a pattern with
+    // {$client_counter} but no distinguishing token mints duplicate numbers
+    // across clients. Shown inline at every cascade scope (the server doesn't
+    // validate it); a server-side 422 for this field still wins if present.
+    final localError = violatesClientCounterRule(controller.text)
+        ? context.tr('counter_pattern_error').replaceAll(':', r'$')
+        : null;
+    final errorText = serverError ?? localError;
     final field = TextField(
       controller: controller,
       focusNode: focusNode,
@@ -269,6 +287,7 @@ class _VariableChips extends StatelessWidget {
     required this.onChanged,
     required this.showClientTokens,
     required this.showVendorTokens,
+    required this.showVendorIdNumberOnly,
   });
 
   final TextEditingController controller;
@@ -277,6 +296,7 @@ class _VariableChips extends StatelessWidget {
   final ValueChanged<String> onChanged;
   final bool showClientTokens;
   final bool showVendorTokens;
+  final bool showVendorIdNumberOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -304,6 +324,9 @@ class _VariableChips extends StatelessWidget {
         _TokenSpec(token: 'vendor_custom3', customFieldKey: 'vendor3'),
         _TokenSpec(token: 'vendor_custom4', customFieldKey: 'vendor4'),
       ],
+      // Vendors tab: only {$vendor_id_number} (the backend substitutes it for a
+      // Vendor entity; the other vendor tokens are Expense-only).
+      if (showVendorIdNumberOnly) const _TokenSpec(token: 'vendor_id_number'),
       const _TokenSpec(token: 'user_id'),
       const _TokenSpec(token: 'user_custom1', customFieldKey: 'user1'),
       const _TokenSpec(token: 'user_custom2', customFieldKey: 'user2'),

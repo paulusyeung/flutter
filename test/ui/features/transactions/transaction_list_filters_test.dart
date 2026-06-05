@@ -101,6 +101,24 @@ void main() {
       expect(sent.containsKey('bank_integration_ids'), isFalse);
       expect(sent.containsKey('bank_integration_id'), isFalse);
     });
+
+    test(
+      'bank-account-scoped list is isEmbedded so it does not read/write the '
+      'standalone /transactions nav_state slot (filter-bleed regression)',
+      () {
+        final embedded = makeVm(bankAccountId: 'acct_1');
+        addTearDown(embedded.dispose);
+        expect(embedded.isEmbedded, isTrue);
+        expect(embedded.lockedFilterKeyIds, isNotEmpty);
+
+        // The standalone workspace list must stay non-embedded so it keeps
+        // persisting the user's "resume where you left off" filters.
+        final standalone = makeVm();
+        addTearDown(standalone.dispose);
+        expect(standalone.isEmbedded, isFalse);
+        expect(standalone.lockedFilterKeyIds, isEmpty);
+      },
+    );
   });
 
   group('buildTransactionFilterKeys — date range (P1)', () {

@@ -639,6 +639,45 @@ void main() {
     );
 
     test(
+      'a vendor- or bank-integration-scoped fetch also skips the shared cursor '
+      '(hasParentScope covers every server-narrowing embedded scope, exercised '
+      'here through the generic ensurePageLoadedTemplate)',
+      () async {
+        const scopes = <Map<String, Set<String>>>[
+          {
+            'vendor_id': {'v1'},
+          },
+          {
+            'bank_integration_ids': {'acct_1'},
+          },
+        ];
+        for (final scope in scopes) {
+          final (:repo, :api) = makeRepo(
+            pages: {
+              1: [apiClient('c1', updatedAt: 222)],
+            },
+          );
+          // Seed the shared cursor with an unscoped fetch.
+          await repo.ensurePageLoaded(companyId: 'co', page: 1);
+          // A parent-scoped fetch must not read the cursor — and since read
+          // and advance share the same `hasParentScope` gate, not reading
+          // proves not advancing too.
+          await repo.ensurePageLoaded(
+            companyId: 'co',
+            page: 1,
+            extraFilters: scope,
+          );
+          expect(
+            api.calls.last.since,
+            isNull,
+            reason: 'scoped fetch must not read the cursor: $scope',
+          );
+          expect(api.calls.last.sinceId, isNull);
+        }
+      },
+    );
+
+    test(
       'search term routes to the API filter param (server-side search)',
       () async {
         final (:repo, :api) = makeRepo(

@@ -41,6 +41,12 @@ class RecurringInvoiceEditScreen extends StatelessWidget {
           crossClientLineItemsMessage: ctx.tr('cross_client_line_items'),
           existing: existing,
           cloneFrom: cloneFrom,
+          useCommaAsDecimalPlace:
+              services
+                  .formatterIfReady(companyId)
+                  ?.settings
+                  .useCommaAsDecimalPlace ??
+              false,
           sync: services.sync,
           connectivity: services.connectivity,
         );
