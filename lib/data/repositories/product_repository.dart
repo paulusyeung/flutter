@@ -220,10 +220,45 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi>
 
   /// Save an existing product. The local row updates instantly via the watch
   /// stream; the outbox handles the round-trip.
+  ///
+  /// [stockChanged] must be true when the user edited `in_stock_quantity`.
+  /// The server's `UpdateProductRequest` silently drops `in_stock_quantity`
+  /// from a plain `PUT /products/{id}` unless the request also carries
+  /// `?update_in_stock_quantity=true` — so without the flag the edit would be
+  /// discarded and overwritten by the server's prior count on the next sync.
+  /// We ride the flag in via the reserved [kSaveQueryPayloadKey], which the
+  /// sync dispatcher strips from the body and promotes to the query string.
+  /// Only sent when the user actually changed the count, so a normal edit
+  /// never re-pushes (and thus never clobbers server-side inventory
+  /// adjustments from invoice/PO posting).
   Future<SaveResult<Product>> save({
     required String companyId,
     required Product product,
+    bool stockChanged = false,
   }) async {
+    // dedup deletes the prior pending update for this product and this save
+    // replaces it. If that pending row already carried the stock flag (e.g.
+    // an offline stock edit, then a navigate-away + non-stock edit), inherit
+    // it so the queued stock change isn't silently dropped. Online, the prior
+    // row has usually already drained, so there's nothing to inherit.
+    var includeStockParam = stockChanged;
+    if (!includeStockParam) {
+      final pending = await db.outboxDao
+          .watchPendingForEntity(
+            companyId: companyId,
+            entityType: entityTypeName,
+            entityId: product.id,
+            kind: MutationKind.update,
+          )
+          .first;
+      includeStockParam = pending.any(_carriesStockParam);
+    }
+    final payload = product.toApiJson(preserveTempId: true);
+    if (includeStockParam) {
+      payload[kSaveQueryPayloadKey] = const {
+        'update_in_stock_quantity': 'true',
+      };
+    }
     final companion = _domainToCompanion(product, companyId, isDirty: true);
     var rowId = 0;
     await db.transaction(() async {
@@ -237,7 +272,7 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi>
         companyId: companyId,
         entityId: product.id,
         kind: MutationKind.update,
-        payload: product.toApiJson(preserveTempId: true),
+        payload: payload,
       );
     });
     return SaveResult(entity: product, outboxRowId: rowId);
@@ -476,4 +511,15 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi>
 String _moneyString(Object raw) {
   if (raw is String) return raw;
   return raw.toString();
+}
+
+/// True when a pending outbox row's payload carries the
+/// `update_in_stock_quantity` save-query flag. Used by [ProductRepository.save]
+/// to inherit the flag across a dedup so an offline stock edit isn't dropped
+/// by a later non-stock edit to the same product.
+bool _carriesStockParam(OutboxRow row) {
+  final decoded = jsonDecode(row.payload);
+  if (decoded is! Map) return false;
+  final saveQuery = decoded[kSaveQueryPayloadKey];
+  return saveQuery is Map && saveQuery['update_in_stock_quantity'] == 'true';
 }

@@ -35,8 +35,11 @@ class OverridableReorderableFieldList extends StatelessWidget {
         // Encode the list as a CSV string so the (String?-typed) override
         // toggle can detect "set vs. unset" via null check. No real callsite
         // calls `read` for the value; the override checkbox only reads it
-        // for the "is set" check.
-        return list.isEmpty ? null : list.join(',');
+        // for the "is set" check. A present-but-empty list is an explicit
+        // empty override (the user cleared every variable) — return '' so it
+        // reads as overridden, not as "inherit from parent" (which only an
+        // absent key, `null`, should signal).
+        return list.join(',');
       },
       write: (CompanySettings s, String? value) {
         final next = Map<String, List<String>>.from(

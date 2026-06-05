@@ -27,6 +27,7 @@ class TwoFactorViewModel extends ChangeNotifier {
   TwoFactorViewModel({
     required this.repo,
     required this.isHosted,
+    required this.email,
     required bool initiallyEnabled,
     required bool initiallyVerifiedPhone,
     String initialPhone = '',
@@ -36,6 +37,11 @@ class TwoFactorViewModel extends ChangeNotifier {
 
   final TwoFactorRepository repo;
   final bool isHosted;
+
+  /// The signed-in user's email. The server's `sms_reset` endpoints look the
+  /// user up by email and text the phone on file — so the SMS flow keys off
+  /// this, not a phone the user types here. Kept current via [syncFromSession].
+  String email;
 
   // Live, screen-driven state.
   bool _enabled;
@@ -57,13 +63,17 @@ class TwoFactorViewModel extends ChangeNotifier {
   bool _needsPassword = false;
   bool get needsPassword => _needsPassword;
 
-  // Form fields.
+  /// The on-file phone (from User Details), shown read-only on the SMS step.
+  /// The server texts this number; it's not editable here. Kept current via
+  /// [syncFromSession] so saving a phone in Details unblocks the enable flow.
   String phone;
+
+  // Form fields.
   String smsCode = '';
   String oneTimePassword = '';
 
   // Server-supplied QR data — populated on the qrLoading → qrShow transition.
-  String qrCodeBase64 = '';
+  String qrCode = '';
   String secret = '';
 
   // Errors.
@@ -86,10 +96,6 @@ class TwoFactorViewModel extends ChangeNotifier {
     _fieldErrors = const {};
   }
 
-  void setPhone(String value) {
-    phone = value.trim();
-  }
-
   void setSmsCode(String value) {
     smsCode = value.trim();
   }
@@ -106,6 +112,14 @@ class TwoFactorViewModel extends ChangeNotifier {
     if (_busy) return;
     _clearError();
     if (isHosted && !_verifiedPhone) {
+      if (phone.isEmpty) {
+        // React parity: the phone must be set + saved in User Details first.
+        // The server texts the on-file number (looked up by email); there's no
+        // reliable save-then-send here (the save drains async via the outbox).
+        _setError(key: 'enter_phone_to_enable_two_factor');
+        notifyListeners();
+        return;
+      }
       _step = TwoFactorStep.phoneEntry;
       notifyListeners();
       return;
@@ -126,7 +140,7 @@ class TwoFactorViewModel extends ChangeNotifier {
     _clearError();
     notifyListeners();
     try {
-      await repo.sendSmsCode(phone: phone);
+      await repo.sendSmsCode(email: email);
       _step = TwoFactorStep.smsVerify;
     } on ValidationException catch (e) {
       _fieldErrors = e.fieldErrors;
@@ -153,7 +167,7 @@ class TwoFactorViewModel extends ChangeNotifier {
     _clearError();
     notifyListeners();
     try {
-      await repo.verifySmsCode(code: smsCode, phone: phone);
+      await repo.verifySmsCode(code: smsCode, email: email, phone: phone);
       _verifiedPhone = true;
       await _loadQr();
     } on ValidationException catch (e) {
@@ -178,7 +192,7 @@ class TwoFactorViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       final setup = await repo.fetchSetup();
-      qrCodeBase64 = setup.qrCode;
+      qrCode = setup.qrCode;
       secret = setup.secret;
       _step = TwoFactorStep.qrShow;
     } on ApiException catch (e) {
@@ -261,9 +275,18 @@ class TwoFactorViewModel extends ChangeNotifier {
     if (_step != TwoFactorStep.idle) return;
     final newEnabled = session.googleTwoFactorEnabled;
     final newVerifiedPhone = session.verifiedPhoneNumber;
-    if (newEnabled == _enabled && newVerifiedPhone == _verifiedPhone) return;
+    final newPhone = session.userPhone;
+    final newEmail = session.userEmail;
+    if (newEnabled == _enabled &&
+        newVerifiedPhone == _verifiedPhone &&
+        newPhone == phone &&
+        newEmail == email) {
+      return;
+    }
     _enabled = newEnabled;
     _verifiedPhone = newVerifiedPhone;
+    phone = newPhone;
+    email = newEmail;
     notifyListeners();
   }
 
@@ -274,7 +297,7 @@ class TwoFactorViewModel extends ChangeNotifier {
     _step = TwoFactorStep.idle;
     smsCode = '';
     oneTimePassword = '';
-    qrCodeBase64 = '';
+    qrCode = '';
     secret = '';
     _clearError();
     notifyListeners();

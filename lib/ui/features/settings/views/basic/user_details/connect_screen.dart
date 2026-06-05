@@ -110,6 +110,14 @@ class _ConnectedSection extends StatelessWidget {
   Future<void> _onDisconnect(BuildContext context, String action) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
     final vm = context.read<UserDetailsViewModel>();
+    // Connect/disconnect are immediate, full-user mutations on this same
+    // entity; running one while the profile draft is dirty risks the pending
+    // save re-sending the stale oauth state and undoing it. Match the legacy
+    // app: make the user save or discard first.
+    if (vm.isDirty) {
+      Notify.info(context, context.tr('error_unsaved_changes'));
+      return;
+    }
     final successLabel = context.tr('saved_settings');
     final errorLabel = context.tr('error_refresh_page');
     try {
@@ -149,6 +157,11 @@ class _ConnectSectionState extends State<_ConnectSection> {
     if (_busy) return;
     final messenger = ScaffoldMessenger.maybeOf(context);
     final vm = context.read<UserDetailsViewModel>();
+    // See _onDisconnect: don't connect over a dirty draft.
+    if (vm.isDirty) {
+      Notify.info(context, context.tr('error_unsaved_changes'));
+      return;
+    }
     final successLabel = context.tr('saved_settings');
     final errorLabel = context.tr('error_refresh_page');
     setState(() => _busy = true);

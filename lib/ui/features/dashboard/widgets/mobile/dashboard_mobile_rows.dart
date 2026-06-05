@@ -242,7 +242,13 @@ class _RowShell extends StatelessWidget {
           children: [
             Expanded(child: leading),
             const SizedBox(width: 10),
-            trailing,
+            // Cap the amount/date column so an exotic long amount ellipsizes
+            // instead of overflowing the row on a narrow phone. Short amounts
+            // (the common case) stay intrinsic and leave the rest to `leading`.
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 160),
+              child: trailing,
+            ),
           ],
         ),
       ),
@@ -324,6 +330,8 @@ class _TrailingAmountDate extends StatelessWidget {
       children: [
         Text(
           amountText,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: 13.5,
             fontWeight: FontWeight.w500,
@@ -332,7 +340,12 @@ class _TrailingAmountDate extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 2),
-        Text(dateText, style: TextStyle(fontSize: 10.5, color: dateColor)),
+        Text(
+          dateText,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: 10.5, color: dateColor),
+        ),
       ],
     );
   }

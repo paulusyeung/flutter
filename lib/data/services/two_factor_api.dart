@@ -69,14 +69,26 @@ class TwoFactorApi {
     );
   }
 
-  /// Trigger an SMS code to the given phone (hosted gating before enable).
-  Future<void> sendSmsCode({required String phone}) async {
-    await _api.postJson('/api/v1/sms_reset', body: {'phone': phone});
+  /// Send the phone-verification SMS (hosted gating before enable). The server
+  /// looks the user up by `email` and texts the phone already on their record —
+  /// matching React's flow — so the phone must be saved in User Details first.
+  /// Body is `{ "email": ... }` (the server's `Generate2faRequest` requires it).
+  Future<void> sendSmsCode({required String email}) async {
+    await _api.postJson('/api/v1/sms_reset', body: {'email': email});
   }
 
-  /// Verify the SMS code the user just received. On success the server flips
-  /// `verified_phone_number` to true on the user record.
-  Future<void> verifySmsCode({required String code}) async {
-    await _api.postJson('/api/v1/sms_reset/confirm', body: {'sms_code': code});
+  /// Verify the SMS code. `?validate_only=true` tells the server to flip
+  /// `verified_phone_number = true` (the phone-verify path); WITHOUT it the
+  /// server's `confirm2faResetCode` *disables* 2FA instead. Body carries both
+  /// `code` and `email` (the server's `Confirm2faRequest` requires both).
+  Future<void> verifySmsCode({
+    required String code,
+    required String email,
+  }) async {
+    await _api.postJson(
+      '/api/v1/sms_reset/confirm',
+      query: const {'validate_only': 'true'},
+      body: {'code': code, 'email': email},
+    );
   }
 }

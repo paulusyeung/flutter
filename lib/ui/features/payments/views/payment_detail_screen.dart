@@ -5,6 +5,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/payment.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/custom_fields_detail_card.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
 import 'package:admin/ui/core/detail/build_standard_documents_tab.dart';
@@ -85,6 +86,23 @@ class _PaymentDetailScreenState extends State<PaymentDetailScreen>
                             payment: p,
                             formatter: formatter,
                           ),
+                          if (p.customValue1.isNotEmpty ||
+                              p.customValue2.isNotEmpty ||
+                              p.customValue3.isNotEmpty ||
+                              p.customValue4.isNotEmpty) ...[
+                            SizedBox(height: InSpacing.md(context)),
+                            CustomFieldsDetailCard(
+                              companyId: _companyId,
+                              prefix: 'payment',
+                              values: [
+                                p.customValue1,
+                                p.customValue2,
+                                p.customValue3,
+                                p.customValue4,
+                              ],
+                              formatter: formatter,
+                            ),
+                          ],
                         ],
                       ),
                     ),

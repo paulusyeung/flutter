@@ -6,7 +6,9 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/product.dart';
+import 'package:admin/domain/product_tax_categories.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/custom_fields_detail_card.dart';
 import 'package:admin/ui/core/widgets/detail_info_row.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/utils/formatting.dart';
@@ -89,6 +91,7 @@ class ProductDetailCardsGrid extends StatelessWidget {
     final rightCards = <Widget>[
       if (hasInventory) _InventoryCard(product: product),
       if (hasTaxes) _TaxesCard(product: product, enabledSlots: enabledTaxSlots),
+      if (_hasAnyCustomValue) _customFieldsCard(),
     ];
     return IntrinsicHeight(
       child: Row(
@@ -112,9 +115,28 @@ class ProductDetailCardsGrid extends StatelessWidget {
       _DetailsCard(product: product),
       if (hasInventory) _InventoryCard(product: product),
       if (hasTaxes) _TaxesCard(product: product, enabledSlots: enabledTaxSlots),
+      if (_hasAnyCustomValue) _customFieldsCard(),
     ];
     return _stack(context, cards);
   }
+
+  bool get _hasAnyCustomValue =>
+      product.customValue1.isNotEmpty ||
+      product.customValue2.isNotEmpty ||
+      product.customValue3.isNotEmpty ||
+      product.customValue4.isNotEmpty;
+
+  CustomFieldsDetailCard _customFieldsCard() => CustomFieldsDetailCard(
+    companyId: companyId,
+    prefix: 'product',
+    values: [
+      product.customValue1,
+      product.customValue2,
+      product.customValue3,
+      product.customValue4,
+    ],
+    formatter: formatter,
+  );
 
   Widget _stack(BuildContext context, List<Widget> cards) {
     return Column(
@@ -199,15 +221,6 @@ class _TaxesCard extends StatelessWidget {
   final Product product;
   final int enabledSlots;
 
-  static const _categoryLabelKeys = {
-    '1': 'physical_goods',
-    '2': 'services',
-    '3': 'digital_products',
-    '4': 'shipping',
-    '5': 'tax_exempt',
-    '6': 'reduced_tax',
-  };
-
   String _formatTaxRow(BuildContext context, String name, Decimal rate) {
     if (name.isEmpty && rate == Decimal.zero) return '—';
     final label = name.isEmpty ? context.tr('tax') : name;
@@ -218,7 +231,7 @@ class _TaxesCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final rows = <Widget>[];
     if (product.taxId.isNotEmpty) {
-      final key = _categoryLabelKeys[product.taxId];
+      final key = kProductTaxCategories[product.taxId];
       rows.add(
         DetailInfoRow(
           label: context.tr('tax_category'),

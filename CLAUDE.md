@@ -220,7 +220,7 @@ Full step-by-step shapes, "Standard action helpers" factories, the "Non-standard
 - 422 validation errors carry `Map<String, List<String>> fieldErrors`. Edit forms surface these inline.
 - **409 conflicts** are parked far in the future (1 year) instead of auto-retried. `ConflictResolutionSheet` either re-enqueues a fresh mutation or discards.
 - **404 on outbox drain** is treated as a conflict (entity deleted server-side while we held a pending mutation). Same `Conflict` path applies — the sheet offers "delete locally" / "recreate".
-- **Server-side list ordering is assumed ascending `updated_at`** — the keyset cursor in `ApiClient.getList` reads `data.last` as the high-water mark. Matches Invoice Ninja's default list endpoints.
+- **Server-side list ordering / cursor.** `ApiClient.getList` reads `data.last` as a keyset high-water mark (`updated_at` + `id`). Caveat verified against the server source: the default list order is actually `id DESC` (`QueryFilters::ensureDefaultOrder`), **not** ascending `updated_at`, and `since_id` has no server handler — so the load-bearing paging mechanism is plain **offset** (`page`/`per_page`), and the cursor's `updated_at` is applied only as a `>=` delta filter (it narrows, never reorders). Page-by-page lists converge via id-keyed upserts + periodic full `refreshAll`; don't assume the cursor alone guarantees completeness.
 - The local `is_dirty` flag is **layered onto the domain model** in `<Repository>._fromRow` (e.g. `ClientRepository._fromRow`) — `<Entity>.fromApi` defaults it to `false`, the repo overlays the value from the Drift row. Without the overlay, an unsaved edit shows up as clean after app restart.
 
 ## Data loading — bundled vs per-entity

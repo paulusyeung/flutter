@@ -1,8 +1,7 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
@@ -48,6 +47,7 @@ class _UserDetailsTwoFactorScreenState
     return TwoFactorViewModel(
       repo: services.twoFactor,
       isHosted: session.isHosted,
+      email: session.userEmail,
       initiallyEnabled: session.googleTwoFactorEnabled,
       initiallyVerifiedPhone: session.verifiedPhoneNumber,
       initialPhone: session.userPhone,
@@ -188,7 +188,7 @@ class _EnableCta extends StatelessWidget {
         Row(
           children: [
             FilledButton.icon(
-              onPressed: vm.busy ? null : vm.startEnable,
+              onPressed: vm.busy ? null : () => _onEnable(context),
               icon: const Icon(Icons.shield_outlined, size: 18),
               label: Text(context.tr('enable')),
               style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
@@ -197,6 +197,20 @@ class _EnableCta extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  /// Tapping Enable can fail fast on hosted when no phone is on file — surface
+  /// that (`enter_phone_to_enable_two_factor`) since the idle screen has no
+  /// inline error slot.
+  Future<void> _onEnable(BuildContext context) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    await vm.startEnable();
+    if (!context.mounted) return;
+    if (vm.errorMessage != null) {
+      Notify.error(context, vm.errorMessage!, messenger: messenger);
+    } else if (vm.errorKey != null) {
+      Notify.error(context, context.tr(vm.errorKey!), messenger: messenger);
+    }
   }
 }
 
@@ -327,20 +341,28 @@ class _PhoneEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.inTheme;
     return FormSection(
-      title: context.tr('phone_number'),
+      title: context.tr('verify_phone_number'),
       children: [
         Text(
-          context.tr('enter_phone_to_enable_two_factor'),
-          style: TextStyle(color: context.inTheme.ink2, height: 1.4),
+          context.tr('two_factor_verify_phone_help'),
+          style: TextStyle(color: tokens.ink2, height: 1.4),
         ),
         SizedBox(height: InSpacing.md(context)),
-        _LabeledField(
-          label: context.tr('phone_number'),
-          keyboardType: TextInputType.phone,
-          initialValue: vm.phone,
-          errorText: vm.fieldErrors['phone']?.first,
-          onChanged: vm.setPhone,
+        // Phone is read-only here — it's sourced from (and edited in) the
+        // Details tab; the server texts whatever number is on file.
+        Row(
+          children: [
+            Icon(Icons.phone_outlined, size: 18, color: tokens.ink3),
+            const SizedBox(width: InSpacing.sm),
+            Expanded(
+              child: Text(
+                vm.phone,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ),
+          ],
         ),
         SizedBox(height: InSpacing.lg(context)),
         Row(
@@ -404,7 +426,8 @@ class _SmsVerify extends StatelessWidget {
           label: context.tr('sms_code'),
           keyboardType: TextInputType.number,
           autofillHints: const [AutofillHints.oneTimeCode],
-          errorText: vm.fieldErrors['sms_code']?.first,
+          // Server validates the SMS code under `code` (Confirm2faRequest).
+          errorText: vm.fieldErrors['code']?.first,
           onChanged: vm.setSmsCode,
         ),
         SizedBox(height: InSpacing.lg(context)),
@@ -479,7 +502,7 @@ class _QrShow extends StatelessWidget {
           style: TextStyle(color: context.inTheme.ink2, height: 1.4),
         ),
         SizedBox(height: InSpacing.lg(context)),
-        Center(child: _QrImage(base64Png: vm.qrCodeBase64)),
+        Center(child: _QrImage(qrData: vm.qrCode)),
         SizedBox(height: InSpacing.lg(context)),
         Text(
           context.tr('or_enter_code_manually'),
@@ -542,25 +565,19 @@ class _QrShow extends StatelessWidget {
 }
 
 class _QrImage extends StatelessWidget {
-  const _QrImage({required this.base64Png});
+  const _QrImage({required this.qrData});
 
-  final String base64Png;
+  /// The `otpauth://totp/...` URL the server returns under `data.qrCode`
+  /// (Laravel `Google2FA::getQRCodeUrl`). It's a URL string, not an image, so
+  /// we render it client-side — matching the legacy app (`QrImageView(data:)`)
+  /// and React (`<QRCode value={...} />`).
+  final String qrData;
 
   @override
   Widget build(BuildContext context) {
-    // The server may return either a raw base64 PNG or a data: URI; tolerate
-    // both. An empty / un-decodable payload renders as a 220px placeholder so
-    // the layout doesn't jump and the user sees something is wrong.
-    Uint8List? bytes;
-    final raw = base64Png.contains(',') ? base64Png.split(',').last : base64Png;
-    if (raw.isNotEmpty) {
-      try {
-        bytes = base64Decode(raw);
-      } catch (_) {
-        bytes = null;
-      }
-    }
-    if (bytes == null) {
+    // Empty payload (server hiccup) → 220px placeholder so the layout doesn't
+    // jump; the secret below stays available for manual entry.
+    if (qrData.isEmpty) {
       return Container(
         width: 220,
         height: 220,
@@ -579,11 +596,20 @@ class _QrImage extends StatelessWidget {
         borderRadius: BorderRadius.circular(InRadii.r2),
         border: Border.all(color: context.inTheme.border),
       ),
-      child: Image.memory(
-        bytes,
-        width: 220,
-        height: 220,
-        gaplessPlayback: true,
+      // Force black-on-white so the code scans regardless of theme.
+      child: QrImageView(
+        data: qrData,
+        version: QrVersions.auto,
+        size: 220,
+        backgroundColor: Colors.white,
+        eyeStyle: const QrEyeStyle(
+          eyeShape: QrEyeShape.square,
+          color: Colors.black,
+        ),
+        dataModuleStyle: const QrDataModuleStyle(
+          dataModuleShape: QrDataModuleShape.square,
+          color: Colors.black,
+        ),
       ),
     );
   }
@@ -631,7 +657,6 @@ class _LabeledField extends StatelessWidget {
   const _LabeledField({
     required this.label,
     this.hint,
-    this.initialValue,
     this.keyboardType,
     this.errorText,
     this.autofillHints,
@@ -640,7 +665,6 @@ class _LabeledField extends StatelessWidget {
 
   final String label;
   final String? hint;
-  final String? initialValue;
   final TextInputType? keyboardType;
   final String? errorText;
   final Iterable<String>? autofillHints;
@@ -663,7 +687,6 @@ class _LabeledField extends StatelessWidget {
           ),
         ),
         TextFormField(
-          initialValue: initialValue,
           decoration: InputDecoration(hintText: hint, errorText: errorText),
           keyboardType: keyboardType,
           autofillHints: autofillHints,

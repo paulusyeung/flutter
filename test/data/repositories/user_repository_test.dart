@@ -104,7 +104,9 @@ void main() {
           permissions: 'view_client,edit_invoice,create_all',
           isAdmin: true,
           isOwner: false,
-          notifications: NotificationsApi(email: ['invoice_viewed_all']),
+          notifications: <String, dynamic>{
+            'email': ['invoice_viewed_all'],
+          },
         ),
       );
       await repo.applyApiResponse(companyId: 'co_1', api: api);
@@ -262,7 +264,9 @@ void main() {
         companyUser: CompanyUserApi(
           permissions: 'view_client',
           isAdmin: false,
-          notifications: NotificationsApi(email: ['payment_success_all']),
+          notifications: <String, dynamic>{
+            'email': ['payment_success_all'],
+          },
         ),
       );
       final domain = User.fromApi(api);
@@ -272,7 +276,9 @@ void main() {
       );
       expect(decoded.id, 'u_6');
       expect(decoded.companyUser?.permissions, 'view_client');
-      expect(decoded.companyUser?.notifications.email, ['payment_success_all']);
+      expect(decoded.companyUser?.notifications['email'], [
+        'payment_success_all',
+      ]);
     });
 
     test('notification placement — login flag top-level, special codes in '
@@ -304,6 +310,74 @@ void main() {
       // …but the dead notification keys no longer leak into it.
       expect(settings.containsKey('task_assigned_notification'), isFalse);
       expect(settings.containsKey('user_logged_in_notification'), isFalse);
+    });
+
+    test('react_settings is omitted from the save body (server keeps it)', () {
+      // The server sends react_settings; we don't model it. The save body must
+      // NOT carry the key, else the server's company_user fill() wipes it.
+      final api = UserApi.fromJson(<String, dynamic>{
+        'id': 'u_8',
+        'company_user': <String, dynamic>{
+          'permissions': '',
+          'notifications': <String, dynamic>{'email': <String>[]},
+          'settings': <String, dynamic>{},
+          'react_settings': <String, dynamic>{'dark_mode': true},
+        },
+      });
+      final json =
+          jsonDecode(jsonEncode(User.fromApi(api).toApi().toJson()))
+              as Map<String, dynamic>;
+      final companyUser = json['company_user'] as Map<String, dynamic>;
+      expect(companyUser.containsKey('react_settings'), isFalse);
+    });
+
+    test('non-email notification channels survive an email edit', () {
+      final api = UserApi.fromJson(<String, dynamic>{
+        'id': 'u_9',
+        'company_user': <String, dynamic>{
+          'notifications': <String, dynamic>{
+            'email': <String>['invoice_sent_all'],
+            'slack': <String>['payment_success_all'],
+          },
+        },
+      });
+      final edited = User.fromApi(
+        api,
+      ).copyWith(notificationsEmail: const ['quote_sent_all']);
+      final json =
+          jsonDecode(jsonEncode(edited.toApi().toJson()))
+              as Map<String, dynamic>;
+      final notifications =
+          (json['company_user'] as Map<String, dynamic>)['notifications']
+              as Map<String, dynamic>;
+      expect(notifications['email'], ['quote_sent_all']);
+      expect(notifications['slack'], ['payment_success_all']);
+    });
+
+    test('accent_color reset clears the stored value (others preserved)', () {
+      final loaded = User.fromApi(
+        UserApi.fromJson(<String, dynamic>{
+          'id': 'u_10',
+          'company_user': <String, dynamic>{
+            'settings': <String, dynamic>{
+              'accent_color': '#112233',
+              'keep_me': 'x',
+            },
+          },
+        }),
+      );
+      expect(loaded.companyUserSettings.accentColor, '#112233');
+      final reset = loaded.copyWith(
+        companyUserSettings: const CompanyUserSettings(accentColor: ''),
+      );
+      final json =
+          jsonDecode(jsonEncode(reset.toApi().toJson()))
+              as Map<String, dynamic>;
+      final settings =
+          (json['company_user'] as Map<String, dynamic>)['settings']
+              as Map<String, dynamic>;
+      expect(settings['accent_color'], '');
+      expect(settings['keep_me'], 'x');
     });
   });
 }

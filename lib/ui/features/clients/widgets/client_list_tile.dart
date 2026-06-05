@@ -185,24 +185,31 @@ class _ClientListTileState extends State<ClientListTile> {
         const SizedBox(width: 12),
         Expanded(child: _identity(context, tokens, displayName)),
         const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _money(
-              formattedOutstanding,
-              isZero: !outstandingPositive,
-              bold: outstandingPositive,
-              color: outstandingPositive ? tokens.overdue : tokens.ink3,
-            ),
-            const SizedBox(height: 2),
-            _money(
-              formattedPaid,
-              isZero: w.client.paidToDate == Decimal.zero,
-              color: tokens.ink3,
-              fontSize: 11,
-            ),
-          ],
+        // Cap the money column so a pathological amount (huge balance in a
+        // wide currency) ellipsizes instead of overflowing the row. The cap is
+        // generous — realistic balances render in full, so the identity
+        // (Expanded above) keeps its normal width; only extreme values clip.
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 160),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _money(
+                formattedOutstanding,
+                isZero: !outstandingPositive,
+                bold: outstandingPositive,
+                color: outstandingPositive ? tokens.overdue : tokens.ink3,
+              ),
+              const SizedBox(height: 2),
+              _money(
+                formattedPaid,
+                isZero: w.client.paidToDate == Decimal.zero,
+                color: tokens.ink3,
+                fontSize: 11,
+              ),
+            ],
+          ),
         ),
         if (state != null) ...[
           const SizedBox(width: 8),
@@ -306,6 +313,8 @@ class _ClientListTileState extends State<ClientListTile> {
   }) {
     return Text(
       isZero ? '—' : text,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
       style: GoogleFonts.jetBrainsMono(
         fontSize: fontSize,
         fontWeight: bold ? FontWeight.w500 : FontWeight.w400,

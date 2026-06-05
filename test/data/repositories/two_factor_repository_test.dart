@@ -42,12 +42,12 @@ class _FakeApi implements TwoFactorApi {
   Future<void> disable() => _run<void>('disable', null);
 
   @override
-  Future<void> sendSmsCode({required String phone}) =>
-      _run<void>('sendSmsCode', null, {'phone': phone});
+  Future<void> sendSmsCode({required String email}) =>
+      _run<void>('sendSmsCode', null, {'email': email});
 
   @override
-  Future<void> verifySmsCode({required String code}) =>
-      _run<void>('verifySmsCode', null, {'sms_code': code});
+  Future<void> verifySmsCode({required String code, required String email}) =>
+      _run<void>('verifySmsCode', null, {'code': code, 'email': email});
 
   @override
   Object? noSuchMethod(Invocation invocation) => throw UnimplementedError();
@@ -132,14 +132,19 @@ void main() {
     expect(auth.refreshCount, 1);
   });
 
-  test('verifySmsCode marks phone verified with the provided phone', () async {
-    await repo.verifySmsCode(code: '000000', phone: '+15551234');
+  test('verifySmsCode forwards code+email and marks phone verified', () async {
+    await repo.verifySmsCode(
+      code: '000000',
+      email: 'user@example.com',
+      phone: '+15551234',
+    );
+    expect(api.bodies.single, {'code': '000000', 'email': 'user@example.com'});
     expect(auth.phoneVerifiedCalled, isTrue);
     expect(auth.lastVerifiedPhone, '+15551234');
   });
 
-  test('sendSmsCode passes the phone payload through', () async {
-    await repo.sendSmsCode(phone: '+15551234');
-    expect(api.bodies.single, {'phone': '+15551234'});
+  test('sendSmsCode passes the email payload through', () async {
+    await repo.sendSmsCode(email: 'user@example.com');
+    expect(api.bodies.single, {'email': 'user@example.com'});
   });
 }

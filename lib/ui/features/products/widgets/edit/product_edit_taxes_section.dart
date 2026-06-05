@@ -7,6 +7,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/tax_rate.dart';
 import 'package:admin/data/models/value/parsing.dart';
+import 'package:admin/domain/product_tax_categories.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/edit/entity_edit_field.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
@@ -29,17 +30,6 @@ class ProductEditTaxesSection extends StatelessWidget {
   const ProductEditTaxesSection({super.key, required this.vm});
 
   final ProductEditViewModel vm;
-
-  /// Six standard product tax category codes — fixed enum that maps to the
-  /// localized labels. The wire value is the string `'1'`..`'6'`.
-  static const _taxCategoryOptions = [
-    ('1', 'physical_goods'),
-    ('2', 'services'),
-    ('3', 'digital_products'),
-    ('4', 'shipping'),
-    ('5', 'tax_exempt'),
-    ('6', 'reduced_tax'),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -66,12 +56,16 @@ class ProductEditTaxesSection extends StatelessWidget {
                     labelText: context.tr('tax_category'),
                   ),
                   initialValue:
-                      _taxCategoryOptions.any((o) => o.$1 == vm.draft.taxId)
+                      kProductTaxCategories.containsKey(vm.draft.taxId)
                       ? vm.draft.taxId
                       : null,
                   items: [
-                    for (final (id, key) in _taxCategoryOptions)
-                      DropdownMenuItem(value: id, child: Text(context.tr(key))),
+                    for (final MapEntry(key: id, value: labelKey)
+                        in kProductTaxCategories.entries)
+                      DropdownMenuItem(
+                        value: id,
+                        child: Text(context.tr(labelKey)),
+                      ),
                   ],
                   onChanged: (v) => vm.setTaxId(v ?? ''),
                 ),

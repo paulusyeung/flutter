@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/models/api/client_api_model.dart';
+import 'package:admin/data/models/api/contact_api_model.dart';
 import 'package:admin/data/models/api/location_api_model.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
@@ -407,6 +408,54 @@ void main() {
       },
     );
 
+    test(
+      'contact is_locked / last_login survive a local edit-save (the '
+      'contacts-card "unsubscribed" icon must not blank until next sync)',
+      () async {
+        final (:repo, :api) = makeRepo();
+        final apiWithContact = ClientApi(
+          id: 'c1',
+          name: 'Acme',
+          updatedAt: 1700000000,
+          contacts: const [
+            ContactApi(
+              id: 'ct1',
+              firstName: 'Pat',
+              email: 'pat@acme.test',
+              isPrimary: true,
+              isLocked: true,
+              lastLogin: 1699000000,
+            ),
+          ],
+        );
+        await repo.save(
+          companyId: 'co',
+          client: Client.fromApi(apiWithContact),
+        );
+
+        final back = await repo.watch(companyId: 'co', id: 'c1').first;
+        expect(back!.contacts.single.isLocked, isTrue);
+        expect(back.contacts.single.lastLogin, isNotNull);
+
+        // A local rename must NOT blank the read-only contact metadata.
+        // `Contact.toApiJson` omits is_locked/last_login, so without the
+        // payload re-injection in `_domainToCompanion` they'd reset to defaults
+        // locally until the next server sync re-embedded them.
+        await repo.save(
+          companyId: 'co',
+          client: back.copyWith(name: 'Acme Renamed'),
+        );
+        final edited = await repo.watch(companyId: 'co', id: 'c1').first;
+        expect(edited!.name, 'Acme Renamed');
+        expect(
+          edited.contacts.single.isLocked,
+          isTrue,
+          reason: 'editing the client must preserve contact is_locked locally',
+        );
+        expect(edited.contacts.single.lastLogin, isNotNull);
+      },
+    );
+
     test('deleteLocation enqueues a location_delete row', () async {
       final (:repo, :api) = makeRepo();
       await repo.deleteLocation(
@@ -545,6 +594,51 @@ void main() {
     );
 
     test(
+      'a client-scoped fetch neither reads nor advances the shared cursor '
+      '(an embedded detail tab must not corrupt the standalone list)',
+      () async {
+        final (:repo, :api) = makeRepo(
+          pages: {
+            1: [apiClient('c1', updatedAt: 111)],
+          },
+        );
+
+        // 1) An unscoped fetch advances the shared (company, entity) cursor.
+        await repo.ensurePageLoaded(companyId: 'co', page: 1);
+        final cursor = await db.syncStateDao.read(
+          companyId: 'co',
+          entityType: 'client',
+        );
+        expect(cursor.id, 'c1', reason: 'unscoped fetch advances the cursor');
+
+        // 2) A client-scoped fetch must NOT read the cursor — it offset-
+        //    paginates its narrowed view from page 1 instead.
+        await repo.ensurePageLoaded(
+          companyId: 'co',
+          page: 1,
+          extraFilters: const {
+            'client_id': {'c1'},
+          },
+        );
+        expect(
+          api.calls.last.since,
+          isNull,
+          reason: 'scoped fetch must not read the shared cursor',
+        );
+        expect(api.calls.last.sinceId, isNull);
+
+        // 3) ...and must NOT have advanced it: the next unscoped fetch still
+        //    reads the step-1 high-water mark.
+        await repo.ensurePageLoaded(companyId: 'co', page: 1);
+        expect(
+          api.calls.last.sinceId,
+          'c1',
+          reason: 'scoped fetch left the unscoped cursor intact',
+        );
+      },
+    );
+
+    test(
       'search term routes to the API filter param (server-side search)',
       () async {
         final (:repo, :api) = makeRepo(
@@ -631,6 +725,30 @@ void main() {
       );
 
       expect(api.calls.single.filters.containsKey('country_id'), isFalse);
+    });
+
+    test('ensurePageLoaded remaps the date-between window slots to the '
+        'server-honored created_between / updated_between params', () async {
+      final (:repo, :api) = makeRepo(pages: {1: const <ClientApi>[]});
+
+      await repo.ensurePageLoaded(
+        companyId: 'co',
+        page: 1,
+        extraFilters: const {
+          // `DateColumnFilterKey` stores the 3-part `<column>,<start>,<end>`
+          // window; the server has no `*_at_range` handler.
+          'created_at_range': {'created_at,2026-01-01,2026-03-31'},
+          'updated_at_range': {'updated_at,2026-02-01,2026-02-28'},
+        },
+      );
+
+      final filters = api.calls.single.filters;
+      // Re-keyed to the honored param, leading column token stripped → 2-part.
+      expect(filters['created_between'], '2026-01-01,2026-03-31');
+      expect(filters['updated_between'], '2026-02-01,2026-02-28');
+      // The silently-ignored `*_at_range` names must NOT reach the wire.
+      expect(filters.containsKey('created_at_range'), isFalse);
+      expect(filters.containsKey('updated_at_range'), isFalse);
     });
 
     test('ensurePageLoaded preserves is_dirty=true rows so a paged refresh '

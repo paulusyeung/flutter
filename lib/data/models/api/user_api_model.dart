@@ -85,9 +85,15 @@ abstract class UserApi with _$UserApi {
       _$UserApiFromJson(json);
 }
 
-/// Per-(user, company) record. Holds the notifications array and the loose
-/// `settings` blob (accent_color, etc.) we round-trip verbatim — the server
-/// accepts unknown keys, so anything we don't model here stays on the wire.
+/// Per-(user, company) record. `notifications` and `settings` are kept as loose
+/// maps we round-trip verbatim: the User Details screen reads
+/// `notifications.email` and `settings.accent_color` but re-emits the whole maps
+/// on save, so unmodelled keys (`notifications.slack`, `react_settings`,
+/// `settings.*` React preferences, …) survive. This matters because the server's
+/// admin branch fills the `company_user` pivot wholesale — a missing/empty
+/// sub-key would wipe it. We deliberately don't model `react_settings` /
+/// `slack_webhook_url` / `shop_restricted`: not modelling them keeps them off our
+/// write body entirely, so the server leaves them untouched.
 @freezed
 abstract class CompanyUserApi with _$CompanyUserApi {
   const factory CompanyUserApi({
@@ -95,27 +101,12 @@ abstract class CompanyUserApi with _$CompanyUserApi {
     @JsonKey(name: 'is_owner') @Default(false) bool isOwner,
     @JsonKey(name: 'is_admin') @Default(false) bool isAdmin,
     @JsonKey(name: 'is_locked') @Default(false) bool isLocked,
-    @Default(NotificationsApi()) NotificationsApi notifications,
+    @Default(<String, dynamic>{}) Map<String, dynamic> notifications,
     @Default(<String, dynamic>{}) Map<String, dynamic> settings,
-    @JsonKey(name: 'react_settings')
-    @Default(<String, dynamic>{})
-    Map<String, dynamic> reactSettings,
   }) = _CompanyUserApi;
 
   factory CompanyUserApi.fromJson(Map<String, dynamic> json) =>
       _$CompanyUserApiFromJson(json);
-}
-
-/// Wraps the `notifications` object. Today the server only emits the `email`
-/// channel; modelling it as its own object leaves room for `sms`, `push`, etc.
-/// without a schema migration.
-@freezed
-abstract class NotificationsApi with _$NotificationsApi {
-  const factory NotificationsApi({@Default(<String>[]) List<String> email}) =
-      _NotificationsApi;
-
-  factory NotificationsApi.fromJson(Map<String, dynamic> json) =>
-      _$NotificationsApiFromJson(json);
 }
 
 /// The server emits `0`/`1`, `"true"`/`"false"`, or a real bool depending on

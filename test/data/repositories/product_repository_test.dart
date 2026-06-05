@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:decimal/decimal.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -379,7 +381,93 @@ void main() {
         hasLength(1),
       );
     });
+
+    // --- in_stock_quantity save-query (server strips the field on a plain
+    // PUT unless `?update_in_stock_quantity=true` rides along) ---
+
+    Future<ProductRepository> seededRepo() async {
+      final repo = makeRepo();
+      await repo.applyCreateResponse(
+        companyId: 'co',
+        tempId: 'prod_1',
+        serverResponse: const ProductApi(
+          id: 'prod_1',
+          productKey: 'Widget',
+          inStockQuantity: 10,
+          updatedAt: 1700000000,
+        ),
+      );
+      return repo;
+    }
+
+    test('save(stockChanged: true) rides update_in_stock_quantity into the '
+        'outbox payload save-query', () async {
+      final repo = await seededRepo();
+      final loaded = await repo.watch(companyId: 'co', id: 'prod_1').first;
+      await repo.save(
+        companyId: 'co',
+        product: loaded!.copyWith(inStockQuantity: Decimal.parse('20')),
+        stockChanged: true,
+      );
+      final payload = await _latestUpdatePayload(db);
+      expect(payload[kSaveQueryPayloadKey], {
+        'update_in_stock_quantity': 'true',
+      });
+    });
+
+    test(
+      'save(stockChanged: false) does NOT send update_in_stock_quantity',
+      () async {
+        final repo = await seededRepo();
+        final loaded = await repo.watch(companyId: 'co', id: 'prod_1').first;
+        await repo.save(
+          companyId: 'co',
+          product: loaded!.copyWith(productKey: 'Renamed'),
+        );
+        final payload = await _latestUpdatePayload(db);
+        expect(payload.containsKey(kSaveQueryPayloadKey), isFalse);
+      },
+    );
+
+    test('a later non-stock save inherits the stock save-query from a still-'
+        'pending stock update (dedup hardening)', () async {
+      final repo = await seededRepo();
+      final loaded = await repo.watch(companyId: 'co', id: 'prod_1').first;
+      // Offline stock edit — param attached, row stays pending.
+      await repo.save(
+        companyId: 'co',
+        product: loaded!.copyWith(inStockQuantity: Decimal.parse('20')),
+        stockChanged: true,
+      );
+      // Non-stock edit; dedup deletes the prior row, but the flag must carry
+      // over so the queued stock change isn't silently dropped.
+      final afterFirst = await repo.watch(companyId: 'co', id: 'prod_1').first;
+      await repo.save(
+        companyId: 'co',
+        product: afterFirst!.copyWith(productKey: 'Renamed'),
+      );
+      final updates = await _pendingUpdates(db);
+      expect(updates, hasLength(1), reason: 'dedup keeps a single update row');
+      expect(jsonDecode(updates.single.payload)[kSaveQueryPayloadKey], {
+        'update_in_stock_quantity': 'true',
+      });
+    });
   });
+}
+
+Future<List<OutboxRow>> _pendingUpdates(AppDatabase db) async {
+  final outbox = await db.outboxDao.nextReady(
+    companyId: 'co',
+    now: 9999999999999,
+  );
+  return outbox
+      .where((r) => r.mutationKind == MutationKind.update.wireName)
+      .toList();
+}
+
+Future<Map<String, dynamic>> _latestUpdatePayload(AppDatabase db) async {
+  final updates = await _pendingUpdates(db);
+  return jsonDecode(updates.last.payload) as Map<String, dynamic>;
 }
 
 class _FakeProductsApi implements ProductsApi {

@@ -481,6 +481,7 @@
   "or_enter_code_manually": "Or enter this code manually:",
   "enter_six_digit_code": "Enter the 6-digit code",
   "enter_sms_code": "Enter the SMS code we just sent you.",
+  "two_factor_verify_phone_help": "We'll text a verification code to the mobile number on your account. To use a different number, update it in the Details tab first.",
   "disable_two_factor_question": "Disable two-factor authentication?",
   "disable_two_factor_warning": "Your account will no longer require a one-time code at sign-in.",
   "phone_number": "Phone number",

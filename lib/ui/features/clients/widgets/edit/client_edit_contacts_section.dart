@@ -76,6 +76,7 @@ class ClientEditContactsSection extends StatelessWidget {
                 onPhone: (v) => vm.setContactPhoneAt(i, v),
                 onSendEmail: (v) => vm.setContactSendEmailAt(i, v),
                 onCcOnly: (v) => vm.setContactCcOnlyAt(i, v),
+                onCanSign: (v) => vm.setContactCanSignAt(i, v),
                 onPassword: (v) => vm.setContactPasswordAt(i, v),
                 onCustomValue1: (v) => vm.setContactCustomValue1At(i, v),
                 onCustomValue2: (v) => vm.setContactCustomValue2At(i, v),
@@ -214,6 +215,7 @@ class _ContactEditor extends StatelessWidget {
     required this.onPhone,
     required this.onSendEmail,
     required this.onCcOnly,
+    required this.onCanSign,
     required this.onPassword,
     required this.onCustomValue1,
     required this.onCustomValue2,
@@ -234,6 +236,7 @@ class _ContactEditor extends StatelessWidget {
   final ValueChanged<String> onPhone;
   final ValueChanged<bool> onSendEmail;
   final ValueChanged<bool> onCcOnly;
+  final ValueChanged<bool> onCanSign;
   final ValueChanged<String> onPassword;
   final ValueChanged<String> onCustomValue1;
   final ValueChanged<String> onCustomValue2;
@@ -265,7 +268,9 @@ class _ContactEditor extends StatelessWidget {
               ),
               visualDensity: VisualDensity.compact,
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+              // 40px min touch target (icon stays small; the tap area grows
+              // toward the 44px platform minimum without bloating the header).
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             ),
             const SizedBox(width: InSpacing.xs),
             Expanded(
@@ -285,7 +290,9 @@ class _ContactEditor extends StatelessWidget {
                 icon: Icon(Icons.close, size: 18, color: tokens.overdue),
                 visualDensity: VisualDensity.compact,
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                // 40px min touch target (icon stays small; the tap area grows
+                // toward the 44px platform minimum without bloating the header).
+                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
               ),
           ],
         ),
@@ -312,10 +319,24 @@ class _ContactEditor extends StatelessWidget {
           onChanged: onPhone,
           keyboardType: TextInputType.phone,
         ),
-        EntityEditField(
-          label: context.tr('password'),
-          initial: contact.password,
-          onChanged: onPassword,
+        // Portal password is only meaningful when the company enables portal
+        // passwords — React + admin-portal both gate this field on
+        // `enable_client_portal_password`. Hidden until the company resolves,
+        // so it never flickers in for a workspace that has the feature off.
+        // (An already-set password is preserved on save regardless — it stays
+        // in the draft and `Contact.toApiJson` still emits it.)
+        StreamBuilder<Company?>(
+          stream: companyStream,
+          builder: (context, snapshot) {
+            final portalPasswordEnabled =
+                snapshot.data?.settings.enableClientPortalPassword ?? false;
+            if (!portalPasswordEnabled) return const SizedBox.shrink();
+            return EntityEditField(
+              label: context.tr('password'),
+              initial: contact.password,
+              onChanged: onPassword,
+            );
+          },
         ),
         // Per-contact custom fields (contact1..4). Renders inline, gated by
         // the company's configured labels — invisible when none are set.
@@ -337,21 +358,41 @@ class _ContactEditor extends StatelessWidget {
             onCustomValue4,
           ],
         ),
-        LabeledSwitchGroup(
-          items: [
-            LabeledSwitchItem(
-              label: context.tr('add_to_invoices'),
-              value: contact.sendEmail,
-              // CC-only and send_email are mutually exclusive; greyed out
-              // (onChanged: null) while CC-only is on.
-              onChanged: contact.ccOnly ? null : onSendEmail,
-            ),
-            LabeledSwitchItem(
-              label: context.tr('cc_only'),
-              value: contact.ccOnly,
-              onChanged: onCcOnly,
-            ),
-          ],
+        StreamBuilder<Company?>(
+          stream: companyStream,
+          builder: (context, snapshot) {
+            // "Authorized to sign" is only meaningful when the company requires
+            // an e-signature somewhere (invoice / quote / PO). Hidden otherwise
+            // — the value is preserved on save regardless (it stays in the
+            // draft and `Contact.toApiJson` still emits `can_sign`).
+            final settings = snapshot.data?.settings;
+            final eSignEnabled =
+                (settings?.requireInvoiceSignature ?? false) ||
+                (settings?.requireQuoteSignature ?? false) ||
+                (settings?.requirePurchaseOrderSignature ?? false);
+            return LabeledSwitchGroup(
+              items: [
+                LabeledSwitchItem(
+                  label: context.tr('add_to_invoices'),
+                  value: contact.sendEmail,
+                  // CC-only and send_email are mutually exclusive; greyed out
+                  // (onChanged: null) while CC-only is on.
+                  onChanged: contact.ccOnly ? null : onSendEmail,
+                ),
+                LabeledSwitchItem(
+                  label: context.tr('cc_only'),
+                  value: contact.ccOnly,
+                  onChanged: onCcOnly,
+                ),
+                if (eSignEnabled)
+                  LabeledSwitchItem(
+                    label: context.tr('authorized_to_sign'),
+                    value: contact.canSign,
+                    onChanged: onCanSign,
+                  ),
+              ],
+            );
+          },
         ),
       ],
     );

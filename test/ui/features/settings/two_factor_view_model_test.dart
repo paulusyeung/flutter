@@ -22,6 +22,7 @@ class _FakeRepo implements TwoFactorRepository {
   final calls = <String>[];
   String? lastOtp;
   String? lastPhoneVerified;
+  String? lastSmsEmail;
 
   @override
   Future<TwoFactorSetupApi> fetchSetup() async {
@@ -50,15 +51,21 @@ class _FakeRepo implements TwoFactorRepository {
   }
 
   @override
-  Future<void> sendSmsCode({required String phone}) async {
+  Future<void> sendSmsCode({required String email}) async {
     calls.add('sendSmsCode');
+    lastSmsEmail = email;
     final err = smsSendError;
     if (err != null) throw err;
   }
 
   @override
-  Future<void> verifySmsCode({required String code, String? phone}) async {
+  Future<void> verifySmsCode({
+    required String code,
+    required String email,
+    String? phone,
+  }) async {
     calls.add('verifySmsCode');
+    lastSmsEmail = email;
     lastPhoneVerified = phone;
     final err = smsVerifyError;
     if (err != null) throw err;
@@ -74,9 +81,11 @@ TwoFactorViewModel _build({
   bool enabled = false,
   bool verifiedPhone = false,
   String phone = '',
+  String email = 'user@example.com',
 }) => TwoFactorViewModel(
   repo: repo,
   isHosted: isHosted,
+  email: email,
   initiallyEnabled: enabled,
   initiallyVerifiedPhone: verifiedPhone,
   initialPhone: phone,
@@ -86,6 +95,8 @@ AuthSession _session({
   bool isHosted = true,
   bool googleTwoFactor = false,
   bool verifiedPhone = false,
+  String userEmail = 'user@example.com',
+  String userPhone = '',
 }) => AuthSession(
   baseUrl: 'https://test',
   isHosted: isHosted,
@@ -94,6 +105,8 @@ AuthSession _session({
   currentCompanyId: '',
   googleTwoFactorEnabled: googleTwoFactor,
   verifiedPhoneNumber: verifiedPhone,
+  userEmail: userEmail,
+  userPhone: userPhone,
 );
 
 void main() {
@@ -109,7 +122,7 @@ void main() {
       expect(repo.calls, ['fetchSetup']);
       expect(vm.step, TwoFactorStep.qrShow);
       expect(vm.secret, 'JBSWY3DPEHPK3PXP');
-      expect(vm.qrCodeBase64, 'aGVsbG8=');
+      expect(vm.qrCode, 'aGVsbG8=');
     });
 
     test('hosted + verified phone also skips phone verification', () async {
@@ -119,8 +132,19 @@ void main() {
       expect(vm.step, TwoFactorStep.qrShow);
     });
 
-    test('hosted + unverified phone shows the phone entry step', () async {
-      final vm = _build(repo: repo, isHosted: true);
+    test(
+      'hosted + unverified + no phone on file stays idle with error',
+      () async {
+        final vm = _build(repo: repo, isHosted: true);
+        await vm.startEnable();
+        expect(repo.calls, isEmpty);
+        expect(vm.step, TwoFactorStep.idle);
+        expect(vm.errorKey, 'enter_phone_to_enable_two_factor');
+      },
+    );
+
+    test('hosted + unverified + phone on file shows the phone step', () async {
+      final vm = _build(repo: repo, isHosted: true, phone: '+15551234');
       await vm.startEnable();
       expect(repo.calls, isEmpty);
       expect(vm.step, TwoFactorStep.phoneEntry);
@@ -128,26 +152,20 @@ void main() {
   });
 
   group('phone + sms flow (hosted)', () {
-    test('rejects an empty phone with an inline error key', () async {
-      final vm = _build(repo: repo, isHosted: true);
+    test('happy path: phone on file → SMS (by email) → QR', () async {
+      final vm = _build(repo: repo, isHosted: true, phone: '+15551234');
       await vm.startEnable();
-      await vm.sendSmsCode();
-      expect(vm.errorKey, 'enter_phone_number');
-      expect(repo.calls, isEmpty);
-    });
-
-    test('happy path: phone → SMS code → QR', () async {
-      final vm = _build(repo: repo, isHosted: true);
-      await vm.startEnable();
-      vm.setPhone('+15551234');
+      expect(vm.step, TwoFactorStep.phoneEntry);
       await vm.sendSmsCode();
       expect(vm.step, TwoFactorStep.smsVerify);
+      expect(repo.lastSmsEmail, 'user@example.com');
 
       vm.setSmsCode('000000');
       await vm.verifySmsCode();
       expect(vm.step, TwoFactorStep.qrShow);
       expect(vm.verifiedPhone, isTrue);
       expect(repo.lastPhoneVerified, '+15551234');
+      expect(repo.lastSmsEmail, 'user@example.com');
       expect(repo.calls, ['sendSmsCode', 'verifySmsCode', 'fetchSetup']);
     });
 
@@ -155,16 +173,15 @@ void main() {
       'verifySmsCode 422 keeps the step on smsVerify with fieldErrors',
       () async {
         repo.smsVerifyError = const ValidationException('bad', {
-          'sms_code': ['Invalid code'],
+          'code': ['Invalid code'],
         });
-        final vm = _build(repo: repo, isHosted: true);
+        final vm = _build(repo: repo, isHosted: true, phone: '+1');
         await vm.startEnable();
-        vm.setPhone('+1');
         await vm.sendSmsCode();
         vm.setSmsCode('000000');
         await vm.verifySmsCode();
         expect(vm.step, TwoFactorStep.smsVerify);
-        expect(vm.fieldErrors['sms_code'], ['Invalid code']);
+        expect(vm.fieldErrors['code'], ['Invalid code']);
         expect(vm.verifiedPhone, isFalse);
       },
     );
@@ -307,6 +324,25 @@ void main() {
       vm.syncFromSession(_session(googleTwoFactor: true));
       expect(notified, isFalse);
     });
+
+    test(
+      'idle picks up a phone saved later — unblocks the enable flow',
+      () async {
+        // Hosted user opens 2FA with no phone on file → blocked at idle.
+        final vm = _build(repo: repo, isHosted: true);
+        await vm.startEnable();
+        expect(vm.step, TwoFactorStep.idle);
+        expect(vm.errorKey, 'enter_phone_to_enable_two_factor');
+
+        // They set + save a phone in Details; the refreshed session flows in.
+        vm.syncFromSession(_session(userPhone: '+15551234'));
+        expect(vm.phone, '+15551234');
+
+        // Enable now advances to the SMS step instead of re-blocking.
+        await vm.startEnable();
+        expect(vm.step, TwoFactorStep.phoneEntry);
+      },
+    );
   });
 
   test('cancel drops in-progress QR state and returns to idle', () async {
@@ -318,6 +354,6 @@ void main() {
     vm.cancel();
     expect(vm.step, TwoFactorStep.idle);
     expect(vm.oneTimePassword, '');
-    expect(vm.qrCodeBase64, '');
+    expect(vm.qrCode, '');
   });
 }

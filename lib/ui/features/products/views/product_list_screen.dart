@@ -24,6 +24,11 @@ class ProductListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return EntityListScreenScaffold<Product, ProductListViewModel>(
       titleKey: 'products',
+      // Products carry money columns (price / cost), so resolve the active
+      // company Formatter and expose it via FormatterScope — without this the
+      // price/cost cells (and the narrow tile) fall back to symbol-less locale
+      // numbers. Mirrors ClientListScreen.
+      wantsFormatter: true,
       newRoute: '/products/new',
       newLabelKey: 'new_product',
       emptyIcon: Icons.inventory_2_outlined,

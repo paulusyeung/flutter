@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
@@ -52,6 +53,13 @@ class _CustomFieldRowState<V extends SettingsDraftHost>
   late final TextEditingController _label;
   late final TextEditingController _options;
   late final V _vm;
+
+  /// A slot is stored pipe-delimited (`"label|type"`), so a literal `|` in the
+  /// label — or in a dropdown option — would corrupt the value for every
+  /// client that parses it. Deny it at the input rather than sanitizing later.
+  static final List<TextInputFormatter> _denyPipe = [
+    FilteringTextInputFormatter.deny(RegExp(r'\|')),
+  ];
 
   String get _key => '${widget.prefix}${widget.slot}';
 
@@ -205,6 +213,7 @@ class _CustomFieldRowState<V extends SettingsDraftHost>
     final labelField = TextField(
       controller: _label,
       enabled: widget.enabled,
+      inputFormatters: _denyPipe,
       decoration: InputDecoration(
         labelText: '${context.tr('label')} ${widget.slot}',
       ),
@@ -263,6 +272,7 @@ class _CustomFieldRowState<V extends SettingsDraftHost>
     final optionsField = TextField(
       controller: _options,
       enabled: widget.enabled,
+      inputFormatters: _denyPipe,
       decoration: InputDecoration(hintText: context.tr('comma_sparated_list')),
       onChanged: (v) => _write(vm, options: v),
     );

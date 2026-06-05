@@ -203,7 +203,7 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
     pageSize: pageSize,
     search: search,
     states: states,
-    extraFilters: extraFilters,
+    extraFilters: _dateRangesForServer(extraFilters),
     ignoreCursor: ignoreCursor,
     // `?include=documents` makes the list response authoritative for the
     // `documents` array. Without it the server omits documents on list
@@ -217,6 +217,55 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
     upsert: (byId) =>
         db.clientDao.upsertAllPreservingDirty(companyId: companyId, byId: byId),
   );
+
+  /// Rewrite the `DateColumnFilterKey` between-window slots into the params
+  /// the server actually honors before they hit the wire. The `created`/
+  /// `updated` keys store a 3-part `<column>,<start>,<end>` window under
+  /// `created_at_range` / `updated_at_range` — but the server has **no**
+  /// handler by those names (`QueryFilters::apply()` silently skips unknown
+  /// params), so the window would narrow only the local Drift cache and the
+  /// list would return an incomplete (server-unfiltered) set. The honored
+  /// params are `created_between` / `updated_between` with a 2-part
+  /// `<start>,<end>` CSV (`QueryFilters::{created,updated}_between` →
+  /// `whereBetween`). Strip the leading column token (keep the last two
+  /// comma parts) and re-key. Single-date `created_at`/`updated_at` filters
+  /// already work (prefix `gte:`), so only the window slots are remapped.
+  ///
+  /// Returns the input untouched (same instance) when neither window slot is
+  /// present, so the common path allocates nothing. The local `watchPage`
+  /// keeps reading the original `_at_range` keys — only the server fetch is
+  /// rewritten here.
+  static const Map<String, String> _dateRangeServerParams = {
+    'created_at_range': 'created_between',
+    'updated_at_range': 'updated_between',
+  };
+
+  Map<String, Set<String>> _dateRangesForServer(
+    Map<String, Set<String>> extraFilters,
+  ) {
+    if (!extraFilters.keys.any(_dateRangeServerParams.containsKey)) {
+      return extraFilters;
+    }
+    final out = <String, Set<String>>{};
+    for (final entry in extraFilters.entries) {
+      final serverKey = _dateRangeServerParams[entry.key];
+      if (serverKey == null) {
+        out[entry.key] = entry.value;
+        continue;
+      }
+      final converted = <String>{};
+      for (final wire in entry.value) {
+        final parts = wire.split(',');
+        if (parts.length < 2) continue;
+        final start = parts[parts.length - 2].trim();
+        final end = parts[parts.length - 1].trim();
+        if (start.isEmpty || end.isEmpty) continue;
+        converted.add('$start,$end');
+      }
+      if (converted.isNotEmpty) out[serverKey] = converted;
+    }
+    return out;
+  }
 
   /// Lazily hydrate one client by id when a reference (e.g. an invoice's
   /// client) isn't in the prefetched page so a `*NameLabel` would show
@@ -645,11 +694,36 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
       // `toApiJson` (kept off the outbound wire). Inject them into the stored
       // payload here so the "Payment Methods" card doesn't blank out after a
       // local edit-save until the next server sync re-embeds them.
-      payload: jsonEncode({
-        ...c.toApiJson(preserveTempId: true),
-        'gateway_tokens': c.gatewayTokens.map((g) => g.toApiJson()).toList(),
-      }),
+      payload: jsonEncode(_payloadWithLocalContactMetadata(c)),
     );
+  }
+
+  /// Build the stored-payload JSON for a local edit-save, re-injecting the
+  /// fields `toApiJson` deliberately drops from the outbound wire so the
+  /// optimistic local copy round-trips them until the next server sync:
+  ///  * `gateway_tokens` — read-only, keeps the "Payment Methods" card filled.
+  ///  * per-contact `is_locked` / `last_login` — read-only server metadata
+  ///    (`Contact.toApiJson` omits them); without this the contacts card's
+  ///    "unsubscribed" warning icon + last-login would blank after an edit.
+  Map<String, dynamic> _payloadWithLocalContactMetadata(Client c) {
+    final json = c.toApiJson(preserveTempId: true);
+    // `toApiJson` already serialized `contacts` in order; patch the two
+    // read-only fields onto each entry in place (same index = same contact).
+    final contactsJson = (json['contacts'] as List?)
+        ?.cast<Map<String, dynamic>>();
+    if (contactsJson != null) {
+      for (var i = 0; i < contactsJson.length && i < c.contacts.length; i++) {
+        final contact = c.contacts[i];
+        contactsJson[i]['is_locked'] = contact.isLocked;
+        final lastLogin = contact.lastLogin;
+        if (lastLogin != null) {
+          contactsJson[i]['last_login'] =
+              lastLogin.millisecondsSinceEpoch ~/ 1000;
+        }
+      }
+    }
+    json['gateway_tokens'] = c.gatewayTokens.map((g) => g.toApiJson()).toList();
+    return json;
   }
 
   /// Drop a document from the client's local `documents` JSON column.

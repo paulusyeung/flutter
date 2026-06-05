@@ -6,6 +6,7 @@ import 'package:admin/data/db/dao/product_dao.dart';
 import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/domain/product_tax_categories.dart';
 import 'package:admin/l10n/localization.dart';
 
 typedef ProductColumn = ColumnDefinition<Product>;
@@ -18,17 +19,6 @@ const List<String> kDefaultProductColumns = <String>[
   ProductFieldIds.quantity,
   ProductFieldIds.updatedAt,
 ];
-
-/// Six standard product tax-category codes → localization keys. Mirrors the
-/// map in `product_detail_cards_grid.dart` / `product_edit_taxes_section.dart`.
-const Map<String, String> _taxCategoryLabelKeys = {
-  '1': 'physical_goods',
-  '2': 'services',
-  '3': 'digital_products',
-  '4': 'shipping',
-  '5': 'tax_exempt',
-  '6': 'reduced_tax',
-};
 
 final List<ProductColumn> kAllProductColumns = <ProductColumn>[
   ProductColumn(
@@ -87,7 +77,7 @@ final List<ProductColumn> kAllProductColumns = <ProductColumn>[
     width: 140,
     cellBuilder: (p, ctx) {
       if (p.taxId.isEmpty) return cellEmpty();
-      final key = _taxCategoryLabelKeys[p.taxId];
+      final key = kProductTaxCategories[p.taxId];
       return cellText(key == null ? p.taxId : ctx.tr(key));
     },
     valueBuilder: (p) => cellNonZeroString(p.taxId),

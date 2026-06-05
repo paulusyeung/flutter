@@ -256,6 +256,19 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   /// noise. Default empty (top-level lists filter freely).
   Set<String> get lockedFilterKeyIds => const {};
 
+  /// True when this list is embedded inside a parent detail page (scoped to a
+  /// parent record). Derived from [lockedFilterKeyIds] — by design every
+  /// embedded list locks at least one filter dimension and every standalone
+  /// list locks none, and the getter resolves correctly at base-constructor
+  /// time (the subclass's scoping fields are assigned before `super()` runs).
+  ///
+  /// Embedded lists must NOT read or write the shared per-entity `nav_state`
+  /// slot: that slot is the *standalone* list's "resume where you left off"
+  /// view. Sharing it lets a detail tab inherit (and, on interaction,
+  /// overwrite) the main list's saved search/sort/filters. So embedded lists
+  /// keep filter state purely in memory, starting from their locked scope.
+  bool get isEmbedded => lockedFilterKeyIds.isNotEmpty;
+
   List<T> _items = const [];
   List<T> get items => _items;
 
@@ -406,7 +419,9 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     _subscribeColumns();
     _subscribe();
     _subscribeCustomValues();
-    _subscribeNavState();
+    // Embedded lists ignore saved-view / nav_state writes — they're scoped to
+    // a parent record, not the user's standalone "resume where you left off".
+    if (!isEmbedded) _subscribeNavState();
     await _loadInitialPage();
   }
 
@@ -449,6 +464,14 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   }
 
   Future<void> _hydrate() async {
+    if (isEmbedded) {
+      // Don't read the shared standalone-list filter slot. Mark ready (so the
+      // watch subscription + actions engage) with the in-memory default state
+      // (the locked parent scope) as the baseline.
+      _hydrated = true;
+      _lastSeenSlot = currentSnapshot();
+      return;
+    }
     try {
       final row = await navStateDao.current();
       final raw = row?.filtersJson;
@@ -981,7 +1004,8 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   }
 
   void _schedulePersist() {
-    if (!_hydrated) return;
+    // Embedded lists never write the shared standalone-list slot.
+    if (isEmbedded || !_hydrated) return;
     _persistTimer?.cancel();
     _persistTimer = Timer(_persistDebounce, _persist);
   }

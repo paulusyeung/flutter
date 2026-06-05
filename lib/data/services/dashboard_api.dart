@@ -95,15 +95,26 @@ class DashboardApi {
   Future<Object?> fetchUpcomingInvoices() =>
       _fetchList('/api/v1/invoices', const {
         'include': 'client.group_settings',
+        // `upcoming` filters to sent/partial invoices with a future (or null)
+        // due date and applies its own server-side ordering — matches React.
+        // Do NOT also send `sort`, or it competes with that ordering.
+        'upcoming': 'true',
         'without_deleted_clients': 'true',
         'per_page': '50',
         'page': '1',
-        'sort': 'due_date|asc',
       });
 
   Future<Object?> fetchRecentPayments() => _fetchList(
     '/api/v1/payments',
-    const {'include': 'client', 'per_page': '50', 'page': '1'},
+    const {
+      'include': 'client',
+      // Most-recent first by payment date (the server otherwise defaults to
+      // id-desc) and exclude payments whose client was deleted — matches React.
+      'sort': 'date|desc',
+      'without_deleted_clients': 'true',
+      'per_page': '50',
+      'page': '1',
+    },
   );
 
   Future<Object?> fetchExpiredQuotes() => _fetchList('/api/v1/quotes', const {
@@ -117,6 +128,8 @@ class DashboardApi {
 
   Future<Object?> fetchUpcomingQuotes() => _fetchList('/api/v1/quotes', const {
     'include': 'client',
+    // Only sent quotes whose valid-until is today or later — matches React.
+    'client_status': 'upcoming',
     'without_deleted_clients': 'true',
     'per_page': '50',
     'page': '1',
@@ -125,9 +138,13 @@ class DashboardApi {
   Future<Object?> fetchUpcomingRecurringInvoices() =>
       _fetchList('/api/v1/recurring_invoices', const {
         'include': 'client',
+        // Only active recurring invoices, soonest next-send first — matches
+        // React (the server otherwise returns every status in id-desc order).
+        'client_status': 'active',
         'without_deleted_clients': 'true',
         'per_page': '50',
         'page': '1',
+        'sort': 'next_send_date_client|asc',
       });
 
   // ---------------------------------------------------------------------------

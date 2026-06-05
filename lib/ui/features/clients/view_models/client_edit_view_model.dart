@@ -73,6 +73,9 @@ class ClientEditViewModel extends GenericEditViewModel<Client> {
   void setGroupSettingsId(String id) =>
       updateDraft(draft.copyWith(groupSettingsId: id));
 
+  void setAssignedUserId(String id) =>
+      updateDraft(draft.copyWith(assignedUserId: id));
+
   void setName(String value) =>
       updateDraft(draft.copyWith(name: value, displayName: value));
   void setNumber(String value) => updateDraft(draft.copyWith(number: value));
@@ -159,6 +162,37 @@ class ClientEditViewModel extends GenericEditViewModel<Client> {
     updateDraft(draft.copyWith(settings: next.isEmpty ? null : next));
   }
 
+  /// Quote "valid until" — a cascade setting (number of days) stored in
+  /// `settings`, with no top-level domain field. Empty clears the override
+  /// (inherit from the company/group), matching the cascade convention used
+  /// by currency / language / payment_terms.
+  void setValidUntil(String value) =>
+      updateDraft(draft.withCascadeOverride('valid_until', value.trim()));
+
+  /// Current `valid_until` override (days) for the edit field; '' = inherit.
+  String get validUntil => draft.settings?['valid_until']?.toString() ?? '';
+
+  /// Send-reminders cascade override stored in `settings` (a bool). `null`
+  /// clears the override (inherit from the company); true/false write an
+  /// explicit value. Mirrors [setDefaultTaskRate]'s raw-settings handling
+  /// (the value is a bool, not a string, so `withCascadeOverride` — which is
+  /// string-typed — doesn't apply).
+  void setSendReminders(bool? value) {
+    final next = Map<String, dynamic>.from(draft.settings ?? const {});
+    if (value == null) {
+      next.remove('send_reminders');
+    } else {
+      next['send_reminders'] = value;
+    }
+    updateDraft(draft.copyWith(settings: next.isEmpty ? null : next));
+  }
+
+  /// Current `send_reminders` override; null = inherit (no per-client value).
+  bool? get sendReminders {
+    final v = draft.settings?['send_reminders'];
+    return v is bool ? v : null;
+  }
+
   void setPrivateNotes(String value) =>
       updateDraft(draft.copyWith(privateNotes: value));
   void setPublicNotes(String value) =>
@@ -225,6 +259,10 @@ class ClientEditViewModel extends GenericEditViewModel<Client> {
     i,
     (c) => c.copyWith(ccOnly: v, sendEmail: v ? false : c.sendEmail),
   );
+  // "Authorized to sign" — portal e-signature permission (React parity). The
+  // UI gates the toggle on the company's e-sign module being enabled.
+  void setContactCanSignAt(int i, bool v) =>
+      _updateContactAt(i, (c) => c.copyWith(canSign: v));
   void setContactPasswordAt(int i, String v) =>
       _updateContactAt(i, (c) => c.copyWith(password: v));
 

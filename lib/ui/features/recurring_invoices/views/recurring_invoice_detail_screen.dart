@@ -10,6 +10,7 @@ import 'package:admin/utils/formatting.dart';
 import 'package:admin/domain/recurring_frequency.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/core/detail/custom_fields_detail_card.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
@@ -133,7 +134,11 @@ class _Body extends StatelessWidget {
                     icon: Icons.dashboard_outlined,
                     bodyBuilder: (_) => Padding(
                       padding: EdgeInsets.all(InSpacing.lg(context)),
-                      child: _Overview(recurringInvoice: recurringInvoice),
+                      child: _Overview(
+                        recurringInvoice: recurringInvoice,
+                        companyId: companyId,
+                        formatter: formatter,
+                      ),
                     ),
                   ),
                   EntityDetailTab(
@@ -321,12 +326,23 @@ class _Header extends StatelessWidget {
 }
 
 class _Overview extends StatelessWidget {
-  const _Overview({required this.recurringInvoice});
+  const _Overview({
+    required this.recurringInvoice,
+    required this.companyId,
+    this.formatter,
+  });
   final RecurringInvoice recurringInvoice;
+  final String companyId;
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    final hasCustomFields =
+        recurringInvoice.customValue1.isNotEmpty ||
+        recurringInvoice.customValue2.isNotEmpty ||
+        recurringInvoice.customValue3.isNotEmpty ||
+        recurringInvoice.customValue4.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -359,6 +375,22 @@ class _Overview extends StatelessWidget {
           recurringInvoice.terms.isEmpty ? '—' : recurringInvoice.terms,
           style: TextStyle(color: tokens.ink),
         ),
+        // Reuses the `invoice` custom-field config slots (no separate
+        // recurring-invoice keys exist server-side).
+        if (hasCustomFields) ...[
+          SizedBox(height: InSpacing.md(context)),
+          CustomFieldsDetailCard(
+            companyId: companyId,
+            prefix: 'invoice',
+            values: [
+              recurringInvoice.customValue1,
+              recurringInvoice.customValue2,
+              recurringInvoice.customValue3,
+              recurringInvoice.customValue4,
+            ],
+            formatter: formatter,
+          ),
+        ],
       ],
     );
   }

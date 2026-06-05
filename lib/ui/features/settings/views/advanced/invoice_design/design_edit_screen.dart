@@ -17,6 +17,7 @@ import 'package:admin/ui/features/settings/view_models/design_edit_view_model.da
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/widgets/design_code_field.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/widgets/design_live_preview_pane.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
+import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 import 'package:admin/ui/features/settings/widgets/settings_entity_edit_scaffold.dart';
 import 'package:admin/ui/features/settings/widgets/settings_text_field.dart';
 
@@ -102,6 +103,9 @@ class DesignEditScreen extends StatelessWidget {
     final services = context.read<Services>();
     final companyId = services.auth.session.value?.currentCompanyId ?? '';
     final repo = services.designs;
+    // Custom designs are Pro-gated (parity with React / admin-portal). Entry is
+    // blocked upstream in the Custom Designs tab; this gates Save as a backstop.
+    final isPro = services.auth.session.value?.hasProAccess ?? false;
 
     return SettingsEntityEditScaffold<Design, DesignEditViewModel>(
       existingId: existingId,
@@ -125,17 +129,29 @@ class DesignEditScreen extends StatelessWidget {
       isDeletedOf: (d) => d.isDeleted,
       // A nameless design renders as its UUID in the picker dropdowns.
       canSave: (vm) =>
-          !vm.isSaving && vm.isDirty && vm.draft.name.trim().isNotEmpty,
+          isPro &&
+          !vm.isSaving &&
+          vm.isDirty &&
+          vm.draft.name.trim().isNotEmpty,
       // Pushed as a bare MaterialPageRoute (no settings-shell guard), so opt
       // into the scaffold's own confirm-on-pop.
       guardUnsavedChanges: true,
       onDiscard: (vm) => vm.resetToEmpty(),
-      customBodyBuilder: (context, vm) => _DesignWorkspace(
-        vm: vm,
-        companyId: companyId,
-        seedFrom: seedFrom,
-        importJson: importJson,
-        startInHtml: startInHtml,
+      customBodyBuilder: (context, vm) => Column(
+        children: [
+          // Backstop banner — explains the disabled Save if a free user ever
+          // reaches this editor (auto-hides for Pro/trial).
+          const PlanGateBanner(style: PlanGateStyle.inset),
+          Expanded(
+            child: _DesignWorkspace(
+              vm: vm,
+              companyId: companyId,
+              seedFrom: seedFrom,
+              importJson: importJson,
+              startInHtml: startInHtml,
+            ),
+          ),
+        ],
       ),
     );
   }

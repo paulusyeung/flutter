@@ -81,12 +81,16 @@ export 'package:admin/ui/core/list/search/custom_field_filter_key.dart'
 //                            Corresponding FilterKeys are **available**
 //                            (`custom_value*` only when the slot label
 //                            is configured).
-//   `balance=value:gt`     → filters by value (gt > lt < gte ≥ lte ≤
-//                            eq = ne ≠ all honored). `between` is NOT
-//                            recognized (`balance=lo,hi:between` → 0).
-//                            The PREFIX form `op:value` is the wrong
-//                            shape — server falls back to "any non-zero
-//                            balance" regardless of value. Don't write it.
+//   `balance=gt:value`     → canonical PREFIX `op:value` (e.g.
+//                            `balance=gt:1000`). Server `split()` does
+//                            `explode(':')` → operator = parts[0], value =
+//                            parts[1], mapped via `operatorConvertor`
+//                            (gt > lt < gte ≥ lte ≤ eq =). `between` is NOT
+//                            recognized. The legacy SUFFIX `value:op`
+//                            misparses to `where(balance,'=','op')` (≈ rows
+//                            with balance 0) — so `buildWire` emits the
+//                            prefix form; `parseWire` still *decodes* the
+//                            suffix for filters persisted by older builds.
 //   `created_at`,          → honored as a PLAIN value (server applies
 //   `updated_at`             `>=`; an operator suffix like `:gt` is
 //                            swallowed). Both are exposed via the shared
@@ -815,13 +819,11 @@ class NumberFilterKey extends FilterKey {
   String? editableValueText(String rawValue) => rawValue;
 }
 
-/// `balance:1000` → server `balance=1000:gt` (suffix-syntax operator).
-/// `balance:1000:lt` → server `balance=1000:lt`. Chip renders as `> 1000`
-/// or `< 1000`. The value menu exposes both operators via the picker
-/// declared in `supportedOps`.
-/// `balance` → server `balance=gt:5000` (canonical prefix). Chip shows
-/// `> 5000` / `≥ 5000` / …; the value menu exposes all five operators.
-/// Wire encode/decode (incl. legacy suffix self-heal) lives in
+/// `balance` → server `balance=gt:5000` (canonical PREFIX `op:value`, the
+/// shape `QueryFilters::split()` expects: operator before the colon). Chip
+/// shows `> 5000` / `≥ 5000` / …; the value menu exposes all five operators
+/// (gt/gte/lt/lte/eq). Wire encode/decode — including the legacy `value:op`
+/// suffix self-heal for filters persisted by older builds — lives in
 /// [ComparableFilterKey].
 class BalanceFilterKey extends FilterKey with ComparableFilterKey {
   const BalanceFilterKey();
@@ -868,11 +870,13 @@ class BalanceFilterKey extends FilterKey with ComparableFilterKey {
 // Flat-match membership keys. The server filter param name is the same
 // snake_case the v2 API accepts. Each is multi-value (CSV).
 //
-// Server status (probed against demo.invoiceninja.com, May 2026):
-//   - `id_number` → works for exact match only.
-//   - `vat_number`, `classification` → silently ignored by the server.
-//     The chip applies locally but the list isn't narrowed. Surface
-//     stays in place pending a server-side fix; track separately.
+// Server status (verified against the v5 `ClientFilters.php` source):
+//   - `id_number`      → exact match only (a 2+ value CSV matches nothing
+//                        server-side; multi-select is a local convenience).
+//   - `vat_number`     → substring LIKE %value%. HONORED.
+//   - `classification` → CSV whereIn. HONORED.
+//   All three are mirrored on the denormalized v55 `clients` columns so the
+//   local watch narrows in lockstep with the server fetch.
 // ────────────────────────────────────────────────────────────────────
 
 class VatFilterKey extends MembershipFilterKey {

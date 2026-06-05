@@ -36,11 +36,20 @@ class TwoFactorRepository {
     _refreshInBackground();
   }
 
-  Future<void> sendSmsCode({required String phone}) =>
-      _api.sendSmsCode(phone: phone);
+  /// Send the verification SMS. The server texts the phone on file (resolved
+  /// from [email]); the phone must already be saved on the user record.
+  Future<void> sendSmsCode({required String email}) =>
+      _api.sendSmsCode(email: email);
 
-  Future<void> verifySmsCode({required String code, String? phone}) async {
-    await _api.verifySmsCode(code: code);
+  /// Verify the SMS code, then flip the in-memory `verified_phone_number` flag
+  /// so the screen advances without waiting for `/refresh`. [phone] is the
+  /// on-file number, used only to update the local session.
+  Future<void> verifySmsCode({
+    required String code,
+    required String email,
+    String? phone,
+  }) async {
+    await _api.verifySmsCode(code: code, email: email);
     _auth.markPhoneVerified(phone: phone);
   }
 

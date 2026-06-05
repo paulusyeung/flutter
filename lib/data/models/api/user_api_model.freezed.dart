@@ -934,7 +934,7 @@ $CompanyUserApiCopyWith<$Res>? get companyUser {
 /// @nodoc
 mixin _$CompanyUserApi {
 
- String get permissions;@JsonKey(name: 'is_owner') bool get isOwner;@JsonKey(name: 'is_admin') bool get isAdmin;@JsonKey(name: 'is_locked') bool get isLocked; NotificationsApi get notifications; Map<String, dynamic> get settings;@JsonKey(name: 'react_settings') Map<String, dynamic> get reactSettings;
+ String get permissions;@JsonKey(name: 'is_owner') bool get isOwner;@JsonKey(name: 'is_admin') bool get isAdmin;@JsonKey(name: 'is_locked') bool get isLocked; Map<String, dynamic> get notifications; Map<String, dynamic> get settings;
 /// Create a copy of CompanyUserApi
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -947,16 +947,16 @@ $CompanyUserApiCopyWith<CompanyUserApi> get copyWith => _$CompanyUserApiCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CompanyUserApi&&(identical(other.permissions, permissions) || other.permissions == permissions)&&(identical(other.isOwner, isOwner) || other.isOwner == isOwner)&&(identical(other.isAdmin, isAdmin) || other.isAdmin == isAdmin)&&(identical(other.isLocked, isLocked) || other.isLocked == isLocked)&&(identical(other.notifications, notifications) || other.notifications == notifications)&&const DeepCollectionEquality().equals(other.settings, settings)&&const DeepCollectionEquality().equals(other.reactSettings, reactSettings));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CompanyUserApi&&(identical(other.permissions, permissions) || other.permissions == permissions)&&(identical(other.isOwner, isOwner) || other.isOwner == isOwner)&&(identical(other.isAdmin, isAdmin) || other.isAdmin == isAdmin)&&(identical(other.isLocked, isLocked) || other.isLocked == isLocked)&&const DeepCollectionEquality().equals(other.notifications, notifications)&&const DeepCollectionEquality().equals(other.settings, settings));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,permissions,isOwner,isAdmin,isLocked,notifications,const DeepCollectionEquality().hash(settings),const DeepCollectionEquality().hash(reactSettings));
+int get hashCode => Object.hash(runtimeType,permissions,isOwner,isAdmin,isLocked,const DeepCollectionEquality().hash(notifications),const DeepCollectionEquality().hash(settings));
 
 @override
 String toString() {
-  return 'CompanyUserApi(permissions: $permissions, isOwner: $isOwner, isAdmin: $isAdmin, isLocked: $isLocked, notifications: $notifications, settings: $settings, reactSettings: $reactSettings)';
+  return 'CompanyUserApi(permissions: $permissions, isOwner: $isOwner, isAdmin: $isAdmin, isLocked: $isLocked, notifications: $notifications, settings: $settings)';
 }
 
 
@@ -967,11 +967,11 @@ abstract mixin class $CompanyUserApiCopyWith<$Res>  {
   factory $CompanyUserApiCopyWith(CompanyUserApi value, $Res Function(CompanyUserApi) _then) = _$CompanyUserApiCopyWithImpl;
 @useResult
 $Res call({
- String permissions,@JsonKey(name: 'is_owner') bool isOwner,@JsonKey(name: 'is_admin') bool isAdmin,@JsonKey(name: 'is_locked') bool isLocked, NotificationsApi notifications, Map<String, dynamic> settings,@JsonKey(name: 'react_settings') Map<String, dynamic> reactSettings
+ String permissions,@JsonKey(name: 'is_owner') bool isOwner,@JsonKey(name: 'is_admin') bool isAdmin,@JsonKey(name: 'is_locked') bool isLocked, Map<String, dynamic> notifications, Map<String, dynamic> settings
 });
 
 
-$NotificationsApiCopyWith<$Res> get notifications;
+
 
 }
 /// @nodoc
@@ -984,28 +984,18 @@ class _$CompanyUserApiCopyWithImpl<$Res>
 
 /// Create a copy of CompanyUserApi
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? permissions = null,Object? isOwner = null,Object? isAdmin = null,Object? isLocked = null,Object? notifications = null,Object? settings = null,Object? reactSettings = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? permissions = null,Object? isOwner = null,Object? isAdmin = null,Object? isLocked = null,Object? notifications = null,Object? settings = null,}) {
   return _then(_self.copyWith(
 permissions: null == permissions ? _self.permissions : permissions // ignore: cast_nullable_to_non_nullable
 as String,isOwner: null == isOwner ? _self.isOwner : isOwner // ignore: cast_nullable_to_non_nullable
 as bool,isAdmin: null == isAdmin ? _self.isAdmin : isAdmin // ignore: cast_nullable_to_non_nullable
 as bool,isLocked: null == isLocked ? _self.isLocked : isLocked // ignore: cast_nullable_to_non_nullable
 as bool,notifications: null == notifications ? _self.notifications : notifications // ignore: cast_nullable_to_non_nullable
-as NotificationsApi,settings: null == settings ? _self.settings : settings // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>,reactSettings: null == reactSettings ? _self.reactSettings : reactSettings // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>,settings: null == settings ? _self.settings : settings // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>,
   ));
 }
-/// Create a copy of CompanyUserApi
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$NotificationsApiCopyWith<$Res> get notifications {
-  
-  return $NotificationsApiCopyWith<$Res>(_self.notifications, (value) {
-    return _then(_self.copyWith(notifications: value));
-  });
-}
+
 }
 
 
@@ -1087,10 +1077,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String permissions, @JsonKey(name: 'is_owner')  bool isOwner, @JsonKey(name: 'is_admin')  bool isAdmin, @JsonKey(name: 'is_locked')  bool isLocked,  NotificationsApi notifications,  Map<String, dynamic> settings, @JsonKey(name: 'react_settings')  Map<String, dynamic> reactSettings)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String permissions, @JsonKey(name: 'is_owner')  bool isOwner, @JsonKey(name: 'is_admin')  bool isAdmin, @JsonKey(name: 'is_locked')  bool isLocked,  Map<String, dynamic> notifications,  Map<String, dynamic> settings)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CompanyUserApi() when $default != null:
-return $default(_that.permissions,_that.isOwner,_that.isAdmin,_that.isLocked,_that.notifications,_that.settings,_that.reactSettings);case _:
+return $default(_that.permissions,_that.isOwner,_that.isAdmin,_that.isLocked,_that.notifications,_that.settings);case _:
   return orElse();
 
 }
@@ -1108,10 +1098,10 @@ return $default(_that.permissions,_that.isOwner,_that.isAdmin,_that.isLocked,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String permissions, @JsonKey(name: 'is_owner')  bool isOwner, @JsonKey(name: 'is_admin')  bool isAdmin, @JsonKey(name: 'is_locked')  bool isLocked,  NotificationsApi notifications,  Map<String, dynamic> settings, @JsonKey(name: 'react_settings')  Map<String, dynamic> reactSettings)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String permissions, @JsonKey(name: 'is_owner')  bool isOwner, @JsonKey(name: 'is_admin')  bool isAdmin, @JsonKey(name: 'is_locked')  bool isLocked,  Map<String, dynamic> notifications,  Map<String, dynamic> settings)  $default,) {final _that = this;
 switch (_that) {
 case _CompanyUserApi():
-return $default(_that.permissions,_that.isOwner,_that.isAdmin,_that.isLocked,_that.notifications,_that.settings,_that.reactSettings);case _:
+return $default(_that.permissions,_that.isOwner,_that.isAdmin,_that.isLocked,_that.notifications,_that.settings);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1128,10 +1118,10 @@ return $default(_that.permissions,_that.isOwner,_that.isAdmin,_that.isLocked,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String permissions, @JsonKey(name: 'is_owner')  bool isOwner, @JsonKey(name: 'is_admin')  bool isAdmin, @JsonKey(name: 'is_locked')  bool isLocked,  NotificationsApi notifications,  Map<String, dynamic> settings, @JsonKey(name: 'react_settings')  Map<String, dynamic> reactSettings)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String permissions, @JsonKey(name: 'is_owner')  bool isOwner, @JsonKey(name: 'is_admin')  bool isAdmin, @JsonKey(name: 'is_locked')  bool isLocked,  Map<String, dynamic> notifications,  Map<String, dynamic> settings)?  $default,) {final _that = this;
 switch (_that) {
 case _CompanyUserApi() when $default != null:
-return $default(_that.permissions,_that.isOwner,_that.isAdmin,_that.isLocked,_that.notifications,_that.settings,_that.reactSettings);case _:
+return $default(_that.permissions,_that.isOwner,_that.isAdmin,_that.isLocked,_that.notifications,_that.settings);case _:
   return null;
 
 }
@@ -1143,26 +1133,25 @@ return $default(_that.permissions,_that.isOwner,_that.isAdmin,_that.isLocked,_th
 @JsonSerializable()
 
 class _CompanyUserApi implements CompanyUserApi {
-  const _CompanyUserApi({this.permissions = '', @JsonKey(name: 'is_owner') this.isOwner = false, @JsonKey(name: 'is_admin') this.isAdmin = false, @JsonKey(name: 'is_locked') this.isLocked = false, this.notifications = const NotificationsApi(), final  Map<String, dynamic> settings = const <String, dynamic>{}, @JsonKey(name: 'react_settings') final  Map<String, dynamic> reactSettings = const <String, dynamic>{}}): _settings = settings,_reactSettings = reactSettings;
+  const _CompanyUserApi({this.permissions = '', @JsonKey(name: 'is_owner') this.isOwner = false, @JsonKey(name: 'is_admin') this.isAdmin = false, @JsonKey(name: 'is_locked') this.isLocked = false, final  Map<String, dynamic> notifications = const <String, dynamic>{}, final  Map<String, dynamic> settings = const <String, dynamic>{}}): _notifications = notifications,_settings = settings;
   factory _CompanyUserApi.fromJson(Map<String, dynamic> json) => _$CompanyUserApiFromJson(json);
 
 @override@JsonKey() final  String permissions;
 @override@JsonKey(name: 'is_owner') final  bool isOwner;
 @override@JsonKey(name: 'is_admin') final  bool isAdmin;
 @override@JsonKey(name: 'is_locked') final  bool isLocked;
-@override@JsonKey() final  NotificationsApi notifications;
+ final  Map<String, dynamic> _notifications;
+@override@JsonKey() Map<String, dynamic> get notifications {
+  if (_notifications is EqualUnmodifiableMapView) return _notifications;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_notifications);
+}
+
  final  Map<String, dynamic> _settings;
 @override@JsonKey() Map<String, dynamic> get settings {
   if (_settings is EqualUnmodifiableMapView) return _settings;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_settings);
-}
-
- final  Map<String, dynamic> _reactSettings;
-@override@JsonKey(name: 'react_settings') Map<String, dynamic> get reactSettings {
-  if (_reactSettings is EqualUnmodifiableMapView) return _reactSettings;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableMapView(_reactSettings);
 }
 
 
@@ -1179,16 +1168,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CompanyUserApi&&(identical(other.permissions, permissions) || other.permissions == permissions)&&(identical(other.isOwner, isOwner) || other.isOwner == isOwner)&&(identical(other.isAdmin, isAdmin) || other.isAdmin == isAdmin)&&(identical(other.isLocked, isLocked) || other.isLocked == isLocked)&&(identical(other.notifications, notifications) || other.notifications == notifications)&&const DeepCollectionEquality().equals(other._settings, _settings)&&const DeepCollectionEquality().equals(other._reactSettings, _reactSettings));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CompanyUserApi&&(identical(other.permissions, permissions) || other.permissions == permissions)&&(identical(other.isOwner, isOwner) || other.isOwner == isOwner)&&(identical(other.isAdmin, isAdmin) || other.isAdmin == isAdmin)&&(identical(other.isLocked, isLocked) || other.isLocked == isLocked)&&const DeepCollectionEquality().equals(other._notifications, _notifications)&&const DeepCollectionEquality().equals(other._settings, _settings));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,permissions,isOwner,isAdmin,isLocked,notifications,const DeepCollectionEquality().hash(_settings),const DeepCollectionEquality().hash(_reactSettings));
+int get hashCode => Object.hash(runtimeType,permissions,isOwner,isAdmin,isLocked,const DeepCollectionEquality().hash(_notifications),const DeepCollectionEquality().hash(_settings));
 
 @override
 String toString() {
-  return 'CompanyUserApi(permissions: $permissions, isOwner: $isOwner, isAdmin: $isAdmin, isLocked: $isLocked, notifications: $notifications, settings: $settings, reactSettings: $reactSettings)';
+  return 'CompanyUserApi(permissions: $permissions, isOwner: $isOwner, isAdmin: $isAdmin, isLocked: $isLocked, notifications: $notifications, settings: $settings)';
 }
 
 
@@ -1199,11 +1188,11 @@ abstract mixin class _$CompanyUserApiCopyWith<$Res> implements $CompanyUserApiCo
   factory _$CompanyUserApiCopyWith(_CompanyUserApi value, $Res Function(_CompanyUserApi) _then) = __$CompanyUserApiCopyWithImpl;
 @override @useResult
 $Res call({
- String permissions,@JsonKey(name: 'is_owner') bool isOwner,@JsonKey(name: 'is_admin') bool isAdmin,@JsonKey(name: 'is_locked') bool isLocked, NotificationsApi notifications, Map<String, dynamic> settings,@JsonKey(name: 'react_settings') Map<String, dynamic> reactSettings
+ String permissions,@JsonKey(name: 'is_owner') bool isOwner,@JsonKey(name: 'is_admin') bool isAdmin,@JsonKey(name: 'is_locked') bool isLocked, Map<String, dynamic> notifications, Map<String, dynamic> settings
 });
 
 
-@override $NotificationsApiCopyWith<$Res> get notifications;
+
 
 }
 /// @nodoc
@@ -1216,294 +1205,15 @@ class __$CompanyUserApiCopyWithImpl<$Res>
 
 /// Create a copy of CompanyUserApi
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? permissions = null,Object? isOwner = null,Object? isAdmin = null,Object? isLocked = null,Object? notifications = null,Object? settings = null,Object? reactSettings = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? permissions = null,Object? isOwner = null,Object? isAdmin = null,Object? isLocked = null,Object? notifications = null,Object? settings = null,}) {
   return _then(_CompanyUserApi(
 permissions: null == permissions ? _self.permissions : permissions // ignore: cast_nullable_to_non_nullable
 as String,isOwner: null == isOwner ? _self.isOwner : isOwner // ignore: cast_nullable_to_non_nullable
 as bool,isAdmin: null == isAdmin ? _self.isAdmin : isAdmin // ignore: cast_nullable_to_non_nullable
 as bool,isLocked: null == isLocked ? _self.isLocked : isLocked // ignore: cast_nullable_to_non_nullable
-as bool,notifications: null == notifications ? _self.notifications : notifications // ignore: cast_nullable_to_non_nullable
-as NotificationsApi,settings: null == settings ? _self._settings : settings // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>,reactSettings: null == reactSettings ? _self._reactSettings : reactSettings // ignore: cast_nullable_to_non_nullable
+as bool,notifications: null == notifications ? _self._notifications : notifications // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>,settings: null == settings ? _self._settings : settings // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>,
-  ));
-}
-
-/// Create a copy of CompanyUserApi
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$NotificationsApiCopyWith<$Res> get notifications {
-  
-  return $NotificationsApiCopyWith<$Res>(_self.notifications, (value) {
-    return _then(_self.copyWith(notifications: value));
-  });
-}
-}
-
-
-/// @nodoc
-mixin _$NotificationsApi {
-
- List<String> get email;
-/// Create a copy of NotificationsApi
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$NotificationsApiCopyWith<NotificationsApi> get copyWith => _$NotificationsApiCopyWithImpl<NotificationsApi>(this as NotificationsApi, _$identity);
-
-  /// Serializes this NotificationsApi to a JSON map.
-  Map<String, dynamic> toJson();
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NotificationsApi&&const DeepCollectionEquality().equals(other.email, email));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(email));
-
-@override
-String toString() {
-  return 'NotificationsApi(email: $email)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $NotificationsApiCopyWith<$Res>  {
-  factory $NotificationsApiCopyWith(NotificationsApi value, $Res Function(NotificationsApi) _then) = _$NotificationsApiCopyWithImpl;
-@useResult
-$Res call({
- List<String> email
-});
-
-
-
-
-}
-/// @nodoc
-class _$NotificationsApiCopyWithImpl<$Res>
-    implements $NotificationsApiCopyWith<$Res> {
-  _$NotificationsApiCopyWithImpl(this._self, this._then);
-
-  final NotificationsApi _self;
-  final $Res Function(NotificationsApi) _then;
-
-/// Create a copy of NotificationsApi
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? email = null,}) {
-  return _then(_self.copyWith(
-email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
-as List<String>,
-  ));
-}
-
-}
-
-
-/// Adds pattern-matching-related methods to [NotificationsApi].
-extension NotificationsApiPatterns on NotificationsApi {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _NotificationsApi value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _NotificationsApi() when $default != null:
-return $default(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _NotificationsApi value)  $default,){
-final _that = this;
-switch (_that) {
-case _NotificationsApi():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _NotificationsApi value)?  $default,){
-final _that = this;
-switch (_that) {
-case _NotificationsApi() when $default != null:
-return $default(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<String> email)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _NotificationsApi() when $default != null:
-return $default(_that.email);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<String> email)  $default,) {final _that = this;
-switch (_that) {
-case _NotificationsApi():
-return $default(_that.email);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<String> email)?  $default,) {final _that = this;
-switch (_that) {
-case _NotificationsApi() when $default != null:
-return $default(_that.email);case _:
-  return null;
-
-}
-}
-
-}
-
-/// @nodoc
-@JsonSerializable()
-
-class _NotificationsApi implements NotificationsApi {
-  const _NotificationsApi({final  List<String> email = const <String>[]}): _email = email;
-  factory _NotificationsApi.fromJson(Map<String, dynamic> json) => _$NotificationsApiFromJson(json);
-
- final  List<String> _email;
-@override@JsonKey() List<String> get email {
-  if (_email is EqualUnmodifiableListView) return _email;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_email);
-}
-
-
-/// Create a copy of NotificationsApi
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$NotificationsApiCopyWith<_NotificationsApi> get copyWith => __$NotificationsApiCopyWithImpl<_NotificationsApi>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$NotificationsApiToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _NotificationsApi&&const DeepCollectionEquality().equals(other._email, _email));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_email));
-
-@override
-String toString() {
-  return 'NotificationsApi(email: $email)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$NotificationsApiCopyWith<$Res> implements $NotificationsApiCopyWith<$Res> {
-  factory _$NotificationsApiCopyWith(_NotificationsApi value, $Res Function(_NotificationsApi) _then) = __$NotificationsApiCopyWithImpl;
-@override @useResult
-$Res call({
- List<String> email
-});
-
-
-
-
-}
-/// @nodoc
-class __$NotificationsApiCopyWithImpl<$Res>
-    implements _$NotificationsApiCopyWith<$Res> {
-  __$NotificationsApiCopyWithImpl(this._self, this._then);
-
-  final _NotificationsApi _self;
-  final $Res Function(_NotificationsApi) _then;
-
-/// Create a copy of NotificationsApi
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? email = null,}) {
-  return _then(_NotificationsApi(
-email: null == email ? _self._email : email // ignore: cast_nullable_to_non_nullable
-as List<String>,
   ));
 }
 

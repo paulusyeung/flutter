@@ -164,6 +164,26 @@ void main() {
       expect(find.text('Region'), findsOneWidget);
     });
 
+    testWidgets('dropdown surfaces a stored value no longer in the options', (
+      tester,
+    ) async {
+      // Options were edited to North,South after this entity was saved with
+      // 'West' — the stored value must stay visible + selected, not blank.
+      await pumpTyped(
+        tester,
+        company: const Company(
+          customFields: {'invoice1': 'Region|North,South'},
+        ),
+        values: const ['West', '', '', ''],
+        onChanged: [(_) {}, (_) {}, (_) {}, (_) {}],
+      );
+      final field = tester.widget<SearchableDropdownField<String>>(
+        find.byType(SearchableDropdownField<String>),
+      );
+      expect(field.items, contains('West'));
+      expect(field.initialValue, 'West');
+    });
+
     testWidgets('multi-line renders a 3-line EntityEditField', (tester) async {
       await pumpTyped(
         tester,

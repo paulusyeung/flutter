@@ -79,9 +79,10 @@ class GeneralSettingsBody extends StatelessWidget {
     // not the client-scope `ClientSettingsDraftViewModel`.
     final invoiceVm = host is InvoiceDesignViewModel ? host : null;
     final isCompany = context.watch<SettingsLevelController>().isCompany;
-    // Module gating mirrors admin-portal. `embedDocuments` toggle only renders
-    // when the Documents module is on; alignment dropdown only when page
-    // numbering is enabled.
+    // The page-numbering alignment dropdown renders only when page numbering is
+    // enabled (see `hasPageNumbering` below). Unlike admin-portal, the
+    // `embed_documents` toggle is shown unconditionally here — matching the
+    // React client, which always renders it (cascade-disable only).
     final hasPageNumbering = settings.pageNumbering ?? false;
 
     final pageLayoutItems = [

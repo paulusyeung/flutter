@@ -494,22 +494,35 @@ abstract class BaseEntityRepository<TDomain, TApi> {
     required TCompanion Function(TItem) toCompanion,
     required Future<void> Function(Map<String, TCompanion> byId) upsert,
   }) async {
-    final cursor = ignoreCursor
+    // Rolling `rel:` tokens must be resolved to absolute values before
+    // they hit the wire — the server never sees a relative token.
+    final resolvedExtra = resolveRelativeFilterTokens(extraFilters);
+    // A fetch scoped to a specific client — an embedded client detail tab, or a
+    // standalone list the user has filtered by client — is a filtered VIEW, not
+    // a canonical full-entity sync. Two consequences below:
+    //  * `without_deleted_clients=true` is suppressed so a deleted client's own
+    //    detail tabs still fetch (React parity).
+    //  * the shared `(companyId, entityType)` keyset cursor is neither read nor
+    //    advanced (see the cursor + advanceCursor guards). The scoped page's
+    //    `data.last` is not a valid global high-water mark: reading it would
+    //    make the scoped list under-fetch, and advancing it would corrupt the
+    //    *unscoped* list's delta sync (e.g. opening a client's Invoices tab
+    //    would skip the standalone Invoices list forward). A scoped fetch
+    //    offset-paginates its narrowed view from page 1 instead. Covers
+    //    `client_id`/`client_ids` — the clients module's embedded tabs; other
+    //    parent scopes (project / vendor detail tabs) should extend this set
+    //    when those screens are hardened.
+    final hasClientScope =
+        resolvedExtra.containsKey('client_id') ||
+        resolvedExtra.containsKey('client_ids');
+
+    final cursor = (ignoreCursor || hasClientScope)
         ? null
         : await _syncState.read(
             companyId: companyId,
             entityType: entityTypeName,
           );
 
-    // Rolling `rel:` tokens must be resolved to absolute values before
-    // they hit the wire — the server never sees a relative token.
-    final resolvedExtra = resolveRelativeFilterTokens(extraFilters);
-    // `without_deleted_clients=true` hides rows of soft-deleted clients (React
-    // parity). Suppress it when the fetch is already scoped to a specific
-    // client — otherwise a deleted client's own detail tabs fetch nothing.
-    final hasClientScope =
-        resolvedExtra.containsKey('client_id') ||
-        resolvedExtra.containsKey('client_ids');
     final filters = <String, String>{
       ...stateQueryParams(states),
       ...staticFilters,
@@ -536,7 +549,11 @@ abstract class BaseEntityRepository<TDomain, TApi> {
     // so a paged refresh doesn't clobber the user's pending offline edit.
     await upsert({for (final a in apiRows) idOf(a): toCompanion(a)});
 
-    if (result.cursorUpdatedAt != null && result.cursorId != null) {
+    // A client-scoped fetch must not advance the shared cursor (see above):
+    // its `data.last` is a scoped high-water mark, not the entity's global one.
+    if (!hasClientScope &&
+        result.cursorUpdatedAt != null &&
+        result.cursorId != null) {
       await advanceCursor(
         companyId: companyId,
         updatedAt: result.cursorUpdatedAt!,
@@ -544,6 +561,7 @@ abstract class BaseEntityRepository<TDomain, TApi> {
         wasFullSync: ignoreCursor && page == 1,
       );
     }
+
     return apiRows.length >= pageSize;
   }
 

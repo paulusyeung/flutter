@@ -93,16 +93,11 @@ _CompanyUserApi _$CompanyUserApiFromJson(Map<String, dynamic> json) =>
       isOwner: json['is_owner'] as bool? ?? false,
       isAdmin: json['is_admin'] as bool? ?? false,
       isLocked: json['is_locked'] as bool? ?? false,
-      notifications: json['notifications'] == null
-          ? const NotificationsApi()
-          : NotificationsApi.fromJson(
-              json['notifications'] as Map<String, dynamic>,
-            ),
+      notifications:
+          json['notifications'] as Map<String, dynamic>? ??
+          const <String, dynamic>{},
       settings:
           json['settings'] as Map<String, dynamic>? ??
-          const <String, dynamic>{},
-      reactSettings:
-          json['react_settings'] as Map<String, dynamic>? ??
           const <String, dynamic>{},
     );
 
@@ -114,15 +109,4 @@ Map<String, dynamic> _$CompanyUserApiToJson(_CompanyUserApi instance) =>
       'is_locked': instance.isLocked,
       'notifications': instance.notifications,
       'settings': instance.settings,
-      'react_settings': instance.reactSettings,
     };
-
-_NotificationsApi _$NotificationsApiFromJson(Map<String, dynamic> json) =>
-    _NotificationsApi(
-      email:
-          (json['email'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-          const <String>[],
-    );
-
-Map<String, dynamic> _$NotificationsApiToJson(_NotificationsApi instance) =>
-    <String, dynamic>{'email': instance.email};

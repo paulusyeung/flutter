@@ -191,6 +191,11 @@ class _KpiCell extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           value,
+          // Each cell is an Expanded slot (1 row wide / 2×2 grid narrow); a
+          // long amount (big balance in a wide currency) must ellipsize, not
+          // wrap to a second line and shove the strip taller on a phone.
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: theme.textTheme.titleLarge?.copyWith(
             color: valueColor,
             fontWeight: FontWeight.w600,

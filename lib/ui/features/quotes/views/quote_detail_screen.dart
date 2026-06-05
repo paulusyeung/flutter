@@ -27,6 +27,7 @@ import 'package:admin/data/models/value/date.dart';
 import 'package:admin/domain/billing/totals_calculator.dart';
 import 'package:admin/ui/core/widgets/formatter_scope.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_kpi_strip.dart';
+import 'package:admin/ui/core/detail/custom_fields_detail_card.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_overview.dart';
 
 class QuoteDetailScreen extends StatefulWidget {
@@ -339,6 +340,23 @@ class _Overview extends StatelessWidget {
           terms: quote.terms,
           formatter: formatter,
           currencyId: currencyId,
+          trailing: [
+            if (quote.customValue1.isNotEmpty ||
+                quote.customValue2.isNotEmpty ||
+                quote.customValue3.isNotEmpty ||
+                quote.customValue4.isNotEmpty)
+              CustomFieldsDetailCard(
+                companyId: companyId,
+                prefix: 'invoice',
+                values: [
+                  quote.customValue1,
+                  quote.customValue2,
+                  quote.customValue3,
+                  quote.customValue4,
+                ],
+                formatter: formatter,
+              ),
+          ],
         );
       },
     );

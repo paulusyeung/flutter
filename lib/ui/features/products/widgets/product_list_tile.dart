@@ -8,6 +8,7 @@ import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/list/selectable_list_row.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
+import 'package:admin/ui/core/widgets/formatter_scope.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
 import 'package:admin/ui/features/products/widgets/product_actions.dart';
 
@@ -148,9 +149,17 @@ class _ProductListTileState extends State<ProductListTile> {
 
   Widget _narrow(BuildContext context, InTheme tokens) {
     final w = widget;
-    final priceFmt = NumberFormat.decimalPattern()
-      ..minimumFractionDigits = 2
-      ..maximumFractionDigits = 2;
+    // Format the price through the active-company Formatter (currency cascade
+    // + symbol), matching the wide table's money cells. Falls back to a
+    // locale number only during the brief cold-start window before the
+    // FormatterScope resolves.
+    final formatter = FormatterScope.maybeOf(context);
+    final priceText =
+        formatter?.money(w.product.price) ??
+        (NumberFormat.decimalPattern()
+              ..minimumFractionDigits = 2
+              ..maximumFractionDigits = 2)
+            .format(w.product.price.toDouble());
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -159,7 +168,7 @@ class _ProductListTileState extends State<ProductListTile> {
         Expanded(child: _identity(context, tokens)),
         const SizedBox(width: 12),
         Text(
-          priceFmt.format(w.product.price.toDouble()),
+          priceText,
           style: TextStyle(
             color: tokens.ink,
             fontFeatures: const [FontFeature.tabularFigures()],

@@ -46,7 +46,16 @@ class ProductEditViewModel extends GenericEditViewModel<Product> {
       rememberCreateTempId(result.entity.id);
       return result;
     }
-    return repo.save(companyId: companyId, product: draft);
+    // Flag an in-stock-quantity edit so the repo rides
+    // `?update_in_stock_quantity=true` into the PUT — the server drops the
+    // field otherwise. `original` is the server baseline captured when the
+    // screen opened (non-null in the edit branch).
+    final stockChanged = original?.inStockQuantity != draft.inStockQuantity;
+    return repo.save(
+      companyId: companyId,
+      product: draft,
+      stockChanged: stockChanged,
+    );
   }
 
   void resetToEmpty() => reset(emptyDraft: _emptyProduct());

@@ -64,6 +64,81 @@ void main() {
     });
   });
 
+  group('parity fields (assigned user / valid_until / send_reminders / '
+      'can_sign)', () {
+    test('setAssignedUserId updates the draft', () {
+      final vm = ClientEditViewModel(
+        repo: repo,
+        companyId: 'co',
+        existing: existing(),
+      );
+      vm.setAssignedUserId('u9');
+      expect(vm.draft.assignedUserId, 'u9');
+      vm.dispose();
+    });
+
+    test('valid_until is a cascade setting; blank clears it (inherit)', () {
+      final vm = ClientEditViewModel(
+        repo: repo,
+        companyId: 'co',
+        existing: existing(),
+      );
+      vm.setValidUntil('30');
+      expect(vm.validUntil, '30');
+      expect(vm.draft.settings?['valid_until'], '30');
+      vm.setValidUntil('');
+      expect(vm.validUntil, '');
+      expect(vm.draft.settings?.containsKey('valid_until') ?? false, isFalse);
+      vm.dispose();
+    });
+
+    test('send_reminders is a tri-state cascade bool; null clears it', () {
+      final vm = ClientEditViewModel(
+        repo: repo,
+        companyId: 'co',
+        existing: existing(),
+      );
+      vm.setSendReminders(true);
+      expect(vm.sendReminders, isTrue);
+      expect(vm.draft.settings?['send_reminders'], true);
+      vm.setSendReminders(false);
+      expect(vm.sendReminders, isFalse);
+      vm.setSendReminders(null);
+      expect(vm.sendReminders, isNull);
+      expect(
+        vm.draft.settings?.containsKey('send_reminders') ?? false,
+        isFalse,
+      );
+      vm.dispose();
+    });
+
+    test('valid_until + send_reminders fold into the toApiJson settings', () {
+      final vm = ClientEditViewModel(
+        repo: repo,
+        companyId: 'co',
+        existing: existing(),
+      );
+      vm.setValidUntil('14');
+      vm.setSendReminders(false);
+      final settings = vm.draft.toApiJson()['settings'] as Map<String, dynamic>;
+      expect(settings['valid_until'], '14');
+      expect(settings['send_reminders'], false);
+      vm.dispose();
+    });
+
+    test('setContactCanSignAt toggles the contact flag', () {
+      final vm = ClientEditViewModel(
+        repo: repo,
+        companyId: 'co',
+        existing: existing(),
+      );
+      vm.addContact();
+      vm.setContactCanSignAt(0, true);
+      expect(vm.draft.contacts[0].canSign, isTrue);
+      vm.dispose();
+    });
+  });
+
   group('save (edit)', () {
     test(
       'queues an update outbox row and reflects the new name in Drift',

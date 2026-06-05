@@ -1,19 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:admin/domain/product_tax_categories.dart';
 import 'package:admin/l10n/localization.dart';
-
-/// Fixed tax-category catalog — id → localization key. Matches
-/// admin-portal's `kTaxCategory*` constants (`constants.dart`): the server
-/// contract is the string id, the label is localized.
-const Map<String, String> kProductTaxCategories = <String, String>{
-  '1': 'physical_goods',
-  '2': 'services',
-  '3': 'digital_products',
-  '4': 'shipping',
-  '5': 'tax_exempt',
-  '6': 'reduced_tax',
-  '7': 'override_tax',
-};
 
 /// Pick a product tax category. Short fixed enum → a simple radio list
 /// (no search). Returns the chosen id, or null on cancel. [current] is the

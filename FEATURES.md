@@ -670,10 +670,12 @@ Field-level breakdown of every option under each settings panel. Source of truth
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
 | Connect Google (OAuth) | ✅ | ✅ | ✅ | ✅ | |
-| Connect Microsoft (OAuth) | ✅ | ✅ | ✅ | ✅ | |
-| Connect Gmail (OAuth) | ✅ | ✅ | ✅ | ✅ | |
-| Connect Email (OAuth) | ✅ | ✅ | ✅ | ✅ | |
+| Connect Microsoft (OAuth) | ✅ | ✅ | ❌ | ✅ | |
+| Connect Gmail (OAuth) | ✅ | ✅ | ❌ | ✅ | |
+| Connect Email (OAuth) | ✅ | ✅ | ❌ | ✅ | |
 | Disconnect | ✅ | ✅ | ✅ | ✅ | |
+
+> v2 Connect tab supports **Google connect** (in-app) + **all disconnects** (OAuth + mailer) only. Connecting Microsoft OAuth and the email mailer (Gmail/Outlook send-on-behalf) are intentionally not implemented — no native MSAL and no in-app OAuth callback handler. Accepted pre-launch limitation.
 
 #### User Details — Two-Factor tab
 

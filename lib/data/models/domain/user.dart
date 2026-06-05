@@ -50,6 +50,7 @@ abstract class User with _$User {
     @Default(<String, dynamic>{}) Map<String, dynamic> rawCompanyUserSettings,
     @Default(CompanyUserSettings()) CompanyUserSettings companyUserSettings,
     @Default(<String>[]) List<String> notificationsEmail,
+    @Default(<String, dynamic>{}) Map<String, dynamic> rawNotifications,
   }) = _User;
 
   factory User.fromApi(UserApi api) {
@@ -87,7 +88,8 @@ abstract class User with _$User {
       ),
       rawCompanyUserSettings: cu.settings,
       companyUserSettings: CompanyUserSettings.fromJson(cu.settings),
-      notificationsEmail: cu.notifications.email,
+      notificationsEmail: _emailNotifications(cu.notifications),
+      rawNotifications: cu.notifications,
     );
   }
 
@@ -151,7 +153,10 @@ abstract class User with _$User {
         isOwner: companyUser.isOwner,
         isAdmin: companyUser.isAdmin,
         isLocked: companyUser.isLocked,
-        notifications: NotificationsApi(email: notificationsEmail),
+        notifications: <String, dynamic>{
+          ...rawNotifications,
+          'email': notificationsEmail,
+        },
         settings: <String, dynamic>{
           ...rawCompanyUserSettings,
           ...companyUserSettings.toJson(),
@@ -159,6 +164,18 @@ abstract class User with _$User {
       ),
     );
   }
+}
+
+/// Pull the `email` channel out of the raw `company_user.notifications` map.
+/// Other channels (e.g. `slack`, written by the legacy app's advanced
+/// notification settings) are preserved via [User.rawNotifications] and
+/// re-emitted untouched on save, so editing email prefs doesn't wipe them.
+List<String> _emailNotifications(Map<String, dynamic> notifications) {
+  final email = notifications['email'];
+  if (email is List) {
+    return email.map((e) => e.toString()).toList(growable: false);
+  }
+  return const <String>[];
 }
 
 /// Per-(user, company) metadata. The role flags + raw permission string
@@ -192,7 +209,11 @@ abstract class CompanyUserSettings with _$CompanyUserSettings {
   /// Serialise the typed fields back into a JSON map. Callers merge this on
   /// top of [User.rawCompanyUserSettings] so unmodelled keys (the React
   /// preferences blob, dashboard prefs, …) survive the round-trip.
+  ///
+  /// `accent_color` is emitted even when empty: a reset sets it to `''`, and
+  /// without the key here the merge would keep the stale value from
+  /// [User.rawCompanyUserSettings] and the reset wouldn't persist.
   Map<String, dynamic> toJson() => <String, dynamic>{
-    if (accentColor.isNotEmpty) 'accent_color': accentColor,
+    'accent_color': accentColor,
   };
 }

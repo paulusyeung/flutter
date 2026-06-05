@@ -20,6 +20,7 @@ import 'package:admin/ui/features/dashboard/widgets/activity_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/dashboard/widgets/chart_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/configured_cards_grid.dart';
+import 'package:admin/ui/features/dashboard/widgets/delta_chip.dart';
 import 'package:admin/ui/features/dashboard/widgets/freshness_label.dart';
 import 'package:admin/ui/features/dashboard/widgets/manage_dashboard_cards_sheet.dart';
 import 'package:admin/ui/features/dashboard/widgets/mobile/dashboard_mobile_rows.dart';
@@ -211,7 +212,6 @@ class MobileDashboardBody extends StatelessWidget {
     );
 
     final overdueCount = current?.outstandingCount ?? 0;
-    final overdueAmountText = formatter.money(outstanding);
 
     final paidText = formatter.money(
       current?.revenuePaidToDate ?? Decimal.zero,
@@ -270,26 +270,16 @@ class MobileDashboardBody extends StatelessWidget {
                         ],
                         if (outstandingDelta != null) ...[
                           const SizedBox(height: 4),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                outstandingDelta >= 0
-                                    ? Icons.arrow_upward
-                                    : Icons.arrow_downward,
-                                size: 11,
-                                color: tokens.paid,
-                              ),
-                              const SizedBox(width: 3),
-                              Text(
-                                '${outstandingDelta >= 0 ? '+' : ''}${outstandingDelta.toStringAsFixed(1)}% ${context.tr('this_month').toLowerCase()}',
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: tokens.paid,
-                                ),
-                              ),
-                            ],
+                          // Outstanding is "good when down": a rising balance
+                          // renders red, a falling one green — same semantics
+                          // as the desktop KPI. Reuse DeltaChip, don't hand-roll
+                          // (the old version hardcoded green for both).
+                          DeltaChip(
+                            percent: outstandingDelta,
+                            goodDirection: GoodDirection.down,
+                            // Range-agnostic + localized, matching the chart
+                            // card. "this month" misled for non-month ranges.
+                            suffix: context.tr('vs_prior'),
                           ),
                         ],
                       ],
@@ -304,7 +294,10 @@ class MobileDashboardBody extends StatelessWidget {
                     child: _subKpi(
                       context: context,
                       label: context.tr('overdue'),
-                      value: '$overdueAmountText · $overdueCount',
+                      // Count only — matches the desktop "Overdue" KPI. The
+                      // totals endpoint exposes no separate overdue amount, so
+                      // showing the outstanding $ here just duplicated the hero.
+                      value: '$overdueCount',
                       bg: tokens.surfaceAlt,
                       labelColor: tokens.ink3,
                       valueColor: tokens.ink,

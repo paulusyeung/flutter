@@ -4,9 +4,11 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_activity.dart';
 import 'package:admin/data/models/domain/user.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/custom_field_detail_rows.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/dashboard/helpers/activity_formatter.dart';
@@ -108,6 +110,11 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                     ),
                 ],
               ),
+              if (user.customValue1.isNotEmpty ||
+                  user.customValue2.isNotEmpty ||
+                  user.customValue3.isNotEmpty ||
+                  user.customValue4.isNotEmpty)
+                _UserCustomFieldsSection(user: user, companyId: companyId),
               FormSection(
                 title: context.tr('activity'),
                 children: [
@@ -416,8 +423,17 @@ class _ActivityRow extends StatelessWidget {
 }
 
 class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({required this.labelKey, required this.value});
+  const _SummaryRow({required this.labelKey, required this.value})
+    : _literalLabel = null;
+
+  /// Variant for a label that is already resolved text (not a localization
+  /// key) — used for configured custom-field labels.
+  const _SummaryRow.literal({required String label, required this.value})
+    : labelKey = '',
+      _literalLabel = label;
+
   final String labelKey;
+  final String? _literalLabel;
   final String value;
 
   @override
@@ -432,13 +448,55 @@ class _SummaryRow extends StatelessWidget {
           SizedBox(
             width: 140,
             child: Text(
-              context.tr(labelKey),
+              _literalLabel ?? context.tr(labelKey),
               style: theme.textTheme.bodySmall?.copyWith(color: tokens.ink3),
             ),
           ),
           Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),
         ],
       ),
+    );
+  }
+}
+
+/// Read-only custom-field rows for this user, rendered in the settings-page
+/// idiom (a [FormSection] of [_SummaryRow]s) rather than the entity-detail
+/// card so it sits flush with the surrounding sections. Streams the company
+/// for the configured `user1..4` labels/types; collapses when none apply.
+class _UserCustomFieldsSection extends StatelessWidget {
+  const _UserCustomFieldsSection({required this.user, required this.companyId});
+
+  final User user;
+  final String companyId;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    return StreamBuilder<Company?>(
+      stream: services.company.watchCompany(companyId),
+      builder: (context, snapshot) {
+        final rows = customFieldDetailRows(
+          company: snapshot.data,
+          prefix: 'user',
+          values: [
+            user.customValue1,
+            user.customValue2,
+            user.customValue3,
+            user.customValue4,
+          ],
+          formatter: services.formatterIfReady(companyId),
+          yes: context.tr('yes'),
+          no: context.tr('no'),
+        );
+        if (rows.isEmpty) return const SizedBox.shrink();
+        return FormSection(
+          title: context.tr('custom_fields'),
+          children: [
+            for (final r in rows)
+              _SummaryRow.literal(label: r.label, value: r.value),
+          ],
+        );
+      },
     );
   }
 }

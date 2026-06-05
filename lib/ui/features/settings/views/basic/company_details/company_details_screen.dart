@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/custom_field_types.dart';
 import 'package:admin/data/models/value/industry.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
@@ -52,7 +54,16 @@ class CompanyDetailsScreen extends StatelessWidget {
     final legalEntityBound = draft.legalEntityId != 0;
     final isSwiss = draft.settings.countryId == '756';
 
-    final customFieldEditors = _customFieldEditors(context, vm);
+    final services = context.read<Services>();
+    // The custom-field VALUE inputs render by the company's configured type
+    // (text / multi-line / switch / date / dropdown) via the shared
+    // EntityCustomFieldsSection — the same type-aware widget every entity edit
+    // screen and User Details use. Gate the section on at least one configured
+    // slot so an empty "Custom Fields" card never shows for companies without
+    // any (the inner widget self-collapses, but we suppress the outer card).
+    final hasCompanyCustomFields = [1, 2, 3, 4].any(
+      (i) => parseCustomField(draft.customFields['company$i']).label.isNotEmpty,
+    );
 
     return SettingsFormShell(
       sections: [
@@ -115,28 +126,32 @@ class CompanyDetailsScreen extends StatelessWidget {
           title: context.tr('business'),
           children: [_SizeField(), _IndustryField()],
         ),
-        if (customFieldEditors.isNotEmpty)
+        if (hasCompanyCustomFields)
           FormSection(
             title: context.tr('custom_fields'),
-            children: customFieldEditors,
+            children: [
+              EntityCustomFieldsSection(
+                keyPrefix: 'company',
+                companyStream: services.company.watchCompany(vm.companyId),
+                formatter: services.formatterIfReady(vm.companyId),
+                wrapInCard: false,
+                values: [
+                  vm.settings.customValue1 ?? '',
+                  vm.settings.customValue2 ?? '',
+                  vm.settings.customValue3 ?? '',
+                  vm.settings.customValue4 ?? '',
+                ],
+                onChanged: [
+                  (v) => vm.updateSettings((s) => s.copyWith(customValue1: v)),
+                  (v) => vm.updateSettings((s) => s.copyWith(customValue2: v)),
+                  (v) => vm.updateSettings((s) => s.copyWith(customValue3: v)),
+                  (v) => vm.updateSettings((s) => s.copyWith(customValue4: v)),
+                ],
+              ),
+            ],
           ),
       ],
     );
-  }
-
-  List<Widget> _customFieldEditors(
-    BuildContext context,
-    CompanyDetailsViewModel vm,
-  ) {
-    final widgets = <Widget>[];
-    for (var i = 1; i <= 4; i++) {
-      final key = 'company$i';
-      final def = vm.draft?.customFields[key];
-      if (def == null || def.isEmpty) continue;
-      final label = def.split('|').first;
-      widgets.add(OverridableTextField(label: label, apiKey: 'custom_value$i'));
-    }
-    return widgets;
   }
 }
 

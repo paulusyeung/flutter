@@ -25,6 +25,7 @@ import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/domain/billing/totals_calculator.dart';
 import 'package:admin/ui/core/widgets/formatter_scope.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_kpi_strip.dart';
+import 'package:admin/ui/core/detail/custom_fields_detail_card.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_overview.dart';
 
 class CreditDetailScreen extends StatefulWidget {
@@ -320,6 +321,23 @@ class _Overview extends StatelessWidget {
           terms: credit.terms,
           formatter: formatter,
           currencyId: currencyId,
+          trailing: [
+            if (credit.customValue1.isNotEmpty ||
+                credit.customValue2.isNotEmpty ||
+                credit.customValue3.isNotEmpty ||
+                credit.customValue4.isNotEmpty)
+              CustomFieldsDetailCard(
+                companyId: companyId,
+                prefix: 'invoice',
+                values: [
+                  credit.customValue1,
+                  credit.customValue2,
+                  credit.customValue3,
+                  credit.customValue4,
+                ],
+                formatter: formatter,
+              ),
+          ],
         );
       },
     );

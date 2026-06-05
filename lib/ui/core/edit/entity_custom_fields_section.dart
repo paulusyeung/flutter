@@ -147,7 +147,16 @@ class EntityCustomFieldsSection extends StatelessWidget {
         // Prepend a blank so the user can clear, and so `items` is never empty
         // (an empty list renders SearchableDropdownField's "loading"
         // placeholder). Selecting the blank writes '' (unselected).
-        final items = <String>['', ...parsed.options];
+        //
+        // If the stored value is no longer one of the configured options
+        // (options edited after the value was set, or set by another client),
+        // surface it as an extra item so it stays visible + re-selectable
+        // instead of silently rendering blank.
+        final items = <String>[
+          '',
+          ...parsed.options,
+          if (value.isNotEmpty && !parsed.options.contains(value)) value,
+        ];
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: InSpacing.xs),
           child: SearchableDropdownField<String>(

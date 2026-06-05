@@ -14,6 +14,7 @@ import 'package:admin/domain/billing/invoice_lock.dart';
 import 'package:admin/domain/sync/mutation.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/core/detail/custom_fields_detail_card.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
@@ -520,6 +521,21 @@ class _Overview extends StatelessWidget {
           formatter: formatter,
           currencyId: currencyId,
           trailing: [
+            if (invoice.customValue1.isNotEmpty ||
+                invoice.customValue2.isNotEmpty ||
+                invoice.customValue3.isNotEmpty ||
+                invoice.customValue4.isNotEmpty)
+              CustomFieldsDetailCard(
+                companyId: companyId,
+                prefix: 'invoice',
+                values: [
+                  invoice.customValue1,
+                  invoice.customValue2,
+                  invoice.customValue3,
+                  invoice.customValue4,
+                ],
+                formatter: formatter,
+              ),
             InvoiceAppliedPaymentsSection(
               invoice: invoice,
               services: services,

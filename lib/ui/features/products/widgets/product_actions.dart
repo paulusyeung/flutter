@@ -67,6 +67,22 @@ class ProductActions {
     }
   }
 
+  /// Build the create-form draft for a clone. Strips identity + lifecycle
+  /// fields so the create scaffold calls `repo.create(...)` (empty id), and
+  /// clears `documents`: those references belong to the source entity (their
+  /// ids are its real document ids), so carrying them over would show the
+  /// source's attachments on the clone pre-sync and let an offline delete
+  /// from the clone hit the original's file. Mirrors legacy's `clone` getter.
+  static Product cloneDraftFor(Product product) => product.copyWith(
+    id: '',
+    archivedAt: null,
+    isDeleted: false,
+    isDirty: false,
+    updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+    createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+    documents: const [],
+  );
+
   static List<EntityActionItem<ProductAction>> itemsFor(
     BuildContext context,
     Product product,
@@ -182,18 +198,7 @@ class ProductActions {
               services.products.restore(companyId: companyId, id: product.id),
         );
       case ProductAction.clone:
-        // Strip identity-bearing fields so the create form opens with a
-        // truly new draft seeded from the source product. The scaffold
-        // calls `repo.create(...)` on save because `existingId == null`.
-        final draft = product.copyWith(
-          id: '',
-          archivedAt: null,
-          isDeleted: false,
-          isDirty: false,
-          updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
-          createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
-        );
-        context.go('/products/new', extra: draft);
+        context.go('/products/new', extra: cloneDraftFor(product));
       case ProductAction.delete:
         if (product.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));

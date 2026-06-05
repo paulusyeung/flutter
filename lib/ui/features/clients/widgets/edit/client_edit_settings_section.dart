@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/group_setting.dart';
+import 'package:admin/data/models/domain/user.dart';
 import 'package:admin/data/models/value/currency.dart';
 import 'package:admin/data/models/value/industry.dart';
 import 'package:admin/data/models/value/language.dart';
@@ -77,6 +79,13 @@ class ClientEditSettingsSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Group + assigned user — org/ownership fields (repo-backed, so
+          // each is a StreamBuilder-fed searchable picker). Clearing either
+          // sets the id back to '' (none / unassigned).
+          ClientEditFieldPair(
+            left: _GroupPicker(vm: vm),
+            right: _AssignedUserPicker(vm: vm),
+          ),
           ClientEditFieldPair(
             left: SearchableDropdownField<Currency>(
               label: context.tr('currency'),
@@ -110,6 +119,17 @@ class ClientEditSettingsSection extends StatelessWidget {
               ),
               onChanged: vm.setDefaultTaskRate,
             ),
+          ),
+          // Quote "valid until" (days) + send-reminders override — both cascade
+          // settings stored in `settings`; blank / "Default" inherits.
+          ClientEditFieldPair(
+            left: EntityEditField(
+              label: context.tr('valid_until'),
+              initial: vm.validUntil,
+              keyboardType: TextInputType.number,
+              onChanged: vm.setValidUntil,
+            ),
+            right: _SendRemindersPicker(vm: vm),
           ),
           ClientEditFieldPair(
             left: SearchableDropdownField<Industry>(
@@ -163,6 +183,109 @@ class ClientEditSettingsSection extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Group (`group_settings_id`) picker — repo-backed (bundled group settings),
+/// so it streams the list and resolves the current selection by id. Clearing
+/// sets the override back to none.
+class _GroupPicker extends StatelessWidget {
+  const _GroupPicker({required this.vm});
+  final ClientEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    return StreamBuilder<List<GroupSetting>>(
+      stream: services.groupSettings.watchAll(companyId: vm.companyId),
+      builder: (context, snapshot) {
+        final groups = snapshot.data ?? const <GroupSetting>[];
+        GroupSetting? selected;
+        for (final g in groups) {
+          if (g.id == vm.draft.groupSettingsId) {
+            selected = g;
+            break;
+          }
+        }
+        return SearchableDropdownField<GroupSetting>(
+          label: context.tr('group'),
+          items: groups,
+          initialValue: selected,
+          displayString: (g) => g.name.isEmpty ? g.id : g.name,
+          idOf: (g) => g.id,
+          onChanged: (g) => vm.setGroupSettingsId(g?.id ?? ''),
+        );
+      },
+    );
+  }
+}
+
+/// Assigned-user picker — mirrors the project edit screen's picker. Streams
+/// the company's users and resolves the current `assigned_user_id`.
+class _AssignedUserPicker extends StatelessWidget {
+  const _AssignedUserPicker({required this.vm});
+  final ClientEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    return StreamBuilder<List<User>>(
+      stream: services.user.watchAllForPicker(companyId: vm.companyId),
+      builder: (context, snapshot) {
+        final users = snapshot.data ?? const <User>[];
+        User? selected;
+        for (final u in users) {
+          if (u.id == vm.draft.assignedUserId) {
+            selected = u;
+            break;
+          }
+        }
+        return SearchableDropdownField<User>(
+          label: context.tr('assigned_user'),
+          items: users,
+          initialValue: selected,
+          displayString: (u) => u.displayName,
+          idOf: (u) => u.id,
+          onChanged: (u) => vm.setAssignedUserId(u?.id ?? ''),
+        );
+      },
+    );
+  }
+}
+
+/// Tri-state send-reminders cascade override: Default (inherit company) /
+/// Enabled / Disabled. The `__default__` sentinel item maps to a cleared
+/// override (no per-client `send_reminders` key).
+class _SendRemindersPicker extends StatelessWidget {
+  const _SendRemindersPicker({required this.vm});
+  final ClientEditViewModel vm;
+
+  static const String _inheritKey = '__default__';
+
+  @override
+  Widget build(BuildContext context) {
+    final reminders = vm.sendReminders;
+    final current = reminders == null
+        ? _inheritKey
+        : (reminders ? 'enabled' : 'disabled');
+    return SearchableDropdownField<String>(
+      label: context.tr('send_reminders'),
+      items: const [_inheritKey, 'enabled', 'disabled'],
+      initialValue: current,
+      displayString: (v) =>
+          v == _inheritKey ? context.tr('default') : context.tr(v),
+      idOf: (v) => v,
+      onChanged: (v) {
+        switch (v) {
+          case 'enabled':
+            vm.setSendReminders(true);
+          case 'disabled':
+            vm.setSendReminders(false);
+          default:
+            vm.setSendReminders(null); // Default / cleared → inherit.
+        }
+      },
     );
   }
 }

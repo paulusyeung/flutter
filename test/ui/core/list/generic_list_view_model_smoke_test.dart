@@ -717,6 +717,65 @@ void main() {
       vm.dispose();
     },
   );
+
+  test(
+    'embedded list neither hydrates from nor persists to the shared '
+    'nav_state slot (a detail tab must not corrupt the standalone list)',
+    () async {
+      // The standalone list has a persisted "resume where you left off" view.
+      await db.navStateDao.saveFilters(
+        filtersJson:
+            '{"co":{"invoice":{"search":"acme","states":["archived"],'
+            '"sortField":"number","sortAscending":false,'
+            '"customFilters":{},"extraFilters":{"country_id":["US"]}}}}',
+        now: 0,
+      );
+
+      final vm = _EmbeddedFakeInvoiceListViewModel(
+        companyId: 'co',
+        navStateDao: db.navStateDao,
+        userSettings: UserSettingsRepository(db: db),
+        searchDebounce: const Duration(milliseconds: 1),
+        persistDebounce: const Duration(milliseconds: 1),
+      );
+      await settle();
+
+      // 1) It did NOT inherit the standalone list's persisted view — it starts
+      //    from its own locked-scope defaults.
+      expect(vm.isEmbedded, isTrue);
+      expect(
+        vm.search,
+        '',
+        reason: 'embedded must not hydrate the shared slot',
+      );
+      expect(vm.states, {EntityState.active});
+      expect(vm.extraFilters, isEmpty);
+
+      // 2) Interacting with the embedded list must NOT write the shared slot.
+      await vm.setExtraFilter(serverKey: 'country_id', values: {'CA'});
+      vm.setSearch('zzz'); // debounced, fire-and-forget
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      await settle();
+
+      final row = await db.navStateDao.current();
+      expect(
+        row!.filtersJson!.contains('"acme"'),
+        isTrue,
+        reason: "standalone list's saved search is preserved",
+      );
+      expect(
+        row.filtersJson!.contains('"zzz"'),
+        isFalse,
+        reason: 'embedded search must not leak into the shared slot',
+      );
+      expect(
+        row.filtersJson!.contains('"CA"'),
+        isFalse,
+        reason: 'embedded filter must not leak into the shared slot',
+      );
+      vm.dispose();
+    },
+  );
 }
 
 /// Exercises the `transformPage` hook: drops invoices with `amount < 150` so
@@ -734,4 +793,21 @@ class _UnpaidOnlyInvoiceListViewModel extends FakeInvoiceListViewModel {
   @override
   Stream<List<FakeInvoice>> transformPage(Stream<List<FakeInvoice>> raw) =>
       raw.map((items) => items.where((i) => i.amount >= 150).toList());
+}
+
+/// Stand-in for an embedded list (e.g. a client detail tab). A non-empty
+/// [lockedFilterKeyIds] is the signal `GenericListViewModel.isEmbedded` reads
+/// to keep its filter state purely in memory — never touching the shared
+/// per-entity `nav_state` slot that belongs to the standalone list.
+class _EmbeddedFakeInvoiceListViewModel extends FakeInvoiceListViewModel {
+  _EmbeddedFakeInvoiceListViewModel({
+    required super.companyId,
+    required super.navStateDao,
+    required super.userSettings,
+    super.searchDebounce,
+    super.persistDebounce,
+  });
+
+  @override
+  Set<String> get lockedFilterKeyIds => const {'client'};
 }

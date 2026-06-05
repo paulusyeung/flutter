@@ -16,6 +16,7 @@ import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg
 import 'package:admin/ui/features/settings/views/settings_shell.dart'
     show hideSettingsListSidebar;
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/wysiwyg/wysiwyg_design_screen.dart';
+import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 
 /// Custom Designs tab body — second tab on the Invoice Design shell
 /// (`/settings/invoice_design/custom_designs`).
@@ -45,9 +46,17 @@ class CustomDesignsNewDesignButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Custom designs are a Pro feature (parity with React / admin-portal).
+    // For a free user the button becomes the upgrade CTA instead of opening
+    // the create chooser — this gates all three create paths (visual / HTML /
+    // import) at their single entry point.
+    final isPro =
+        context.read<Services>().auth.session.value?.hasProAccess ?? false;
     return FilledButton.icon(
       style: FilledButton.styleFrom(minimumSize: const Size(64, 40)),
-      onPressed: () => _showNewDesignChooser(context),
+      onPressed: isPro
+          ? () => _showNewDesignChooser(context)
+          : () => unawaited(openUpgradeFlow(context)),
       icon: const Icon(Icons.add, size: 18),
       label: Text(context.tr('new_design')),
     );
@@ -265,6 +274,10 @@ class _DesignsListView extends StatelessWidget {
     final rows = mergeDesignRows(bundled);
     final builtIn = rows.where((r) => !r.isCustom).toList();
     final custom = rows.where((r) => r.isCustom).toList();
+    // Custom designs are Pro-gated; free users get read-only access (parity
+    // with React's `hideEditableOptions`). The banner auto-hides for Pro/trial.
+    final canEdit =
+        context.read<Services>().auth.session.value?.hasProAccess ?? false;
 
     return ListView(
       padding: EdgeInsets.symmetric(
@@ -277,12 +290,13 @@ class _DesignsListView extends StatelessWidget {
       // so it sits on the same horizontal line as "Show preview"
       // instead of stacking below it.
       children: [
+        const PlanGateBanner(style: PlanGateStyle.inset),
         if (custom.isNotEmpty) ...[
-          for (final r in custom) _DesignTile(row: r),
+          for (final r in custom) _DesignTile(row: r, canEdit: canEdit),
           SizedBox(height: InSpacing.lg(context)),
         ],
         _SectionHeader(label: context.tr('built_in')),
-        for (final r in builtIn) _DesignTile(row: r),
+        for (final r in builtIn) _DesignTile(row: r, canEdit: canEdit),
       ],
     );
   }
@@ -308,16 +322,24 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _DesignTile extends StatelessWidget {
-  const _DesignTile({required this.row});
+  const _DesignTile({required this.row, required this.canEdit});
 
   final _Row row;
 
+  /// False for free users — custom designs are Pro-gated. When false the row
+  /// opens read-only and the "Edit a copy" action is hidden (parity with
+  /// React's `hideEditableOptions`).
+  final bool canEdit;
+
   @override
   Widget build(BuildContext context) {
+    // "Edit a copy" seeds a NEW custom design, so it's Pro-only; hide it for
+    // free users. Export is read-only (clipboard) and stays available to all.
+    final showCopy = row.design != null && canEdit;
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
-        title: Text(row.name),
+        title: Text(row.name, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: row.entities.isEmpty
             ? null
             : Text(
@@ -335,10 +357,11 @@ class _DesignTile extends StatelessWidget {
               PopupMenuButton<String>(
                 tooltip: '',
                 itemBuilder: (ctx) => [
-                  PopupMenuItem(
-                    value: 'copy',
-                    child: Text(ctx.tr('edit_a_copy')),
-                  ),
+                  if (showCopy)
+                    PopupMenuItem(
+                      value: 'copy',
+                      child: Text(ctx.tr('edit_a_copy')),
+                    ),
                   PopupMenuItem(
                     value: 'export',
                     child: Text(ctx.tr('export_design')),
@@ -357,13 +380,24 @@ class _DesignTile extends StatelessWidget {
             const Icon(Icons.chevron_right),
           ],
         ),
-        onTap: row.isCustom
-            ? () => showDesignEditScreen(context, existingId: row.id)
-            : row.design == null
-            ? null
-            : () => showDesignDetailScreen(context, row.design!),
+        onTap: _onTap(context),
       ),
     );
+  }
+
+  /// Pro users edit custom designs in place; free users get the upgrade prompt
+  /// (the read-only detail is blank for block-based WYSIWYG designs, and custom
+  /// designs are the gated feature) — mirrors the "+ New design" button.
+  /// Built-in designs open read-only detail for everyone; static catalog rows
+  /// with no loaded template (`design == null`) aren't tappable.
+  VoidCallback? _onTap(BuildContext context) {
+    if (row.isCustom) {
+      return canEdit
+          ? () => showDesignEditScreen(context, existingId: row.id)
+          : () => unawaited(openUpgradeFlow(context));
+    }
+    if (row.design == null) return null;
+    return () => showDesignDetailScreen(context, row.design!);
   }
 }
 
@@ -374,6 +408,9 @@ class _DesignDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // "Edit a copy" seeds a new custom design — Pro only.
+    final canEdit =
+        context.read<Services>().auth.session.value?.hasProAccess ?? false;
     final sections = <(String, String)>[
       ('body', design.template.body),
       ('header', design.template.header),
@@ -386,14 +423,15 @@ class _DesignDetailScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(design.name),
         actions: [
-          TextButton.icon(
-            onPressed: () {
-              Navigator.of(context).pop();
-              showDesignEditScreen(context, seedFrom: design);
-            },
-            icon: const Icon(Icons.copy_all_outlined, size: 18),
-            label: Text(context.tr('edit_a_copy')),
-          ),
+          if (canEdit)
+            TextButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop();
+                showDesignEditScreen(context, seedFrom: design);
+              },
+              icon: const Icon(Icons.copy_all_outlined, size: 18),
+              label: Text(context.tr('edit_a_copy')),
+            ),
           IconButton(
             tooltip: context.tr('export_design'),
             icon: const Icon(Icons.file_download_outlined),

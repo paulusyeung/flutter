@@ -8,6 +8,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/purchase_order.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/core/detail/custom_fields_detail_card.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
@@ -129,7 +130,11 @@ class _Body extends StatelessWidget {
                     icon: Icons.dashboard_outlined,
                     bodyBuilder: (_) => Padding(
                       padding: EdgeInsets.all(InSpacing.lg(context)),
-                      child: _Overview(purchaseOrder: purchaseOrder),
+                      child: _Overview(
+                        purchaseOrder: purchaseOrder,
+                        companyId: companyId,
+                        formatter: formatter,
+                      ),
                     ),
                   ),
                   EntityDetailTab(
@@ -296,12 +301,23 @@ class _Header extends StatelessWidget {
 }
 
 class _Overview extends StatelessWidget {
-  const _Overview({required this.purchaseOrder});
+  const _Overview({
+    required this.purchaseOrder,
+    required this.companyId,
+    this.formatter,
+  });
   final PurchaseOrder purchaseOrder;
+  final String companyId;
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    final hasCustomFields =
+        purchaseOrder.customValue1.isNotEmpty ||
+        purchaseOrder.customValue2.isNotEmpty ||
+        purchaseOrder.customValue3.isNotEmpty ||
+        purchaseOrder.customValue4.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -332,6 +348,22 @@ class _Overview extends StatelessWidget {
           purchaseOrder.terms.isEmpty ? '—' : purchaseOrder.terms,
           style: TextStyle(color: tokens.ink),
         ),
+        // Purchase orders reuse the `invoice` custom-field config slots — no
+        // separate purchase_order keys exist server-side (matches admin-portal).
+        if (hasCustomFields) ...[
+          SizedBox(height: InSpacing.md(context)),
+          CustomFieldsDetailCard(
+            companyId: companyId,
+            prefix: 'invoice',
+            values: [
+              purchaseOrder.customValue1,
+              purchaseOrder.customValue2,
+              purchaseOrder.customValue3,
+              purchaseOrder.customValue4,
+            ],
+            formatter: formatter,
+          ),
+        ],
       ],
     );
   }
