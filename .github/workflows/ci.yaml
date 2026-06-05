@@ -207,16 +207,60 @@ jobs:
       - name: Select Xcode 26.4.1
         run: sudo xcode-select -s /Applications/Xcode_26.4.1.app
 
-      # Xcode 26 unbundled the Metal toolchain into a ~700 MB on-demand
-      # component that macos-26 does NOT bake in (even for its default Xcode).
-      # Flutter's macOS Impeller renderer needs Metal, so without it the app
-      # crashes on launch and every integration file dies with "Error waiting
-      # for a debug connection: The log reader stopped unexpectedly." Run AFTER
-      # xcode-select so it installs for the selected Xcode. No sudo required.
-      # Remove once actions/runner-images#13080 ships the baked-in toolchain
-      # (after which this is a fast no-op).
-      - name: Install Metal toolchain (Xcode 26 ships it separately)
-        run: xcodebuild -downloadComponent MetalToolchain
+      # Xcode 26 unbundled the Metal toolchain into a ~700 MB on-demand component
+      # the macos-26 image may not have version-matched for the selected Xcode.
+      # Flutter's macOS Impeller renderer needs it; without a USABLE toolchain
+      # the app crashes on launch and every integration file dies with "Error
+      # waiting for a debug connection: The log reader stopped unexpectedly."
+      # `-downloadComponent` can exit 0 yet leave the toolchain non-functional
+      # (stale per-user xcrun_db cache, or a partial CDN download), so the exit
+      # code is NOT proof — we retry, clear the xcrun cache, then VERIFY by
+      # compiling a shader. NO sudo: the per-user index plist must belong to the
+      # runner user that later runs `flutter test -d macos`. Run AFTER
+      # xcode-select so it resolves for the selected Xcode. continue-on-error
+      # makes this loud-but-non-blocking — the Skia fallback below keeps the
+      # integration tests green even if the toolchain can't be installed, while
+      # the iOS/macOS Impeller builds stay faithful when it can. Remove once
+      # actions/runner-images#13080 bakes a matched toolchain into the image.
+      - name: Install & verify Metal toolchain (best-effort)
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          echo "Selected Xcode: $(xcode-select -p)"
+          functional() { xcrun -f metal >/dev/null 2>&1 && xcrun metal --version >/dev/null 2>&1; }
+
+          if functional; then
+            echo "Metal toolchain already usable: $(xcrun -f metal)"
+          else
+            attempt=1; max=3
+            until [ "$attempt" -gt "$max" ]; do
+              echo "::group::downloadComponent MetalToolchain (attempt $attempt/$max)"
+              xcodebuild -downloadComponent MetalToolchain && rc=0 || rc=$?
+              echo "xcodebuild exited $rc"
+              echo "::endgroup::"
+              # Clear a possibly-stale xcrun resolver cache — the classic
+              # "installed but not found" cause (MacPorts #73008/#73262).
+              rm -f "$(getconf DARWIN_USER_TEMP_DIR)/xcrun_db" 2>/dev/null || true
+              functional && break
+              attempt=$((attempt + 1)); sleep 15
+            done
+          fi
+
+          # Loud verification: resolve the tools and compile+link a trivial
+          # shader end-to-end (the closest cheap proxy for what Impeller does).
+          echo "metal    -> $(xcrun -f metal 2>&1 || true)"
+          echo "metallib -> $(xcrun -f metallib 2>&1 || true)"
+          shader="$(mktemp -t metalcheck).metal"
+          printf '#include <metal_stdlib>\nusing namespace metal;\nkernel void k() {}\n' > "$shader"
+          if xcrun -sdk macosx metal -c "$shader" -o "$shader.air" \
+             && xcrun -sdk macosx metallib "$shader.air" -o "$shader.metallib"; then
+            echo "Metal toolchain verified: compiles + links a shader."
+            rm -f "$shader" "$shader.air" "$shader.metallib"
+          else
+            rm -f "$shader" "$shader.air" "$shader.metallib"
+            echo "::error::Metal toolchain not functional — Impeller builds may be degraded; Skia fallback covers the integration tests."
+            exit 1
+          fi
 
       - name: Install dependencies
         run: flutter pub get
@@ -248,6 +292,24 @@ jobs:
       # tests".
       - name: Enable macOS desktop
         run: flutter config --enable-macos-desktop
+
+      # CI-ONLY: force the legacy Skia renderer for the macOS integration build
+      # by disabling Impeller. Patches the working-tree Info.plist (NEVER
+      # committed — ephemeral checkout, and contents:read forbids pushing back),
+      # so the `flutter test -d macos` rebuild in run_integration_local.sh bakes
+      # FLTEnableImpeller=false into the test app and the embedder honors it at
+      # launch. Skia compiles shaders at runtime via the OS Metal framework and
+      # does NOT invoke the offline `metal` compiler, sidestepping the toolchain
+      # launch crash. Placed AFTER the iOS/macOS release builds above so those
+      # stay Impeller-faithful. Production ships Impeller — this key is added
+      # only here on CI. The Add||Set pair is idempotent (key is absent in the
+      # committed plist today, so Add creates it; Set updates it if ever added).
+      - name: Force Skia for macOS integration tests (CI-only, not committed)
+        run: |
+          set -euo pipefail
+          /usr/libexec/PlistBuddy -c "Add :FLTEnableImpeller bool false" macos/Runner/Info.plist 2>/dev/null \
+            || /usr/libexec/PlistBuddy -c "Set :FLTEnableImpeller false" macos/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Print :FLTEnableImpeller" macos/Runner/Info.plist
 
       # Integration tests, ONE FILE PER `flutter test` invocation
       # (tools/run_integration_local.sh) — the flutter/flutter#135673 workaround:
