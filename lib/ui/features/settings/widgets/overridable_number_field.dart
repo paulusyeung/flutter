@@ -40,8 +40,10 @@ class OverridableNumberField extends StatefulWidget {
 
 class _OverridableNumberFieldState extends State<OverridableNumberField> {
   late final TextEditingController _controller;
+  late final FocusNode _focusNode;
   late final SettingsRead _read;
   late final SettingsWrite _write;
+  bool _hasFocus = false;
 
   @override
   void initState() {
@@ -53,12 +55,29 @@ class _OverridableNumberFieldState extends State<OverridableNumberField> {
     _controller = TextEditingController(
       text: _displayFor(_read(host.settings), useComma: _useComma(host)),
     );
+    // Owned FocusNode + listener so the displayed text isn't reformatted
+    // mid-keystroke. Without it, every keystroke notifies the host → rebuild →
+    // the controller is overwritten with the canonical value, which swallows a
+    // just-typed decimal separator (`parseDecimal('75.')` canonicalises to
+    // `75`, so typing `75.5` would land as `755`). Mirrors
+    // OverridableCurrencyField; the integer path was unaffected but is included
+    // for one consistent code path.
+    _focusNode = FocusNode();
+    _focusNode.addListener(_onFocusChange);
   }
 
   @override
   void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  void _onFocusChange() {
+    final focused = _focusNode.hasFocus;
+    if (focused == _hasFocus) return;
+    setState(() => _hasFocus = focused);
   }
 
   /// The company-global decimal-separator choice. `use_comma_as_decimal_place`
@@ -73,6 +92,10 @@ class _OverridableNumberFieldState extends State<OverridableNumberField> {
   /// without taking a dependency on the currency map.
   String _displayFor(String? raw, {required bool useComma}) {
     if (raw == null || raw.isEmpty) return '';
+    // While focused, show the raw editable string so reformatting doesn't fight
+    // the caret or swallow a just-typed separator. Blurred, fall through to the
+    // canonical display.
+    if (_hasFocus) return raw;
     if (widget.integerOnly) {
       final n = int.tryParse(raw.trim());
       return n == null || n == 0 ? '' : n.toString();
@@ -91,7 +114,7 @@ class _OverridableNumberFieldState extends State<OverridableNumberField> {
     final host = context.watch<SettingsDraftHost>();
     final useComma = _useComma(host);
     final hostValue = _displayFor(_read(host.settings), useComma: useComma);
-    if (_controller.text != hostValue) {
+    if (!_hasFocus && _controller.text != hostValue) {
       _controller.value = TextEditingValue(
         text: hostValue,
         selection: TextSelection.collapsed(offset: hostValue.length),
@@ -105,6 +128,7 @@ class _OverridableNumberFieldState extends State<OverridableNumberField> {
         : null;
     final field = TextField(
       controller: _controller,
+      focusNode: _focusNode,
       enabled: widget.enabled,
       keyboardType: widget.integerOnly
           ? TextInputType.number

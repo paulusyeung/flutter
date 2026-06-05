@@ -244,7 +244,10 @@ class BankAccountRepository
         companyId: companyId,
         entityId: account.id,
         kind: MutationKind.update,
-        payload: account.toApiJson(preserveTempId: true),
+        // Minimal patch — never resend provider-managed fields (balance,
+        // status, provider, …) or a stale local copy would clobber the
+        // bank-feed's synced values on the server. See toUpdateApiJson.
+        payload: account.toUpdateApiJson(),
       );
     });
     return SaveResult(entity: account, outboxRowId: rowId);
@@ -256,12 +259,21 @@ class BankAccountRepository
   /// synthetic [kRefreshAccountsEntityId] so it retries on connectivity
   /// loss but doesn't pretend to point at a specific bank integration.
   Future<void> refreshAccounts({required String companyId}) async {
-    await enqueueMutation(
-      companyId: companyId,
-      entityId: kRefreshAccountsEntityId,
-      kind: MutationKind.refreshAccounts,
-      payload: const <String, dynamic>{},
-    );
+    await db.transaction(() async {
+      // Coalesce rapid taps: a pending (not-yet-sent) refresh already covers
+      // a fresh request, so don't stack duplicate `_refresh` rows.
+      await dedupPendingMutations(
+        companyId: companyId,
+        entityId: kRefreshAccountsEntityId,
+        kind: MutationKind.refreshAccounts,
+      );
+      await enqueueMutation(
+        companyId: companyId,
+        entityId: kRefreshAccountsEntityId,
+        kind: MutationKind.refreshAccounts,
+        payload: const <String, dynamic>{},
+      );
+    });
   }
 
   @override

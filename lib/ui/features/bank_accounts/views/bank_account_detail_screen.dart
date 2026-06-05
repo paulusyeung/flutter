@@ -164,7 +164,7 @@ class _Header extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: InSpacing.md(context)),
               Text(
                 balanceText,
                 style: TextStyle(
@@ -176,7 +176,7 @@ class _Header extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: InSpacing.lg(context)),
           // Quick-edit row. Auto-sync is by far the most-flipped field
           // on this screen; surfacing it on the header avoids a trip
           // through the full edit form. When `account.isDirty` is true

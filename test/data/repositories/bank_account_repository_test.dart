@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:decimal/decimal.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -72,6 +75,55 @@ void main() {
       // otherwise.
       expect(row.entityId, kRefreshAccountsEntityId);
     });
+
+    test(
+      'save enqueues a minimal update patch — never resends '
+      'provider-managed fields that would clobber the synced balance',
+      () async {
+        final repo = makeRepo();
+        // A real (already-synced) account carrying provider-managed values.
+        final account = BankAccount.fromApi(
+          const BankAccountApi(
+            id: 'bi_1',
+            bankAccountName: 'Acme',
+            bankAccountStatus: 'READY',
+            bankAccountType: 'CHECKING',
+            providerName: 'Chase',
+            currency: 'USD',
+          ),
+        ).copyWith(balance: Decimal.parse('1234.56'), autoSync: true);
+
+        await repo.save(companyId: 'co', account: account);
+
+        final rows = await db.outboxDao.watchAll('co').first;
+        final row = rows.firstWhere(
+          (r) => r.mutationKind == MutationKind.update.wireName,
+        );
+        final payload = jsonDecode(row.payload) as Map<String, dynamic>;
+
+        // Only user-editable keys travel; provider-managed fields are absent.
+        expect(payload.keys.toSet(), {
+          'bank_account_name',
+          'from_date',
+          'auto_sync',
+        });
+        expect(payload['bank_account_name'], 'Acme');
+        expect(payload['auto_sync'], isTrue);
+        for (final clobberable in const [
+          'balance',
+          'bank_account_status',
+          'bank_account_type',
+          'provider_name',
+          'currency',
+        ]) {
+          expect(
+            payload.containsKey(clobberable),
+            isFalse,
+            reason: '$clobberable must not be sent on update',
+          );
+        }
+      },
+    );
 
     test('disabledUpstream + integrationType drives needsReconnect', () {
       final yodleeBroken = BankAccount.fromApi(

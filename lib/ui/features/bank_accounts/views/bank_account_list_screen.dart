@@ -8,6 +8,7 @@ import 'package:admin/app/router.dart' show selectedIdFromRoute;
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/bank_account.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
@@ -27,9 +28,10 @@ const kBankAccountsListSearchKeys = <String>[
 ];
 
 /// `/settings/bank_accounts` — list every bank integration. Tap a row to
-/// edit; tap "+ New bank account" to create a manual account. Connect
-/// Accounts (Yodlee/Nordigen OAuth) is deferred — surfaces as a disabled
-/// button with a "Coming soon" tooltip.
+/// open it; tap "+ New bank account" to create a manual account. The app-bar
+/// actions (Connect Accounts / Refresh / Rules) live in [_BankAccountsActions],
+/// which renders them inline on a wide list and collapses to a single overflow
+/// menu on narrow widths. Each action is plan/host-gated to mirror React.
 class BankAccountListScreen extends StatelessWidget {
   const BankAccountListScreen({super.key});
 
@@ -63,7 +65,7 @@ class BankAccountListScreen extends StatelessWidget {
             style: PlanGateStyle.stripe,
             level: PlanGateLevel.enterprise,
           ),
-          extraAppBarActions: const [_ConnectAccountsButton()],
+          extraAppBarActions: const [_BankAccountsActions()],
           refreshAll: () async {
             if (companyId.isEmpty) return;
             await repo.refreshAll(companyId: companyId);
@@ -219,14 +221,23 @@ String connectBankUrl(String context, String hash, String baseUrl) {
   return '$base/nordigen/connect/$hash';
 }
 
-/// "Connect Accounts" — launches the Yodlee/Nordigen hosted connect page
-/// (the aggregator + server own the OAuth/credential exchange; the app
-/// just opens the URL, then the existing pull-to-refresh /
-/// `refresh_accounts` pulls the linked accounts). Enterprise-gated
-/// (React `enterprisePlan()`), matching the screen's `PlanGateBanner`.
-class _ConnectAccountsButton extends StatelessWidget {
-  const _ConnectAccountsButton();
+/// App-bar actions for the bank-accounts list: **Connect Accounts** (Yodlee /
+/// Nordigen hosted OAuth), **Refresh** (upstream `refresh_accounts`), and
+/// **Rules** (Transaction Rules). Gating mirrors React's BankAccounts index:
+/// Refresh = hosted + enterprise; Rules = pro/enterprise/self-hosted
+/// (≈ `hasProAccess`); Connect is always present but enterprise-gated (and
+/// self-hosted always has enterprise access).
+///
+/// The list always renders full width (the detail floats over it), so
+/// `MediaQuery` width is the right signal: inline icon buttons on a wide list,
+/// a single overflow menu when narrow — so the app bar never overflows on
+/// mobile.
+class _BankAccountsActions extends StatelessWidget {
+  const _BankAccountsActions();
 
+  /// Mint a one-time token and open the aggregator's hosted connect page.
+  /// The aggregator + server own the OAuth/credential exchange; the app just
+  /// opens the URL, then Refresh / pull-to-refresh pulls the linked accounts.
   Future<void> _connect(BuildContext context, String ctx) async {
     final services = context.read<Services>();
     final baseUrl = services.auth.session.value?.baseUrl ?? '';
@@ -263,10 +274,10 @@ class _ConnectAccountsButton extends StatelessWidget {
     }
   }
 
-  Future<void> _onPressed(BuildContext context) async {
+  /// Self-hosted connects via Nordigen directly (React parity — no provider
+  /// modal); hosted enterprise picks a provider first.
+  Future<void> _onConnect(BuildContext context) async {
     final s = context.read<Services>().auth.session.value;
-    // Self-hosted connects via Nordigen directly (React parity — no
-    // provider modal). Hosted enterprise picks a provider.
     if (s?.isSelfHosted ?? false) {
       await _connect(context, 'nordigen');
       return;
@@ -293,23 +304,106 @@ class _ConnectAccountsButton extends StatelessWidget {
     await _connect(context, ctx);
   }
 
+  /// Ask the server to poll the upstream provider for fresh balances /
+  /// transactions. Routed through the outbox (queued + retried), so we toast a
+  /// transient "Processing" rather than awaiting React's synchronous message.
+  Future<void> _onRefresh(BuildContext context) async {
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    if (companyId.isEmpty) return;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    await services.bankAccounts.refreshAccounts(companyId: companyId);
+    if (!context.mounted) return;
+    Notify.info(context, context.tr('processing'), messenger: messenger);
+  }
+
+  void _onRules(BuildContext context) =>
+      context.go('/settings/bank_accounts/transaction_rules');
+
   @override
   Widget build(BuildContext context) {
-    final enterprise =
-        context.read<Services>().auth.session.value?.hasEnterpriseAccess ??
-        false;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Tooltip(
-        message: enterprise
-            ? context.tr('connect_accounts')
-            : context.tr('upgrade_to_connect_bank_account'),
-        child: TextButton.icon(
-          icon: const Icon(Icons.add_link, size: 18),
-          label: Text(context.tr('connect_accounts')),
-          onPressed: enterprise ? () => _onPressed(context) : null,
+    final session = context.read<Services>().auth.session.value;
+    final enterprise = session?.hasEnterpriseAccess ?? false;
+    final isHosted = session?.isHosted ?? false;
+    final pro = session?.hasProAccess ?? false;
+
+    final showRefresh = isHosted && enterprise;
+    final showRules = pro;
+    final wide = MediaQuery.sizeOf(context).width >= Breakpoints.wide;
+
+    if (wide) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.add_link),
+            tooltip: enterprise
+                ? context.tr('connect_accounts')
+                : context.tr('upgrade_to_connect_bank_account'),
+            onPressed: enterprise ? () => _onConnect(context) : null,
+          ),
+          if (showRefresh)
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              tooltip: context.tr('refresh'),
+              onPressed: () => _onRefresh(context),
+            ),
+          if (showRules)
+            IconButton(
+              icon: const Icon(Icons.rule_outlined),
+              tooltip: context.tr('rules'),
+              onPressed: () => _onRules(context),
+            ),
+        ],
+      );
+    }
+
+    // Narrow: one overflow menu holds every available action. Each item's
+    // `onTap` mirrors the inline buttons' arrow callbacks (fire-and-forget;
+    // the handlers guard their own `context.mounted`).
+    return PopupMenuButton<void>(
+      icon: const Icon(Icons.more_vert),
+      itemBuilder: (context) => [
+        PopupMenuItem<void>(
+          enabled: enterprise,
+          onTap: () => _onConnect(context),
+          child: _ActionMenuRow(
+            icon: Icons.add_link,
+            label: context.tr('connect_accounts'),
+          ),
         ),
-      ),
+        if (showRefresh)
+          PopupMenuItem<void>(
+            onTap: () => _onRefresh(context),
+            child: _ActionMenuRow(
+              icon: Icons.refresh,
+              label: context.tr('refresh'),
+            ),
+          ),
+        if (showRules)
+          PopupMenuItem<void>(
+            onTap: () => _onRules(context),
+            child: _ActionMenuRow(
+              icon: Icons.rule_outlined,
+              label: context.tr('rules'),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Icon + label row for a [_BankAccountsActions] overflow-menu item.
+class _ActionMenuRow extends StatelessWidget {
+  const _ActionMenuRow({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [Icon(icon, size: 20), const SizedBox(width: 12), Text(label)],
     );
   }
 }

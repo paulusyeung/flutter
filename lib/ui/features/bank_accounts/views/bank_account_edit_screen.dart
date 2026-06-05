@@ -49,8 +49,11 @@ class BankAccountEditScreen extends StatelessWidget {
       ),
       isArchivedOf: (a) => a.archivedAt != null,
       isDeletedOf: (a) => a.isDeleted,
+      // Server (Store/UpdateBankIntegrationRequest) requires bank_account_name
+      // to be min:3 — enforce client-side so a 1-2 char name doesn't round-trip
+      // to a 422.
       canSave: (vm) =>
-          !vm.isSaving && vm.isDirty && vm.draft.name.trim().isNotEmpty,
+          !vm.isSaving && vm.isDirty && vm.draft.name.trim().length >= 3,
       bodyBuilder: (context, vm) => [
         if (vm.draft.needsReconnect) ReconnectBanner(account: vm.draft),
         FormSection(

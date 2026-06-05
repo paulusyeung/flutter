@@ -113,8 +113,8 @@ class SettingsEntityListScaffold<T> extends StatefulWidget {
   final Future<void> Function(List<T> reordered)? onReorder;
 
   /// Extra AppBar actions rendered before the optional Show Archived
-  /// toggle. Used by Bank Accounts to surface a (currently disabled)
-  /// "Connect Accounts" affordance alongside the standard
+  /// toggle. Used by Bank Accounts to surface its Connect / Refresh / Rules
+  /// actions (plan-gated, with a mobile overflow menu) alongside the standard
   /// "+ New bank account" path. Empty by default.
   final List<Widget> extraAppBarActions;
 

@@ -4,9 +4,12 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/bank_transaction.dart';
+import 'package:admin/data/models/domain/expense_category.dart';
 import 'package:admin/data/models/domain/transaction_rule.dart';
+import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/domain/transaction_rules/rule_evaluator.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_entity_edit_scaffold.dart';
 import 'package:admin/ui/features/settings/widgets/settings_text_field.dart';
@@ -83,6 +86,14 @@ class TransactionRuleEditScreen extends StatelessWidget {
               value: vm.draft.autoConvert,
               onChanged: vm.setAutoConvert,
             ),
+            // Vendor + category are the targets a matched WITHDRAWAL is
+            // converted to (an expense). They're meaningless for a DEPOSIT
+            // rule (which links to a payment), so the server ignores them and
+            // `setAppliesTo` clears them on CREDIT — render only for DEBIT.
+            if (!vm.draft.isCredit) ...[
+              _VendorPicker(vm: vm),
+              _CategoryPicker(vm: vm),
+            ],
           ],
         ),
         FormSection(
@@ -338,6 +349,78 @@ class _CriterionRow extends StatelessWidget {
         ),
         onTap: onEdit,
       ),
+    );
+  }
+}
+
+/// Vendor assignment for a DEBIT rule's auto-converted expense. Mirrors the
+/// expense-edit vendor picker (`expense_edit_identity_section.dart`) — a
+/// searchable list over the vendor pages, clearable to "none".
+class _VendorPicker extends StatelessWidget {
+  const _VendorPicker({required this.vm});
+  final TransactionRuleEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    return StreamBuilder<List<Vendor>>(
+      stream: services.vendors.watchPage(
+        companyId: vm.companyId,
+        loadedPages: 100,
+      ),
+      builder: (context, snapshot) {
+        final vendors = snapshot.data ?? const <Vendor>[];
+        Vendor? selected;
+        for (final v in vendors) {
+          if (v.id == vm.draft.vendorId) {
+            selected = v;
+            break;
+          }
+        }
+        return SearchableDropdownField<Vendor>(
+          label: context.tr('vendor'),
+          items: vendors,
+          initialValue: selected,
+          displayString: (v) => v.name.isEmpty ? v.id : v.name,
+          idOf: (v) => v.id,
+          onChanged: (v) => vm.setVendorId(v?.id ?? ''),
+          errorText: vm.fieldErrorFor('vendor_id'),
+        );
+      },
+    );
+  }
+}
+
+/// Expense-category assignment for a DEBIT rule's auto-converted expense.
+/// Categories are bundled, so `watchActive` returns the full list.
+class _CategoryPicker extends StatelessWidget {
+  const _CategoryPicker({required this.vm});
+  final TransactionRuleEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    return StreamBuilder<List<ExpenseCategory>>(
+      stream: services.expenseCategories.watchActive(companyId: vm.companyId),
+      builder: (context, snapshot) {
+        final cats = snapshot.data ?? const <ExpenseCategory>[];
+        ExpenseCategory? selected;
+        for (final c in cats) {
+          if (c.id == vm.draft.categoryId) {
+            selected = c;
+            break;
+          }
+        }
+        return SearchableDropdownField<ExpenseCategory>(
+          label: context.tr('category'),
+          items: cats,
+          initialValue: selected,
+          displayString: (c) => c.name.isEmpty ? c.id : c.name,
+          idOf: (c) => c.id,
+          onChanged: (c) => vm.setCategoryId(c?.id ?? ''),
+          errorText: vm.fieldErrorFor('category_id'),
+        );
+      },
     );
   }
 }

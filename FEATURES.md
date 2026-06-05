@@ -1256,6 +1256,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 |---|---|---|---|---|---|
 | Bank account list | ✅ | 🟡 | ✅ | ✅ | 🟡 |
 | Connect bank (Yodlee / Plaid) | ✅ | 🟡 | ✅ | ✅ | |
+| Refresh accounts (upstream provider sync) | ✅ | ❌ | ✅ | ✅ | |
 | Manual bank account fields | ✅ | ✅ | ✅ | ✅ | |
 | Edit / archive / delete bank account | ✅ | ✅ | ✅ | ✅ | |
 | Transaction rules list | ✅ | 🟡 | ✅ | ✅ | |
