@@ -100,8 +100,10 @@ class PaymentLinkRepository
     idOf: (a) => a.id,
     updatedAtOf: (a) => a.updatedAt,
     toCompanion: (a) => _apiToCompanion(a, companyId),
-    upsert: (byId) =>
-        db.paymentLinkDao.upsertAll(byId.values.toList(growable: false)),
+    upsert: (byId) => db.paymentLinkDao.upsertAllPreservingDirty(
+      companyId: companyId,
+      byId: byId,
+    ),
   );
 
   Future<bool> ensurePageLoaded({
@@ -123,8 +125,10 @@ class PaymentLinkRepository
     itemsOf: (l) => l.data,
     idOf: (a) => a.id,
     toCompanion: (a) => _apiToCompanion(a, companyId),
-    upsert: (byId) =>
-        db.paymentLinkDao.upsertAll(byId.values.toList(growable: false)),
+    upsert: (byId) => db.paymentLinkDao.upsertAllPreservingDirty(
+      companyId: companyId,
+      byId: byId,
+    ),
   );
 
   Future<void> refreshAll({

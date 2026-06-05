@@ -61,6 +61,7 @@ class CreditDao extends BaseEntityDao<$CreditsTable, CreditRow>
     bool sortAscending = false,
     String? clientId,
     Set<String> clientIds = const {},
+    Set<String> statuses = const {},
     Set<String> customValues1 = const {},
     Set<String> customValues2 = const {},
     Set<String> customValues3 = const {},
@@ -105,6 +106,15 @@ class CreditDao extends BaseEntityDao<$CreditsTable, CreditRow>
     }
     if (dueDateStart != null && dueDateEnd != null) {
       q.where((e) => e.dueDate.isBetweenValues(dueDateStart, dueDateEnd));
+    }
+    // Credit `client_status` filter. Each label maps 1:1 to a stored
+    // `status_id` wire id (draft=1/sent=2/partial=3/applied=4) — no computed
+    // states like quotes, so this is a plain membership test. The repository
+    // maps the labels to wire ids (`parseCreditStatusFilter`); multi-select
+    // ORs. Mirrors the server `CreditFilters::client_status`
+    // (`whereIn('status_id', …)`).
+    if (statuses.isNotEmpty) {
+      q.where((e) => e.statusId.isIn(statuses.toList()));
     }
     if (states.isNotEmpty) {
       q.where(

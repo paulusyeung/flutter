@@ -18,13 +18,12 @@ import 'package:admin/ui/features/settings/widgets/form_section.dart';
 /// requires. A card-local Save button POSTs to `/einvoice/configurations`
 /// through the outbox.
 ///
-/// **MVP limitation:** initial values aren't seeded from the company
-/// envelope. The React app reads them off
-/// `company.e_invoice.Invoice.PaymentMeans[0]`, which our typed `Company`
-/// doesn't carry yet. A follow-up can either parse that blob into
-/// `Company.eInvoice` (a `Map<String, dynamic>?` like Invoice already
-/// carries) or add a dedicated `GET /einvoice/configurations` endpoint.
-/// Users currently re-enter the values whenever they reopen the screen.
+/// Initial values are seeded from the company envelope's `e_invoice` blob
+/// (`company.e_invoice.Invoice.PaymentMeans[0]`, the nested UBL shape the
+/// server returns) via [paymentMeansSeedFromEInvoice] in `_seedIfNeeded`, so
+/// reopening the screen shows the saved config. The card's Save still POSTs
+/// the flat `{code, iban, …}` form the write endpoint expects — only the
+/// read-back path is the nested UBL shape.
 class PaymentMeansCard extends StatefulWidget {
   const PaymentMeansCard({super.key});
 

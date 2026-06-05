@@ -11,6 +11,7 @@ import 'package:admin/ui/features/gateways/oauth_setup_launcher.dart'
     show openExternal;
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/views/advanced/e_invoice/e_invoice_constants.dart';
+import 'package:admin/ui/features/settings/views/advanced/e_invoice/peppol_buy_credits_links.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 
 /// Assemble the `POST /api/v1/einvoice/peppol/setup` body. Pure + top-level
@@ -350,6 +351,9 @@ class _PeppolOnboardingCardState extends State<PeppolOnboardingCard> {
             value: _actsAsReceiver,
             onChanged: (v) => setState(() => _actsAsReceiver = v),
           ),
+          // New tenants need credits before their first send — surface the
+          // purchase links here (hosted-only, self-gates otherwise).
+          const PeppolBuyCreditsLinks(),
         ],
       ),
     );

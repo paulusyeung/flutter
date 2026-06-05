@@ -13,6 +13,14 @@ class Breakpoints {
   static bool isWide(BoxConstraints constraints) =>
       constraints.maxWidth >= wide;
 
+  /// Minimum width for the `/settings` master-detail two-pane layout. The
+  /// settings shell carries a fixed 280 px `SettingsListSidebar`, so the
+  /// generic [wide] (600) threshold leaves the right pane cramped on tablets
+  /// (a 700 px window would give the content barely ~420 px). Below this we
+  /// fall through to single-pane full-screen navigation, which has its own
+  /// section list + push nav. 280 sidebar + ~600 content ≈ 880.
+  static const double settingsTwoPane = 880;
+
   /// True when the global persistent `InSidebar` is visible (i.e. the
   /// window is ≥ [wide]). Use this — not [isWide] — to decide whether a
   /// per-screen Scaffold should attach its own `AppDrawer` +

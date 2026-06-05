@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/env.dart';
+import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/link_text.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
@@ -77,15 +79,22 @@ class EInvoiceBody extends StatelessWidget {
     final isVerifactu = eInvoiceType == kEInvoiceTypeVERIFACTU;
     final enableEInvoice = settings.enableEInvoice ?? false;
 
-    // VERIFACTU is Spain-specific (AEAT registration). Hide the option
-    // from the dropdown unless the company's country is Spain — keeps
-    // users in other countries from picking a standard that won't work
-    // for them. Already-selected VERIFACTU stays visible so the user
-    // can switch away.
-    final isSpain = settings.countryId == kEInvoiceCountryIdSpain;
-    final dropdownItems = kEInvoiceTypes
-        .where((t) => t != kEInvoiceTypeVERIFACTU || isSpain || isVerifactu)
-        .toList(growable: false);
+    // Gate the PEPPOL + VERIFACTU options to match React's
+    // `shouldShowPEPPOLOption` / `shouldShowVERIFACTUOption`: PEPPOL needs
+    // Enterprise access + a PEPPOL-network country; VERIFACTU needs the build
+    // flag + hosted + Spain. The page's `PlanGateBanner` is only an
+    // informational nudge (it doesn't disable the fields), so the option-level
+    // gate is what actually keeps an unentitled / wrong-country user from
+    // picking a standard that won't work. Already-selected values stay visible
+    // so the user can switch away. See `visibleEInvoiceTypes`.
+    final session = context.read<Services>().auth.session.value;
+    final dropdownItems = visibleEInvoiceTypes(
+      selectedType: settings.eInvoiceType,
+      countryId: settings.countryId,
+      hasEnterpriseAccess: session?.hasEnterpriseAccess ?? false,
+      isHosted: session?.isHosted ?? false,
+      verifactuFlagEnabled: Env.enableVerifactu,
+    );
 
     return SettingsFormShell(
       sections: [
@@ -242,11 +251,15 @@ class _HelpLinkRow extends StatelessWidget {
         children: [
           Icon(Icons.help_outline, size: 18, color: tokens.ink2),
           SizedBox(width: InSpacing.sm),
-          LinkText(
-            label: context.tr('e_invoice_settings'),
-            color: tokens.accent,
-            style: theme.textTheme.bodyMedium,
-            onTap: launchEInvoiceHelpUrl,
+          // Flexible so a long localized label wraps instead of overflowing
+          // the Row on a narrow phone.
+          Flexible(
+            child: LinkText(
+              label: context.tr('e_invoice_settings'),
+              color: tokens.accent,
+              style: theme.textTheme.bodyMedium,
+              onTap: launchEInvoiceHelpUrl,
+            ),
           ),
         ],
       ),

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/env.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/data/services/api_exception.dart';
@@ -37,9 +38,9 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
   String _fileName = '';
   int _fileLength = 0;
   bool _importSettings = false;
-  // UX default: most users restoring a backup want their data back. Settings
-  // is the rarer ask and stays opt-in.
-  bool _importData = true;
+  // Both default off — the user must opt in. import_data drives the server's
+  // destructive purge-and-replace, so don't pre-check it (matches React).
+  bool _importData = false;
   bool _busy = false;
   bool _cancelRequested = false;
   bool _completedNeedsBanner = false;
@@ -69,6 +70,21 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
       Notify.warning(context, context.tr('dropzone_invalid_file_type'));
       return;
     }
+    // Server caps the restore at 1000 chunks (ImportJsonController); at the 2 MiB
+    // client chunk size that's ~1.95 GiB. Reject early instead of 500-ing on the
+    // first chunk with a generic error.
+    const maxChunks = 1000;
+    const chunkMb = 2; // matches uploadMultipartChunked's default chunkBytes
+    const maxMb = maxChunks * chunkMb; // 2000
+    const maxBytes = maxMb * 1024 * 1024;
+    if (length > maxBytes) {
+      if (!mounted) return;
+      Notify.warning(
+        context,
+        context.tr('upload_too_large_with_size', {'size': '$maxMb'}),
+      );
+      return;
+    }
     if (!mounted) return;
     setState(() {
       _source = source;
@@ -86,6 +102,10 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
 
   Future<void> _confirmAndRestore() async {
     if (!_canRestore) return;
+    if (Env.demoMode) {
+      Notify.warning(context, context.tr('demo_mode_disabled'));
+      return;
+    }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -157,7 +177,7 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
       setState(() {
         _completedNeedsBanner = true;
         _importSettings = false;
-        _importData = true;
+        _importData = false;
       });
     } on UploadCancelledException {
       // User-initiated stop — silent.

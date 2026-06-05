@@ -131,6 +131,10 @@ class _OverviewCard extends StatelessWidget {
   }
 }
 
+/// Narrower label column on small phones so long values / URLs keep a usable
+/// amount of horizontal space instead of being squeezed by a fixed 140px gutter.
+double _detailLabelWidth(double maxWidth) => maxWidth < 380 ? 100 : 140;
+
 class _KeyValue extends StatelessWidget {
   const _KeyValue({required this.labelKey, required this.value});
 
@@ -143,18 +147,20 @@ class _KeyValue extends StatelessWidget {
     final tokens = context.inTheme;
     return Padding(
       padding: EdgeInsets.symmetric(vertical: InSpacing.sm),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 140,
-            child: Text(
-              context.tr(labelKey),
-              style: theme.textTheme.bodySmall?.copyWith(color: tokens.ink3),
+      child: LayoutBuilder(
+        builder: (context, constraints) => Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: _detailLabelWidth(constraints.maxWidth),
+              child: Text(
+                context.tr(labelKey),
+                style: theme.textTheme.bodySmall?.copyWith(color: tokens.ink3),
+              ),
             ),
-          ),
-          Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),
-        ],
+            Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),
+          ],
+        ),
       ),
     );
   }
@@ -172,35 +178,37 @@ class _PurchasePageRow extends StatelessWidget {
     final hasUrl = url.isNotEmpty;
     return Padding(
       padding: EdgeInsets.symmetric(vertical: InSpacing.sm),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 140,
-            child: Text(
-              context.tr('purchase_page'),
-              style: theme.textTheme.bodySmall?.copyWith(color: tokens.ink3),
+      child: LayoutBuilder(
+        builder: (context, constraints) => Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: _detailLabelWidth(constraints.maxWidth),
+              child: Text(
+                context.tr('purchase_page'),
+                style: theme.textTheme.bodySmall?.copyWith(color: tokens.ink3),
+              ),
             ),
-          ),
-          Expanded(
-            child: Text(
-              hasUrl ? url : '—',
-              style: theme.textTheme.bodyMedium,
-              overflow: TextOverflow.ellipsis,
+            Expanded(
+              child: Text(
+                hasUrl ? url : '—',
+                style: theme.textTheme.bodyMedium,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
-          if (hasUrl)
-            IconButton(
-              icon: const Icon(Icons.copy_outlined, size: 18),
-              tooltip: context.tr('copy'),
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: url));
-                if (context.mounted) {
-                  Notify.success(context, context.tr('copied_to_clipboard'));
-                }
-              },
-            ),
-        ],
+            if (hasUrl)
+              IconButton(
+                icon: const Icon(Icons.copy_outlined, size: 18),
+                tooltip: context.tr('copy'),
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: url));
+                  if (context.mounted) {
+                    Notify.success(context, context.tr('copied_to_clipboard'));
+                  }
+                },
+              ),
+          ],
+        ),
       ),
     );
   }

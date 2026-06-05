@@ -188,8 +188,14 @@ class _RemainingCyclesDropdown extends StatelessWidget {
       for (var i = 0; i <= 36; i++)
         DropdownMenuItem(value: i, child: Text('$i')),
     ];
+    // A link migrated/imported with a cycle count outside the 0–36 menu
+    // (admin-portal allowed up to 60) must still render its real value and
+    // round-trip unchanged — inject it rather than coercing to "Endless".
+    if (!items.any((m) => m.value == v)) {
+      items.add(DropdownMenuItem(value: v, child: Text('$v')));
+    }
     return DropdownButtonFormField<int>(
-      initialValue: items.any((m) => m.value == v) ? v : -1,
+      initialValue: v,
       items: items,
       decoration: InputDecoration(labelText: context.tr('remaining_cycles')),
       onChanged: (next) => vm.setRemainingCycles(next ?? -1),
@@ -208,7 +214,14 @@ class _AutoBillDropdown extends StatelessWidget {
       for (final entry in _kAutoBillOptions.entries)
         DropdownMenuItem(
           value: entry.key,
-          child: Text(entry.value.isEmpty ? '' : context.tr(entry.value)),
+          // Blank value = "inherit / unset"; show a selectable placeholder
+          // (mirrors the webhook REST-method dropdown) rather than an empty,
+          // hard-to-tap menu row.
+          child: Text(
+            entry.value.isEmpty
+                ? context.tr('select')
+                : context.tr(entry.value),
+          ),
         ),
     ];
     return DropdownButtonFormField<String>(

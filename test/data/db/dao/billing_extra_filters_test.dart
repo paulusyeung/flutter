@@ -61,6 +61,29 @@ void main() {
       );
     });
 
+    test('credit client_status labels map to status_id wire ids', () {
+      expect(
+        parseCreditStatusFilter({
+          'client_status': {'draft', 'partial', 'applied'},
+        }),
+        {'1', '3', '4'},
+      );
+      expect(
+        parseCreditStatusFilter({
+          'client_status': {'sent'},
+        }),
+        {'2'},
+      );
+      // Unknown label is dropped (no wire id), empty map → empty.
+      expect(
+        parseCreditStatusFilter({
+          'client_status': {'bogus'},
+        }),
+        isEmpty,
+      );
+      expect(parseCreditStatusFilter(const {}), isEmpty);
+    });
+
     test(
       'date_range: arity-tolerant (last two parts) — canonical & legacy',
       () {
@@ -197,6 +220,57 @@ void main() {
           db.creditDao.watchPage(companyId: 'co', offset: 0, limit: 50),
         ),
         ['a', 'b'],
+      );
+    });
+
+    test('credit watchPage: status filter (status_id membership)', () async {
+      for (final (id, status) in [
+        ('d', '1'), // draft
+        ('s', '2'), // sent
+        ('p', '3'), // partial
+        ('ap', '4'), // applied
+      ]) {
+        await db.creditDao.upsert(
+          CreditsCompanion.insert(
+            id: id,
+            companyId: 'co',
+            updatedAt: 1,
+            payload: '{}',
+            statusId: Value(status),
+          ),
+        );
+      }
+
+      // Single status.
+      expect(
+        await ids(
+          db.creditDao.watchPage(
+            companyId: 'co',
+            offset: 0,
+            limit: 50,
+            statuses: const {'1'},
+          ),
+        ),
+        ['d'],
+      );
+      // Multi-select ORs.
+      expect(
+        await ids(
+          db.creditDao.watchPage(
+            companyId: 'co',
+            offset: 0,
+            limit: 50,
+            statuses: const {'3', '4'},
+          ),
+        ),
+        ['ap', 'p'],
+      );
+      // Empty set → no status predicate (all four rows).
+      expect(
+        await ids(
+          db.creditDao.watchPage(companyId: 'co', offset: 0, limit: 50),
+        ),
+        ['ap', 'd', 'p', 's'],
       );
     });
 

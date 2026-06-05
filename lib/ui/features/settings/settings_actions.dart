@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/shell/widgets/confirm_pending_outbox.dart';
 
 /// Shared user-flow helpers for settings screens. Keeps the confirmation
 /// dialogs / error snackbars consistent across the screens that expose
@@ -39,7 +40,29 @@ class SettingsActions {
       ),
     );
     if (confirm != true || !context.mounted) return false;
-    await context.read<Services>().auth.logout();
+    final services = context.read<Services>();
+    // Warn about unsaved in-memory edits before wiping the session — mirrors
+    // the company picker's sign-out guard. No-op (returns true) when nothing
+    // is dirty.
+    if (!await services.unsavedChangesGuard.confirmIfDirty(context)) {
+      return false;
+    }
+    if (!context.mounted) return false;
+    // Then quiesce the outbox for the active company so an unsynced offline
+    // edit isn't silently dropped on logout — same guard the company picker
+    // applies. (logout() settles in-flight requests but does NOT drain
+    // still-pending rows before the Drift wipe, so without this they're lost.)
+    final companyId = services.auth.session.value?.currentCompanyId;
+    if (companyId != null) {
+      final outbox = await confirmPendingOutboxIfAny(
+        context,
+        companyId: companyId,
+      );
+      if (outbox == OutboxConfirmResult.cancelled || !context.mounted) {
+        return false;
+      }
+    }
+    await services.auth.logout();
     return true;
   }
 

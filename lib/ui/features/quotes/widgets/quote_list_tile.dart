@@ -9,10 +9,17 @@ import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/list/selectable_list_row.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
+import 'package:admin/ui/core/widgets/formatter_scope.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
 import 'package:admin/ui/features/quotes/widgets/quote_actions.dart';
 import 'package:admin/ui/features/quotes/widgets/quote_status_pill.dart';
+
+/// Cached locale-only fallback for the narrow-tile amount when no
+/// `FormatterScope` is in the tree (never allocate `NumberFormat` per build).
+final NumberFormat _quoteAmountFallback = NumberFormat.decimalPattern()
+  ..minimumFractionDigits = 2
+  ..maximumFractionDigits = 2;
 
 class QuoteListTile extends StatefulWidget {
   const QuoteListTile({
@@ -114,9 +121,15 @@ class _QuoteListTileState extends State<QuoteListTile> {
 
   Widget _narrow(BuildContext context, InTheme tokens) {
     final w = widget;
-    final fmt = NumberFormat.decimalPattern()
-      ..minimumFractionDigits = 2
-      ..maximumFractionDigits = 2;
+    // Quote carries no row currency (only clientId), so this formats with the
+    // company default — correct symbol/precision, matching the wide table's
+    // money column. Falls back to locale-only when no FormatterScope is present.
+    final formatter = FormatterScope.maybeOf(context);
+    final amount = w.quote.amount;
+    final formatted = formatter?.money(amount);
+    final amountText = (formatted != null && formatted.isNotEmpty)
+        ? formatted
+        : _quoteAmountFallback.format(amount.toDouble());
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -129,7 +142,7 @@ class _QuoteListTileState extends State<QuoteListTile> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              fmt.format(w.quote.amount.toDouble()),
+              amountText,
               style: TextStyle(
                 color: w.quote.isExpired ? tokens.overdue : tokens.ink,
                 fontFeatures: const [FontFeature.tabularFigures()],

@@ -16,12 +16,16 @@ final ValueNotifier<bool> hideSettingsListSidebar = ValueNotifier(false);
 
 /// Master-detail shell for `/settings/*` on wide screens.
 ///
-/// - **Wide (≥600 px)**: left pane is `SettingsListSidebar` (always visible
-///   except while a design is being edited — see [hideSettingsListSidebar]);
-///   right pane is the routed child, or a "Select a setting" hint when the
-///   user is sitting on `/settings` with no section chosen.
-/// - **Narrow**: passes through so each section page (or `SettingsScreen` at
-///   `/settings`) renders as its own full-screen Scaffold.
+/// - **Wide (≥[Breakpoints.settingsTwoPane], 880 px)**: left pane is
+///   `SettingsListSidebar` (always visible except while a design is being
+///   edited — see [hideSettingsListSidebar]); right pane is the routed child,
+///   or a "Select a setting" hint when the user is sitting on `/settings` with
+///   no section chosen.
+/// - **Narrow / tablet (<880 px)**: passes through so each section page (or
+///   `SettingsScreen` at `/settings`) renders as its own full-screen Scaffold.
+///   The 600–880 px band falls here too — the 280 px sidebar would otherwise
+///   crush the form pane (the section list stays reachable via the full-screen
+///   `/settings` page + push nav).
 class SettingsShell extends StatelessWidget {
   const SettingsShell({super.key, required this.child});
 
@@ -31,7 +35,11 @@ class SettingsShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = Breakpoints.isWide(constraints);
+        // The settings two-pane needs more room than the generic 600 px wide
+        // breakpoint: a fixed 280 px sidebar leaves the form pane cramped on
+        // tablets, so gate the split at [Breakpoints.settingsTwoPane]. Below
+        // it we pass through to single-pane full-screen navigation.
+        final wide = constraints.maxWidth >= Breakpoints.settingsTwoPane;
         if (!wide) return child;
 
         final atIndex = GoRouterState.of(context).uri.path == '/settings';

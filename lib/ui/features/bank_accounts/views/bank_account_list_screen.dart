@@ -8,7 +8,6 @@ import 'package:admin/app/router.dart' show selectedIdFromRoute;
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/bank_account.dart';
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
@@ -30,8 +29,7 @@ const kBankAccountsListSearchKeys = <String>[
 /// `/settings/bank_accounts` — list every bank integration. Tap a row to
 /// open it; tap "+ New bank account" to create a manual account. The app-bar
 /// actions (Connect Accounts / Refresh / Rules) live in [_BankAccountsActions],
-/// which renders them inline on a wide list and collapses to a single overflow
-/// menu on narrow widths. Each action is plan/host-gated to mirror React.
+/// a single overflow menu, each item plan/host-gated to mirror React.
 class BankAccountListScreen extends StatelessWidget {
   const BankAccountListScreen({super.key});
 
@@ -228,10 +226,11 @@ String connectBankUrl(String context, String hash, String baseUrl) {
 /// (≈ `hasProAccess`); Connect is always present but enterprise-gated (and
 /// self-hosted always has enterprise access).
 ///
-/// The list always renders full width (the detail floats over it), so
-/// `MediaQuery` width is the right signal: inline icon buttons on a wide list,
-/// a single overflow menu when narrow — so the app bar never overflows on
-/// mobile.
+/// Rendered as a single overflow (`⋮`) menu. The list sits in a
+/// sidebar-narrowed settings pane whose width an AppBar action can't measure
+/// (no `LayoutBuilder` constraints; `MediaQuery` reports the whole window), so
+/// a width-driven inline layout would crowd the title at medium widths — one
+/// icon sidesteps that entirely.
 class _BankAccountsActions extends StatelessWidget {
   const _BankAccountsActions();
 
@@ -329,41 +328,18 @@ class _BankAccountsActions extends StatelessWidget {
 
     final showRefresh = isHosted && enterprise;
     final showRules = pro;
-    final wide = MediaQuery.sizeOf(context).width >= Breakpoints.wide;
 
-    if (wide) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.add_link),
-            tooltip: enterprise
-                ? context.tr('connect_accounts')
-                : context.tr('upgrade_to_connect_bank_account'),
-            onPressed: enterprise ? () => _onConnect(context) : null,
-          ),
-          if (showRefresh)
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              tooltip: context.tr('refresh'),
-              onPressed: () => _onRefresh(context),
-            ),
-          if (showRules)
-            IconButton(
-              icon: const Icon(Icons.rule_outlined),
-              tooltip: context.tr('rules'),
-              onPressed: () => _onRules(context),
-            ),
-        ],
-      );
-    }
-
-    // Narrow: one overflow menu holds every available action. Each item's
-    // `onTap` mirrors the inline buttons' arrow callbacks (fire-and-forget;
-    // the handlers guard their own `context.mounted`).
+    // A single overflow menu holds every available action. The settings list
+    // renders inside a sidebar-narrowed pane (not full window width), and an
+    // AppBar action gets no usable LayoutBuilder width — so there's no reliable
+    // signal for an inline layout. One `⋮` icon never overflows at any pane
+    // width, and is more compact than the old inline "Connect" button.
+    // Handlers run on the outer `context` (stable, mounted in the AppBar), not
+    // the transient `menuContext`, so showDialog / messenger / go stay valid
+    // after the menu pops.
     return PopupMenuButton<void>(
       icon: const Icon(Icons.more_vert),
-      itemBuilder: (context) => [
+      itemBuilder: (menuContext) => [
         PopupMenuItem<void>(
           enabled: enterprise,
           onTap: () => _onConnect(context),

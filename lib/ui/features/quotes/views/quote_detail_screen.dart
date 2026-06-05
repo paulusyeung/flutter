@@ -248,7 +248,7 @@ class _Header extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: InSpacing.md(context)),
               QuoteStatusPill(
                 statusId: quote.calculatedStatusId,
                 hasBounce: quote.hasBouncedInvitation,

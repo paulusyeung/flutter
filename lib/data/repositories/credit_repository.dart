@@ -67,6 +67,7 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
           sortAscending: sortAscending,
           clientId: clientId,
           clientIds: parseClientIdFilter(extraFilters),
+          statuses: parseCreditStatusFilter(extraFilters),
           customValues1: customFilters[1] ?? const {},
           customValues2: customFilters[2] ?? const {},
           customValues3: customFilters[3] ?? const {},

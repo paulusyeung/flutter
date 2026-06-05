@@ -1,5 +1,6 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/router.dart';
@@ -118,11 +119,12 @@ class _UnappliedPaymentRow extends StatelessWidget {
         companyId: companyId,
         paymentId: payment.id,
         allocations: [
+          // `_id` is a client-row identifier the server ignores (React sends a
+          // fresh uuid here); `invoice_id` + `amount` are the fields it reads.
           <String, dynamic>{
-            '_id': invoice.id,
+            '_id': const Uuid().v4(),
             'invoice_id': invoice.id,
             'amount': amount.toString(),
-            'number': invoice.number,
           },
         ],
       );

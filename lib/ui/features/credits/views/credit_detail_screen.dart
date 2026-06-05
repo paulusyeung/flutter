@@ -245,7 +245,7 @@ class _Header extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: InSpacing.md(context)),
               CreditStatusPill(
                 statusId: credit.calculatedStatusId,
                 hasBounce: credit.hasBouncedInvitation,

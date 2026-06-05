@@ -10,6 +10,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/status_pill.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
+import 'package:admin/ui/features/settings/views/advanced/e_invoice/peppol_buy_credits_links.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_switch_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_text_field.dart';
@@ -178,6 +179,8 @@ class _PeppolPreferencesCardState extends State<PeppolPreferencesCard> {
               ),
             ],
           ),
+        // Top up PEPPOL credits — hosted-only, self-gates to nothing otherwise.
+        const PeppolBuyCreditsLinks(),
       ],
     );
   }

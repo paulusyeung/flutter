@@ -440,7 +440,7 @@ class _HeaderState extends State<_Header> {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: InSpacing.md(context)),
               InvoiceStatusPill(
                 statusId: invoice.calculatedStatusId,
                 hasBounce: invoice.hasBouncedInvitation,

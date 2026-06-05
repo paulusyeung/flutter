@@ -1,6 +1,7 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
@@ -124,11 +125,12 @@ Future<void> _autoApplyOldest(BuildContext context, Payment payment) async {
     companyId: companyId,
     paymentId: payment.id,
     allocations: [
+      // `_id` is a client-row identifier the server ignores (React sends a
+      // fresh uuid here); `invoice_id` + `amount` are the fields it reads.
       <String, dynamic>{
-        '_id': target.id,
+        '_id': const Uuid().v4(),
         'invoice_id': target.id,
         'amount': allocation.toString(),
-        'number': target.number,
       },
     ],
   );

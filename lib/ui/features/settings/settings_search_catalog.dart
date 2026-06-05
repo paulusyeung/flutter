@@ -43,6 +43,7 @@ import 'package:admin/ui/features/settings/views/basic/online_payments/online_pa
 import 'package:admin/ui/features/settings/views/basic/online_payments/online_payments_general_body.dart';
 import 'package:admin/ui/features/settings/views/basic/product_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/task_settings_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/tax_settings_body.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/connect_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/details_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/notifications_screen.dart';
@@ -179,6 +180,11 @@ const kSettingsSections = <SettingsSectionDef>[
     route: '/settings/expense_settings',
     isBasic: true,
     enabledBy: [EnabledModule.expenses],
+    // Company-only (like Product Settings): all fields are top-level `company.*`
+    // and the one `settings.*` key (default_expense_payment_type_id) is written
+    // at company scope here. Its per-client override lives in Online Payments →
+    // Defaults, so hide this entry while editing in client/group scope.
+    clientEditable: false,
   ),
   SettingsSectionDef(
     slug: 'workflow_settings',
@@ -372,17 +378,7 @@ const kSettingsSearchCatalog = <String, List<String>>{
     ...kOnlinePaymentsDefaultsSearchKeys,
     ...kOnlinePaymentsEmailsSearchKeys,
   ],
-  'tax_settings': [
-    'invoice_tax_rates',
-    'invoice_item_tax_rates',
-    'expense_tax_rates',
-    'inclusive_taxes',
-    'tax_name',
-    'tax_rate',
-    'calculate_taxes',
-    'seller_subregion',
-    'reduced_rate',
-  ],
+  'tax_settings': [...kTaxSettingsSearchKeys],
   'product_settings': [...kProductSettingsSearchKeys],
   'task_settings': [...kTaskSettingsSearchKeys],
   'expense_settings': [...kExpenseSettingsSearchKeys],

@@ -1278,6 +1278,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | E-invoice certificate upload + passphrase | ✅ | ❌ | ✅ | ✅ | |
 | Payment means (IBAN / BIC / card) | ✅ | ❌ | ✅ | ✅ | |
 | Additional tax identifiers | ✅ | ❌ | ✅ | ✅ | |
+| Peppol — buy credit packs (500 / 1000) | ✅ | ❌ | ✅ | ✅ | |
 | E-invoice compliance fields per entity | ✅ | ❌ | ✅ | ✅ | |
 | Credit — Peppol billing reference (origin invoice + issue date) | ✅ | ❌ | ✅ | | |
 | Recurring invoice — Peppol period (Description encoding) | ✅ | ❌ | ✅ | | |

@@ -24,6 +24,17 @@ class Env {
   /// See `web_client.dart:31,266` in admin-portal for the precedent.
   static const bool demoMode = bool.fromEnvironment('IN_DEMO_MODE');
 
+  /// Kill-switch for the Spanish VERI*FACTU e-invoicing standard. **On by
+  /// default** — VERIFACTU shows for hosted Spanish companies with no build
+  /// flag. Pass `--dart-define=IN_ENABLE_VERIFACTU=false` to hide the option
+  /// (e.g. if the standard has to be pulled). Combined with a hosted + Spain
+  /// check at the call site (`e_invoice_body.dart`); diverges from React's
+  /// opt-in `VITE_ENABLE_VERIFACTU_STANDARD` by defaulting on.
+  static const bool enableVerifactu = bool.fromEnvironment(
+    'IN_ENABLE_VERIFACTU',
+    defaultValue: true,
+  );
+
   /// Dev-only login pre-fill. Consumed by `LoginViewModel` under `kDebugMode`
   /// so release builds never ship pre-filled credentials. Typical usage:
   /// `flutter run --dart-define-from-file=dev.json` with a gitignored

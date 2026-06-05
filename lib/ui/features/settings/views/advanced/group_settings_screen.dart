@@ -11,13 +11,7 @@ import 'package:admin/ui/features/settings/widgets/settings_entity_list_scaffold
 
 /// Search keys exported for the settings sidebar search. Colocated with the
 /// screen so adding / renaming a field updates both ends in one place.
-const kGroupSettingsSearchKeys = <String>[
-  'groups',
-  'name',
-  'currency',
-  'language',
-  'country',
-];
+const kGroupSettingsSearchKeys = <String>['groups', 'name'];
 
 /// `/settings/group_settings` — list every group with a leading "New group"
 /// affordance. Tapping a row opens the edit screen. A "Show archived" toggle

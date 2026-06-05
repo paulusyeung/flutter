@@ -63,6 +63,48 @@ const List<String> kEInvoiceTypes = <String>[
   kEInvoiceTypeOrderX_Extended,
 ];
 
+/// Pure filter for the E-Invoice type dropdown. Mirrors React's
+/// `shouldShowPEPPOLOption` / `shouldShowVERIFACTUOption` gating
+/// (`EInvoice.tsx:86-112`) so the option list matches the web client:
+///
+///   * **PEPPOL** — visible only with Enterprise access **and** a
+///     PEPPOL-network country ([kPeppolCountries]). React's
+///     `(isPlanActive && PEPPOL_COUNTRIES.includes(country))`.
+///   * **VERIFACTU** — visible only when the build flag is on, the account is
+///     hosted, and the company country is Spain ([kEInvoiceCountryIdSpain]).
+///
+/// Both keep an already-selected value visible (the `…Selected` carve-outs) so
+/// a user whose plan lapsed or whose country isn't listed can still switch
+/// *away* from a standard they previously saved. Every other standard is
+/// always offered. Pure + top-level so it's unit-testable without widget
+/// scaffolding (mirrors `buildPeppolSetupPayload`).
+List<String> visibleEInvoiceTypes({
+  required String? selectedType,
+  required String? countryId,
+  required bool hasEnterpriseAccess,
+  required bool isHosted,
+  required bool verifactuFlagEnabled,
+}) {
+  final isPeppolSelected = selectedType == kEInvoiceTypePEPPOL;
+  final isVerifactuSelected = selectedType == kEInvoiceTypeVERIFACTU;
+  final isPeppolCountry =
+      countryId != null && kPeppolCountries.contains(countryId);
+  final isSpain = countryId == kEInvoiceCountryIdSpain;
+  final verifactuVisible = verifactuFlagEnabled && isHosted && isSpain;
+
+  return kEInvoiceTypes
+      .where((t) {
+        if (t == kEInvoiceTypePEPPOL) {
+          return (hasEnterpriseAccess && isPeppolCountry) || isPeppolSelected;
+        }
+        if (t == kEInvoiceTypeVERIFACTU) {
+          return verifactuVisible || isVerifactuSelected;
+        }
+        return true;
+      })
+      .toList(growable: false);
+}
+
 const String kEQuoteTypeOrderX_Comfort = 'OrderX_Comfort';
 const String kEQuoteTypeOrderX_Basic = 'OrderX_Basic';
 const String kEQuoteTypeOrderX_Extended = 'OrderX_Extended';
@@ -83,6 +125,15 @@ const String kEInvoiceCountryIdSpain = '724';
 /// leaving the page.
 const String kEInvoiceHelpUrl =
     'https://invoiceninja.github.io/docs/user-guide/einvoicing';
+
+/// Hosted-billing purchase links for PEPPOL credit packs. Verbatim from React
+/// `peppol/Onboarding.tsx:341,353` (the `BuyCredits` step). Surfaced by
+/// [PeppolBuyCreditsLinks] on the onboarding + preferences cards; hosted-only
+/// (these are invoicing.co subscription URLs, inapplicable to self-hosted).
+const String kPeppolBuy500Url =
+    'https://invoiceninja.invoicing.co/client/subscriptions/WJxboqNegw/purchase';
+const String kPeppolBuy1000Url =
+    'https://invoiceninja.invoicing.co/client/subscriptions/k8mep0reMy/purchase';
 
 /// Open the e-invoicing user-guide URL in the host browser. Best-effort;
 /// failures (no browser, sandbox restrictions) are swallowed. Used by the

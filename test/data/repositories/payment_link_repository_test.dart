@@ -238,6 +238,72 @@ void main() {
       expect(stillDirty.isDirty, isTrue);
     });
 
+    test(
+      'applyBundle does NOT clobber a SAME-ID dirty row (offline edit of '
+      'an existing link survives a re-bundle) but still updates clean rows',
+      () async {
+        final repo = makeRepo();
+        // Two existing server rows land clean.
+        await repo.applyUpdateResponse(
+          companyId: 'co',
+          serverResponse: const SubscriptionApi(
+            id: 's_existing',
+            name: 'Original',
+            updatedAt: 1700000100,
+          ),
+        );
+        await repo.applyUpdateResponse(
+          companyId: 'co',
+          serverResponse: const SubscriptionApi(
+            id: 's_clean',
+            name: 'Clean',
+            updatedAt: 1700000100,
+          ),
+        );
+        // The user edits one of them offline → it's now is_dirty with a
+        // pending outbox update, keyed by its REAL id.
+        final loaded = await repo
+            .watch(companyId: 'co', id: 's_existing')
+            .first;
+        await repo.save(
+          companyId: 'co',
+          paymentLink: loaded!.copyWith(name: 'Edited'),
+        );
+        expect(
+          (await repo.watch(companyId: 'co', id: 's_existing').first)!.isDirty,
+          isTrue,
+        );
+
+        // A /refresh bundle carries BOTH ids with newer server payloads.
+        await repo.applyBundle(
+          companyId: 'co',
+          bundle: const [
+            SubscriptionApi(
+              id: 's_existing',
+              name: 'Server Wins',
+              updatedAt: 1700000500,
+            ),
+            SubscriptionApi(
+              id: 's_clean',
+              name: 'Clean Updated',
+              updatedAt: 1700000500,
+            ),
+          ],
+        );
+
+        final edited = await repo
+            .watch(companyId: 'co', id: 's_existing')
+            .first;
+        final clean = await repo.watch(companyId: 'co', id: 's_clean').first;
+        // Dirty row: local edit + "Unsynced" flag preserved (not clobbered).
+        expect(edited!.name, 'Edited');
+        expect(edited.isDirty, isTrue);
+        // Clean row: server payload applied as normal.
+        expect(clean!.name, 'Clean Updated');
+        expect(clean.isDirty, isFalse);
+      },
+    );
+
     test('local round-trip preserves createdAt / updatedAt / isDeleted '
         '(toApiJson(preserveTempId: true) emits the timestamp + identity '
         'fields the repo would otherwise lose)', () async {

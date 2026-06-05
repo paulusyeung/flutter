@@ -1,3 +1,4 @@
+import 'package:admin/data/models/domain/credit_status.dart';
 import 'package:admin/domain/payment_status.dart';
 
 /// Pure parsers that turn a list ViewModel's `extraFilters` map (the
@@ -78,6 +79,20 @@ Set<String> parseExpenseStatusFilter(Map<String, Set<String>> extraFilters) =>
 /// mirroring `Quote.calculatedStatusId` / `Quote.isExpired`.
 Set<String> parseQuoteStatusFilter(Map<String, Set<String>> extraFilters) =>
     extraFilters['client_status'] ?? const <String>{};
+
+/// Credit `client_status` — wire labels (`draft|sent|partial|applied`). Unlike
+/// quotes there are no computed states, so each label maps 1:1 to a stored
+/// `status_id` wire id (built from the [CreditStatus] enum so the table can't
+/// drift); `CreditDao.watchPage` applies a plain `whereIn(status_id, …)`.
+/// Mirrors the server `CreditFilters::client_status`.
+Set<String> parseCreditStatusFilter(Map<String, Set<String>> extraFilters) {
+  final labels = extraFilters['client_status'] ?? const <String>{};
+  if (labels.isEmpty) return const <String>{};
+  return {
+    for (final s in CreditStatus.values)
+      if (labels.contains(s.name)) s.wireId,
+  };
+}
 
 /// Payment `client_status` — wire labels. Map to the `statusId` discriminators
 /// `PaymentDao.watchPage` already understands (numeric `'1'..'6'` plus the
