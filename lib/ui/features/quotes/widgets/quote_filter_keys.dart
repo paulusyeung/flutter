@@ -60,7 +60,11 @@ class QuoteClientStatusFilterKey extends FilterKey {
 
   static const String _serverKey = 'client_status';
 
-  /// `(wire value, localization key)`. Mirrors `QuoteFilters::client_status`.
+  /// `(wire value, localization key)`. Mirrors `QuoteFilters::client_status`
+  /// exactly — the server handles only these six. `rejected` (status_id=5) is
+  /// a valid *displayed* status but NOT a server filter dimension, so it's
+  /// intentionally absent (offering it showed locally-cached rows that a
+  /// refresh then wiped). React omits it too.
   static const List<(String, String)> _statuses = [
     ('draft', 'draft'),
     ('sent', 'sent'),
@@ -68,7 +72,6 @@ class QuoteClientStatusFilterKey extends FilterKey {
     ('expired', 'expired'),
     ('upcoming', 'upcoming'),
     ('converted', 'converted'),
-    ('rejected', 'rejected'),
   ];
 
   static String _labelKeyFor(String wire) {

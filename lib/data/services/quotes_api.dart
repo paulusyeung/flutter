@@ -88,10 +88,21 @@ class QuotesApi extends BaseEntityApi<QuoteListApi, QuoteItemApi> {
     String? ccEmail,
     required String idempotencyKey,
   }) async {
+    // The scheduled `email_record` job runs through
+    // `Quote/SendEmail::resolveTemplateString`, whose match arms are the BARE
+    // names `quote | reminder1 | custom1..3` (it maps `reminder1` →
+    // `email_quote_template_reminder1` itself). The composer carries the
+    // canonical `quote_reminder1` key, so strip the `quote_` infix here —
+    // otherwise the unknown token falls to `default` and silently sends the
+    // INITIAL quote template. (Immediate `/emails` sends differ: they want the
+    // full settings key — see [emailTemplateWireName].)
+    final scheduledName = template == 'quote_reminder1'
+        ? 'reminder1'
+        : template;
     await scheduleEmailRecord(
       entity: 'quote',
       id: id,
-      template: template,
+      template: scheduledName,
       sendAt: sendAt,
       idempotencyKey: idempotencyKey,
     );

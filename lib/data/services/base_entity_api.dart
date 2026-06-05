@@ -1,4 +1,5 @@
 import 'package:admin/data/services/api_client.dart';
+import 'package:admin/domain/email_template_names.dart';
 
 /// Generic API contract every entity-specific `*Api` implements (by extension
 /// or by composition with [ApiClient]). The shape is uniform so the sync
@@ -185,7 +186,9 @@ abstract class BaseEntityApi<TList, TItem> {
       body: {
         'entity': entity,
         'entity_id': id,
-        'template': 'email_template_$name',
+        // Shared wire-name mapping (handles the irregular `quote_reminder1` →
+        // `email_quote_template_reminder1` key) — see [emailTemplateWireName].
+        'template': emailTemplateWireName(name),
         if (subject != null) 'subject': subject,
         if (body != null) 'body': body,
         if (ccEmail != null && ccEmail.isNotEmpty) 'cc_email': [ccEmail],

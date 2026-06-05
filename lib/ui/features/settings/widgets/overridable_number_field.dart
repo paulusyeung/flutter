@@ -79,7 +79,11 @@ class _OverridableNumberFieldState extends State<OverridableNumberField> {
     }
     final d = parseDecimal(raw, useCommaAsDecimalPlace: useComma);
     if (d == null || d == Decimal.zero) return '';
-    return d.toString();
+    // Render the company's decimal separator so comma-locale users see
+    // `75,5` not `75.5`. `parseDecimal` already accepts both on input and
+    // `onChanged` re-canonicalises to a dot for the wire, so this is
+    // display-only. `Decimal.toString()` emits at most one `.` (no grouping).
+    return useComma ? d.toString().replaceAll('.', ',') : d.toString();
   }
 
   @override

@@ -1,4 +1,5 @@
 import 'package:admin/data/models/domain/enabled_modules.dart';
+import 'package:admin/domain/email_template_names.dart';
 
 /// One entry in the template-type dropdown on Settings → Templates &
 /// Reminders. The full ordered enumeration matches the picker layout in
@@ -34,14 +35,10 @@ class TemplateOption {
   final EnabledModule? moduleGate;
 
   /// Wire name for the subject field on `CompanySettings`.
-  String get subjectKey => key == 'quote_reminder1'
-      ? 'email_quote_subject_reminder1'
-      : 'email_subject_$key';
+  String get subjectKey => emailSubjectWireName(key);
 
   /// Wire name for the body field on `CompanySettings`.
-  String get templateKey => key == 'quote_reminder1'
-      ? 'email_quote_template_reminder1'
-      : 'email_template_$key';
+  String get templateKey => emailTemplateWireName(key);
 
   /// True when this template is a reminder rule (renders the
   /// enable/days/schedule/late-fee section).

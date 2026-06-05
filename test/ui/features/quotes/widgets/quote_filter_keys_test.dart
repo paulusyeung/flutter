@@ -97,6 +97,38 @@ void main() {
     expect(key.checkboxMultiSelect, isTrue);
   });
 
+  testWidgets(
+    'status options are exactly the six server client_status values — '
+    'no "rejected" (server QuoteFilters has no rejected branch)',
+    (tester) async {
+      late BuildContext ctx;
+      await tester.pumpWidget(
+        Builder(
+          builder: (c) {
+            ctx = c;
+            return const SizedBox();
+          },
+        ),
+      );
+      await tester.runAsync(() async {
+        final vm = await makeVm();
+        const key = QuoteClientStatusFilterKey();
+        final suggestions = await key.watchValueSuggestions(vm, ctx, '').first;
+        final rawValues = suggestions.map((s) => s.rawValue).toList();
+        expect(rawValues, [
+          'draft',
+          'sent',
+          'approved',
+          'expired',
+          'upcoming',
+          'converted',
+        ]);
+        expect(rawValues, isNot(contains('rejected')));
+        vm.dispose();
+      });
+    },
+  );
+
   test('addValue unions into extraFilters[client_status]', () async {
     final vm = await makeVm();
     const key = QuoteClientStatusFilterKey();

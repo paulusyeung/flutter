@@ -93,6 +93,7 @@ class _QuoteEditLayoutState extends State<QuoteEditLayout>
       clientId: widget.vm.draft.clientId,
       discount: widget.vm.draft.discount,
       discountIsAmount: widget.vm.draft.isAmountDiscount,
+      partial: widget.vm.draft.partial,
       dense: true,
     ),
   );
@@ -102,6 +103,7 @@ class _QuoteEditLayoutState extends State<QuoteEditLayout>
     clientId: widget.vm.draft.clientId,
     discount: widget.vm.draft.discount,
     discountIsAmount: widget.vm.draft.isAmountDiscount,
+    partial: widget.vm.draft.partial,
     bordered: false,
   );
 
@@ -110,6 +112,7 @@ class _QuoteEditLayoutState extends State<QuoteEditLayout>
     clientId: widget.vm.draft.clientId,
     discount: widget.vm.draft.discount,
     discountIsAmount: widget.vm.draft.isAmountDiscount,
+    partial: widget.vm.draft.partial,
     dense: true,
     slim: true,
   );

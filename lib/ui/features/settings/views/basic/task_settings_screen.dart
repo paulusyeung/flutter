@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/view_models/task_settings_view_model.dart';
@@ -320,6 +321,7 @@ class _RoundingSectionState extends State<_RoundingSection> {
               (host.settings.taskRoundToNearest?.toInt() ?? 1).toString(),
           child: DropdownButtonFormField<bool>(
             key: ValueKey('round-enable-$enabled'),
+            isExpanded: true,
             initialValue: enabled,
             decoration: InputDecoration(
               labelText: context.tr('round_tasks'),
@@ -424,6 +426,7 @@ class _RoundingSectionState extends State<_RoundingSection> {
             alignment: AlignmentDirectional.centerStart,
             child: OutlinedButton.icon(
               onPressed: () => context.go('/settings/task_statuses'),
+              style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
               icon: const Icon(Icons.label_outlined, size: 18),
               label: Text(context.tr('configure_statuses')),
             ),
@@ -485,6 +488,7 @@ class _CustomSecondsFieldState extends State<_CustomSecondsField> {
 
   @override
   Widget build(BuildContext context) {
+    final scope = FormSaveScope.maybeOf(context);
     return TextField(
       controller: _controller,
       enabled: widget.enabled,
@@ -492,6 +496,7 @@ class _CustomSecondsFieldState extends State<_CustomSecondsField> {
       inputFormatters: <TextInputFormatter>[
         FilteringTextInputFormatter.digitsOnly,
       ],
+      textInputAction: TextInputAction.done,
       decoration: InputDecoration(labelText: context.tr('round_to_seconds')),
       onChanged: (v) {
         final parsed = int.tryParse(v.trim());
@@ -499,6 +504,7 @@ class _CustomSecondsFieldState extends State<_CustomSecondsField> {
           (s) => s.copyWith(taskRoundToNearest: parsed?.toDouble()),
         );
       },
+      onSubmitted: scope == null ? null : (_) => scope.trySubmit(),
     );
   }
 }
@@ -521,6 +527,7 @@ class _ProjectLocationDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final field = DropdownButtonFormField<bool>(
       key: ValueKey('project-location-$value-$enabled'),
+      isExpanded: true,
       initialValue: enabled ? value : null,
       decoration: InputDecoration(
         labelText: context.tr('project_location'),

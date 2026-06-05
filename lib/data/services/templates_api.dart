@@ -1,4 +1,5 @@
 import 'package:admin/data/services/api_client.dart';
+import 'package:admin/domain/email_template_names.dart';
 
 /// Renders an email template against a sample entity, returning the
 /// server-substituted subject, body, and full HTML wrapper used by the
@@ -35,7 +36,7 @@ class TemplatesApi {
     required String subject,
     required String body,
   }) async {
-    final wireTemplate = _toWireName(template);
+    final wireTemplate = emailTemplateWireName(template);
     final response = await _client.postJson(
       '/api/v1/templates',
       readOnly: true,
@@ -59,15 +60,6 @@ class TemplatesApi {
       rawSubject: (json['raw_subject'] as String?) ?? '',
       rawBody: (json['raw_body'] as String?) ?? '',
     );
-  }
-
-  /// Map a bare template id to its server wire name. Special-cased for
-  /// `quote_reminder1`, which uses the `email_quote_(subject|template)_
-  /// reminder1` form (verified against `admin-portal/lib/data/models/
-  /// settings_model.dart:848,851`).
-  static String _toWireName(String template) {
-    if (template == 'quote_reminder1') return 'email_quote_template_reminder1';
-    return 'email_template_$template';
   }
 }
 

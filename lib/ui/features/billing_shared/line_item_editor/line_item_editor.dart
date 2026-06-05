@@ -104,35 +104,40 @@ class LineItemEditor extends StatelessWidget {
             (company != null && !company.enableProductDiscount)
             ? config.copyWith(showDiscount: false)
             : config;
-        // Resolving the client currency for product-price conversion needs a
-        // second watch, so take it only when the company opts in and a client
-        // is set (purchase orders have none → no conversion).
-        final needsConversion =
+        // Convert a filled product's price to the client's currency only when
+        // the company opts in and a client is set (purchase orders have none →
+        // no conversion). The StreamBuilder<Client?> stays in the tree
+        // unconditionally (empty stream when not converting) so toggling the
+        // client / conversion state never re-types this position and tears down
+        // the LineItemTableDesktop below — which holds row controllers, focus,
+        // and pending debounced edits.
+        final convert =
             company != null &&
             company.convertProducts &&
             (clientId?.isNotEmpty ?? false);
-        if (!needsConversion) {
-          return _buildLayout(effectiveConfig, null);
-        }
         return StreamBuilder<Client?>(
-          stream: services.clients.watchByRealId(
-            companyId: companyId,
-            id: clientId!,
-          ),
+          stream: convert
+              ? services.clients.watchByRealId(
+                  companyId: companyId,
+                  id: clientId!,
+                )
+              : const Stream<Client?>.empty(),
           builder: (context, clientSnap) {
-            final clientCurrencyId = clientSnap.data?.currencyId ?? '';
-            final companyCurrencyId = company.settings.currencyId ?? '';
             Decimal? rate;
-            if (clientCurrencyId.isNotEmpty &&
-                companyCurrencyId.isNotEmpty &&
-                clientCurrencyId != companyCurrencyId) {
-              // company → client, matching React's
-              // `clientCurrency.exchange_rate / companyCurrency.exchange_rate`.
-              rate = crossCurrencyRate(
-                services.statics.currencies,
-                fromExpenseCurrencyId: companyCurrencyId,
-                toInvoiceCurrencyId: clientCurrencyId,
-              );
+            if (convert) {
+              final clientCurrencyId = clientSnap.data?.currencyId ?? '';
+              final companyCurrencyId = company.settings.currencyId ?? '';
+              if (clientCurrencyId.isNotEmpty &&
+                  companyCurrencyId.isNotEmpty &&
+                  clientCurrencyId != companyCurrencyId) {
+                // company → client, matching React's
+                // `clientCurrency.exchange_rate / companyCurrency.exchange_rate`.
+                rate = crossCurrencyRate(
+                  services.statics.currencies,
+                  fromExpenseCurrencyId: companyCurrencyId,
+                  toInvoiceCurrencyId: clientCurrencyId,
+                );
+              }
             }
             return _buildLayout(effectiveConfig, rate);
           },

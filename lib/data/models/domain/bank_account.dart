@@ -105,6 +105,20 @@ abstract class BankAccount with _$BankAccount {
     return json;
   }
 
+  /// Minimal patch for `PUT /bank_integrations/{id}` — only the user-editable
+  /// fields the server's `UpdateBankIntegrationRequest` accepts. Deliberately
+  /// omits the provider-managed fields (`balance`, `bank_account_status`,
+  /// `bank_account_type`, `provider_name`, `currency`): the server `fill()`s
+  /// every key it receives, so sending our locally-cached (possibly stale)
+  /// copies of those would clobber the values the bank feed just synced.
+  /// `toApiJson` stays the full snapshot for Drift storage + create; this is
+  /// the update outbox payload only.
+  Map<String, dynamic> toUpdateApiJson() => <String, dynamic>{
+    'bank_account_name': name,
+    'from_date': fromDate?.toIso() ?? '',
+    'auto_sync': autoSync,
+  };
+
   /// True when the upstream provider connection is broken. Drives the
   /// "Reconnect" affordance on the list + detail screens.
   bool get needsReconnect => disabledUpstream && integrationType.isNotEmpty;

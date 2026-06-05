@@ -143,7 +143,9 @@ LineItem emptyLineItem() => LineItem(
 ///   * `productCost` = the product's `cost` (markup/profit reporting).
 ///   * `quantity` follows the company toggles: quantity disabled → always 1;
 ///     otherwise `default_quantity` → 1, else the product's stored quantity
-///     (a 0/blank product quantity falls back to 1).
+///     (a 0/blank product quantity falls back to 1). This deliberately
+///     overwrites any quantity already on [base] — filling a product resets the
+///     line to the product's defaults, matching React's `useHandleProductChange`.
 ///   * notes, taxes, tax category and custom values are copied from the product.
 ///
 /// When [base] is supplied the product-derived fields overwrite it while the
