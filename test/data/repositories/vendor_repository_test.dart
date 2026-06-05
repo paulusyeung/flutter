@@ -155,7 +155,8 @@ void main() {
 
     test(
       'vendor + contact extended fields round-trip through fromApi/toApiJson — '
-      'including read-only last_login so the local Drift payload preserves it',
+      'read-only last_login/link are kept for the Drift round-trip '
+      '(preserveTempId) but omitted from the outbox/server payload',
       () {
         final api = VendorApi.fromJson({
           'id': 'v_1',
@@ -186,15 +187,24 @@ void main() {
         expect(v.contacts.single.link, 'https://portal/x');
         expect(v.contacts.single.lastLogin, isNotNull);
 
+        // Outbox/server payload: always-editable fields present; read-only
+        // last_login / link omitted (the server ignores them anyway).
         final json = v.toApiJson();
         expect(json['language_id'], '5');
         expect(json['classification'], 'business');
         expect(json['is_tax_exempt'], true);
         expect(json['routing_id'], 'RT-9');
-        expect(json['last_login'], 1700000000);
+        expect(json.containsKey('last_login'), isFalse);
         final c = (json['contacts'] as List).single as Map;
         expect(c['can_sign'], true);
-        expect(c['link'], 'https://portal/x');
+        expect(c.containsKey('link'), isFalse);
+
+        // Local Drift round-trip (preserveTempId) keeps the read-only fields so
+        // they survive an app restart.
+        final local = v.toApiJson(preserveTempId: true);
+        expect(local['last_login'], 1700000000);
+        final lc = (local['contacts'] as List).single as Map;
+        expect(lc['link'], 'https://portal/x');
       },
     );
 

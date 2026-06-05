@@ -28,7 +28,8 @@ abstract class VendorContact with _$VendorContact {
     required bool isPrimary,
     // "Authorized to sign" — portal e-signature permission (React parity).
     @Default(false) bool canSign,
-    // Server-generated portal auto-login URL. Read-only; echoed back on save.
+    // Server-generated portal auto-login URL. Read-only; preserved across the
+    // local Drift round-trip but never sent on save (see `toApiJson`).
     @Default('') String link,
     required String customValue1,
     required String customValue2,
@@ -83,7 +84,9 @@ extension VendorContactPayload on VendorContact {
     'cc_only': ccOnly,
     'is_primary': isPrimary,
     'can_sign': canSign,
-    'link': link,
+    // Server-generated portal URL — read-only. Kept only for the local Drift
+    // round-trip (`preserveTempId: true`); omitted from the outbox payload.
+    if (preserveTempId) 'link': link,
     'custom_value1': customValue1,
     'custom_value2': customValue2,
     'custom_value3': customValue3,

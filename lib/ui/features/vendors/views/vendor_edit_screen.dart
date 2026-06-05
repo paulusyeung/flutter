@@ -38,6 +38,7 @@ class VendorEditScreen extends StatelessWidget {
       buildVm: (ctx, services, companyId, existing) => VendorEditViewModel(
         repo: services.vendors,
         companyId: companyId,
+        nameRequiredMessage: ctx.tr('please_enter_a_name'),
         existing: existing,
         cloneFrom: cloneFrom,
         sync: services.sync,

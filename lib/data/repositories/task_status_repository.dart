@@ -289,6 +289,11 @@ class TaskStatusRepository
         }
       }
       if (movedId == null) return; // nothing actually moved
+      // The moved id comes from the passed sequence, not the local cache; if a
+      // concurrent sync removed its row between render and reorder, bail before
+      // the optimistic write rather than dereferencing a missing row below.
+      final movedRow = byId[movedId];
+      if (movedRow == null) return;
 
       // Insertion slot = current order of the moved status's new successor
       // (or past the max to append), matching the server's reorder pass.
@@ -317,7 +322,7 @@ class TaskStatusRepository
       // One standard PUT for the moved status; the server renumbers the
       // rest. `all_ids` lets the handler clear every optimistic dirty flag.
       final movedPayload = _fromRow(
-        byId[movedId]!,
+        movedRow,
       ).copyWith(statusOrder: insertionOrder).toApiJson(preserveTempId: true);
       await enqueueMutation(
         companyId: companyId,
@@ -405,7 +410,7 @@ class TaskStatusRepository
       statusOrder: Value(a.statusOrder ?? 0),
       updatedAt: a.updatedAt,
       createdAt: Value(a.createdAt),
-      archivedAt: a.archivedAt > 0 ? Value(a.archivedAt) : const Value.absent(),
+      archivedAt: a.archivedAt > 0 ? Value(a.archivedAt) : const Value(null),
       isDirty: const Value(false),
       isDeleted: Value(a.isDeleted),
       payload: jsonEncode(a.toJson()),

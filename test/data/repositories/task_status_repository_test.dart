@@ -114,6 +114,21 @@ void main() {
       isEmpty,
     );
   });
+
+  test('a reorder naming an unknown status is a safe no-op', () async {
+    // `z` was never seeded, so detection picks it as the mover but its row is
+    // absent from the local cache. The guard must bail — no throw, no mutation.
+    final repo = await seeded();
+    await repo.reorder(
+      companyId: 'co',
+      orderedStatusIds: ['a', 'b', 'c', 'd', 'z'],
+    );
+    final pending = await db.outboxDao.pendingRowsForCompany('co');
+    expect(
+      pending.where((r) => r.mutationKind == MutationKind.reorder.wireName),
+      isEmpty,
+    );
+  });
 }
 
 /// The repo path under test never reaches the network (the outbox handler

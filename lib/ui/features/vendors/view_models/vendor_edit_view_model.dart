@@ -16,6 +16,7 @@ class VendorEditViewModel extends GenericEditViewModel<Vendor> {
   VendorEditViewModel({
     required this.repo,
     required this.companyId,
+    required this.nameRequiredMessage,
     Vendor? existing,
     Vendor? cloneFrom,
     super.sync,
@@ -29,6 +30,12 @@ class VendorEditViewModel extends GenericEditViewModel<Vendor> {
   final VendorRepository repo;
   final String companyId;
 
+  /// Localized "please enter a name" message, resolved at the screen (VMs have
+  /// no `BuildContext`) and surfaced inline via [validate] →
+  /// `fieldErrorFor('name')`. Mirrors
+  /// `PurchaseOrderEditViewModel.vendorRequiredMessage`.
+  final String nameRequiredMessage;
+
   @override
   bool draftIsNonEmpty() {
     final d = draft;
@@ -38,8 +45,19 @@ class VendorEditViewModel extends GenericEditViewModel<Vendor> {
         d.website.isNotEmpty ||
         d.address1.isNotEmpty ||
         d.privateNotes.isNotEmpty ||
-        d.publicNotes.isNotEmpty;
+        d.publicNotes.isNotEmpty ||
+        // The blank primary contact we seed on a new vendor is all-empty, so it
+        // doesn't count — but a contact the user actually filled in does, so
+        // navigating away from contact-only entry still prompts to discard.
+        d.contacts.any((c) => !_isBlankContact(c));
   }
+
+  @override
+  Map<String, List<String>> validate() => {
+    // The server requires a vendor name (`StoreVendorRequest`). Fail fast inline
+    // instead of letting the optimistic save land a dead outbox row.
+    if (draft.name.trim().isEmpty) 'name': [nameRequiredMessage],
+  };
 
   @override
   Future<SaveResult<Vendor>> performSave() async {
@@ -211,3 +229,12 @@ VendorContact _emptyContact() => VendorContact(
   updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
   isDeleted: false,
 );
+
+/// A contact with no user-entered identity fields — the seeded blank primary
+/// doesn't count toward [VendorEditViewModel.draftIsNonEmpty]. Mirrors the
+/// client VM's `_isBlankContact`.
+bool _isBlankContact(VendorContact c) =>
+    c.firstName.trim().isEmpty &&
+    c.lastName.trim().isEmpty &&
+    c.email.trim().isEmpty &&
+    c.phone.trim().isEmpty;

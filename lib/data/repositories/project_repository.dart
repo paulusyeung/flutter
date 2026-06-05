@@ -425,7 +425,11 @@ class ProjectRepository extends BaseEntityRepository<Project, ProjectApi>
       color: Value(a.color),
       updatedAt: a.updatedAt,
       createdAt: Value(a.createdAt),
-      archivedAt: a.archivedAt > 0 ? Value(a.archivedAt) : const Value.absent(),
+      // Use Value(null) (not Value.absent()) so a restore (server returns
+      // archived_at: 0) actually clears the column under the partial
+      // insertOnConflictUpdate — otherwise the active-list filter
+      // (archived_at IS NULL) keeps excluding the row after restore.
+      archivedAt: a.archivedAt > 0 ? Value(a.archivedAt) : const Value(null),
       customValue1: Value(a.customValue1),
       customValue2: Value(a.customValue2),
       customValue3: Value(a.customValue3),

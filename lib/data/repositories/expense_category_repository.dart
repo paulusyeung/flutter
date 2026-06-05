@@ -289,7 +289,7 @@ class ExpenseCategoryRepository
       color: Value(a.color),
       updatedAt: a.updatedAt,
       createdAt: Value(a.createdAt),
-      archivedAt: a.archivedAt > 0 ? Value(a.archivedAt) : const Value.absent(),
+      archivedAt: a.archivedAt > 0 ? Value(a.archivedAt) : const Value(null),
       isDirty: const Value(false),
       isDeleted: Value(a.isDeleted),
       payload: jsonEncode(a.toJson()),

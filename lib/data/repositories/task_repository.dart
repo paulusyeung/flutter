@@ -543,7 +543,7 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi>
       isRunning: Value(isRunning),
       updatedAt: a.updatedAt,
       createdAt: Value(a.createdAt),
-      archivedAt: a.archivedAt > 0 ? Value(a.archivedAt) : const Value.absent(),
+      archivedAt: a.archivedAt > 0 ? Value(a.archivedAt) : const Value(null),
       customValue1: Value(a.customValue1),
       customValue2: Value(a.customValue2),
       customValue3: Value(a.customValue3),

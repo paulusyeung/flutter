@@ -310,7 +310,7 @@ class CompanyGatewayRepository
       testMode: Value(a.testMode),
       updatedAt: a.updatedAt,
       createdAt: Value(a.createdAt),
-      archivedAt: a.archivedAt > 0 ? Value(a.archivedAt) : const Value.absent(),
+      archivedAt: a.archivedAt > 0 ? Value(a.archivedAt) : const Value(null),
       isDirty: const Value(false),
       isDeleted: Value(a.isDeleted),
       payload: jsonEncode(a.toJson()),
@@ -332,7 +332,10 @@ class CompanyGatewayRepository
           ? DateTime.now().millisecondsSinceEpoch ~/ 1000
           : g.updatedAt,
       createdAt: Value(g.createdAt),
-      archivedAt: g.archivedAt > 0 ? Value(g.archivedAt) : const Value.absent(),
+      // Value(null) (not absent) to match the API path above and the
+      // restore-clears-archived_at invariant; equivalent here since the `== 0`
+      // branch only fires for active rows whose column is already NULL.
+      archivedAt: g.archivedAt > 0 ? Value(g.archivedAt) : const Value(null),
       isDirty: Value(isDirty),
       isDeleted: Value(g.isDeleted),
       payload: jsonEncode(g.toApiJson(preserveTempId: true)),

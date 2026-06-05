@@ -919,7 +919,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
           child: FilledButton(
             style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
             onPressed: _reset,
-            child: Text(context.tr('import')),
+            child: Text(context.tr('done')),
           ),
         ),
       ],

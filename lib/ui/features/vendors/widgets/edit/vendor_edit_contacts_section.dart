@@ -72,6 +72,7 @@ class VendorEditContactsSection extends StatelessWidget {
                 onPhone: (v) => vm.setContactPhoneAt(i, v),
                 onSendEmail: (v) => vm.setContactSendEmailAt(i, v),
                 onCcOnly: (v) => vm.setContactCcOnlyAt(i, v),
+                onCanSign: (v) => vm.setContactCanSignAt(i, v),
                 onPassword: (v) => vm.setContactPasswordAt(i, v),
                 onCustomValue1: (v) => vm.setContactCustomValue1At(i, v),
                 onCustomValue2: (v) => vm.setContactCustomValue2At(i, v),
@@ -120,6 +121,7 @@ class _ContactEditor extends StatelessWidget {
     required this.onPhone,
     required this.onSendEmail,
     required this.onCcOnly,
+    required this.onCanSign,
     required this.onPassword,
     required this.onCustomValue1,
     required this.onCustomValue2,
@@ -140,6 +142,7 @@ class _ContactEditor extends StatelessWidget {
   final ValueChanged<String> onPhone;
   final ValueChanged<bool> onSendEmail;
   final ValueChanged<bool> onCcOnly;
+  final ValueChanged<bool> onCanSign;
   final ValueChanged<String> onPassword;
   final ValueChanged<String> onCustomValue1;
   final ValueChanged<String> onCustomValue2;
@@ -245,21 +248,42 @@ class _ContactEditor extends StatelessWidget {
             onCustomValue4,
           ],
         ),
-        LabeledSwitchGroup(
-          items: [
-            LabeledSwitchItem(
-              label: context.tr('add_to_invoices'),
-              value: contact.sendEmail,
-              // CC-only and send_email are mutually exclusive; greyed out
-              // (onChanged: null) while CC-only is on.
-              onChanged: contact.ccOnly ? null : onSendEmail,
-            ),
-            LabeledSwitchItem(
-              label: context.tr('cc_only'),
-              value: contact.ccOnly,
-              onChanged: onCcOnly,
-            ),
-          ],
+        StreamBuilder<Company?>(
+          stream: companyStream,
+          builder: (context, snapshot) {
+            // "Authorized to sign" is only meaningful when the company requires
+            // an e-signature somewhere (invoice / quote / PO). Hidden otherwise
+            // — the value is preserved on save regardless (it stays in the draft
+            // and `VendorContact.toApiJson` still emits `can_sign`). Mirrors
+            // `ClientEditContactsSection`.
+            final settings = snapshot.data?.settings;
+            final eSignEnabled =
+                (settings?.requireInvoiceSignature ?? false) ||
+                (settings?.requireQuoteSignature ?? false) ||
+                (settings?.requirePurchaseOrderSignature ?? false);
+            return LabeledSwitchGroup(
+              items: [
+                LabeledSwitchItem(
+                  label: context.tr('add_to_invoices'),
+                  value: contact.sendEmail,
+                  // CC-only and send_email are mutually exclusive; greyed out
+                  // (onChanged: null) while CC-only is on.
+                  onChanged: contact.ccOnly ? null : onSendEmail,
+                ),
+                LabeledSwitchItem(
+                  label: context.tr('cc_only'),
+                  value: contact.ccOnly,
+                  onChanged: onCcOnly,
+                ),
+                if (eSignEnabled)
+                  LabeledSwitchItem(
+                    label: context.tr('authorized_to_sign'),
+                    value: contact.canSign,
+                    onChanged: onCanSign,
+                  ),
+              ],
+            );
+          },
         ),
       ],
     );

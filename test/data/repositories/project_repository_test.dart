@@ -14,6 +14,7 @@ import 'package:admin/data/repositories/project_repository.dart';
 import 'package:admin/data/services/clients_api.dart';
 import 'package:admin/data/services/projects_api.dart';
 import 'package:admin/data/services/upload_source.dart';
+import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/sync/mutation.dart';
 
 import '_base_entity_repository_contract.dart';
@@ -253,6 +254,51 @@ void main() {
       );
       expect(delRow.requiresPassword, isTrue);
       expect(purgeRow.requiresPassword, isTrue);
+    });
+
+    test('restore clears archived_at so the row returns to the active list '
+        'and leaves the archived set', () async {
+      final repo = makeRepo();
+
+      // Seed an archived project (server echo carries archived_at > 0).
+      await repo.applyUpdateResponse(
+        companyId: 'co',
+        serverResponse: const ProjectApi(
+          id: 'p1',
+          name: 'P1',
+          archivedAt: 1700000100,
+          updatedAt: 1700000100,
+        ),
+      );
+      Future<Set<String>> idsFor(EntityState state) async =>
+          (await repo.watchPage(companyId: 'co', states: {state}).first)
+              .map((p) => p.id)
+              .toSet();
+      expect(await idsFor(EntityState.archived), contains('p1'));
+      expect(await idsFor(EntityState.active), isNot(contains('p1')));
+
+      // Restore: the server echoes archived_at: 0.
+      await repo.applyUpdateResponse(
+        companyId: 'co',
+        serverResponse: const ProjectApi(
+          id: 'p1',
+          name: 'P1',
+          archivedAt: 0,
+          updatedAt: 1700000200,
+        ),
+      );
+
+      // The row must reappear in the active list (the bug: a stale
+      // archived_at column kept the active filter excluding it) and leave
+      // the archived set.
+      expect(
+        await idsFor(EntityState.active),
+        contains('p1'),
+        reason:
+            'restore must clear archived_at so the active filter '
+            '(archived_at IS NULL) includes the row',
+      );
+      expect(await idsFor(EntityState.archived), isNot(contains('p1')));
     });
   });
 
