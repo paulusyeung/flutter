@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:super_editor/super_editor.dart';
+import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import 'package:admin/app/design_tokens.dart';
@@ -14,16 +14,22 @@ import 'package:admin/ui/features/settings/views/advanced/templates_reminders/pr
 ///
 /// Platform switch on the success branch:
 ///
-/// * iOS / Android — `WebViewWidget` loads the full HTML wrapper returned
-///   from `/api/v1/templates` via `loadHtmlString`. CSS, inline images,
-///   and the server's template chrome all render correctly.
-/// * macOS / Windows / Linux / web — `webview_flutter` is mobile-only, so
-///   we fall back to v1's pattern (admin-portal `templates_and_reminders.
-///   dart:600-614`): render the rendered subject + body markdown through
-///   `SuperReader` (the read-only viewer — no IME interactor, so it never
-///   collides with the editable body field's `SuperEditor`). The server-side variable
-///   substitution still happens (the `/templates` POST runs on every
-///   debounced edit); only the rendering layer differs.
+/// * iOS / Android (native) — `WebViewWidget` loads the full HTML wrapper
+///   returned from `/api/v1/templates` via `loadHtmlString`. CSS, inline
+///   images, and the server's template chrome all render correctly.
+/// * Web (incl. mobile browsers) + macOS / Windows / Linux — `webview_flutter`
+///   has no web/desktop implementation, and a web `<iframe>` platform view
+///   hits a skwasm positioning bug under the project's `--wasm` build, so we
+///   render the server-substituted body HTML with `flutter_widget_from_html_core`
+///   (`HtmlWidget`). Inline styles apply; `<style>`-block CSS from the wrapper
+///   does not — acceptable for a preview and a clear step up from the prior
+///   markdown-strip path. The server-side variable substitution still happens
+///   (the `/templates` POST runs on every debounced edit); only the rendering
+///   layer differs.
+///
+/// The `!kIsWeb` guard is load-bearing: without it a mobile browser (where
+/// `defaultTargetPlatform` reports iOS/Android) would hit the WebView path and
+/// throw, since `webview_flutter` is unimplemented on web.
 class TemplatePreviewPanel extends StatelessWidget {
   const TemplatePreviewPanel({super.key, required this.controller});
 
@@ -164,14 +170,18 @@ class _PreviewBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile =
-        defaultTargetPlatform == TargetPlatform.iOS ||
-        defaultTargetPlatform == TargetPlatform.android;
+    // Native mobile only — web (incl. a mobile browser, where
+    // defaultTargetPlatform reports iOS/Android) has no webview_flutter
+    // implementation, so it must NOT take the WebView branch. See the class doc.
+    final isMobileNative =
+        !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.android);
     return LayoutBuilder(
       builder: (context, c) {
-        final body = isMobile
+        final body = isMobileNative
             ? _MobileWebView(wrapper: preview.wrapper)
-            : _DesktopMarkdownPreview(body: preview.body);
+            : _HtmlPreview(body: preview.body);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
@@ -262,83 +272,33 @@ class _MobileWebViewState extends State<_MobileWebView> {
   Widget build(BuildContext context) => WebViewWidget(controller: _controller);
 }
 
-class _DesktopMarkdownPreview extends StatefulWidget {
-  const _DesktopMarkdownPreview({required this.body});
+/// Renders the server-substituted email body HTML via
+/// `flutter_widget_from_html_core` on web + desktop (anywhere without a usable
+/// WebView). Rebuilds re-parse the new HTML — no manual lifecycle needed.
+class _HtmlPreview extends StatelessWidget {
+  const _HtmlPreview({required this.body});
 
   final String body;
 
   @override
-  State<_DesktopMarkdownPreview> createState() =>
-      _DesktopMarkdownPreviewState();
-}
-
-class _DesktopMarkdownPreviewState extends State<_DesktopMarkdownPreview> {
-  late MutableDocument _document;
-  late MutableDocumentComposer _composer;
-  late Editor _editor;
-
-  @override
-  void initState() {
-    super.initState();
-    _seed(widget.body);
-  }
-
-  @override
-  void didUpdateWidget(covariant _DesktopMarkdownPreview oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.body != widget.body) {
-      _composer.dispose();
-      _seed(widget.body);
-    }
-  }
-
-  @override
-  void dispose() {
-    _composer.dispose();
-    super.dispose();
-  }
-
-  /// The `/api/v1/templates` server returns the rendered body as HTML
-  /// (after variable substitution + markdown→HTML conversion). SuperEditor
-  /// only ingests markdown — strip the most common block-level tags so
-  /// users see a passable preview without a real HTML renderer.
-  void _seed(String body) {
-    final stripped = body
-        .replaceAll(RegExp(r'<\s*/?\s*p\s*/?\s*>', caseSensitive: false), '\n')
-        .replaceAll(
-          RegExp(r'<\s*/?\s*div\s*/?\s*>', caseSensitive: false),
-          '\n',
-        )
-        .replaceAll(RegExp(r'<\s*br\s*/?\s*>', caseSensitive: false), '\n');
-    _document = stripped.trim().isEmpty
-        ? MutableDocument.empty()
-        : deserializeMarkdownToDocument(stripped);
-    _composer = MutableDocumentComposer();
-    _editor = createDefaultDocumentEditor(
-      document: _document,
-      composer: _composer,
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
-    // Render the email body on white in both light and dark mode:
-    // super_editor's default stylesheet uses fixed dark text, and the real
-    // email (and the mobile WebView / PDF preview) is white — so painting it
-    // on the dark app surface would be dark-on-dark and unreadable.
-    // SuperReader resolves to a *sliver* when it finds a vertical Scrollable
-    // ancestor, so it must be hosted inside a CustomScrollView — feeding it
-    // straight into a RenderBox parent (Container/Padding) throws "RenderPadding
-    // expected a RenderBox child but received _RenderSliverHybridStack". The box
-    // wrappers (ColoredBox/Padding) wrap the scroll host; the reader stays a
-    // direct sliver child. Mirrors `_EditorHost` in markdown_text_field.dart.
+    // Render the email body on white in both light and dark mode: the real
+    // email (and the mobile WebView / PDF preview) is white, so painting it on
+    // the dark app surface would be dark-on-dark and unreadable. Force black
+    // text to read on the forced-white background regardless of app brightness.
     // `_PreviewBody` always hands this a bounded height (Expanded / SizedBox),
-    // so the scroll view lays out fine.
+    // so the inner scroll view lays out fine.
     return ColoredBox(
       color: Colors.white,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: InSpacing.lg(context)),
-        child: CustomScrollView(slivers: [SuperReader(editor: _editor)]),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(
+          horizontal: InSpacing.lg(context),
+          vertical: InSpacing.md(context),
+        ),
+        child: HtmlWidget(
+          body,
+          textStyle: const TextStyle(color: Colors.black),
+        ),
       ),
     );
   }

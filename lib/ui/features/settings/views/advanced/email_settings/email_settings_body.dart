@@ -114,7 +114,11 @@ class EmailSettingsBody extends StatelessWidget {
             OverridableDropdownField<String>(
               label: context.tr('email_provider'),
               apiKey: 'email_sending_method',
-              value: method,
+              // Server (NinjaMailerJob) treats 'microsoft' as an alias of
+              // 'office365', but this dropdown only offers 'office365'. Coalesce
+              // so a legacy stored 'microsoft' selects that item instead of
+              // tripping the value-not-in-items guard and blanking the field.
+              value: method == 'microsoft' ? 'office365' : method,
               items: _providerOptions(
                 context,
                 isHosted: isHosted,
@@ -633,7 +637,8 @@ class _SendTimeRow extends StatelessWidget {
   static String _formatHour(int hour, {required bool military}) {
     if (military) {
       final padded = hour.toString().padLeft(2, '0');
-      return '$padded:00';
+      // entity_send_time 24 = end-of-day midnight; show 00:00, not 24:00.
+      return hour == 24 ? '00:00' : '$padded:00';
     }
     final h12 = hour == 24
         ? 12

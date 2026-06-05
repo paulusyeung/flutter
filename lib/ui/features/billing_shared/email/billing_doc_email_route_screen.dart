@@ -98,7 +98,7 @@ class _BillingDocEmailRouteScreenState
     required String vendorId,
     required String number,
     required SendEmailCallback onSend,
-    required ScheduleEmailCallback onSchedule,
+    ScheduleEmailCallback? onSchedule,
     required Future<int> Function(String messageId) onReactivate,
     required Future<Uint8List> Function({
       String? designId,
@@ -329,17 +329,10 @@ class _BillingDocEmailRouteScreenState
               body: body,
               ccEmail: ccEmail,
             ),
-        onSchedule:
-            ({required template, required sendAt, subject, body, ccEmail}) =>
-                _services.recurringInvoices.scheduleEmail(
-                  companyId: _companyId,
-                  id: widget.id,
-                  template: template,
-                  sendAt: sendAt,
-                  subject: subject,
-                  body: body,
-                  ccEmail: ccEmail,
-                ),
+        // No scheduled send for recurring invoices — the server's
+        // task_scheduler rejects them. The composer hides its Schedule action
+        // (BillingDocType.supportsScheduledSend == false), so this stays null.
+        onSchedule: null,
         onReactivate: (m) =>
             _services.recurringInvoices.reactivateInvitationEmail(
               companyId: _companyId,

@@ -30,10 +30,17 @@ class _IncreasePricesDialogState extends State<_IncreasePricesDialog> {
     super.dispose();
   }
 
+  // A 0 / empty value is a no-op increase, and the input formatter already
+  // blocks a leading `-`, so a positive number is the only meaningful input.
+  // (The server enforces any sane upper bound.)
+  bool get _valid {
+    final n = num.tryParse(_controller.text.trim());
+    return n != null && n > 0;
+  }
+
   void _submit() {
-    final value = _controller.text.trim();
-    if (num.tryParse(value) == null) return;
-    Navigator.of(context).pop(value);
+    if (!_valid) return;
+    Navigator.of(context).pop(_controller.text.trim());
   }
 
   @override
@@ -50,6 +57,7 @@ class _IncreasePricesDialogState extends State<_IncreasePricesDialog> {
             FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
           ],
           textInputAction: TextInputAction.done,
+          onChanged: (_) => setState(() {}),
           onSubmitted: (_) => _submit(),
           decoration: InputDecoration(
             labelText: context.tr('percentage_increase'),
@@ -70,7 +78,7 @@ class _IncreasePricesDialogState extends State<_IncreasePricesDialog> {
             const SizedBox(width: 8),
             FilledButton(
               style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
-              onPressed: _submit,
+              onPressed: _valid ? _submit : null,
               child: Text(context.tr('done')),
             ),
           ],

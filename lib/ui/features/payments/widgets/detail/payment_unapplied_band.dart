@@ -10,10 +10,11 @@ import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// Inline callout shown on the payment detail screen when `amount > applied`.
-/// Offers two paths:
-///   * Auto-apply oldest: one-tap allocation against the client's oldest
-///     unpaid invoice (looks up via [services.invoices]).
-///   * Apply to invoice: opens a picker sheet for explicit allocation.
+/// Offers one action — Auto-apply oldest: one-tap allocation of the unapplied
+/// amount against the client's oldest unpaid invoice (looks up via
+/// [services.invoices]). An explicit "apply to a chosen invoice" picker is not
+/// yet implemented; until then, allocating to a specific invoice happens on
+/// the create form's allocations section.
 class PaymentUnappliedBand extends StatelessWidget {
   const PaymentUnappliedBand({
     super.key,

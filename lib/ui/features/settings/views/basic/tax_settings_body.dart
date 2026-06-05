@@ -264,7 +264,10 @@ class _CalculateTaxesToggle extends StatelessWidget {
           final proceed = await _confirmEnable(context);
           if (proceed != true) return;
           // React's cascade on Continue: enable item taxes, disable total +
-          // expense-as-counted taxes, zero default rates, force exclusive.
+          // expense-as-counted taxes, zero default *rates*, force exclusive.
+          // Note: only the rates are zeroed — the tax *names* are left intact
+          // (matches React `CalculateTaxesNotificationModal.tsx`), so toggling
+          // Calculate Taxes back off restores the user's configured names.
           host.updateCompany(
             (c) => c.copyWith(
               calculateTaxes: true,
@@ -276,11 +279,8 @@ class _CalculateTaxesToggle extends StatelessWidget {
           host.updateSettings(
             (s) => s.copyWith(
               inclusiveTaxes: false,
-              taxName1: '',
               taxRate1: 0,
-              taxName2: '',
               taxRate2: 0,
-              taxName3: '',
               taxRate3: 0,
             ),
           );

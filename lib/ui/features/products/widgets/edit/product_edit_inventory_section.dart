@@ -12,9 +12,10 @@ import 'package:admin/utils/formatting.dart';
 
 /// Inventory-related product fields. `max_quantity` is always shown; the
 /// `in_stock_quantity` / `stock_notification` / `stock_notification_threshold`
-/// trio is gated on `company.settings.track_inventory` — matches the React
-/// edit form which hides those fields entirely when inventory tracking is
-/// off (`ProductForm.tsx`).
+/// trio is gated on the top-level `company.track_inventory` flag (NOT
+/// `company.settings.*`, which the server never populates) — matches the
+/// React edit form which hides those fields entirely when inventory tracking
+/// is off (`ProductForm.tsx`).
 class ProductEditInventorySection extends StatelessWidget {
   const ProductEditInventorySection({super.key, required this.vm});
 
@@ -26,7 +27,7 @@ class ProductEditInventorySection extends StatelessWidget {
     return StreamBuilder<Company?>(
       stream: services.company.watchCompany(vm.companyId),
       builder: (context, snap) {
-        final tracksInventory = snap.data?.settings.trackInventory ?? false;
+        final tracksInventory = snap.data?.trackInventory ?? false;
         return DashboardCardShell(
           title: context.tr('inventory'),
           child: Column(

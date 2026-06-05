@@ -252,6 +252,7 @@ class _BillingDocItemsTabsState extends State<BillingDocItemsTabs>
   Widget _editor(_LineKind kind) {
     return LineItemEditor(
       companyId: widget.companyId,
+      clientId: widget.vm.clientIdOf(widget.vm.draft),
       items: _subset(kind),
       onChanged: (next) => _onSubsetChanged(kind, next),
       newItemFactory: widget.newItemFactory,

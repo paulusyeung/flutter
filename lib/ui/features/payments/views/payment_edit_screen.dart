@@ -43,6 +43,12 @@ class PaymentEditScreen extends StatelessWidget {
           existing: existing,
           cloneFrom: cloneFrom,
           translate: ctx.tr,
+          useCommaAsDecimalPlace:
+              services
+                  .formatterIfReady(companyId)
+                  ?.settings
+                  .useCommaAsDecimalPlace ??
+              false,
           sync: services.sync,
           connectivity: services.connectivity,
         );

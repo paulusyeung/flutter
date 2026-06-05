@@ -6,6 +6,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/tax_rate.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/widgets/settings_entity_list_scaffold.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Search keys exported for the settings sidebar search. Colocated with the
 /// screen so adding / renaming a field updates both ends in one place.
@@ -23,6 +24,11 @@ class TaxRatesScreen extends StatelessWidget {
     final services = context.read<Services>();
     final companyId = services.auth.session.value?.currentCompanyId ?? '';
     final repo = services.taxRates;
+    // Decimal-separator setting so the rate reads "19%" / "19,5%" instead of a
+    // raw `double.toString()` ("19.0%"), matching the pickers on Tax Settings.
+    final useComma =
+        services.formatterIfReady(companyId)?.settings.useCommaAsDecimalPlace ??
+        false;
 
     return SettingsEntityListScaffold<TaxRate>(
       titleKey: 'tax_rates',
@@ -40,15 +46,17 @@ class TaxRatesScreen extends StatelessWidget {
           repo.watchAll(companyId: companyId),
       isArchivedOf: (t) => t.archivedAt != null,
       isDeletedOf: (t) => t.isDeleted,
-      rowBuilder: (t) => _TaxRateRow(key: ValueKey(t.id), rate: t),
+      rowBuilder: (t) =>
+          _TaxRateRow(key: ValueKey(t.id), rate: t, useComma: useComma),
     );
   }
 }
 
 class _TaxRateRow extends StatelessWidget {
-  const _TaxRateRow({required this.rate, super.key});
+  const _TaxRateRow({required this.rate, required this.useComma, super.key});
 
   final TaxRate rate;
+  final bool useComma;
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +68,9 @@ class _TaxRateRow extends StatelessWidget {
       children: [
         ListTile(
           title: Text(displayName),
-          subtitle: Text('${rate.rate}%'),
+          subtitle: Text(
+            '${rateInputText(rate.rate, useCommaAsDecimalPlace: useComma, blankZero: false)}%',
+          ),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.go('/settings/tax_rates/${rate.id}'),
         ),

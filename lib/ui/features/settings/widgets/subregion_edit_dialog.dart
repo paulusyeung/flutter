@@ -121,7 +121,13 @@ class _SubregionEditDialogState extends State<SubregionEditDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text('${context.tr('edit')} — ${widget.subregionKey}'),
-      content: IntrinsicWidth(
+      // Cap the width so the four fields read as a tidy column on desktop, but
+      // never force an intrinsic width that could overflow a narrow phone or
+      // jump when a server `errorText` appears. (An earlier `IntrinsicWidth`
+      // here sized the dialog to the widest label and grew on validation
+      // errors.) Mirrors `add_to_invoice_dialog.dart`.
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
         child: FormSaveScope(
           onSubmit: _submit,
           child: Column(

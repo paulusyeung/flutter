@@ -27,6 +27,7 @@ class TaskEditViewModel extends GenericEditViewModel<Task> {
     Task? cloneFrom,
     super.sync,
     super.connectivity,
+    super.useCommaAsDecimalPlace,
   }) : super(
          initialDraft: cloneFrom ?? existing ?? emptyTask(),
          original: existing,
@@ -66,9 +67,7 @@ class TaskEditViewModel extends GenericEditViewModel<Task> {
 
   void setDescription(String v) => updateDraft(draft.copyWith(description: v));
   void setNumber(String v) => updateDraft(draft.copyWith(number: v));
-  void setRate(String input) => updateDraft(
-    draft.copyWith(rate: Decimal.tryParse(input.trim()) ?? Decimal.zero),
-  );
+  void setRate(String input) => setDec((d, v) => d.copyWith(rate: v), input);
   void setClientId(String v) {
     // Changing the client invalidates a previously-selected project that
     // belonged to a different client — clear projectId so the form doesn't

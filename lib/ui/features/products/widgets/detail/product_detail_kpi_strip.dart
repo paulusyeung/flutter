@@ -36,7 +36,7 @@ class ProductDetailKpiStrip extends StatelessWidget {
     return StreamBuilder<Company?>(
       stream: services.company.watchCompany(companyId),
       builder: (context, snap) {
-        final tracksInventory = snap.data?.settings.trackInventory ?? false;
+        final tracksInventory = snap.data?.trackInventory ?? false;
         return _Strip(
           product: product,
           tracksInventory: tracksInventory,

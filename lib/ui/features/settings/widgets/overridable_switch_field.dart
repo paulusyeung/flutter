@@ -26,6 +26,7 @@ class OverridableSwitchField extends StatelessWidget {
     required this.label,
     required this.apiKey,
     this.subtitle,
+    this.enabled = true,
   });
 
   final String label;
@@ -34,6 +35,10 @@ class OverridableSwitchField extends StatelessWidget {
   /// Optional secondary line under the switch label — typically a clarifying
   /// hint (e.g. `use_comma_as_decimal_place` under `decimal_comma`).
   final String? subtitle;
+
+  /// When false the toggle is non-interactive (greyed) — used to plan-gate a
+  /// field while keeping it visible (e.g. reminder rules on a free account).
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -55,8 +60,11 @@ class OverridableSwitchField extends StatelessWidget {
           title: Text(label),
           subtitle: subtitle == null ? null : Text(subtitle!),
           value: value ?? false,
-          onChanged: (v) =>
-              host.updateSettings((s) => binding.write(s, v.toString())),
+          // Null onChanged greys out the switch (Material's disabled contract).
+          onChanged: enabled
+              ? (v) =>
+                    host.updateSettings((s) => binding.write(s, v.toString()))
+              : null,
           contentPadding: EdgeInsets.zero,
         ),
         if (errorText != null)

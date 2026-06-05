@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:admin/data/services/upload_source.dart';
 
 import 'package:admin/data/models/api/recurring_invoice_api_model.dart';
+import 'package:admin/data/models/domain/recurring_schedule_date.dart';
 import 'package:admin/data/services/base_entity_api.dart';
 
 /// Concrete API for `/api/v1/recurring_invoices`. Mirrors `InvoicesApi`
@@ -118,6 +119,31 @@ class RecurringInvoicesApi
     idempotencyKey: idempotencyKey,
     extra: {'percentage_increase': num.tryParse(percentageIncrease) ?? 0},
   );
+
+  /// The server-computed upcoming schedule (send + due dates) for a saved
+  /// recurring invoice: `GET /api/v1/recurring_invoices/{id}?show_dates=true`.
+  /// The transformer leaves `recurring_dates` empty unless `show_dates=true`,
+  /// and computes each due date from the client's payment terms — richer than
+  /// the client-side frequency preview. Read-only / on-demand (no outbox, no
+  /// Drift, not part of the normal payload). Returns `[]` for an unsaved id.
+  Future<List<RecurringScheduleDate>> fetchSchedule({
+    required String id,
+  }) async {
+    if (id.isEmpty || id.startsWith('tmp_')) return const [];
+    final raw = await client.getOneWithQuery(
+      '$basePath/$id',
+      query: const {'show_dates': 'true'},
+    );
+    if (raw is! Map) return const [];
+    final data = raw['data'];
+    if (data is! Map) return const [];
+    final dates = data['recurring_dates'];
+    if (dates is! List) return const [];
+    return dates
+        .whereType<Map<String, dynamic>>()
+        .map(RecurringScheduleDate.fromJson)
+        .toList(growable: false);
+  }
 
   /// Server-rendered PDF via `POST /api/v1/live_preview?entity=recurring_invoice
   /// [&entity_id=<id>]` with the full entity (`RecurringInvoice.toApiJson()`)

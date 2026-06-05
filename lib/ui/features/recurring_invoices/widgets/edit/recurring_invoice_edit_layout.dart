@@ -634,8 +634,11 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
                   onVendorChanged: vm.setVendorId,
                   exchangeRate: vm.draft.exchangeRate.toString(),
                   onExchangeRateChanged: vm.setExchangeRate,
-                  autoBillEnabled: vm.draft.autoBillEnabled,
-                  onAutoBillEnabledChanged: vm.setAutoBillEnabled,
+                  // No auto_bill_enabled toggle: for recurring invoices the
+                  // server derives it from `auto_bill` (always/optout → true)
+                  // and overwrites it on save, so an editable toggle here does
+                  // nothing. The `auto_bill` field (Schedule tab) is the real
+                  // control. Matches React, which omits the toggle entirely.
                 ),
               ),
               EInvoiceFieldsTab<RecurringInvoice>(
@@ -778,11 +781,14 @@ class _NextSendPreview extends StatelessWidget {
     final freq = vm.draft.frequencyId;
     if (start == null || freq.isEmpty) return const SizedBox.shrink();
     final fmt = context.read<Services>().formatterIfReady(vm.companyId);
+    // The preview is purely informational; without a formatter, skip it rather
+    // than render raw ISO dates (see the Formatter rule in CLAUDE.md).
+    if (fmt == null) return const SizedBox.shrink();
     final previews = <String>[];
     for (var i = 0; i < 3; i++) {
       final d = nextSendAfter(start, freq, i);
       if (d == null) break;
-      previews.add(fmt?.date(d.toIso()) ?? d.toIso());
+      previews.add(fmt.date(d.toIso()));
     }
     if (previews.isEmpty) return const SizedBox.shrink();
     return Padding(
@@ -1022,8 +1028,8 @@ class _SettingsTab extends StatelessWidget {
         onVendorChanged: vm.setVendorId,
         exchangeRate: vm.draft.exchangeRate.toString(),
         onExchangeRateChanged: vm.setExchangeRate,
-        autoBillEnabled: vm.draft.autoBillEnabled,
-        onAutoBillEnabledChanged: vm.setAutoBillEnabled,
+        // No auto_bill_enabled toggle for recurring — server-derived from
+        // `auto_bill` and overwritten on save (see the desktop layout note).
       ),
     );
   }

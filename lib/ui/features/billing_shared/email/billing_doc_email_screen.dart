@@ -71,7 +71,7 @@ class BillingDocEmailScreen extends StatefulWidget {
     required this.isHosted,
     required this.formatter,
     required this.onSend,
-    required this.onSchedule,
+    this.onSchedule,
     required this.onReactivate,
     required this.pdfFetcher,
   });
@@ -92,7 +92,11 @@ class BillingDocEmailScreen extends StatefulWidget {
   final Formatter? formatter;
 
   final SendEmailCallback onSend;
-  final ScheduleEmailCallback onSchedule;
+
+  /// Null when the doc type can't be scheduled (recurring invoices). The
+  /// Schedule action is hidden in that case — see [_wideActions] /
+  /// [_narrowActions] and [BillingDocType.supportsScheduledSend].
+  final ScheduleEmailCallback? onSchedule;
   final Future<int> Function(String messageId) onReactivate;
   final Future<Uint8List> Function({
     String? designId,
@@ -349,7 +353,7 @@ class _BillingDocEmailScreenState extends State<BillingDocEmailScreen> {
   }
 
   Future<void> _schedule() async {
-    if (_inFlight) return;
+    if (_inFlight || widget.onSchedule == null) return;
     // Hold the in-flight guard across the picker so Send can't fire while the
     // schedule dialog is open (Schedule-then-Send double-commit).
     setState(() => _inFlight = true);
@@ -364,7 +368,7 @@ class _BillingDocEmailScreenState extends State<BillingDocEmailScreen> {
     }
     final sendAt = picked.toUtc().toIso8601String();
     try {
-      await widget.onSchedule(
+      await widget.onSchedule!(
         template: _template,
         sendAt: sendAt,
         subject: _trimOrNull(_subject),
@@ -455,18 +459,22 @@ class _BillingDocEmailScreenState extends State<BillingDocEmailScreen> {
     );
   }
 
-  /// Desktop: Schedule (secondary) + Send (primary) side by side.
+  /// Desktop: Schedule (secondary) + Send (primary) side by side. Schedule
+  /// is hidden for doc types that can't be scheduled (recurring invoices —
+  /// the server's task_scheduler rejects them, so it would silently send now).
   List<Widget> _wideActions(BuildContext context) {
     return [
-      Center(
-        child: OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
-          icon: const Icon(Icons.schedule_outlined, size: 18),
-          label: Text(context.tr('schedule')),
-          onPressed: _canSend ? _schedule : null,
+      if (widget.type.supportsScheduledSend) ...[
+        Center(
+          child: OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+            icon: const Icon(Icons.schedule_outlined, size: 18),
+            label: Text(context.tr('schedule')),
+            onPressed: _canSend ? _schedule : null,
+          ),
         ),
-      ),
-      SizedBox(width: InSpacing.md(context)),
+        SizedBox(width: InSpacing.md(context)),
+      ],
       Center(
         child: FilledButton.icon(
           style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
@@ -490,23 +498,24 @@ class _BillingDocEmailScreenState extends State<BillingDocEmailScreen> {
           child: Text(context.tr('send')),
         ),
       ),
-      PopupMenuButton<String>(
-        enabled: _canSend,
-        onSelected: (_) => _schedule(),
-        itemBuilder: (context) => [
-          PopupMenuItem<String>(
-            value: 'schedule',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.schedule_outlined, size: 18),
-                SizedBox(width: InSpacing.sm),
-                Text(context.tr('schedule')),
-              ],
+      if (widget.type.supportsScheduledSend)
+        PopupMenuButton<String>(
+          enabled: _canSend,
+          onSelected: (_) => _schedule(),
+          itemBuilder: (context) => [
+            PopupMenuItem<String>(
+              value: 'schedule',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.schedule_outlined, size: 18),
+                  SizedBox(width: InSpacing.sm),
+                  Text(context.tr('schedule')),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
     ];
   }
 

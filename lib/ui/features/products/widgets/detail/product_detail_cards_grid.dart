@@ -40,8 +40,7 @@ class ProductDetailCardsGrid extends StatelessWidget {
       stream: services.company.watchCompany(companyId),
       builder: (context, snap) {
         final company = snap.data;
-        final settings = company?.settings;
-        final tracksInventory = settings?.trackInventory ?? false;
+        final tracksInventory = company?.trackInventory ?? false;
         final enabledTaxSlots = company?.enabledItemTaxRates ?? 0;
 
         final hasInventory =

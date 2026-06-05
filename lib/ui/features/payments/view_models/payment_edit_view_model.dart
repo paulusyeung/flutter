@@ -6,6 +6,7 @@ import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/payment_repository.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Translation key surfaced as a toast when [PaymentEditViewModel
 /// .validateForSave] detects credits exceed invoices.
@@ -40,6 +41,7 @@ class PaymentEditViewModel extends GenericEditViewModel<Payment> {
     String Function(String key)? translate,
     super.sync,
     super.connectivity,
+    super.useCommaAsDecimalPlace,
   }) : _sendEmail = defaultSendEmail,
        // Lock the dirty flag for both edit (`existing`) and clone-from
        // (`cloneFrom`) entry points — either carries a user-meaningful
@@ -191,10 +193,6 @@ class PaymentEditViewModel extends GenericEditViewModel<Payment> {
   void setCurrencyId(String v) => updateDraft(draft.copyWith(currencyId: v));
   void setExchangeCurrencyId(String v) =>
       updateDraft(draft.copyWith(exchangeCurrencyId: v));
-  void setCompanyGatewayId(String v) =>
-      updateDraft(draft.copyWith(companyGatewayId: v));
-  void setGatewayTypeId(String v) =>
-      updateDraft(draft.copyWith(gatewayTypeId: v));
   void setTypeId(String v) => updateDraft(draft.copyWith(typeId: v));
   void setStatusId(String v) => updateDraft(draft.copyWith(statusId: v));
   void setAssignedUserId(String v) =>
@@ -212,12 +210,27 @@ class PaymentEditViewModel extends GenericEditViewModel<Payment> {
   void setAmount(String input) {
     _amountDirty = true;
     updateDraft(
-      draft.copyWith(amount: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+      draft.copyWith(
+        amount:
+            parseDecimal(
+              input,
+              useCommaAsDecimalPlace: useCommaAsDecimalPlace,
+            ) ??
+            Decimal.zero,
+      ),
     );
   }
 
   void setExchangeRate(String input) => updateDraft(
-    draft.copyWith(exchangeRate: Decimal.tryParse(input.trim()) ?? Decimal.one),
+    draft.copyWith(
+      exchangeRate:
+          parseDecimal(
+            input,
+            zeroIsNull: true,
+            useCommaAsDecimalPlace: useCommaAsDecimalPlace,
+          ) ??
+          Decimal.one,
+    ),
   );
   void setCustomValue1(String v) =>
       updateDraft(draft.copyWith(customValue1: v));

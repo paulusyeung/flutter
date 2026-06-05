@@ -114,12 +114,12 @@ class _OverridableNumberFieldState extends State<OverridableNumberField> {
         errorText: errorText,
       ),
       onChanged: (v) {
-        // Empty/unparseable input is stored as the empty string — matches
-        // OverridableTextField's "absent override is empty string" wire
-        // shape, so `setOverride(enabled: true)` writes a meaningful value
-        // and `setOverride(enabled: false)` clears it. Decimal input is
-        // canonicalized so the wire stays locale-agnostic (the server
-        // expects `1.5`, never `1,5`).
+        // integerOnly: empty/unparseable input clears the field (the int
+        // binding's `int.tryParse('')` → null on save). Decimal: `parseDecimal`
+        // returns `Decimal.zero` for empty input, so it persists as "0" — these
+        // numeric settings treat 0 and absent alike. Decimal input is
+        // canonicalized so the wire stays locale-agnostic (the server expects
+        // `1.5`, never `1,5`).
         if (widget.integerOnly) {
           host.updateSettings((s) => _write(s, v));
         } else {

@@ -262,9 +262,17 @@ class RecurringInvoiceEditViewModel
   void setRemainingCycles(int v) =>
       updateDraft(draft.copyWith(remainingCycles: v));
   void setDueDateDays(String v) => updateDraft(draft.copyWith(dueDateDays: v));
-  void setAutoBill(String v) => updateDraft(draft.copyWith(autoBill: v));
-  void setAutoBillEnabled(bool v) =>
-      updateDraft(draft.copyWith(autoBillEnabled: v));
+  // `auto_bill_enabled` is server-derived from `auto_bill` for recurring
+  // invoices (Store/UpdateRecurringInvoiceRequest::setAutoBillFlag: always /
+  // optout → true, else false) and overwritten on save — so there is no
+  // separate user toggle. We mirror that derivation locally so the optimistic
+  // Drift copy matches the server before the save response returns.
+  void setAutoBill(String v) => updateDraft(
+    draft.copyWith(
+      autoBill: v,
+      autoBillEnabled: v == 'always' || v == 'optout',
+    ),
+  );
 }
 
 RecurringInvoice emptyRecurringInvoice() => RecurringInvoice(

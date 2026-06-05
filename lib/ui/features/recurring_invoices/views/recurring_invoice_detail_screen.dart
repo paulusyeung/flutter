@@ -6,6 +6,10 @@ import 'package:admin/ui/core/widgets/client_name_label.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/recurring_invoice.dart';
+import 'package:admin/data/models/domain/recurring_schedule_date.dart';
+import 'package:admin/data/models/value/date.dart';
+import 'package:admin/ui/core/widgets/empty_state.dart';
+import 'package:admin/ui/core/widgets/error_view.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/domain/recurring_frequency.dart';
 import 'package:admin/l10n/localization.dart';
@@ -142,6 +146,15 @@ class _Body extends StatelessWidget {
                     ),
                   ),
                   EntityDetailTab(
+                    label: context.tr('schedule'),
+                    icon: Icons.calendar_month_outlined,
+                    bodyBuilder: (_) => _ScheduleTab(
+                      recurringInvoiceId: recurringInvoice.id,
+                      services: services,
+                      formatter: formatter,
+                    ),
+                  ),
+                  EntityDetailTab(
                     label: recurringInvoice.documents.isEmpty
                         ? context.tr('documents')
                         : context.tr('documents_with_count', {
@@ -229,6 +242,128 @@ class _Body extends StatelessWidget {
   }
 }
 
+/// Read-only "Schedule" tab: the server-computed upcoming send + due dates
+/// (`GET ?show_dates=true`). Fetched on demand — not part of the synced
+/// entity — and rendered through the company [Formatter] so dates honor the
+/// configured format. Mirrors React's Schedule tab.
+class _ScheduleTab extends StatefulWidget {
+  const _ScheduleTab({
+    required this.recurringInvoiceId,
+    required this.services,
+    required this.formatter,
+  });
+
+  final String recurringInvoiceId;
+  final Services services;
+  final Formatter? formatter;
+
+  @override
+  State<_ScheduleTab> createState() => _ScheduleTabState();
+}
+
+class _ScheduleTabState extends State<_ScheduleTab> {
+  late Future<List<RecurringScheduleDate>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _load();
+  }
+
+  Future<List<RecurringScheduleDate>> _load() => widget
+      .services
+      .recurringInvoices
+      .api
+      .fetchSchedule(id: widget.recurringInvoiceId);
+
+  // Never render a raw ISO string — fall back to a placeholder until the
+  // formatter is ready (see the Formatter rule in CLAUDE.md).
+  String _fmt(Date? d) =>
+      d == null ? '—' : (widget.formatter?.date(d.toIso()) ?? '—');
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return FutureBuilder<List<RecurringScheduleDate>>(
+      future: _future,
+      builder: (context, snap) {
+        Widget pad(Widget child) => Padding(
+          padding: EdgeInsets.all(InSpacing.lg(context)),
+          child: child,
+        );
+
+        if (snap.connectionState == ConnectionState.waiting) {
+          return pad(const Center(child: CircularProgressIndicator()));
+        }
+        if (snap.hasError) {
+          return pad(
+            ErrorView(
+              message: context.tr('an_error_occurred'),
+              onRetry: () => setState(() => _future = _load()),
+            ),
+          );
+        }
+        final rows = snap.data ?? const <RecurringScheduleDate>[];
+        if (rows.isEmpty) {
+          return pad(
+            EmptyState(
+              icon: Icons.calendar_month_outlined,
+              title: context.tr('no_records_found'),
+            ),
+          );
+        }
+
+        TextStyle headStyle() => TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: tokens.ink3,
+        );
+        Widget cell(String text, {bool head = false}) => Expanded(
+          child: Text(
+            text,
+            style: head ? headStyle() : TextStyle(color: tokens.ink),
+          ),
+        );
+        Widget row(Widget a, Widget b) => Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: InSpacing.lg(context),
+            vertical: InSpacing.md(context),
+          ),
+          child: Row(
+            children: [
+              a,
+              SizedBox(width: InSpacing.md(context)),
+              b,
+            ],
+          ),
+        );
+
+        return pad(
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: tokens.border),
+              borderRadius: BorderRadius.circular(InRadii.r3),
+              color: tokens.surface,
+            ),
+            child: Column(
+              children: [
+                row(
+                  cell(context.tr('send_date'), head: true),
+                  cell(context.tr('due_date'), head: true),
+                ),
+                for (final r in rows) ...[
+                  Divider(height: 1, color: tokens.border),
+                  row(cell(_fmt(r.sendDate)), cell(_fmt(r.dueDate))),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _Header extends StatelessWidget {
   const _Header({
     required this.recurringInvoice,
@@ -296,7 +431,9 @@ class _Header extends StatelessWidget {
                         recurringInvoice.amount,
                         clientCurrencyId: clientSnap.data?.currencyId,
                       ) ??
-                      recurringInvoice.amount.toString(),
+                      // Never show a raw Decimal — placeholder until the
+                      // company formatter has loaded.
+                      '—',
                 ),
               ),
               if (recurringInvoice.frequencyId.isNotEmpty)
@@ -309,7 +446,8 @@ class _Header extends StatelessWidget {
                   label: context.tr('next_send_date'),
                   value:
                       formatter?.date(recurringInvoice.nextSendDate!.toIso()) ??
-                      recurringInvoice.nextSendDate!.toIso(),
+                      // Never show a raw ISO date — placeholder until ready.
+                      '—',
                 ),
               _LabelValue(
                 label: context.tr('remaining_cycles'),

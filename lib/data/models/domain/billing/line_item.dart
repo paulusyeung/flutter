@@ -134,25 +134,62 @@ LineItem emptyLineItem() => LineItem(
   createdAt: null,
 );
 
-/// Build a billing line item seeded from a product. Mirrors the shape the
-/// edit form's line-item product picker produces when the user picks a
-/// product manually. `cost` carries the sale `price` (what the customer is
-/// billed); quantity defaults to 1 via [emptyLineItem].
+/// Build or merge a billing line item from a product, mirroring React's
+/// `useHandleProductChange` so every product-fill path agrees:
+///   * unit price (`cost`) = the product's sale `price`, multiplied by
+///     [conversionRate] (defaults to 1 — callers pass the company→client
+///     cross-currency rate when the company's `convert_products` is on and the
+///     client's currency differs, matching React's in-browser conversion).
+///   * `productCost` = the product's `cost` (markup/profit reporting).
+///   * `quantity` follows the company toggles: quantity disabled → always 1;
+///     otherwise `default_quantity` → 1, else the product's stored quantity
+///     (a 0/blank product quantity falls back to 1).
+///   * notes, taxes, tax category and custom values are copied from the product.
 ///
-/// Used by the cross-entity "New Invoice / Quote / Purchase Order" flows
-/// from a product (`?product=<id>` query param on the create route — see
-/// `entity_modules.dart` and the three edit screens that consume it).
-LineItem lineItemForProduct(Product product) => emptyLineItem().copyWith(
-  productKey: product.productKey,
-  notes: product.notes,
-  cost: product.price,
-  taxName1: product.taxName1,
-  taxRate1: product.taxRate1,
-  taxName2: product.taxName2,
-  taxRate2: product.taxRate2,
-  taxName3: product.taxName3,
-  taxRate3: product.taxRate3,
-);
+/// When [base] is supplied the product-derived fields overwrite it while the
+/// row's own discount / task / expense links are preserved; otherwise the row
+/// starts from [emptyLineItem].
+LineItem lineItemFromProduct(
+  Product product, {
+  LineItem? base,
+  bool enableProductQuantity = false,
+  bool defaultQuantity = false,
+  Decimal? conversionRate,
+}) {
+  final rate = conversionRate ?? Decimal.one;
+  final unitPrice = rate == Decimal.one ? product.price : product.price * rate;
+  final Decimal quantity;
+  if (!enableProductQuantity || defaultQuantity) {
+    quantity = Decimal.one;
+  } else {
+    quantity = product.quantity > Decimal.zero ? product.quantity : Decimal.one;
+  }
+  return (base ?? emptyLineItem()).copyWith(
+    productKey: product.productKey,
+    notes: product.notes,
+    cost: unitPrice,
+    productCost: product.cost,
+    quantity: quantity,
+    taxName1: product.taxName1,
+    taxRate1: product.taxRate1,
+    taxName2: product.taxName2,
+    taxRate2: product.taxRate2,
+    taxName3: product.taxName3,
+    taxRate3: product.taxRate3,
+    taxCategoryId: product.taxId,
+    customValue1: product.customValue1,
+    customValue2: product.customValue2,
+    customValue3: product.customValue3,
+    customValue4: product.customValue4,
+  );
+}
+
+/// Cross-entity "New Invoice / Quote / Purchase Order from a product" flow
+/// (`?product=<id>` on the create route — see `entity_modules.dart` and the
+/// three edit screens). A brand-new doc with no client/company context yet, so
+/// the sale price is used verbatim at quantity 1; [lineItemFromProduct] does
+/// the work (and now also copies the product's cost / tax category / customs).
+LineItem lineItemForProduct(Product product) => lineItemFromProduct(product);
 
 /// Tolerant `Decimal` parser for the `quantity` wire field. Same shape as
 /// `parseMoney` but returns null for unparseable/empty input so the domain

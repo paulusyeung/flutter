@@ -127,6 +127,11 @@ class _TemplatesRemindersBodyState extends State<TemplatesRemindersBody> {
   }
 
   void _schedulePreview({required bool immediate}) {
+    // Free plans can't change templates, and the hosted server 403s the
+    // `/templates` endpoint for them — skip the preview so the panel stays on
+    // its idle placeholder instead of flashing repeated "error, retry" states.
+    final session = context.read<Services>().auth.session.value;
+    if (!(session?.hasProAccess ?? false)) return;
     final host = context.read<SettingsDraftHost>();
     final tplKey = _selectedTemplate.value;
     final option = _findOption(tplKey);
@@ -169,7 +174,12 @@ class _TemplatesRemindersBodyState extends State<TemplatesRemindersBody> {
     _maybeRefreshAfterSave(host);
     final session = services.auth.session.value;
     final isProOrEnterprise = session?.hasProAccess ?? false;
-    final enabledModules = host.draft?.enabledModules ?? 0;
+    // Read the active company's module mask off the session, not `host.draft`
+    // (which is null at client/group scope → would gate every module-bound
+    // template off there). Mirrors online_payments_defaults_body + the settings
+    // sidebar (settings_screen.dart). `companyContext` can't be used — its
+    // sparse Company omits enabledModules.
+    final enabledModules = session?.currentCompany?.enabledModules ?? 0;
     final options = visibleTemplateOptions(enabledModules);
     final templateKey = _selectedTemplate.value;
     final selected = options.any((o) => o.key == templateKey)
@@ -237,13 +247,18 @@ class _TemplatesRemindersBodyState extends State<TemplatesRemindersBody> {
         // rule controllers. Mirrors v1 pattern (admin-portal
         // templates_and_reminders.dart:442/462/481/500).
         KeyedSubtree(key: ValueKey('editor_${selected.key}'), child: editor),
-        if (selected.isReminder && _formatter != null)
+        if (selected.isReminder)
           KeyedSubtree(
             key: ValueKey('rule_${selected.key}'),
             child: ReminderRuleSection(
               template: selected,
-              formatter: _formatter!,
+              // Nullable: the section falls back to a plain number field for
+              // the late-fee amount when no formatter loaded, so reminder
+              // config is never hidden outright.
+              formatter: _formatter,
               currencyId: host.settings.currencyId ?? '',
+              // Plan-gate the rule fields like the subject/body editors.
+              enabled: isProOrEnterprise,
             ),
           ),
         auxiliary,
@@ -283,8 +298,13 @@ class _TemplatesRemindersBodyState extends State<TemplatesRemindersBody> {
               flex: 4,
               child: SizedBox(
                 // Stick to viewport height so the preview stays visible
-                // while the editor scrolls underneath.
-                height: MediaQuery.sizeOf(context).height - 200,
+                // while the editor scrolls underneath. Clamp to non-negative
+                // so an extremely short (but ≥1100-wide) window can't hand
+                // SizedBox a negative height.
+                height: (MediaQuery.sizeOf(context).height - 200).clamp(
+                  0.0,
+                  double.infinity,
+                ),
                 child: TemplatePreviewPanel(controller: _preview),
               ),
             ),

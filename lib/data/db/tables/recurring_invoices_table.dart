@@ -33,10 +33,18 @@ class RecurringInvoices extends Table
   TextColumn get date => text().named('date').withDefault(const Constant(''))();
   TextColumn get dueDate =>
       text().named('due_date').withDefault(const Constant(''))();
+
+  /// Denormalized for parity with `invoices_table` (the recurring template can
+  /// carry a partial). Read path reconstructs from `payload`; these columns
+  /// exist only so list sort/filter can reach them without JSON parsing.
+  TextColumn get partialDueDate =>
+      text().named('partial_due_date').withDefault(const Constant(''))();
   TextColumn get amount =>
       text().named('amount').withDefault(const Constant('0'))();
   TextColumn get balance =>
       text().named('balance').withDefault(const Constant('0'))();
+  TextColumn get partial =>
+      text().named('partial').withDefault(const Constant('0'))();
   TextColumn get poNumber =>
       text().named('po_number').withDefault(const Constant(''))();
   TextColumn get designId =>

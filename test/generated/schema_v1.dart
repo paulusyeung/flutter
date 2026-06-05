@@ -7236,6 +7236,15 @@ class RecurringInvoices extends Table with TableInfo {
     $customConstraints: 'NOT NULL DEFAULT \'\'',
     defaultValue: const CustomExpression('\'\''),
   );
+  late final GeneratedColumn<String> partialDueDate = GeneratedColumn<String>(
+    'partial_due_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'\'',
+    defaultValue: const CustomExpression('\'\''),
+  );
   late final GeneratedColumn<String> amount = GeneratedColumn<String>(
     'amount',
     aliasedName,
@@ -7247,6 +7256,15 @@ class RecurringInvoices extends Table with TableInfo {
   );
   late final GeneratedColumn<String> balance = GeneratedColumn<String>(
     'balance',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'0\'',
+    defaultValue: const CustomExpression('\'0\''),
+  );
+  late final GeneratedColumn<String> partial = GeneratedColumn<String>(
+    'partial',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -7341,8 +7359,10 @@ class RecurringInvoices extends Table with TableInfo {
     subscriptionId,
     date,
     dueDate,
+    partialDueDate,
     amount,
     balance,
+    partial,
     poNumber,
     designId,
     assignedUserId,

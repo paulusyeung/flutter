@@ -318,6 +318,10 @@ abstract class CompanySettingsApi with _$CompanySettingsApi {
     @JsonKey(name: 'portal_custom_css') String? portalCustomCss,
     @JsonKey(name: 'portal_custom_footer') String? portalCustomFooter,
     @JsonKey(name: 'portal_custom_js') String? portalCustomJs,
+    // Deprecated: `client_can_register` is now a top-level `Company` column
+    // (the server gates registration on it). Kept here for wire-compat
+    // deserialization only — do NOT bind it in the UI; edit the top-level
+    // `Company.clientCanRegister` via `host.updateCompany(...)` instead.
     @JsonKey(name: 'client_can_register') bool? clientCanRegister,
     @JsonKey(name: 'client_initiated_payments') bool? clientInitiatedPayments,
     @JsonKey(name: 'client_initiated_payments_minimum')

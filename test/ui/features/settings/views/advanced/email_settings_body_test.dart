@@ -8,7 +8,9 @@ import 'package:admin/app/services.dart';
 import 'package:admin/app/theme.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/company_settings.dart';
+import 'package:admin/data/models/domain/user.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
+import 'package:admin/data/repositories/user_repository.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/views/advanced/email_settings/email_settings_body.dart';
@@ -81,11 +83,29 @@ class _FakeAuth implements AuthRepository {
 }
 
 class _FakeServices implements Services {
-  _FakeServices({required this.auth});
+  _FakeServices({required this.auth, UserRepository? user})
+    : user = user ?? _FakeUserRepo();
   @override
   final AuthRepository auth;
   @override
+  final UserRepository user;
+  @override
   dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError(invocation.memberName.toString());
+}
+
+/// Minimal [UserRepository] stub so the Gmail/Microsoft [OauthUserPicker]'s
+/// StreamBuilder builds without the real DB. Returns no eligible users, so the
+/// picker shows its harmless "connect via the web app" empty state.
+class _FakeUserRepo implements UserRepository {
+  @override
+  Stream<List<User>> watchEmailSendingUsers({
+    required String companyId,
+    required String provider,
+  }) => Stream<List<User>>.value(const <User>[]);
+
+  @override
+  Object? noSuchMethod(Invocation invocation) =>
       throw UnimplementedError(invocation.memberName.toString());
 }
 
@@ -228,6 +248,25 @@ void main() {
       await pumpBody(tester, session: _session(isHosted: true, plan: 'pro'));
       expect(tester.takeException(), isNull);
       expect(providerDropdown(tester).onChanged, isNotNull);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    });
+
+    // A legacy company stored as 'microsoft' (server alias of 'office365') must
+    // still select the Microsoft item. The dropdown only offers 'office365', so
+    // without the coalesce the value-not-in-items guard would blank the field.
+    testWidgets('legacy "microsoft" method selects Microsoft (not blank)', (
+      tester,
+    ) async {
+      await pumpBody(
+        tester,
+        session: _session(isHosted: true, plan: 'pro'),
+        method: 'microsoft',
+      );
+      expect(tester.takeException(), isNull);
+      expect(providerDropdown(tester).value, 'office365');
+      expect(find.text('Microsoft'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();

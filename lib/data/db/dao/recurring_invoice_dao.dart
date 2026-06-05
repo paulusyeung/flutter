@@ -137,6 +137,11 @@ class RecurringInvoiceDao
       case RecurringInvoiceFieldIds.number:
         return e.number.lower();
       case RecurringInvoiceFieldIds.status:
+        // Sorts on the stored status_id, so a "pending" row (active with no
+        // last_sent_date — a UI-computed pseudo-status) groups with active
+        // rather than sorting separately. Faithfully reproducing
+        // `calculatedStatusId` here would need a `last_sent_date` column (not
+        // denormalized); accepted as a minor list-ordering nuance.
         return e.statusId;
       case RecurringInvoiceFieldIds.clientId:
         return e.clientId;

@@ -12,6 +12,7 @@ import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/in_date_field.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/payments/widgets/payment_status_pill.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Sub-screen at `/payments/:id/refund`. Two modes:
 ///   * Full — auto-allocate the full refundable amount across paymentables
@@ -29,6 +30,31 @@ class PaymentRefundScreen extends StatefulWidget {
 class _PaymentRefundScreenState extends State<PaymentRefundScreen> {
   late final Services _services;
   late final String _companyId;
+
+  bool get _useComma =>
+      _services.formatterIfReady(_companyId)?.settings.useCommaAsDecimalPlace ??
+      false;
+
+  Formatter? get _formatter => _services.formatterIfReady(_companyId);
+
+  /// Format an amount in the payment's currency, mirroring
+  /// `payment_detail_kpi_strip.dart`. Falls back to the raw decimal until the
+  /// formatter is ready.
+  String _money(Decimal value) {
+    final f = _formatter;
+    return f == null
+        ? value.toString()
+        : f.money(value, clientCurrencyId: _payment?.currencyId ?? '');
+  }
+
+  /// Resolve an allocation's invoice id to its human-readable `#number` via
+  /// the payment's lightweight invoice refs, falling back to the id when the
+  /// number isn't available.
+  String _invoiceLabel(Map<String, String> numbers, String invoiceId) {
+    final number = numbers[invoiceId] ?? '';
+    return number.isEmpty ? invoiceId : '#$number';
+  }
+
   Payment? _payment;
   bool _loading = true;
 
@@ -140,7 +166,7 @@ class _PaymentRefundScreenState extends State<PaymentRefundScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  _remaining.toString(),
+                  _money(_remaining),
                   style: TextStyle(
                     color: _remaining < Decimal.zero ? Colors.red : tokens.ink,
                     fontWeight: FontWeight.w600,
@@ -217,7 +243,7 @@ class _PaymentRefundScreenState extends State<PaymentRefundScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                p.refundable.toString(),
+                _money(p.refundable),
                 style: TextStyle(
                   color: tokens.ink,
                   fontWeight: FontWeight.w600,
@@ -241,7 +267,9 @@ class _PaymentRefundScreenState extends State<PaymentRefundScreen> {
           segments: [
             ButtonSegment(
               value: true,
-              label: Text('${context.tr('full_refund')} (${p.refundable})'),
+              label: Text(
+                '${context.tr('full_refund')} (${_money(p.refundable)})',
+              ),
               // Server rejects refund-without-allocations; gray out Full
               // mode when there are no paymentables to refund against.
               enabled: hasAllocations,
@@ -275,6 +303,7 @@ class _PaymentRefundScreenState extends State<PaymentRefundScreen> {
   Widget _customEditor(BuildContext context, Payment p) {
     final tokens = context.inTheme;
     final paymentables = p.paymentables.where((pa) => pa.invoiceId.isNotEmpty);
+    final numbers = {for (final r in p.invoices) r.id: r.number};
     if (paymentables.isEmpty) {
       return Text(
         context.tr('no_invoices_to_refund'),
@@ -295,13 +324,17 @@ class _PaymentRefundScreenState extends State<PaymentRefundScreen> {
             Row(
               children: [
                 Expanded(
-                  child: Text('${context.tr('invoice')} ${pa.invoiceId}'),
+                  child: Text(
+                    '${context.tr('invoice')} '
+                    '${_invoiceLabel(numbers, pa.invoiceId)}',
+                  ),
                 ),
                 SizedBox(
                   width: 140,
                   child: TextFormField(
-                    initialValue: (_allocations[pa.invoiceId] ?? Decimal.zero)
-                        .toString(),
+                    initialValue: decimalInputText(
+                      _allocations[pa.invoiceId] ?? Decimal.zero,
+                    ),
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
@@ -311,7 +344,11 @@ class _PaymentRefundScreenState extends State<PaymentRefundScreen> {
                     onChanged: (v) {
                       setState(() {
                         _allocations[pa.invoiceId] =
-                            Decimal.tryParse(v.trim()) ?? Decimal.zero;
+                            parseDecimal(
+                              v,
+                              useCommaAsDecimalPlace: _useComma,
+                            ) ??
+                            Decimal.zero;
                       });
                     },
                   ),

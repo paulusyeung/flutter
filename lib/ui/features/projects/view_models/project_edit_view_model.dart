@@ -5,6 +5,7 @@ import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/project_repository.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Drives the Project edit + create screen. Optimistic — `save()` lands the
 /// draft in Drift via the repo, returns the saved entity, and the outbox
@@ -17,6 +18,7 @@ class ProjectEditViewModel extends GenericEditViewModel<Project> {
     Project? cloneFrom,
     super.sync,
     super.connectivity,
+    super.useCommaAsDecimalPlace,
   }) : super(
          initialDraft: cloneFrom ?? existing ?? _emptyProject(),
          original: existing,
@@ -75,11 +77,14 @@ class ProjectEditViewModel extends GenericEditViewModel<Project> {
       updateDraft(draft.copyWith(assignedUserId: v));
   void setDueDate(Date? d) => updateDraft(draft.copyWith(dueDate: d));
   void setBudgetedHours(String input) => updateDraft(
-    draft.copyWith(budgetedHours: double.tryParse(input.trim()) ?? 0.0),
+    draft.copyWith(
+      budgetedHours:
+          parseDouble(input, useCommaAsDecimalPlace: useCommaAsDecimalPlace) ??
+          0.0,
+    ),
   );
-  void setTaskRate(String input) => updateDraft(
-    draft.copyWith(taskRate: Decimal.tryParse(input.trim()) ?? Decimal.zero),
-  );
+  void setTaskRate(String input) =>
+      setDec((d, v) => d.copyWith(taskRate: v), input);
   void setColor(String v) => updateDraft(draft.copyWith(color: v));
   void setPublicNotes(String v) => updateDraft(draft.copyWith(publicNotes: v));
   void setPrivateNotes(String v) =>

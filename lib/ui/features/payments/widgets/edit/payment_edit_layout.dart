@@ -6,13 +6,13 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/company.dart';
-import 'package:admin/data/models/domain/company_gateway.dart';
 import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/data/models/value/currency.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/models/value/payment_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
+import 'package:admin/ui/core/edit/entity_edit_field.dart';
 import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/core/widgets/in_date_field.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
@@ -22,14 +22,19 @@ import 'package:admin/ui/features/payments/widgets/edit/payment_allocations_foot
 import 'package:admin/ui/features/payments/widgets/edit/payment_allocations_section.dart';
 import 'package:admin/utils/formatting.dart';
 
-/// Edit + create form body for a Payment. Single-column layout, four
-/// sections: Identity (client + number + date + amount + currency), Payment
-/// metadata (type + transaction reference + gateway), Notes, Custom fields.
+/// Edit + create form body for a Payment. Two-column on wide widths
+/// (Expanded main + 360 px sidebar @ 1100 px), single column on narrow —
+/// mirrors `ExpenseEditLayout`. Main column: Identity (client + number +
+/// date + amount + currency) plus the create-only allocations. Sidebar:
+/// Payment metadata (type + transaction reference), Currency conversion,
+/// Notes, Custom fields, and the email-receipt toggle.
 ///
-/// Client / Currency / Payment Type / Gateway use [SearchableDropdownField]
-/// per CLAUDE.md § Forms — these are the long-list bindings the user shouldn't
-/// have to memorize ids for. Mirrors `expense_edit_identity_section.dart`
-/// for the picker pattern.
+/// Client / Currency / Payment Type use [SearchableDropdownField] per
+/// CLAUDE.md § Forms — long-list bindings the user shouldn't have to
+/// memorize ids for. Mirrors `expense_edit_identity_section.dart` for the
+/// picker pattern. Gateway is intentionally absent: it's set by the payment
+/// processor, not user-editable (matches the React + legacy Flutter apps);
+/// the detail screen surfaces it read-only.
 class PaymentEditLayout extends StatefulWidget {
   const PaymentEditLayout({super.key, required this.vm});
 
@@ -41,6 +46,9 @@ class PaymentEditLayout extends StatefulWidget {
 
 class _PaymentEditLayoutState extends State<PaymentEditLayout>
     with FormatterHostMixin {
+  static const double _twoColumnBreakpoint = 1100;
+  static const double _sidebarWidth = 360;
+
   @override
   void initState() {
     super.initState();
@@ -51,53 +59,104 @@ class _PaymentEditLayoutState extends State<PaymentEditLayout>
 
   PaymentEditViewModel get vm => widget.vm;
 
+  bool get _useComma => formatter?.settings.useCommaAsDecimalPlace ?? false;
+
   @override
   Widget build(BuildContext context) {
+    // FormSaveScope must wrap the whole body for Enter-to-save — unlike the
+    // expense layout (whose scope lives higher up), the payment layout owns
+    // it here. Keep it above the LayoutBuilder so both columns are inside.
     return FormSaveScope(
       onSubmit: () => vm.save(),
       enabled: !vm.isSaving,
       child: ListenableBuilder(
         listenable: vm,
-        builder: (context, _) => SingleChildScrollView(
-          padding: EdgeInsets.all(InSpacing.lg(context)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _IdentitySection(vm: vm),
-              if (vm.isCreate) ...[
-                SizedBox(height: InSpacing.lg(context)),
-                PaymentAllocationsSection(
-                  kind: AllocationKind.invoice,
-                  paymentables: vm.draft.paymentables,
-                  clientId: vm.draft.clientId,
-                  paymentAmount: vm.draft.amount,
-                  onChanged: vm.replacePaymentables,
-                  formatter: formatter,
-                ),
-                SizedBox(height: InSpacing.lg(context)),
-                _CreditsSectionGate(vm: vm, formatter: formatter),
-                SizedBox(height: InSpacing.md(context)),
-                PaymentAllocationsFooter(vm: vm, formatter: formatter),
-              ],
-              SizedBox(height: InSpacing.lg(context)),
-              _PaymentMetaSection(vm: vm),
-              SizedBox(height: InSpacing.lg(context)),
-              _NotesSection(vm: vm),
-              SizedBox(height: InSpacing.lg(context)),
-              _CustomFieldsSection(vm: vm, formatter: formatter),
-              SizedBox(height: InSpacing.lg(context)),
-              _emailReceiptToggle(context, vm),
-            ],
-          ),
+        builder: (context, _) => LayoutBuilder(
+          builder: (context, constraints) {
+            final twoCol = constraints.maxWidth >= _twoColumnBreakpoint;
+            return SingleChildScrollView(
+              padding: EdgeInsets.all(InSpacing.lg(context)),
+              child: twoCol ? _wide(context) : _narrow(context),
+            );
+          },
         ),
       ),
+    );
+  }
+
+  Widget _wide(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: _mainColumn(context)),
+        SizedBox(width: InSpacing.md(context)),
+        SizedBox(width: _sidebarWidth, child: _sidebarColumn(context)),
+      ],
+    );
+  }
+
+  Widget _narrow(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _mainColumn(context),
+        SizedBox(height: InSpacing.lg(context)),
+        _sidebarColumn(context),
+      ],
+    );
+  }
+
+  Widget _mainColumn(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _IdentitySection(vm: vm, useCommaAsDecimalPlace: _useComma),
+        if (vm.isCreate) ...[
+          SizedBox(height: InSpacing.lg(context)),
+          PaymentAllocationsSection(
+            kind: AllocationKind.invoice,
+            paymentables: vm.draft.paymentables,
+            clientId: vm.draft.clientId,
+            paymentAmount: vm.draft.amount,
+            onChanged: vm.replacePaymentables,
+            formatter: formatter,
+          ),
+          SizedBox(height: InSpacing.lg(context)),
+          _CreditsSectionGate(vm: vm, formatter: formatter),
+          SizedBox(height: InSpacing.md(context)),
+          PaymentAllocationsFooter(vm: vm, formatter: formatter),
+        ],
+      ],
+    );
+  }
+
+  Widget _sidebarColumn(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _PaymentMetaSection(vm: vm),
+        SizedBox(height: InSpacing.lg(context)),
+        _CurrencyConversionSection(vm: vm, formatter: formatter),
+        SizedBox(height: InSpacing.lg(context)),
+        _NotesSection(vm: vm),
+        SizedBox(height: InSpacing.lg(context)),
+        _CustomFieldsSection(vm: vm, formatter: formatter),
+        SizedBox(height: InSpacing.lg(context)),
+        _emailReceiptToggle(context, vm),
+      ],
     );
   }
 }
 
 class _IdentitySection extends StatelessWidget {
-  const _IdentitySection({required this.vm});
+  const _IdentitySection({
+    required this.vm,
+    required this.useCommaAsDecimalPlace,
+  });
   final PaymentEditViewModel vm;
+  final bool useCommaAsDecimalPlace;
 
   @override
   Widget build(BuildContext context) {
@@ -124,7 +183,7 @@ class _IdentitySection extends StatelessWidget {
         // the visible text. `TextFormField(initialValue: …)` only consumes
         // its seed on first build, which would freeze this field at zero
         // while `draft.amount` drifts upward as the user picks invoices.
-        _AmountField(vm: vm),
+        _AmountField(vm: vm, useCommaAsDecimalPlace: useCommaAsDecimalPlace),
         const SizedBox(height: 12),
         _CurrencyPicker(vm: vm),
       ],
@@ -150,8 +209,6 @@ class _PaymentMetaSection extends StatelessWidget {
           ),
           onChanged: vm.setTransactionReference,
         ),
-        const SizedBox(height: 12),
-        _GatewayPicker(vm: vm),
       ],
     );
   }
@@ -350,42 +407,109 @@ class _PaymentTypePicker extends StatelessWidget {
   }
 }
 
-class _GatewayPicker extends StatelessWidget {
-  const _GatewayPicker({required this.vm});
+/// Optional currency-conversion sub-form, behind a "Convert currency" toggle.
+/// Hidden by default; reveals an exchange-currency picker + rate field + a
+/// read-only converted-amount preview when enabled. The toggle's initial
+/// state derives from whether the draft already carries an exchange currency
+/// (so editing a converted payment shows the fields). Mirrors
+/// `ExpenseEditCurrencyConversionSection` (incl. the auto-rate seed on
+/// currency pick); payments differ in that the converted amount is purely
+/// derived (`amount × rate`) — there is no stored foreign-amount field.
+class _CurrencyConversionSection extends StatefulWidget {
+  const _CurrencyConversionSection({required this.vm, required this.formatter});
   final PaymentEditViewModel vm;
+  final Formatter? formatter;
+
+  @override
+  State<_CurrencyConversionSection> createState() =>
+      _CurrencyConversionSectionState();
+}
+
+class _CurrencyConversionSectionState
+    extends State<_CurrencyConversionSection> {
+  late bool _enabled = widget.vm.draft.exchangeCurrencyId.isNotEmpty;
+
+  PaymentEditViewModel get vm => widget.vm;
 
   @override
   Widget build(BuildContext context) {
     final services = context.read<Services>();
-    return StreamBuilder<List<CompanyGateway>>(
-      stream: services.companyGateways.watchPage(
-        companyId: vm.companyId,
-        loadedPages: 100,
-      ),
-      builder: (context, snapshot) {
-        final gateways = snapshot.data ?? const <CompanyGateway>[];
-        CompanyGateway? selected;
-        for (final g in gateways) {
-          if (g.id == vm.draft.companyGatewayId) {
-            selected = g;
-            break;
-          }
-        }
-        return SearchableDropdownField<CompanyGateway>(
-          label: context.tr('gateway'),
-          items: gateways,
-          initialValue: selected,
-          displayString: (g) {
-            final gw = services.statics.gateways[g.gatewayKey];
-            final name = gw?.name ?? '';
-            return name.isEmpty ? (g.label.isEmpty ? g.id : g.label) : name;
+    final currencies = services.statics.currencies.values.toList()
+      ..sort((a, b) => a.code.compareTo(b.code));
+    Currency? selected;
+    for (final c in currencies) {
+      if (c.id == vm.draft.exchangeCurrencyId) {
+        selected = c;
+        break;
+      }
+    }
+
+    return _Section(
+      title: context.tr('currency_conversion'),
+      children: [
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(context.tr('convert_currency')),
+          value: _enabled,
+          onChanged: (v) {
+            setState(() => _enabled = v);
+            // Clearing the foreign currency + resetting the rate keeps the
+            // wire payload single-currency when the user turns this off.
+            if (!v) {
+              vm.setExchangeCurrencyId('');
+              vm.setExchangeRate('1');
+            }
           },
-          idOf: (g) => g.id,
-          onChanged: (g) => vm.setCompanyGatewayId(g?.id ?? ''),
-          errorText: vm.fieldErrorFor('company_gateway_id'),
-        );
-      },
+        ),
+        if (_enabled) ...[
+          const SizedBox(height: 12),
+          SearchableDropdownField<Currency>(
+            label: context.tr('exchange_currency'),
+            items: currencies,
+            initialValue: selected,
+            displayString: (c) => '${c.code} · ${c.name}',
+            idOf: (c) => c.id,
+            onChanged: (c) {
+              vm.setExchangeCurrencyId(c?.id ?? '');
+              // Seed the rate from the two currencies' base (vs-USD) rates so
+              // the user doesn't have to look it up (React parity). Leaves the
+              // rate untouched when it can't be resolved.
+              if (c != null) {
+                final rate = crossCurrencyRate(
+                  services.statics.currencies,
+                  fromExpenseCurrencyId: vm.draft.currencyId,
+                  toInvoiceCurrencyId: c.id,
+                );
+                if (rate != null) vm.setExchangeRate(rate.toString());
+              }
+            },
+            errorText: vm.fieldErrorFor('exchange_currency_id'),
+          ),
+          // Focus-aware so typing a decimal rate (e.g. `1.08`) isn't reseeded
+          // mid-keystroke; still updates when the currency-pick auto-seeds it.
+          _RateField(
+            vm: vm,
+            useCommaAsDecimalPlace:
+                widget.formatter?.settings.useCommaAsDecimalPlace ?? false,
+          ),
+          // Read-only preview in the foreign currency: amount × rate.
+          EntityEditField(
+            label: context.tr('converted_amount'),
+            initial: _convertedText(),
+            onChanged: (_) {},
+            readOnly: true,
+          ),
+        ],
+      ],
     );
+  }
+
+  String _convertedText() {
+    final converted = vm.draft.amount * vm.draft.exchangeRate;
+    final f = widget.formatter;
+    return f == null
+        ? converted.toString()
+        : f.money(converted, clientCurrencyId: vm.draft.exchangeCurrencyId);
   }
 }
 
@@ -482,8 +606,9 @@ class _CreditsSectionGateState extends State<_CreditsSectionGate> {
 /// when the external value drifts (auto-sync from allocations) without
 /// stealing the user's cursor or wiping mid-keystroke text.
 class _AmountField extends StatefulWidget {
-  const _AmountField({required this.vm});
+  const _AmountField({required this.vm, required this.useCommaAsDecimalPlace});
   final PaymentEditViewModel vm;
+  final bool useCommaAsDecimalPlace;
 
   @override
   State<_AmountField> createState() => _AmountFieldState();
@@ -509,7 +634,12 @@ class _AmountFieldState extends State<_AmountField> {
     // vs "100.00") don't trigger a needless reseed.
     if (_focusNode.hasFocus) return;
     final external = widget.vm.draft.amount;
-    final typed = Decimal.tryParse(_controller.text.trim()) ?? Decimal.zero;
+    final typed =
+        parseDecimal(
+          _controller.text,
+          useCommaAsDecimalPlace: widget.useCommaAsDecimalPlace,
+        ) ??
+        Decimal.zero;
     if (typed == external) return;
     final next = decimalInputText(external);
     _controller.value = TextEditingValue(
@@ -534,6 +664,73 @@ class _AmountFieldState extends State<_AmountField> {
       decoration: InputDecoration(labelText: context.tr('amount')),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       onChanged: widget.vm.setAmount,
+    );
+  }
+}
+
+/// Controller-backed exchange-rate input. Mirrors [_AmountField]: re-seeds from
+/// `vm.draft.exchangeRate` when the external value drifts (e.g. the auto-rate
+/// seed after picking an exchange currency) but never while focused — so a
+/// decimal rate like `1.08` isn't clobbered mid-keystroke by the round-trip
+/// through `parseDecimal` / `decimalInputText`.
+class _RateField extends StatefulWidget {
+  const _RateField({required this.vm, required this.useCommaAsDecimalPlace});
+  final PaymentEditViewModel vm;
+  final bool useCommaAsDecimalPlace;
+
+  @override
+  State<_RateField> createState() => _RateFieldState();
+}
+
+class _RateFieldState extends State<_RateField> {
+  late final TextEditingController _controller;
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: decimalInputText(widget.vm.draft.exchangeRate),
+    );
+    widget.vm.addListener(_onVmChanged);
+  }
+
+  void _onVmChanged() {
+    if (_focusNode.hasFocus) return;
+    final external = widget.vm.draft.exchangeRate;
+    final typed =
+        parseDecimal(
+          _controller.text,
+          useCommaAsDecimalPlace: widget.useCommaAsDecimalPlace,
+        ) ??
+        Decimal.one;
+    if (typed == external) return;
+    final next = decimalInputText(external);
+    _controller.value = TextEditingValue(
+      text: next,
+      selection: TextSelection.collapsed(offset: next.length),
+    );
+  }
+
+  @override
+  void dispose() {
+    widget.vm.removeListener(_onVmChanged);
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: _controller,
+      focusNode: _focusNode,
+      decoration: InputDecoration(
+        labelText: context.tr('exchange_rate'),
+        errorText: widget.vm.fieldErrorFor('exchange_rate'),
+      ),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      onChanged: widget.vm.setExchangeRate,
     );
   }
 }

@@ -7384,6 +7384,16 @@
             "dsl_features": []
           },
           {
+            "name": "partial_due_date",
+            "getter_name": "partialDueDate",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": "const CustomExpression('\\'\\'')",
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
             "name": "amount",
             "getter_name": "amount",
             "moor_type": "string",
@@ -7396,6 +7406,16 @@
           {
             "name": "balance",
             "getter_name": "balance",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": "const CustomExpression('\\'0\\'')",
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "partial",
+            "getter_name": "partial",
             "moor_type": "string",
             "nullable": false,
             "customConstraints": null,
@@ -9313,7 +9333,7 @@
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TABLE IF NOT EXISTS \"recurring_invoices\" (\"id\" TEXT NOT NULL, \"company_id\" TEXT NOT NULL, \"temp_id\" TEXT NULL, \"updated_at\" INTEGER NOT NULL, \"created_at\" INTEGER NOT NULL DEFAULT 0, \"archived_at\" INTEGER NULL, \"custom_value1\" TEXT NOT NULL DEFAULT '', \"custom_value2\" TEXT NOT NULL DEFAULT '', \"custom_value3\" TEXT NOT NULL DEFAULT '', \"custom_value4\" TEXT NOT NULL DEFAULT '', \"is_dirty\" INTEGER NOT NULL DEFAULT 0 CHECK (\"is_dirty\" IN (0, 1)), \"is_deleted\" INTEGER NOT NULL DEFAULT 0 CHECK (\"is_deleted\" IN (0, 1)), \"documents\" TEXT NULL, \"payload\" TEXT NOT NULL, \"number\" TEXT NOT NULL DEFAULT '', \"status_id\" TEXT NOT NULL DEFAULT '1', \"client_id\" TEXT NOT NULL DEFAULT '', \"vendor_id\" TEXT NOT NULL DEFAULT '', \"project_id\" TEXT NOT NULL DEFAULT '', \"subscription_id\" TEXT NOT NULL DEFAULT '', \"date\" TEXT NOT NULL DEFAULT '', \"due_date\" TEXT NOT NULL DEFAULT '', \"amount\" TEXT NOT NULL DEFAULT '0', \"balance\" TEXT NOT NULL DEFAULT '0', \"po_number\" TEXT NOT NULL DEFAULT '', \"design_id\" TEXT NOT NULL DEFAULT '', \"assigned_user_id\" TEXT NOT NULL DEFAULT '', \"frequency_id\" TEXT NOT NULL DEFAULT '', \"next_send_date\" TEXT NOT NULL DEFAULT '', \"remaining_cycles\" INTEGER NOT NULL DEFAULT 0, \"auto_bill\" TEXT NOT NULL DEFAULT '', PRIMARY KEY (\"id\"), UNIQUE (company_id, id));"
+          "sql": "CREATE TABLE IF NOT EXISTS \"recurring_invoices\" (\"id\" TEXT NOT NULL, \"company_id\" TEXT NOT NULL, \"temp_id\" TEXT NULL, \"updated_at\" INTEGER NOT NULL, \"created_at\" INTEGER NOT NULL DEFAULT 0, \"archived_at\" INTEGER NULL, \"custom_value1\" TEXT NOT NULL DEFAULT '', \"custom_value2\" TEXT NOT NULL DEFAULT '', \"custom_value3\" TEXT NOT NULL DEFAULT '', \"custom_value4\" TEXT NOT NULL DEFAULT '', \"is_dirty\" INTEGER NOT NULL DEFAULT 0 CHECK (\"is_dirty\" IN (0, 1)), \"is_deleted\" INTEGER NOT NULL DEFAULT 0 CHECK (\"is_deleted\" IN (0, 1)), \"documents\" TEXT NULL, \"payload\" TEXT NOT NULL, \"number\" TEXT NOT NULL DEFAULT '', \"status_id\" TEXT NOT NULL DEFAULT '1', \"client_id\" TEXT NOT NULL DEFAULT '', \"vendor_id\" TEXT NOT NULL DEFAULT '', \"project_id\" TEXT NOT NULL DEFAULT '', \"subscription_id\" TEXT NOT NULL DEFAULT '', \"date\" TEXT NOT NULL DEFAULT '', \"due_date\" TEXT NOT NULL DEFAULT '', \"partial_due_date\" TEXT NOT NULL DEFAULT '', \"amount\" TEXT NOT NULL DEFAULT '0', \"balance\" TEXT NOT NULL DEFAULT '0', \"partial\" TEXT NOT NULL DEFAULT '0', \"po_number\" TEXT NOT NULL DEFAULT '', \"design_id\" TEXT NOT NULL DEFAULT '', \"assigned_user_id\" TEXT NOT NULL DEFAULT '', \"frequency_id\" TEXT NOT NULL DEFAULT '', \"next_send_date\" TEXT NOT NULL DEFAULT '', \"remaining_cycles\" INTEGER NOT NULL DEFAULT 0, \"auto_bill\" TEXT NOT NULL DEFAULT '', PRIMARY KEY (\"id\"), UNIQUE (company_id, id));"
         }
       ]
     },

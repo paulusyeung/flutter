@@ -10,6 +10,7 @@ import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_field.dart';
+import 'package:admin/ui/features/settings/widgets/settings_field_bindings.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// One default-tax-rate row on Settings → Tax Settings. Picks a [TaxRate]
@@ -24,11 +25,12 @@ import 'package:admin/utils/formatting.dart';
 /// (out of scope here).
 ///
 /// Override semantics match the rest of the cascade-aware form: at client /
-/// group scope the row wraps in [OverridableField]. Toggling the override
-/// off clears both name and rate (the user falls back to the inherited
-/// company default). The override is keyed off `tax_name<slot>` — the rate
-/// has no independent override toggle, since the two settings keys move
-/// together.
+/// group scope the row wraps in [OverridableField.bindInline] with a paired
+/// binding (see [overrideBinding]). The override is keyed off
+/// `tax_name<slot>`, but because name and rate are denormalized as a pair,
+/// toggling the override off clears BOTH `tax_name<slot>` and
+/// `tax_rate<slot>` (so no stale rate is left dangling at client/group
+/// scope), and toggling it on seeds both from the inherited company default.
 class TaxRatePicker extends StatelessWidget {
   const TaxRatePicker({super.key, required this.slot, required this.label});
 
@@ -58,7 +60,7 @@ class TaxRatePicker extends StatelessWidget {
       builder: (context, snap) {
         final rates = snap.data ?? const <TaxRate>[];
         if (rates.isEmpty) {
-          return _EmptyRatesRow(label: label, apiKey: _nameKey);
+          return _EmptyRatesRow(label: label, slot: slot);
         }
 
         final sorted = [...rates]..sort((a, b) => a.name.compareTo(b.name));
@@ -109,9 +111,15 @@ class TaxRatePicker extends StatelessWidget {
           errorText: errorText,
         );
 
-        return OverridableField.bind(
+        return OverridableField.bindInline(
           apiKey: _nameKey,
           label: label,
+          // Paired binding: the checkbox is keyed on `tax_name<slot>`, but
+          // name and rate move together, so toggling the override OFF must
+          // clear BOTH keys — a plain `tax_name` binding would null the name
+          // and leave `tax_rate<slot>` overriding on its own. Seed the rate
+          // from the value displayed at build time.
+          binding: overrideBinding(slot, currentRate),
           cascadedValueOnEnable: () => currentName,
           child: field,
         );
@@ -159,20 +167,37 @@ class TaxRatePicker extends StatelessWidget {
     }
     return s;
   }
+
+  /// Override binding for the name/rate *pair*, consumed by
+  /// [OverridableField.bindInline]. The single `tax_name<slot>` checkbox
+  /// drives both keys: clearing the override (`value == null`) nulls the name
+  /// AND the rate; enabling it seeds both from the inherited default
+  /// ([seedRate] is the cascaded rate captured at build time). Without this,
+  /// the generic 1:1 `tax_name<slot>` binding would leave `tax_rate<slot>`
+  /// overriding on its own at client/group scope.
+  @visibleForTesting
+  static SettingsBinding overrideBinding(int slot, double seedRate) => (
+    read: (s) => _readName(s, slot),
+    write: (s, v) => v == null
+        ? _writePair(s, slot, name: null, rate: null)
+        : _writePair(s, slot, name: v, rate: seedRate),
+  );
 }
 
 /// Inline empty-state shown above the picker when no tax rates exist for
 /// the active company. Disabled placeholder text-field plus a hint line so
 /// the page still scans as a form row (rather than a missing widget).
 class _EmptyRatesRow extends StatelessWidget {
-  const _EmptyRatesRow({required this.label, required this.apiKey});
+  const _EmptyRatesRow({required this.label, required this.slot});
 
   final String label;
 
-  /// Settings key the override checkbox flips at client/group scope. Must
-  /// be the slot-specific `tax_name<N>` so the right cascade override is
-  /// toggled when there's more than one picker on the screen.
-  final String apiKey;
+  /// Tax slot (1-3). Drives the slot-specific `tax_name<N>` override key so
+  /// the right cascade override is toggled when there's more than one picker
+  /// on the screen, and the paired-clear binding nulls the matching rate.
+  final int slot;
+
+  String get _nameKey => 'tax_name$slot';
 
   @override
   Widget build(BuildContext context) {
@@ -201,9 +226,12 @@ class _EmptyRatesRow extends StatelessWidget {
 
     // At client/group scope: keep the override checkbox visible so the user
     // still understands the field exists even though it has nothing to pick.
-    return OverridableField.bind(
-      apiKey: apiKey,
+    // Same paired binding as the populated picker so an inherited legacy
+    // name/rate pair clears together if the override is toggled off.
+    return OverridableField.bindInline(
+      apiKey: _nameKey,
       label: label,
+      binding: TaxRatePicker.overrideBinding(slot, 0),
       cascadedValueOnEnable: () => null,
       child: body,
     );

@@ -70,6 +70,9 @@ final Set<String> kCalculateTaxesSupportedCountries = <String>{
   'AU',
   'US',
   'AD', // Andorra — supported seller per React `useCalculateTaxesRegion`.
+  'GB', // Great Britain — supported seller per React `useCalculateTaxesRegion`;
+  // post-Brexit it is NOT in `kEuCalculateTaxesCountries`, so it must be listed
+  // here explicitly or UK companies never see the Calculate Taxes toggle.
   ...kEuCalculateTaxesCountries.keys,
 };
 
@@ -165,6 +168,7 @@ const Map<String, String> kTaxRegionLabelKeys = {
   'SG': 'singapore',
 };
 
-/// Regions that render a Sales-Above-Threshold toggle (EU / UK only — mirrors
-/// React `EURegions.tsx` and `UKRegions.tsx`).
-const Set<String> kTaxRegionsWithSalesThreshold = {'EU', 'UK'};
+/// Regions that render a Sales-Above-Threshold toggle. Mirrors React: EU
+/// (`EURegions.tsx`), UK (`UKRegions.tsx`), and SG (`SGRegions.tsx` passes
+/// `showSalesAboveThreshold`). US / AU / AD do not.
+const Set<String> kTaxRegionsWithSalesThreshold = {'EU', 'UK', 'SG'};

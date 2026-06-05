@@ -68,6 +68,7 @@ class LineItemTableDesktop extends StatefulWidget {
     required this.onChanged,
     required this.newItemFactory,
     required this.config,
+    this.productConversionRate,
     this.controller,
     this.rowErrors,
   });
@@ -77,6 +78,12 @@ class LineItemTableDesktop extends StatefulWidget {
   final ValueChanged<List<LineItem>> onChanged;
   final LineItem Function() newItemFactory;
   final LineItemColumnConfig config;
+
+  /// Company→client cross-currency rate applied to a filled product's unit
+  /// price when `convert_products` is on and the client currency differs
+  /// (null = no conversion). Computed by [LineItemEditor]; consumed via
+  /// `lineItemFromProduct`.
+  final Decimal? productConversionRate;
   final LineItemTableDesktopController? controller;
 
   /// Per-row server validation errors keyed by line-item index. Each
@@ -473,7 +480,12 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
                               ? widget.newItemFactory()
                               : widget.items[index];
                           final merged = (company?.fillProducts ?? false)
-                              ? _mergeProductInto(base, product)
+                              ? _mergeProductInto(
+                                  base,
+                                  product,
+                                  company: company,
+                                  conversionRate: widget.productConversionRate,
+                                )
                               : base.copyWith(productKey: product.productKey);
                           _applyRow(index, merged);
                           // Advance focus to the description cell so the
@@ -500,7 +512,13 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
                             _applyRow(
                               index,
                               (company?.fillProducts ?? false)
-                                  ? _mergeProductInto(base, created)
+                                  ? _mergeProductInto(
+                                      base,
+                                      created,
+                                      company: company,
+                                      conversionRate:
+                                          widget.productConversionRate,
+                                    )
                                   : base.copyWith(
                                       productKey: created.productKey,
                                     ),
@@ -561,22 +579,22 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
   }
 }
 
-LineItem _mergeProductInto(LineItem base, Product product) => base.copyWith(
-  productKey: product.productKey,
-  notes: product.notes,
-  cost: product.cost,
-  productCost: product.cost,
-  customValue1: product.customValue1,
-  customValue2: product.customValue2,
-  customValue3: product.customValue3,
-  customValue4: product.customValue4,
-  taxName1: product.taxName1,
-  taxRate1: product.taxRate1,
-  taxName2: product.taxName2,
-  taxRate2: product.taxRate2,
-  taxName3: product.taxName3,
-  taxRate3: product.taxRate3,
-  taxCategoryId: product.taxId,
+/// Merge a picked product into a row's line item. Delegates to the shared
+/// [lineItemFromProduct] so the inline desktop path matches the picker and
+/// React: unit price = the product's sale `price` (converted to the client's
+/// currency when [conversionRate] is set), quantity per the company's
+/// `enable_product_quantity` / `default_quantity` toggles.
+LineItem _mergeProductInto(
+  LineItem base,
+  Product product, {
+  required Company? company,
+  required Decimal? conversionRate,
+}) => lineItemFromProduct(
+  product,
+  base: base,
+  enableProductQuantity: company?.enableProductQuantity ?? false,
+  defaultQuantity: company?.defaultQuantity ?? false,
+  conversionRate: conversionRate,
 );
 
 class _ColumnHeader extends StatelessWidget {
@@ -922,6 +940,8 @@ class _RowStateW extends State<_Row> {
                   padding: const EdgeInsets.only(right: _kCellPadH),
                   child: _ProductCell(
                     companyId: companyId,
+                    showProductDetails:
+                        widget.company?.showProductDetails ?? false,
                     controller: row.product,
                     focusNode: row.productFocus,
                     hintKey: isGhost ? 'add_an_item' : 'product',
@@ -1263,6 +1283,7 @@ class _NumericCell extends StatelessWidget {
 class _ProductCell extends StatefulWidget {
   const _ProductCell({
     required this.companyId,
+    required this.showProductDetails,
     required this.controller,
     required this.focusNode,
     required this.hintKey,
@@ -1272,6 +1293,10 @@ class _ProductCell extends StatefulWidget {
   });
 
   final String companyId;
+
+  /// Company `show_product_details` — when false, the product description is
+  /// hidden from the autocomplete option rows (only the product key shows).
+  final bool showProductDetails;
   final TextEditingController controller;
   final FocusNode focusNode;
   final String hintKey;
@@ -1592,7 +1617,8 @@ class _ProductCellState extends State<_ProductCell> {
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
-                                    if (product.notes.isNotEmpty)
+                                    if (widget.showProductDetails &&
+                                        product.notes.isNotEmpty)
                                       Padding(
                                         padding: const EdgeInsets.only(top: 2),
                                         child: Text(

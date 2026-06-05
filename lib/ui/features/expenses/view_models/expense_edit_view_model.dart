@@ -5,6 +5,7 @@ import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/expense_repository.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Drives the Expense edit + create screen. Optimistic — `save()` lands the
 /// draft in Drift via the repo, returns the saved entity, and the outbox
@@ -17,6 +18,7 @@ class ExpenseEditViewModel extends GenericEditViewModel<Expense> {
     Expense? cloneFrom,
     super.sync,
     super.connectivity,
+    super.useCommaAsDecimalPlace,
   }) : super(
          initialDraft: cloneFrom ?? existing ?? emptyExpense(),
          original: existing,
@@ -96,7 +98,9 @@ class ExpenseEditViewModel extends GenericEditViewModel<Expense> {
       updateDraft(draft.copyWith(transactionId: v));
   void setBankId(String v) => updateDraft(draft.copyWith(bankId: v));
   void setAmount(String input) {
-    final amount = Decimal.tryParse(input.trim()) ?? Decimal.zero;
+    final amount =
+        parseDecimal(input, useCommaAsDecimalPlace: useCommaAsDecimalPlace) ??
+        Decimal.zero;
     var d = draft.copyWith(amount: amount);
     // Keep the converted (foreign) amount in step with the entered amount.
     if (d.invoiceCurrencyId.isNotEmpty) {
@@ -108,7 +112,9 @@ class ExpenseEditViewModel extends GenericEditViewModel<Expense> {
   /// Editing the foreign amount back-computes the exchange rate
   /// (`foreign / amount`) — mirrors React's `foreign_amount` onChange.
   void setForeignAmount(String input) {
-    final foreign = Decimal.tryParse(input.trim()) ?? Decimal.zero;
+    final foreign =
+        parseDecimal(input, useCommaAsDecimalPlace: useCommaAsDecimalPlace) ??
+        Decimal.zero;
     var d = draft.copyWith(foreignAmount: foreign);
     if (d.amount != Decimal.zero) {
       d = d.copyWith(
@@ -121,7 +127,13 @@ class ExpenseEditViewModel extends GenericEditViewModel<Expense> {
   }
 
   void setExchangeRate(String input) {
-    final rate = Decimal.tryParse(input.trim()) ?? Decimal.one;
+    final rate =
+        parseDecimal(
+          input,
+          zeroIsNull: true,
+          useCommaAsDecimalPlace: useCommaAsDecimalPlace,
+        ) ??
+        Decimal.one;
     var d = draft.copyWith(exchangeRate: rate);
     if (d.invoiceCurrencyId.isNotEmpty) {
       d = d.copyWith(foreignAmount: d.amount * rate);
@@ -133,22 +145,46 @@ class ExpenseEditViewModel extends GenericEditViewModel<Expense> {
   void setTaxName2(String v) => updateDraft(draft.copyWith(taxName2: v));
   void setTaxName3(String v) => updateDraft(draft.copyWith(taxName3: v));
   void setTaxRate1(String input) => updateDraft(
-    draft.copyWith(taxRate1: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+    draft.copyWith(
+      taxRate1:
+          parseDecimal(input, useCommaAsDecimalPlace: useCommaAsDecimalPlace) ??
+          Decimal.zero,
+    ),
   );
   void setTaxRate2(String input) => updateDraft(
-    draft.copyWith(taxRate2: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+    draft.copyWith(
+      taxRate2:
+          parseDecimal(input, useCommaAsDecimalPlace: useCommaAsDecimalPlace) ??
+          Decimal.zero,
+    ),
   );
   void setTaxRate3(String input) => updateDraft(
-    draft.copyWith(taxRate3: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+    draft.copyWith(
+      taxRate3:
+          parseDecimal(input, useCommaAsDecimalPlace: useCommaAsDecimalPlace) ??
+          Decimal.zero,
+    ),
   );
   void setTaxAmount1(String input) => updateDraft(
-    draft.copyWith(taxAmount1: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+    draft.copyWith(
+      taxAmount1:
+          parseDecimal(input, useCommaAsDecimalPlace: useCommaAsDecimalPlace) ??
+          Decimal.zero,
+    ),
   );
   void setTaxAmount2(String input) => updateDraft(
-    draft.copyWith(taxAmount2: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+    draft.copyWith(
+      taxAmount2:
+          parseDecimal(input, useCommaAsDecimalPlace: useCommaAsDecimalPlace) ??
+          Decimal.zero,
+    ),
   );
   void setTaxAmount3(String input) => updateDraft(
-    draft.copyWith(taxAmount3: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+    draft.copyWith(
+      taxAmount3:
+          parseDecimal(input, useCommaAsDecimalPlace: useCommaAsDecimalPlace) ??
+          Decimal.zero,
+    ),
   );
   void setUsesInclusiveTaxes(bool v) =>
       updateDraft(draft.copyWith(usesInclusiveTaxes: v));

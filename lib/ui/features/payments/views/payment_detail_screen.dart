@@ -13,6 +13,7 @@ import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/features/billing_shared/activity/billing_doc_activity_tab.dart';
 import 'package:admin/ui/features/payments/view_models/payment_detail_view_model.dart';
 import 'package:admin/ui/features/payments/widgets/detail/payment_detail_actions_row.dart';
+import 'package:admin/ui/features/payments/widgets/detail/payment_detail_gateway_card.dart';
 import 'package:admin/ui/features/payments/widgets/detail/payment_detail_header.dart';
 import 'package:admin/ui/features/payments/widgets/detail/payment_detail_kpi_strip.dart';
 import 'package:admin/ui/features/payments/widgets/detail/payment_unapplied_band.dart';
@@ -86,6 +87,13 @@ class _PaymentDetailScreenState extends State<PaymentDetailScreen>
                             payment: p,
                             formatter: formatter,
                           ),
+                          if (p.companyGatewayId.isNotEmpty) ...[
+                            SizedBox(height: InSpacing.md(context)),
+                            PaymentDetailGatewayCard(
+                              companyId: _companyId,
+                              companyGatewayId: p.companyGatewayId,
+                            ),
+                          ],
                           if (p.customValue1.isNotEmpty ||
                               p.customValue2.isNotEmpty ||
                               p.customValue3.isNotEmpty ||

@@ -646,7 +646,8 @@ final Map<String, SettingsBinding> _bindings = <String, SettingsBinding>{
 
   // Client Portal — every cascade-aware row on the five-tab Client Portal
   // screen. Top-level Company fields (subdomain, portal_domain, portal_mode,
-  // client_registration_fields) live on `Company` and aren't registered here;
+  // client_can_register, client_registration_fields) live on `Company` and
+  // aren't registered here;
   // their editors write through `host.updateCompany(...)` instead. Boolean
   // bindings encode through `_parseBool` for the OverridableSwitchField
   // wire-string convention. Each row uses `?.toString()` on read so an unset

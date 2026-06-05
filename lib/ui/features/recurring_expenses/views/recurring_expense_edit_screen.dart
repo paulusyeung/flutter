@@ -45,6 +45,12 @@ class RecurringExpenseEditScreen extends StatelessWidget {
           companyId: companyId,
           existing: existing,
           cloneFrom: cloneFrom,
+          useCommaAsDecimalPlace:
+              services
+                  .formatterIfReady(companyId)
+                  ?.settings
+                  .useCommaAsDecimalPlace ??
+              false,
           sync: services.sync,
           connectivity: services.connectivity,
         );

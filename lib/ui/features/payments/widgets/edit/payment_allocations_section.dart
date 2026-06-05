@@ -499,6 +499,8 @@ class _AllocationRow extends StatelessWidget {
             currentAmount: currentAmount,
             enabled: !isPlaceholder && currentId.isNotEmpty,
             onChanged: (decimal) => _updateAmount(decimal),
+            useCommaAsDecimalPlace:
+                formatter?.settings.useCommaAsDecimalPlace ?? false,
           ),
         ),
         IconButton(
@@ -574,12 +576,14 @@ class _AmountField extends StatefulWidget {
     required this.currentAmount,
     required this.enabled,
     required this.onChanged,
+    required this.useCommaAsDecimalPlace,
   });
 
   final AllocationKind kind;
   final Decimal currentAmount;
   final bool enabled;
   final ValueChanged<Decimal> onChanged;
+  final bool useCommaAsDecimalPlace;
 
   @override
   State<_AmountField> createState() => _AmountFieldState();
@@ -604,7 +608,11 @@ class _AmountFieldState extends State<_AmountField> {
     // the field isn't focused — avoids the cursor jumping mid-keystroke.
     if (_focusNode.hasFocus) return;
     final typedDecimal =
-        Decimal.tryParse(_controller.text.trim()) ?? Decimal.zero;
+        parseDecimal(
+          _controller.text,
+          useCommaAsDecimalPlace: widget.useCommaAsDecimalPlace,
+        ) ??
+        Decimal.zero;
     if (typedDecimal == widget.currentAmount) return;
     final external = decimalInputText(widget.currentAmount);
     _controller.value = TextEditingValue(
@@ -635,7 +643,13 @@ class _AmountFieldState extends State<_AmountField> {
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       textInputAction: TextInputAction.done,
       onChanged: (v) {
-        widget.onChanged(Decimal.tryParse(v.trim()) ?? Decimal.zero);
+        widget.onChanged(
+          parseDecimal(
+                v,
+                useCommaAsDecimalPlace: widget.useCommaAsDecimalPlace,
+              ) ??
+              Decimal.zero,
+        );
       },
       onFieldSubmitted: (_) => scope?.trySubmit(),
     );

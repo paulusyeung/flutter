@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 
@@ -5,7 +7,8 @@ import 'package:admin/data/models/domain/payment.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/payments/widgets/edit/payment_allocations_section.dart';
-import 'package:admin/utils/formatting.dart' show decimalInputText, Formatter;
+import 'package:admin/utils/formatting.dart'
+    show decimalInputText, Formatter, parseDecimal;
 
 /// Modal editor used by the narrow-mode card list. Picker + amount in one
 /// dialog so phone users edit a single allocation without juggling a
@@ -83,9 +86,16 @@ class _PaymentAllocationEditDialogState
     _amountController.addListener(_onAmountChanged);
   }
 
+  bool get _useComma =>
+      widget.formatter?.settings.useCommaAsDecimalPlace ?? false;
+
   void _onAmountChanged() {
     final parsed =
-        Decimal.tryParse(_amountController.text.trim()) ?? Decimal.zero;
+        parseDecimal(
+          _amountController.text,
+          useCommaAsDecimalPlace: _useComma,
+        ) ??
+        Decimal.zero;
     final nextPositive = parsed > Decimal.zero;
     if (nextPositive != _amountPositive) {
       setState(() => _amountPositive = nextPositive);
@@ -112,7 +122,9 @@ class _PaymentAllocationEditDialogState
         ),
       ),
       content: SizedBox(
-        width: 400,
+        // Cap to the viewport (minus AlertDialog insets) so the dialog never
+        // overflows a phone screen narrower than 400 px.
+        width: math.min(400.0, MediaQuery.sizeOf(context).width - 80),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -180,7 +192,10 @@ class _PaymentAllocationEditDialogState
                   ? null
                   : () {
                       final amount =
-                          Decimal.tryParse(_amountController.text.trim()) ??
+                          parseDecimal(
+                            _amountController.text,
+                            useCommaAsDecimalPlace: _useComma,
+                          ) ??
                           Decimal.zero;
                       final result = Paymentable(
                         invoiceId: widget.kind == AllocationKind.invoice

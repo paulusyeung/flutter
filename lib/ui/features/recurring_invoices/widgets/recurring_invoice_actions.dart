@@ -31,7 +31,6 @@ enum RecurringInvoiceAction {
   downloadPdf,
   printPdf,
   sendEmail,
-  scheduleEmail,
   sendNow,
   start,
   stop,
@@ -97,7 +96,6 @@ class RecurringInvoiceActions {
   static bool navigatesOnCreate(RecurringInvoiceAction action) {
     switch (action) {
       case RecurringInvoiceAction.sendEmail:
-      case RecurringInvoiceAction.scheduleEmail:
       case RecurringInvoiceAction.viewPdf:
         return true;
       default:
@@ -319,10 +317,11 @@ class RecurringInvoiceActions {
         }
 
       case RecurringInvoiceAction.sendEmail:
-      case RecurringInvoiceAction.scheduleEmail:
         if (tmpGate()) return;
         // Full-screen Send Email surface; bulk multi-select still uses the
-        // showBillingDocEmailSheet bottom sheet.
+        // showBillingDocEmailSheet bottom sheet. (Recurring invoices have no
+        // "schedule send" — the server's task_scheduler rejects them — so the
+        // composer hides its Schedule action; see BillingDocType.supportsScheduledSend.)
         context.go('/recurring_invoices/${ri.id}/email?view=full');
 
       case RecurringInvoiceAction.sendNow:

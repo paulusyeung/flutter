@@ -1,7 +1,13 @@
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/billing/line_item.dart';
+import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/company.dart';
+import 'package:admin/data/models/value/currency.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_card_list_mobile.dart';
@@ -25,6 +31,7 @@ class LineItemEditor extends StatelessWidget {
     required this.items,
     required this.onChanged,
     required this.newItemFactory,
+    this.clientId,
     this.config = LineItemColumnConfig.minimal,
     this.controller,
     this.disabledReasonKey,
@@ -35,6 +42,12 @@ class LineItemEditor extends StatelessWidget {
   /// Company scope for the desktop table's product autocomplete +
   /// company-format-settings (decimal separator).
   final String companyId;
+
+  /// The billing doc's client. When the company's `convert_products` is on
+  /// and the client's currency differs from the company's, a filled product's
+  /// price is converted to the client currency (React parity). Empty/null
+  /// (e.g. purchase orders, which bill a vendor) → no conversion.
+  final String? clientId;
 
   final List<LineItem> items;
   final ValueChanged<List<LineItem>> onChanged;
@@ -77,6 +90,61 @@ class LineItemEditor extends StatelessWidget {
     if (disabledReasonKey != null) {
       return _DisabledItemsPlaceholder(reasonKey: disabledReasonKey!);
     }
+    final services = context.read<Services>();
+    return StreamBuilder<Company?>(
+      stream: services.company.watchCompany(companyId),
+      builder: (context, snap) {
+        final company = snap.data;
+        // Gate the discount column on the company's `enable_product_discount`
+        // (Settings → Product Settings). Hiding the column only suppresses the
+        // input — any existing per-line discount stays on the model and is
+        // still submitted. Until the company loads we keep the host's config
+        // so the common (enabled) case doesn't flash the column away.
+        final effectiveConfig =
+            (company != null && !company.enableProductDiscount)
+            ? config.copyWith(showDiscount: false)
+            : config;
+        // Resolving the client currency for product-price conversion needs a
+        // second watch, so take it only when the company opts in and a client
+        // is set (purchase orders have none → no conversion).
+        final needsConversion =
+            company != null &&
+            company.convertProducts &&
+            (clientId?.isNotEmpty ?? false);
+        if (!needsConversion) {
+          return _buildLayout(effectiveConfig, null);
+        }
+        return StreamBuilder<Client?>(
+          stream: services.clients.watchByRealId(
+            companyId: companyId,
+            id: clientId!,
+          ),
+          builder: (context, clientSnap) {
+            final clientCurrencyId = clientSnap.data?.currencyId ?? '';
+            final companyCurrencyId = company.settings.currencyId ?? '';
+            Decimal? rate;
+            if (clientCurrencyId.isNotEmpty &&
+                companyCurrencyId.isNotEmpty &&
+                clientCurrencyId != companyCurrencyId) {
+              // company → client, matching React's
+              // `clientCurrency.exchange_rate / companyCurrency.exchange_rate`.
+              rate = crossCurrencyRate(
+                services.statics.currencies,
+                fromExpenseCurrencyId: companyCurrencyId,
+                toInvoiceCurrencyId: clientCurrencyId,
+              );
+            }
+            return _buildLayout(effectiveConfig, rate);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildLayout(
+    LineItemColumnConfig effectiveConfig,
+    Decimal? productConversionRate,
+  ) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide =
@@ -87,7 +155,8 @@ class LineItemEditor extends StatelessWidget {
             items: items,
             onChanged: onChanged,
             newItemFactory: newItemFactory,
-            config: config,
+            config: effectiveConfig,
+            productConversionRate: productConversionRate,
             controller: controller,
             rowErrors: rowErrors,
           );
@@ -97,7 +166,7 @@ class LineItemEditor extends StatelessWidget {
           items: items,
           onChanged: onChanged,
           newItemFactory: newItemFactory,
-          config: config,
+          config: effectiveConfig,
           onPickItems: onPickItems,
         );
       },

@@ -53,4 +53,11 @@ enum BillingDocType {
   /// `POST /api/v1/invoices/{id}/delivery_note`). Other billing docs hide
   /// the toggle.
   bool get supportsDeliveryNote => this == BillingDocType.invoice;
+
+  /// Whether a *future* (scheduled) send is supported. The server's
+  /// `task_scheduler` only accepts invoice / quote / credit / purchase_order
+  /// as schedulable entities — `recurring_invoice` is not valid, so a
+  /// "schedule" there silently degrades to an immediate send. The email
+  /// composer hides the Schedule action when this is false.
+  bool get supportsScheduledSend => this != BillingDocType.recurringInvoice;
 }

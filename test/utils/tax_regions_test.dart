@@ -16,9 +16,16 @@ void main() {
       expect(sellerSubregionForCountryId('36'), SellerSubregionKind.australia);
     });
 
-    test('GB / UK (country_id=826) routes to the disabled GB placeholder', () {
-      expect(sellerSubregionForCountryId('826'), SellerSubregionKind.britain);
-    });
+    test(
+      'GB / UK (country_id=826) routes to the GB placeholder + is supported',
+      () {
+        expect(sellerSubregionForCountryId('826'), SellerSubregionKind.britain);
+        // React `useCalculateTaxesRegion` lists GB as a supported seller. Post-
+        // Brexit it is NOT in the EU set, so it must be listed explicitly or UK
+        // companies never see the Calculate Taxes toggle.
+        expect(kCalculateTaxesSupportedCountries.contains('GB'), isTrue);
+      },
+    );
 
     test(
       'AD / Andorra (country_id=20) routes to the disabled AD placeholder',
@@ -44,8 +51,11 @@ void main() {
       expect(kTaxRegionOrder, ['US', 'EU', 'UK', 'AU', 'AD', 'SG']);
     });
 
-    test('kTaxRegionsWithSalesThreshold is EU + UK only', () {
-      expect(kTaxRegionsWithSalesThreshold, {'EU', 'UK'});
+    test('kTaxRegionsWithSalesThreshold is EU + UK + SG', () {
+      // React renders the sales-above-threshold toggle for EURegions,
+      // UKRegions, and SGRegions (`showSalesAboveThreshold`); US / AU / AD do
+      // not.
+      expect(kTaxRegionsWithSalesThreshold, {'EU', 'UK', 'SG'});
     });
 
     test('kEuCalculateTaxesCountries covers all React EU/EEA ISO codes', () {

@@ -406,6 +406,30 @@ void main() {
       expect(company.convertPaymentCurrency, true);
     });
 
+    test('persists client_can_register and surfaces it through _fromRow — the '
+        'Client Portal registration toggle is a top-level company column (the '
+        'server gates registration on it; the `settings` copy is deprecated). '
+        'Regression: with no column it reset on every login/refresh', () async {
+      const companyId = 'co';
+      await seedCompany(companyId);
+      final repo = makeRepo();
+
+      await repo.applyUpdateResponse(
+        companyId: companyId,
+        serverResponse: CompanyApi(
+          id: companyId,
+          name: 'Acme',
+          // Top-level on the company object, not inside `settings`.
+          clientCanRegister: true,
+        ),
+      );
+
+      final row = await db.companiesDao.byId(companyId);
+      expect(row!.clientCanRegister, true);
+      final company = await repo.get(companyId);
+      expect(company!.clientCanRegister, true);
+    });
+
     test('refreshes the logo_url column from settings.company_logo', () async {
       // Regression: the dedicated logo_url column must follow the applied
       // settings. `_onCompaniesChanged` / `restore` prefer the column, so a

@@ -87,6 +87,12 @@ class _TaskEditScreenState extends State<TaskEditScreen>
           now: DateTime.now,
           existing: existing,
           cloneFrom: widget.cloneFrom,
+          useCommaAsDecimalPlace:
+              services
+                  .formatterIfReady(companyId)
+                  ?.settings
+                  .useCommaAsDecimalPlace ??
+              false,
           sync: services.sync,
           connectivity: services.connectivity,
         );

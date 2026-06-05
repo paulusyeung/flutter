@@ -22,27 +22,36 @@ import 'package:admin/utils/formatting.dart';
 ///   `late_fee_endless_amount` / `late_fee_endless_percent` fields exist
 ///   on `CompanySettings` but neither v1 nor React surfaces them here, so
 ///   they're intentionally omitted.
+///
+/// [formatter] is nullable: the late-fee *amount* renders as a currency field
+/// when a `Formatter` is available and falls back to a plain number field when
+/// it isn't, so a formatter-load failure never hides the whole reminder config.
+/// [enabled] plan-gates the rule fields (greyed when the account can't change
+/// templates), matching React and the subject/body editors.
 class ReminderRuleSection extends StatelessWidget {
   const ReminderRuleSection({
     super.key,
     required this.template,
     required this.formatter,
     required this.currencyId,
+    required this.enabled,
   });
 
   final TemplateOption template;
-  final Formatter formatter;
+  final Formatter? formatter;
   final String currencyId;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     if (template.key == 'reminder_endless') {
-      return const _EndlessRuleSection();
+      return _EndlessRuleSection(enabled: enabled);
     }
     return _ScheduledRuleSection(
       template: template,
       formatter: formatter,
       currencyId: currencyId,
+      enabled: enabled,
     );
   }
 }
@@ -52,11 +61,13 @@ class _ScheduledRuleSection extends StatelessWidget {
     required this.template,
     required this.formatter,
     required this.currencyId,
+    required this.enabled,
   });
 
   final TemplateOption template;
-  final Formatter formatter;
+  final Formatter? formatter;
   final String currencyId;
+  final bool enabled;
 
   bool get _isQuote => template.key == 'quote_reminder1';
   String get _enableKey =>
@@ -117,32 +128,52 @@ class _ScheduledRuleSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final host = context.watch<SettingsDraftHost>();
     final schedule = _readSchedule(host.settings);
+    final formatter = this.formatter;
 
     return FormSection(
       title: context.tr('reminders'),
       children: [
-        _SendEmailField(apiKey: _enableKey, onEnable: () => _onEnable(host)),
+        _SendEmailField(
+          apiKey: _enableKey,
+          enabled: enabled,
+          onEnable: () => _onEnable(host),
+        ),
         OverridableTextField(
           label: context.tr('days'),
           apiKey: _daysKey,
           keyboardType: TextInputType.number,
+          enabled: enabled,
         ),
         OverridableDropdownField<String>(
           label: context.tr('schedule'),
           apiKey: _scheduleKey,
           value: schedule,
           items: _scheduleItems(context),
-          onChanged: (v) => host.updateSettings((s) => _writeSchedule(s, v)),
+          // Null onChanged greys out the dropdown when plan-gated.
+          onChanged: enabled
+              ? (v) => host.updateSettings((s) => _writeSchedule(s, v))
+              : null,
         ),
-        OverridableCurrencyField(
-          label: context.tr('late_fee_amount'),
-          apiKey: _amountKey,
-          formatter: formatter,
-          currencyId: currencyId,
-        ),
+        // Currency field needs a Formatter; fall back to a plain number field
+        // when none loaded so the reminder config stays reachable.
+        if (formatter != null)
+          OverridableCurrencyField(
+            label: context.tr('late_fee_amount'),
+            apiKey: _amountKey,
+            formatter: formatter,
+            currencyId: currencyId,
+            enabled: enabled,
+          )
+        else
+          OverridableNumberField(
+            label: context.tr('late_fee_amount'),
+            apiKey: _amountKey,
+            enabled: enabled,
+          ),
         OverridableNumberField(
           label: context.tr('late_fee_percent'),
           apiKey: _percentKey,
+          enabled: enabled,
         ),
       ],
     );
@@ -194,7 +225,9 @@ class _ScheduledRuleSection extends StatelessWidget {
 }
 
 class _EndlessRuleSection extends StatelessWidget {
-  const _EndlessRuleSection();
+  const _EndlessRuleSection({required this.enabled});
+
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -205,6 +238,7 @@ class _EndlessRuleSection extends StatelessWidget {
         OverridableSwitchField(
           label: context.tr('send_email'),
           apiKey: 'enable_reminder_endless',
+          enabled: enabled,
         ),
         OverridableDropdownField<String>(
           label: context.tr('frequency'),
@@ -219,9 +253,11 @@ class _EndlessRuleSection extends StatelessWidget {
                 child: Text(context.tr(entry.$2)),
               ),
           ],
-          onChanged: (v) => host.updateSettings(
-            (s) => s.copyWith(endlessReminderFrequencyId: v),
-          ),
+          onChanged: enabled
+              ? (v) => host.updateSettings(
+                  (s) => s.copyWith(endlessReminderFrequencyId: v),
+                )
+              : null,
         ),
       ],
     );
@@ -233,9 +269,14 @@ class _EndlessRuleSection extends StatelessWidget {
 /// parity; the side-effect hook gives us a place to auto-seed the
 /// dependent schedule field.
 class _SendEmailField extends StatelessWidget {
-  const _SendEmailField({required this.apiKey, required this.onEnable});
+  const _SendEmailField({
+    required this.apiKey,
+    required this.enabled,
+    required this.onEnable,
+  });
 
   final String apiKey;
+  final bool enabled;
   final VoidCallback onEnable;
 
   @override
@@ -244,6 +285,7 @@ class _SendEmailField extends StatelessWidget {
     return _SwitchWrapper(
       apiKey: apiKey,
       label: context.tr('send_email'),
+      enabled: enabled,
       onTurnedOn: () {
         // Allow the underlying switch to commit its update first, then
         // seed any dependent default. addPostFrameCallback dodges the
@@ -260,12 +302,14 @@ class _SwitchWrapper extends StatelessWidget {
     required this.apiKey,
     required this.label,
     required this.host,
+    required this.enabled,
     required this.onTurnedOn,
   });
 
   final String apiKey;
   final String label;
   final SettingsDraftHost host;
+  final bool enabled;
   final VoidCallback onTurnedOn;
 
   @override
@@ -275,7 +319,11 @@ class _SwitchWrapper extends StatelessWidget {
     return _OnEnableListener(
       apiKey: apiKey,
       onEnable: onTurnedOn,
-      child: OverridableSwitchField(label: label, apiKey: apiKey),
+      child: OverridableSwitchField(
+        label: label,
+        apiKey: apiKey,
+        enabled: enabled,
+      ),
     );
   }
 }

@@ -34677,6 +34677,18 @@ class $RecurringInvoicesTable extends RecurringInvoices
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _partialDueDateMeta = const VerificationMeta(
+    'partialDueDate',
+  );
+  @override
+  late final GeneratedColumn<String> partialDueDate = GeneratedColumn<String>(
+    'partial_due_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _amountMeta = const VerificationMeta('amount');
   @override
   late final GeneratedColumn<String> amount = GeneratedColumn<String>(
@@ -34693,6 +34705,18 @@ class $RecurringInvoicesTable extends RecurringInvoices
   @override
   late final GeneratedColumn<String> balance = GeneratedColumn<String>(
     'balance',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('0'),
+  );
+  static const VerificationMeta _partialMeta = const VerificationMeta(
+    'partial',
+  );
+  @override
+  late final GeneratedColumn<String> partial = GeneratedColumn<String>(
+    'partial',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -34807,8 +34831,10 @@ class $RecurringInvoicesTable extends RecurringInvoices
     subscriptionId,
     date,
     dueDate,
+    partialDueDate,
     amount,
     balance,
+    partial,
     poNumber,
     designId,
     assignedUserId,
@@ -34981,6 +35007,15 @@ class $RecurringInvoicesTable extends RecurringInvoices
         dueDate.isAcceptableOrUnknown(data['due_date']!, _dueDateMeta),
       );
     }
+    if (data.containsKey('partial_due_date')) {
+      context.handle(
+        _partialDueDateMeta,
+        partialDueDate.isAcceptableOrUnknown(
+          data['partial_due_date']!,
+          _partialDueDateMeta,
+        ),
+      );
+    }
     if (data.containsKey('amount')) {
       context.handle(
         _amountMeta,
@@ -34991,6 +35026,12 @@ class $RecurringInvoicesTable extends RecurringInvoices
       context.handle(
         _balanceMeta,
         balance.isAcceptableOrUnknown(data['balance']!, _balanceMeta),
+      );
+    }
+    if (data.containsKey('partial')) {
+      context.handle(
+        _partialMeta,
+        partial.isAcceptableOrUnknown(data['partial']!, _partialMeta),
       );
     }
     if (data.containsKey('po_number')) {
@@ -35144,6 +35185,10 @@ class $RecurringInvoicesTable extends RecurringInvoices
         DriftSqlType.string,
         data['${effectivePrefix}due_date'],
       )!,
+      partialDueDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}partial_due_date'],
+      )!,
       amount: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}amount'],
@@ -35151,6 +35196,10 @@ class $RecurringInvoicesTable extends RecurringInvoices
       balance: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}balance'],
+      )!,
+      partial: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}partial'],
       )!,
       poNumber: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -35217,8 +35266,14 @@ class RecurringInvoiceRow extends DataClass
   final String subscriptionId;
   final String date;
   final String dueDate;
+
+  /// Denormalized for parity with `invoices_table` (the recurring template can
+  /// carry a partial). Read path reconstructs from `payload`; these columns
+  /// exist only so list sort/filter can reach them without JSON parsing.
+  final String partialDueDate;
   final String amount;
   final String balance;
+  final String partial;
   final String poNumber;
   final String designId;
   final String assignedUserId;
@@ -35249,8 +35304,10 @@ class RecurringInvoiceRow extends DataClass
     required this.subscriptionId,
     required this.date,
     required this.dueDate,
+    required this.partialDueDate,
     required this.amount,
     required this.balance,
+    required this.partial,
     required this.poNumber,
     required this.designId,
     required this.assignedUserId,
@@ -35290,8 +35347,10 @@ class RecurringInvoiceRow extends DataClass
     map['subscription_id'] = Variable<String>(subscriptionId);
     map['date'] = Variable<String>(date);
     map['due_date'] = Variable<String>(dueDate);
+    map['partial_due_date'] = Variable<String>(partialDueDate);
     map['amount'] = Variable<String>(amount);
     map['balance'] = Variable<String>(balance);
+    map['partial'] = Variable<String>(partial);
     map['po_number'] = Variable<String>(poNumber);
     map['design_id'] = Variable<String>(designId);
     map['assigned_user_id'] = Variable<String>(assignedUserId);
@@ -35332,8 +35391,10 @@ class RecurringInvoiceRow extends DataClass
       subscriptionId: Value(subscriptionId),
       date: Value(date),
       dueDate: Value(dueDate),
+      partialDueDate: Value(partialDueDate),
       amount: Value(amount),
       balance: Value(balance),
+      partial: Value(partial),
       poNumber: Value(poNumber),
       designId: Value(designId),
       assignedUserId: Value(assignedUserId),
@@ -35372,8 +35433,10 @@ class RecurringInvoiceRow extends DataClass
       subscriptionId: serializer.fromJson<String>(json['subscriptionId']),
       date: serializer.fromJson<String>(json['date']),
       dueDate: serializer.fromJson<String>(json['dueDate']),
+      partialDueDate: serializer.fromJson<String>(json['partialDueDate']),
       amount: serializer.fromJson<String>(json['amount']),
       balance: serializer.fromJson<String>(json['balance']),
+      partial: serializer.fromJson<String>(json['partial']),
       poNumber: serializer.fromJson<String>(json['poNumber']),
       designId: serializer.fromJson<String>(json['designId']),
       assignedUserId: serializer.fromJson<String>(json['assignedUserId']),
@@ -35409,8 +35472,10 @@ class RecurringInvoiceRow extends DataClass
       'subscriptionId': serializer.toJson<String>(subscriptionId),
       'date': serializer.toJson<String>(date),
       'dueDate': serializer.toJson<String>(dueDate),
+      'partialDueDate': serializer.toJson<String>(partialDueDate),
       'amount': serializer.toJson<String>(amount),
       'balance': serializer.toJson<String>(balance),
+      'partial': serializer.toJson<String>(partial),
       'poNumber': serializer.toJson<String>(poNumber),
       'designId': serializer.toJson<String>(designId),
       'assignedUserId': serializer.toJson<String>(assignedUserId),
@@ -35444,8 +35509,10 @@ class RecurringInvoiceRow extends DataClass
     String? subscriptionId,
     String? date,
     String? dueDate,
+    String? partialDueDate,
     String? amount,
     String? balance,
+    String? partial,
     String? poNumber,
     String? designId,
     String? assignedUserId,
@@ -35476,8 +35543,10 @@ class RecurringInvoiceRow extends DataClass
     subscriptionId: subscriptionId ?? this.subscriptionId,
     date: date ?? this.date,
     dueDate: dueDate ?? this.dueDate,
+    partialDueDate: partialDueDate ?? this.partialDueDate,
     amount: amount ?? this.amount,
     balance: balance ?? this.balance,
+    partial: partial ?? this.partial,
     poNumber: poNumber ?? this.poNumber,
     designId: designId ?? this.designId,
     assignedUserId: assignedUserId ?? this.assignedUserId,
@@ -35522,8 +35591,12 @@ class RecurringInvoiceRow extends DataClass
           : this.subscriptionId,
       date: data.date.present ? data.date.value : this.date,
       dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
+      partialDueDate: data.partialDueDate.present
+          ? data.partialDueDate.value
+          : this.partialDueDate,
       amount: data.amount.present ? data.amount.value : this.amount,
       balance: data.balance.present ? data.balance.value : this.balance,
+      partial: data.partial.present ? data.partial.value : this.partial,
       poNumber: data.poNumber.present ? data.poNumber.value : this.poNumber,
       designId: data.designId.present ? data.designId.value : this.designId,
       assignedUserId: data.assignedUserId.present
@@ -35567,8 +35640,10 @@ class RecurringInvoiceRow extends DataClass
           ..write('subscriptionId: $subscriptionId, ')
           ..write('date: $date, ')
           ..write('dueDate: $dueDate, ')
+          ..write('partialDueDate: $partialDueDate, ')
           ..write('amount: $amount, ')
           ..write('balance: $balance, ')
+          ..write('partial: $partial, ')
           ..write('poNumber: $poNumber, ')
           ..write('designId: $designId, ')
           ..write('assignedUserId: $assignedUserId, ')
@@ -35604,8 +35679,10 @@ class RecurringInvoiceRow extends DataClass
     subscriptionId,
     date,
     dueDate,
+    partialDueDate,
     amount,
     balance,
+    partial,
     poNumber,
     designId,
     assignedUserId,
@@ -35640,8 +35717,10 @@ class RecurringInvoiceRow extends DataClass
           other.subscriptionId == this.subscriptionId &&
           other.date == this.date &&
           other.dueDate == this.dueDate &&
+          other.partialDueDate == this.partialDueDate &&
           other.amount == this.amount &&
           other.balance == this.balance &&
+          other.partial == this.partial &&
           other.poNumber == this.poNumber &&
           other.designId == this.designId &&
           other.assignedUserId == this.assignedUserId &&
@@ -35674,8 +35753,10 @@ class RecurringInvoicesCompanion extends UpdateCompanion<RecurringInvoiceRow> {
   final Value<String> subscriptionId;
   final Value<String> date;
   final Value<String> dueDate;
+  final Value<String> partialDueDate;
   final Value<String> amount;
   final Value<String> balance;
+  final Value<String> partial;
   final Value<String> poNumber;
   final Value<String> designId;
   final Value<String> assignedUserId;
@@ -35707,8 +35788,10 @@ class RecurringInvoicesCompanion extends UpdateCompanion<RecurringInvoiceRow> {
     this.subscriptionId = const Value.absent(),
     this.date = const Value.absent(),
     this.dueDate = const Value.absent(),
+    this.partialDueDate = const Value.absent(),
     this.amount = const Value.absent(),
     this.balance = const Value.absent(),
+    this.partial = const Value.absent(),
     this.poNumber = const Value.absent(),
     this.designId = const Value.absent(),
     this.assignedUserId = const Value.absent(),
@@ -35741,8 +35824,10 @@ class RecurringInvoicesCompanion extends UpdateCompanion<RecurringInvoiceRow> {
     this.subscriptionId = const Value.absent(),
     this.date = const Value.absent(),
     this.dueDate = const Value.absent(),
+    this.partialDueDate = const Value.absent(),
     this.amount = const Value.absent(),
     this.balance = const Value.absent(),
+    this.partial = const Value.absent(),
     this.poNumber = const Value.absent(),
     this.designId = const Value.absent(),
     this.assignedUserId = const Value.absent(),
@@ -35778,8 +35863,10 @@ class RecurringInvoicesCompanion extends UpdateCompanion<RecurringInvoiceRow> {
     Expression<String>? subscriptionId,
     Expression<String>? date,
     Expression<String>? dueDate,
+    Expression<String>? partialDueDate,
     Expression<String>? amount,
     Expression<String>? balance,
+    Expression<String>? partial,
     Expression<String>? poNumber,
     Expression<String>? designId,
     Expression<String>? assignedUserId,
@@ -35812,8 +35899,10 @@ class RecurringInvoicesCompanion extends UpdateCompanion<RecurringInvoiceRow> {
       if (subscriptionId != null) 'subscription_id': subscriptionId,
       if (date != null) 'date': date,
       if (dueDate != null) 'due_date': dueDate,
+      if (partialDueDate != null) 'partial_due_date': partialDueDate,
       if (amount != null) 'amount': amount,
       if (balance != null) 'balance': balance,
+      if (partial != null) 'partial': partial,
       if (poNumber != null) 'po_number': poNumber,
       if (designId != null) 'design_id': designId,
       if (assignedUserId != null) 'assigned_user_id': assignedUserId,
@@ -35848,8 +35937,10 @@ class RecurringInvoicesCompanion extends UpdateCompanion<RecurringInvoiceRow> {
     Value<String>? subscriptionId,
     Value<String>? date,
     Value<String>? dueDate,
+    Value<String>? partialDueDate,
     Value<String>? amount,
     Value<String>? balance,
+    Value<String>? partial,
     Value<String>? poNumber,
     Value<String>? designId,
     Value<String>? assignedUserId,
@@ -35882,8 +35973,10 @@ class RecurringInvoicesCompanion extends UpdateCompanion<RecurringInvoiceRow> {
       subscriptionId: subscriptionId ?? this.subscriptionId,
       date: date ?? this.date,
       dueDate: dueDate ?? this.dueDate,
+      partialDueDate: partialDueDate ?? this.partialDueDate,
       amount: amount ?? this.amount,
       balance: balance ?? this.balance,
+      partial: partial ?? this.partial,
       poNumber: poNumber ?? this.poNumber,
       designId: designId ?? this.designId,
       assignedUserId: assignedUserId ?? this.assignedUserId,
@@ -35964,11 +36057,17 @@ class RecurringInvoicesCompanion extends UpdateCompanion<RecurringInvoiceRow> {
     if (dueDate.present) {
       map['due_date'] = Variable<String>(dueDate.value);
     }
+    if (partialDueDate.present) {
+      map['partial_due_date'] = Variable<String>(partialDueDate.value);
+    }
     if (amount.present) {
       map['amount'] = Variable<String>(amount.value);
     }
     if (balance.present) {
       map['balance'] = Variable<String>(balance.value);
+    }
+    if (partial.present) {
+      map['partial'] = Variable<String>(partial.value);
     }
     if (poNumber.present) {
       map['po_number'] = Variable<String>(poNumber.value);
@@ -36022,8 +36121,10 @@ class RecurringInvoicesCompanion extends UpdateCompanion<RecurringInvoiceRow> {
           ..write('subscriptionId: $subscriptionId, ')
           ..write('date: $date, ')
           ..write('dueDate: $dueDate, ')
+          ..write('partialDueDate: $partialDueDate, ')
           ..write('amount: $amount, ')
           ..write('balance: $balance, ')
+          ..write('partial: $partial, ')
           ..write('poNumber: $poNumber, ')
           ..write('designId: $designId, ')
           ..write('assignedUserId: $assignedUserId, ')
@@ -58937,8 +59038,10 @@ typedef $$RecurringInvoicesTableCreateCompanionBuilder =
       Value<String> subscriptionId,
       Value<String> date,
       Value<String> dueDate,
+      Value<String> partialDueDate,
       Value<String> amount,
       Value<String> balance,
+      Value<String> partial,
       Value<String> poNumber,
       Value<String> designId,
       Value<String> assignedUserId,
@@ -58972,8 +59075,10 @@ typedef $$RecurringInvoicesTableUpdateCompanionBuilder =
       Value<String> subscriptionId,
       Value<String> date,
       Value<String> dueDate,
+      Value<String> partialDueDate,
       Value<String> amount,
       Value<String> balance,
+      Value<String> partial,
       Value<String> poNumber,
       Value<String> designId,
       Value<String> assignedUserId,
@@ -59103,6 +59208,11 @@ class $$RecurringInvoicesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get partialDueDate => $composableBuilder(
+    column: $table.partialDueDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get amount => $composableBuilder(
     column: $table.amount,
     builder: (column) => ColumnFilters(column),
@@ -59110,6 +59220,11 @@ class $$RecurringInvoicesTableFilterComposer
 
   ColumnFilters<String> get balance => $composableBuilder(
     column: $table.balance,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get partial => $composableBuilder(
+    column: $table.partial,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -59268,6 +59383,11 @@ class $$RecurringInvoicesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get partialDueDate => $composableBuilder(
+    column: $table.partialDueDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get amount => $composableBuilder(
     column: $table.amount,
     builder: (column) => ColumnOrderings(column),
@@ -59275,6 +59395,11 @@ class $$RecurringInvoicesTableOrderingComposer
 
   ColumnOrderings<String> get balance => $composableBuilder(
     column: $table.balance,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get partial => $composableBuilder(
+    column: $table.partial,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -59401,11 +59526,19 @@ class $$RecurringInvoicesTableAnnotationComposer
   GeneratedColumn<String> get dueDate =>
       $composableBuilder(column: $table.dueDate, builder: (column) => column);
 
+  GeneratedColumn<String> get partialDueDate => $composableBuilder(
+    column: $table.partialDueDate,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get amount =>
       $composableBuilder(column: $table.amount, builder: (column) => column);
 
   GeneratedColumn<String> get balance =>
       $composableBuilder(column: $table.balance, builder: (column) => column);
+
+  GeneratedColumn<String> get partial =>
+      $composableBuilder(column: $table.partial, builder: (column) => column);
 
   GeneratedColumn<String> get poNumber =>
       $composableBuilder(column: $table.poNumber, builder: (column) => column);
@@ -59499,8 +59632,10 @@ class $$RecurringInvoicesTableTableManager
                 Value<String> subscriptionId = const Value.absent(),
                 Value<String> date = const Value.absent(),
                 Value<String> dueDate = const Value.absent(),
+                Value<String> partialDueDate = const Value.absent(),
                 Value<String> amount = const Value.absent(),
                 Value<String> balance = const Value.absent(),
+                Value<String> partial = const Value.absent(),
                 Value<String> poNumber = const Value.absent(),
                 Value<String> designId = const Value.absent(),
                 Value<String> assignedUserId = const Value.absent(),
@@ -59532,8 +59667,10 @@ class $$RecurringInvoicesTableTableManager
                 subscriptionId: subscriptionId,
                 date: date,
                 dueDate: dueDate,
+                partialDueDate: partialDueDate,
                 amount: amount,
                 balance: balance,
+                partial: partial,
                 poNumber: poNumber,
                 designId: designId,
                 assignedUserId: assignedUserId,
@@ -59567,8 +59704,10 @@ class $$RecurringInvoicesTableTableManager
                 Value<String> subscriptionId = const Value.absent(),
                 Value<String> date = const Value.absent(),
                 Value<String> dueDate = const Value.absent(),
+                Value<String> partialDueDate = const Value.absent(),
                 Value<String> amount = const Value.absent(),
                 Value<String> balance = const Value.absent(),
+                Value<String> partial = const Value.absent(),
                 Value<String> poNumber = const Value.absent(),
                 Value<String> designId = const Value.absent(),
                 Value<String> assignedUserId = const Value.absent(),
@@ -59600,8 +59739,10 @@ class $$RecurringInvoicesTableTableManager
                 subscriptionId: subscriptionId,
                 date: date,
                 dueDate: dueDate,
+                partialDueDate: partialDueDate,
                 amount: amount,
                 balance: balance,
+                partial: partial,
                 poNumber: poNumber,
                 designId: designId,
                 assignedUserId: assignedUserId,

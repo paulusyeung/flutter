@@ -16,6 +16,7 @@ import 'package:admin/data/models/domain/expense_category.dart';
 import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/task.dart';
+import 'package:admin/data/models/value/currency.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/billing_shared/add_unbilled/unbilled_line_items.dart';
@@ -409,8 +410,35 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
 
   List<LineItem> _selectedLineItems() {
     final out = <LineItem>[];
+    // Mirror React's product fill: sale price (converted to the client's
+    // currency when the company opts in and currencies differ), quantity per
+    // the `enable_product_quantity` / `default_quantity` toggles. Rate is the
+    // same for every product on this doc, so resolve it once.
+    final company = _company;
+    final clientCurrencyId = _client?.currencyId ?? '';
+    final companyCurrencyId = company?.settings.currencyId ?? '';
+    final productRate =
+        (company?.convertProducts ?? false) &&
+            clientCurrencyId.isNotEmpty &&
+            companyCurrencyId.isNotEmpty &&
+            clientCurrencyId != companyCurrencyId
+        ? crossCurrencyRate(
+            context.read<Services>().statics.currencies,
+            fromExpenseCurrencyId: companyCurrencyId,
+            toInvoiceCurrencyId: clientCurrencyId,
+          )
+        : null;
     for (final p in _products) {
-      if (_selProducts.contains(p.id)) out.add(lineItemForProduct(p));
+      if (_selProducts.contains(p.id)) {
+        out.add(
+          lineItemFromProduct(
+            p,
+            enableProductQuantity: company?.enableProductQuantity ?? false,
+            defaultQuantity: company?.defaultQuantity ?? false,
+            conversionRate: productRate,
+          ),
+        );
+      }
     }
     for (final t in _tasks) {
       if (_selTasks.contains(t.id)) {
@@ -645,6 +673,7 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
           selected: _selProducts,
           filter: _filter,
           formatter: widget.formatter,
+          showProductDetails: _company?.showProductDetails ?? false,
           maxListHeight: maxListHeight,
           onToggle: (id) => setState(() {
             if (!_selProducts.add(id)) _selProducts.remove(id);
@@ -914,6 +943,7 @@ class _ProductsTab extends StatelessWidget {
     required this.selected,
     required this.filter,
     required this.formatter,
+    required this.showProductDetails,
     required this.maxListHeight,
     required this.onToggle,
     required this.onSelectAll,
@@ -925,6 +955,10 @@ class _ProductsTab extends StatelessWidget {
   final Set<String> selected;
   final String filter;
   final Formatter? formatter;
+
+  /// Company `show_product_details` — when false, the product description is
+  /// hidden from each row (only the product key + price show).
+  final bool showProductDetails;
   final double maxListHeight;
   final void Function(String id) onToggle;
   final VoidCallback onSelectAll;
@@ -970,7 +1004,7 @@ class _ProductsTab extends StatelessWidget {
                         : context.tr('product'),
                     right: f == null ? '' : f.money(p.price),
                   ),
-                  subtitle: notesLine.isEmpty
+                  subtitle: (!showProductDetails || notesLine.isEmpty)
                       ? null
                       : Text(
                           notesLine,
