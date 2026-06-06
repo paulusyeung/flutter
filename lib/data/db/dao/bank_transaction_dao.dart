@@ -36,6 +36,10 @@ class BankTransactionDao extends DatabaseAccessor<AppDatabase>
     String? bankAccountId,
     Set<String>? statusIds,
     String? baseType,
+    String? dateStart,
+    String? dateEnd,
+    String? dateOp,
+    String? dateValue,
     String sortField = BankTransactionFieldIds.date,
     bool sortAscending = false,
   }) {
@@ -60,6 +64,28 @@ class BankTransactionDao extends DatabaseAccessor<AppDatabase>
     }
     if (baseType != null && baseType.isNotEmpty) {
       q.where((t) => t.baseType.equals(baseType));
+    }
+    // Date window (between) — mirrors the `date_range` filter slot. The `date`
+    // column is ISO `YYYY-MM-DD` text, which compares lexically.
+    if (dateStart != null && dateEnd != null) {
+      q.where((t) => t.date.isBetweenValues(dateStart, dateEnd));
+    }
+    // Single-date comparator — mirrors the `date` (op:value) filter slot.
+    if (dateValue != null && dateValue.isNotEmpty) {
+      final v = dateValue;
+      switch (dateOp) {
+        case 'gt':
+          q.where((t) => t.date.isBiggerThanValue(v));
+        case 'lte':
+          q.where((t) => t.date.isSmallerOrEqualValue(v));
+        case 'lt':
+          q.where((t) => t.date.isSmallerThanValue(v));
+        case 'eq':
+          q.where((t) => t.date.equals(v));
+        case 'gte':
+        default:
+          q.where((t) => t.date.isBiggerOrEqualValue(v));
+      }
     }
     if (search != null && search.isNotEmpty) {
       final needle = '%${search.toLowerCase()}%';

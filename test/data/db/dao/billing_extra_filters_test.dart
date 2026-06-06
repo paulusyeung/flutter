@@ -119,6 +119,69 @@ void main() {
       },
     );
 
+    test('parseComparableDateFilter: op:value, bare, window, rel', () {
+      // Explicit operator prefix.
+      expect(
+        parseComparableDateFilter({
+          'date': {'gte:2026-01-01'},
+        }, 'date'),
+        (op: 'gte', value: '2026-01-01'),
+      );
+      expect(
+        parseComparableDateFilter({
+          'date': {'lt:2026-02-01'},
+        }, 'date'),
+        (op: 'lt', value: '2026-02-01'),
+      );
+      // Bare value defaults to gte (the key's defaultOp).
+      expect(
+        parseComparableDateFilter({
+          'date': {'2026-01-01'},
+        }, 'date'),
+        (op: 'gte', value: '2026-01-01'),
+      );
+      // A window wire (comma) belongs to the *_range slot, not here.
+      expect(
+        parseComparableDateFilter({
+          'date': {'date,2026-01-01,2026-03-31'},
+        }, 'date'),
+        (op: null, value: null),
+      );
+      // Absent / blank → no comparator.
+      expect(parseComparableDateFilter(const {}, 'date'), (
+        op: null,
+        value: null,
+      ));
+      expect(
+        parseComparableDateFilter({
+          'date': {''},
+        }, 'date'),
+        (op: null, value: null),
+      );
+      // Relative token resolves to absolute ISO (bare → gte; prefix keeps op).
+      final now = DateTime.utc(2026, 1, 8);
+      expect(
+        parseComparableDateFilter(
+          {
+            'date': {'rel:d7'},
+          },
+          'date',
+          now: now,
+        ),
+        (op: 'gte', value: '2026-01-01'),
+      );
+      expect(
+        parseComparableDateFilter(
+          {
+            'date': {'lt:rel:d7'},
+          },
+          'date',
+          now: now,
+        ),
+        (op: 'lt', value: '2026-01-01'),
+      );
+    });
+
     test('due_date_range: symmetric window parser on its own slot', () {
       expect(
         parseDueDateRangeFilter({

@@ -106,6 +106,16 @@ class ReportsViewModel extends ChangeNotifier {
   late final Future<void> _hydration;
   Timer? _persistTimer;
 
+  /// Set once the user changes any state. [_hydrate] resolves asynchronously
+  /// after construction; if the user already interacted (e.g. picked a report
+  /// or changed a filter in the first frames), restoring the persisted
+  /// snapshot would silently revert their action. The flag lets hydration
+  /// yield to a live user action. Only controls reachable *before* the first
+  /// Run need to set it — the rest (columns / group / sort / chart) are gated
+  /// on `hasPreview`, so they can't fire until a Run has completed, which
+  /// itself awaits [_hydration].
+  bool _userTouched = false;
+
   // ─── Payload (server-side) ───
   String _reportIdentifier;
   String get reportIdentifier => _reportIdentifier;
@@ -152,6 +162,7 @@ class ReportsViewModel extends ChangeNotifier {
   bool get panelCollapsed => _panelCollapsed;
   void setPanelCollapsed(bool value) {
     if (_panelCollapsed == value) return;
+    _userTouched = true;
     _panelCollapsed = value;
     notifyListeners();
   }
@@ -306,7 +317,9 @@ class ReportsViewModel extends ChangeNotifier {
     final key = Object.hash(
       identityHashCode(preview),
       ui.hashCode,
-      ratesEpoch,
+      // Exchange rates only feed converted totals; when conversion is off a
+      // company-switch / statics refresh shouldn't bust the memo.
+      convertCurrency ? ratesEpoch : 0,
       companyCurrencyId,
       convertCurrency,
       firstMonthOfYear,
@@ -354,6 +367,9 @@ class ReportsViewModel extends ChangeNotifier {
       if (company is! Map) return;
       final snap = company[_persistKey];
       if (snap is! Map) return;
+      // Yield to a live user action that landed before hydration resolved —
+      // restoring here would clobber what they just did.
+      if (_userTouched) return;
       _applySnapshot(Map<String, dynamic>.from(snap));
     } catch (e, st) {
       _log.warning('Failed to hydrate reports state; using defaults', e, st);
@@ -500,17 +516,23 @@ class ReportsViewModel extends ChangeNotifier {
     }
   }
 
-  /// After a fresh preview lands, reconcile any hydrated view-state that may
-  /// reference columns this report no longer returns: keep visible-column
-  /// ids that still exist **and add new server columns** (never hide new
-  /// data); drop a `group`/`sortField` pointing at a vanished column.
+  /// After a fresh preview lands, reconcile view-state against the columns the
+  /// report actually returned. The preview always requests the server's full
+  /// default column set (see [runReport]), so the user's visible selection is
+  /// authoritative: keep the ids that still exist and drop ones the report no
+  /// longer returns — but do **not** auto-show columns the user has hidden (the
+  /// column picker exposes the full set for manual re-add). Also drop a
+  /// `group`/`sortField` pointing at a vanished column. `_columnOrder` still
+  /// appends any unlisted columns so the picker can order them; rendering is
+  /// gated on `_visibleColumnIds`, so a hidden column sitting in the order is
+  /// inert.
   void _reconcileWithColumns(ReportPreview preview) {
     final ids = preview.columns.map((c) => c.identifier).toSet();
     if (ids.isEmpty) return;
     if (_visibleColumnIds.isNotEmpty) {
-      final kept = _visibleColumnIds.where(ids.contains).toSet();
-      final added = ids.difference(_visibleColumnIds);
-      _visibleColumnIds = Set.unmodifiable({...kept, ...added});
+      _visibleColumnIds = Set.unmodifiable(
+        _visibleColumnIds.where(ids.contains).toSet(),
+      );
     }
     if (_columnOrder.isNotEmpty) {
       // Drop vanished ids; append any new server columns so a reordered
@@ -532,6 +554,7 @@ class ReportsViewModel extends ChangeNotifier {
 
   void setReport(String identifier) {
     if (identifier == _reportIdentifier) return;
+    _userTouched = true;
     _reportIdentifier = identifier;
     // Reset payload-side state to defaults for the new report, but keep the
     // local-only state (visible columns) cleared so the new report's
@@ -552,6 +575,7 @@ class ReportsViewModel extends ChangeNotifier {
 
   void setPayload(ReportPayload payload) {
     if (payload == _payload) return;
+    _userTouched = true;
     _payload = payload;
     notifyListeners();
   }
@@ -638,6 +662,7 @@ class ReportsViewModel extends ChangeNotifier {
   /// sort / group). Keeps the loaded preview so the user doesn't have to
   /// re-Run just to clear filters.
   void resetFilters() {
+    _userTouched = true;
     final defaults = definition.defaultFilterValues;
     _payload = ReportPayload(
       datePreset: _payload.datePreset,
@@ -667,6 +692,7 @@ class ReportsViewModel extends ChangeNotifier {
   /// sort, group, chart. The loaded preview stays so the user can recover
   /// by re-Running.
   void resetEverything() {
+    _userTouched = true;
     _payload = const ReportPayload();
     _visibleColumnIds = const {};
     _columnOrder = const [];
@@ -700,7 +726,14 @@ class ReportsViewModel extends ChangeNotifier {
         reportIdentifier: _reportIdentifier,
         endpoint: definition.endpoint,
         payload: _payload,
-        reportKeys: _visibleColumnIds.toList(),
+        // Preview always requests the server's full default column set (empty
+        // report_keys) — column visibility is a purely local concern applied
+        // by the engine. Sending the visible subset here would narrow the
+        // server response, and since the column picker is sourced from
+        // `preview.columns`, a hidden column would vanish from the picker and
+        // become unrecoverable on the next Run. Export/email still send the
+        // visible subset so the file honors the user's selection.
+        reportKeys: const [],
         isCancelled: _cancellationFor(epoch),
       );
       if (_disposed || epoch != _runEpoch) return;

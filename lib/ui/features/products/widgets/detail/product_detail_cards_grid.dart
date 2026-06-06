@@ -8,13 +8,15 @@ import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/domain/product_tax_categories.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/detail/custom_fields_detail_card.dart';
+import 'package:admin/ui/core/widgets/centered_form_column.dart';
 import 'package:admin/ui/core/widgets/detail_info_row.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// Detail-card grid for a single [Product]. Replaces the legacy
-/// `ProductDetailCards`. At ≥1100 px renders a two-column grid (Details
+/// `ProductDetailCards`. At ≥1000 px renders a two-column grid (Details
 /// left, Inventory + Taxes right); below the breakpoint stacks into a
 /// single column. The price / cost / quantity / in-stock fields live in
 /// [ProductDetailKpiStrip] above this widget — Details only carries the
@@ -30,8 +32,6 @@ class ProductDetailCardsGrid extends StatelessWidget {
   final Product product;
   final String companyId;
   final Formatter? formatter;
-
-  static const double _wideBreakpoint = 1100;
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +60,8 @@ class ProductDetailCardsGrid extends StatelessWidget {
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            final wide = constraints.maxWidth >= _wideBreakpoint;
+            final wide =
+                constraints.maxWidth >= Breakpoints.entityFormMultiColumn;
             if (wide && (hasInventory || hasTaxes)) {
               return _wide(
                 context,
@@ -69,11 +70,13 @@ class ProductDetailCardsGrid extends StatelessWidget {
                 enabledTaxSlots: enabledTaxSlots,
               );
             }
-            return _stacked(
-              context,
-              hasInventory: hasInventory,
-              hasTaxes: hasTaxes,
-              enabledTaxSlots: enabledTaxSlots,
+            return CenteredFormColumn(
+              child: _stacked(
+                context,
+                hasInventory: hasInventory,
+                hasTaxes: hasTaxes,
+                enabledTaxSlots: enabledTaxSlots,
+              ),
             );
           },
         );

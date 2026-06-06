@@ -60,6 +60,10 @@ void main() {
     test('age / duration', () {
       expect(inferColumnType('invoice.age'), ReportColumnType.age);
       expect(inferColumnType('task.duration'), ReportColumnType.duration);
+      // Age is intentionally NOT aggregatable — a "sum of ages" is meaningless.
+      // Duration still sums (e.g. total time logged).
+      expect(isAggregatable(ReportColumnType.age), isFalse);
+      expect(isAggregatable(ReportColumnType.duration), isTrue);
     });
 
     test('identifier-style numerics stay string (lexicographic)', () {

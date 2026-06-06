@@ -12,6 +12,7 @@ import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/custom_field_detail_rows.dart';
 import 'package:admin/ui/core/detail/entity_link_card.dart';
+import 'package:admin/ui/core/widgets/centered_form_column.dart';
 import 'package:admin/ui/features/tasks/widgets/running_duration_label.dart';
 import 'package:admin/utils/formatting.dart';
 
@@ -22,7 +23,7 @@ import 'package:admin/utils/formatting.dart';
 ///   stacks Details + Client link + Project link + Custom Fields. No
 ///   `IntrinsicHeight`: Time Log can be 50+ entries and we don't want to
 ///   force the sidebar to match its height.
-/// - **<1100 px**: today's single-column order — Details, Time Log,
+/// - **<1100 px**: single centered column (≤820 px) — Details, Time Log,
 ///   Client, Project, Custom.
 ///
 /// Status / rate / duration / entries-count surface in
@@ -49,7 +50,7 @@ class TaskDetailCardsGrid extends StatelessWidget {
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= _wideBreakpoint;
         if (wide) return _wide(context);
-        return _stacked(context);
+        return CenteredFormColumn(child: _stacked(context));
       },
     );
   }

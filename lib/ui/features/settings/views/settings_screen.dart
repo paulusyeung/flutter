@@ -74,8 +74,12 @@ class _SettingsListSidebarState extends State<SettingsListSidebar> {
       valueListenable: context.read<Services>().auth.session,
       builder: (context, session, _) {
         final modules = session?.currentCompany?.enabledModules ?? 0;
+        final me = session?.currentCompany;
+        final isAdminOrOwner = me?.isAdmin == true || me?.isOwner == true;
         bool inScope(SettingsSectionDef s) =>
-            (!isCascade || s.clientEditable) && s.isVisibleFor(modules);
+            (!isCascade || s.clientEditable) &&
+            s.isVisibleFor(modules) &&
+            (!s.adminOnly || isAdminOrOwner);
         final basic = kSettingsSections.where((s) => s.isBasic && inScope(s));
         final advanced = kSettingsSections.where(
           (s) => !s.isBasic && inScope(s),
@@ -158,13 +162,16 @@ class _SettingsListSidebarState extends State<SettingsListSidebar> {
     if (l10n == null) return const SizedBox.shrink();
     final session = context.read<Services>().auth.session.value;
     final modules = session?.currentCompany?.enabledModules ?? 0;
+    final me = session?.currentCompany;
+    final isAdminOrOwner = me?.isAdmin == true || me?.isOwner == true;
     // Filter at query time — not by trimming the catalog — so a module-gated
-    // section never surfaces as a dead link, while `kSettingsSearchCatalog`
-    // stays complete (search_catalog_consistency_test enforces parity).
-    final hits = searchSettings(
-      _controller.text,
-      l10n,
-    ).where((h) => h.section.isVisibleFor(modules)).toList();
+    // (or admin-only) section never surfaces as a dead link, while
+    // `kSettingsSearchCatalog` stays complete (search_catalog_consistency_test
+    // enforces parity).
+    final hits = searchSettings(_controller.text, l10n)
+        .where((h) => h.section.isVisibleFor(modules))
+        .where((h) => !h.section.adminOnly || isAdminOrOwner)
+        .toList();
     if (hits.isEmpty) {
       return Center(
         child: Padding(

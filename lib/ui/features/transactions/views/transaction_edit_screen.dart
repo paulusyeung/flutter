@@ -13,6 +13,7 @@ import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/edit/edit_action_filter.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
+import 'package:admin/ui/core/widgets/centered_form_column.dart';
 import 'package:admin/ui/core/widgets/in_date_field.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/transactions/view_models/transaction_edit_view_model.dart';
@@ -90,99 +91,104 @@ class _TransactionEditBody extends StatelessWidget {
     final companyId = services.auth.session.value?.currentCompanyId ?? '';
     return SingleChildScrollView(
       padding: EdgeInsets.all(InSpacing.lg(context)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // CREDIT / DEBIT segmented switcher — drives both the panel
-          // selection on the detail screen and the deposit/withdrawal
-          // column rendering on the list.
-          SegmentedButton<String>(
-            segments: [
-              ButtonSegment(
-                value: kTransactionTypeCredit,
-                label: Text(context.tr('deposit')),
-                icon: const Icon(Icons.south_west, size: 16),
-              ),
-              ButtonSegment(
-                value: kTransactionTypeDebit,
-                label: Text(context.tr('withdrawal')),
-                icon: const Icon(Icons.north_east, size: 16),
-              ),
-            ],
-            selected: {vm.draft.baseType},
-            onSelectionChanged: (set) {
-              if (set.isEmpty) return;
-              vm.setBaseType(set.first);
-            },
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            initialValue: vm.draft.amount == Decimal.zero
-                ? ''
-                : vm.draft.amount.toString(),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: context.tr('amount'),
-              errorText: vm.fieldErrorFor('amount'),
+      child: CenteredFormColumn(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // CREDIT / DEBIT segmented switcher — drives both the panel
+            // selection on the detail screen and the deposit/withdrawal
+            // column rendering on the list.
+            SegmentedButton<String>(
+              segments: [
+                ButtonSegment(
+                  value: kTransactionTypeCredit,
+                  label: Text(context.tr('deposit')),
+                  icon: const Icon(Icons.south_west, size: 16),
+                ),
+                ButtonSegment(
+                  value: kTransactionTypeDebit,
+                  label: Text(context.tr('withdrawal')),
+                  icon: const Icon(Icons.north_east, size: 16),
+                ),
+              ],
+              selected: {vm.draft.baseType},
+              onSelectionChanged: (set) {
+                if (set.isEmpty) return;
+                vm.setBaseType(set.first);
+              },
             ),
-            onChanged: (v) {
-              final parsed = Decimal.tryParse(v) ?? Decimal.zero;
-              vm.setAmount(parsed);
-            },
-          ),
-          const SizedBox(height: 12),
-          _CurrencyPicker(vm: vm),
-          const SizedBox(height: 12),
-          InDateField(
-            value: vm.draft.date?.toDateTime(),
-            labelText: context.tr('date'),
-            clearable: true,
-            onChanged: (dt) =>
-                vm.setDate(dt == null ? null : Date(dt.year, dt.month, dt.day)),
-          ),
-          const SizedBox(height: 12),
-          StreamBuilder<List<BankAccount>>(
-            stream: services.bankAccounts.watchAll(companyId: companyId),
-            builder: (context, snapshot) {
-              final accounts = snapshot.data ?? const <BankAccount>[];
-              // Auto-seed: if the user hasn't picked a bank account yet
-              // and exactly one active account exists, default to it.
-              // Idempotent — the post-frame callback only fires once
-              // per "no selection + one candidate" state.
-              if (vm.draft.bankAccountId.isEmpty && accounts.length == 1) {
-                final only = accounts.first.id;
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (vm.draft.bankAccountId.isEmpty) {
-                    vm.setBankAccountId(only);
-                  }
-                });
-              }
-              final selected = accounts
-                  .where((a) => a.id == vm.draft.bankAccountId)
-                  .toList(growable: false);
-              return SearchableDropdownField<BankAccount>(
-                label: context.tr('bank_account'),
-                items: accounts,
-                initialValue: selected.isEmpty ? null : selected.first,
-                idOf: (a) => a.id,
-                displayString: (a) => a.name.isEmpty ? a.id : a.name,
-                onChanged: (a) => vm.setBankAccountId(a?.id ?? ''),
-                emptyHintKey: 'connect_a_bank_account_first',
-                errorText: vm.fieldErrorFor('bank_integration_id'),
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            initialValue: vm.draft.description,
-            decoration: InputDecoration(
-              labelText: context.tr('description'),
-              errorText: vm.fieldErrorFor('description'),
+            const SizedBox(height: 16),
+            TextFormField(
+              initialValue: vm.draft.amount == Decimal.zero
+                  ? ''
+                  : vm.draft.amount.toString(),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: InputDecoration(
+                labelText: context.tr('amount'),
+                errorText: vm.fieldErrorFor('amount'),
+              ),
+              onChanged: (v) {
+                final parsed = Decimal.tryParse(v) ?? Decimal.zero;
+                vm.setAmount(parsed);
+              },
             ),
-            maxLines: 3,
-            onChanged: vm.setDescription,
-          ),
-        ],
+            const SizedBox(height: 12),
+            _CurrencyPicker(vm: vm),
+            const SizedBox(height: 12),
+            InDateField(
+              value: vm.draft.date?.toDateTime(),
+              labelText: context.tr('date'),
+              clearable: true,
+              onChanged: (dt) => vm.setDate(
+                dt == null ? null : Date(dt.year, dt.month, dt.day),
+              ),
+            ),
+            const SizedBox(height: 12),
+            StreamBuilder<List<BankAccount>>(
+              stream: services.bankAccounts.watchAll(companyId: companyId),
+              builder: (context, snapshot) {
+                final accounts = snapshot.data ?? const <BankAccount>[];
+                // Auto-seed: if the user hasn't picked a bank account yet
+                // and exactly one active account exists, default to it.
+                // Idempotent — the post-frame callback only fires once
+                // per "no selection + one candidate" state.
+                if (vm.draft.bankAccountId.isEmpty && accounts.length == 1) {
+                  final only = accounts.first.id;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (vm.draft.bankAccountId.isEmpty) {
+                      vm.setBankAccountId(only);
+                    }
+                  });
+                }
+                final selected = accounts
+                    .where((a) => a.id == vm.draft.bankAccountId)
+                    .toList(growable: false);
+                return SearchableDropdownField<BankAccount>(
+                  label: context.tr('bank_account'),
+                  items: accounts,
+                  initialValue: selected.isEmpty ? null : selected.first,
+                  idOf: (a) => a.id,
+                  displayString: (a) => a.name.isEmpty ? a.id : a.name,
+                  onChanged: (a) => vm.setBankAccountId(a?.id ?? ''),
+                  emptyHintKey: 'connect_a_bank_account_first',
+                  errorText: vm.fieldErrorFor('bank_integration_id'),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              initialValue: vm.draft.description,
+              decoration: InputDecoration(
+                labelText: context.tr('description'),
+                errorText: vm.fieldErrorFor('description'),
+              ),
+              maxLines: 3,
+              onChanged: vm.setDescription,
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/core/widgets/centered_form_column.dart';
 import 'package:admin/ui/features/vendors/view_models/vendor_edit_view_model.dart';
 import 'package:admin/ui/features/vendors/widgets/edit/vendor_edit_address_section.dart';
 import 'package:admin/ui/features/vendors/widgets/edit/vendor_edit_contacts_section.dart';
@@ -11,25 +13,27 @@ import 'package:admin/ui/features/vendors/widgets/edit/vendor_edit_settings_sect
 /// Lays out the edit-screen cards (Details, Address, Settings, Contacts,
 /// Notes) using the same v2 mockup pattern as `ClientEditLayout`:
 ///
-/// - ≥1100 px: two columns. Left (`Expanded`) holds Details + Address +
+/// - ≥1000 px: two columns. Left (`Expanded`) holds Details + Address +
 ///   Settings; right (`_sidebarWidth` 360 px) holds Contacts + Notes.
-/// - <1100 px: single scrolling column with all cards stacked.
+/// - <1000 px: single centered column (≤820 px) with all cards stacked.
 class VendorEditLayout extends StatelessWidget {
   const VendorEditLayout({super.key, required this.vm});
 
   final VendorEditViewModel vm;
 
-  static const double _twoColumnBreakpoint = 1100;
   static const double _sidebarWidth = 360;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final twoCol = constraints.maxWidth >= _twoColumnBreakpoint;
+        final twoCol =
+            constraints.maxWidth >= Breakpoints.entityFormMultiColumn;
         return SingleChildScrollView(
           padding: EdgeInsets.all(InSpacing.lg(context)),
-          child: twoCol ? _wide(context) : _narrow(context),
+          child: twoCol
+              ? _wide(context)
+              : CenteredFormColumn(child: _narrow(context)),
         );
       },
     );

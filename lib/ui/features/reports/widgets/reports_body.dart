@@ -2338,6 +2338,69 @@ class _GroupTotalText extends StatelessWidget {
   }
 }
 
+/// Display string for a report cell: the server's pre-formatted `displayValue`
+/// when present, else a typed fallback (money/date through [formatter], a
+/// `0:13:42` duration, localized yes/no, …). Shared by the wide-table
+/// [_CellText] and the narrow [_ReportCardList] so both format identically —
+/// the card list previously read raw `displayValue` and skipped this.
+String reportCellText(
+  BuildContext context,
+  ReportCell cell,
+  ReportColumn column,
+  Formatter? formatter,
+) {
+  final dv = cell.displayValue;
+  if (dv != null) return dv;
+  // Server values aren't always pre-formatted (typed numbers, some entity
+  // references); format through the Formatter and fall back otherwise.
+  if (cell is ReportNumberCell) {
+    if (cell.value == null) return '';
+    if (column.type == ReportColumnType.money) {
+      // CLAUDE.md convention: money columns render `—` while the formatter
+      // is loading, never the raw Decimal.toString().
+      final f = formatter;
+      if (f == null) return '—';
+      return f.money(
+        cell.value!,
+        currencyId: cell.currencyId == null || cell.currencyId!.isEmpty
+            ? null
+            : cell.currencyId,
+      );
+    }
+    return cell.value!.toString();
+  }
+  if (cell is ReportDateCell) {
+    final iso = cell.value?.toIso();
+    if (iso == null) return '';
+    return formatter?.date(iso) ?? iso;
+  }
+  if (cell is ReportDateTimeCell) {
+    final iso = cell.value?.toIso8601String();
+    if (iso == null) return '';
+    return formatter?.date(iso, showTime: true) ?? iso;
+  }
+  if (cell is ReportAgeCell) {
+    if (cell.isPaid) return context.tr('paid');
+    return '${cell.days ?? ''}';
+  }
+  if (cell is ReportBoolCell) {
+    if (cell.value == null) return '';
+    return cell.value! ? context.tr('yes') : context.tr('no');
+  }
+  if (cell is ReportDurationCell) {
+    // `0:13:42`-style, matching the tasks time-log rendering; long spans
+    // compact to `Xd HHh MMm`. (Was a non-localized `${seconds}s`.)
+    return formatDuration(
+      Duration(seconds: cell.seconds ?? 0),
+      compactDays: true,
+    );
+  }
+  if (cell is ReportStringCell) {
+    return cell.value ?? '';
+  }
+  return '';
+}
+
 class _CellText extends StatelessWidget {
   const _CellText({
     required this.cell,
@@ -2351,58 +2414,11 @@ class _CellText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = cell.displayValue ?? _fallback(context);
-    return Text(text, maxLines: 2, overflow: TextOverflow.ellipsis);
-  }
-
-  // Server values aren't always pre-formatted (typed numbers, some
-  // entity references); use the formatter for money and fall back to a
-  // plain `toString` otherwise.
-  String _fallback(BuildContext context) {
-    if (cell is ReportNumberCell) {
-      final c = cell as ReportNumberCell;
-      if (c.value == null) return '';
-      if (column.type == ReportColumnType.money) {
-        // CLAUDE.md convention: money columns render `—` while the
-        // formatter is loading, never the raw Decimal.toString().
-        final f = formatter;
-        if (f == null) return '—';
-        return f.money(
-          c.value!,
-          currencyId: c.currencyId == null || c.currencyId!.isEmpty
-              ? null
-              : c.currencyId,
-        );
-      }
-      return c.value!.toString();
-    }
-    if (cell is ReportDateCell) {
-      final iso = (cell as ReportDateCell).value?.toIso();
-      if (iso == null) return '';
-      return formatter?.date(iso) ?? iso;
-    }
-    if (cell is ReportDateTimeCell) {
-      final iso = (cell as ReportDateTimeCell).value?.toIso8601String();
-      if (iso == null) return '';
-      return formatter?.date(iso, showTime: true) ?? iso;
-    }
-    if (cell is ReportAgeCell) {
-      final c = cell as ReportAgeCell;
-      if (c.isPaid) return context.tr('paid');
-      return '${c.days ?? ''}';
-    }
-    if (cell is ReportBoolCell) {
-      final c = cell as ReportBoolCell;
-      if (c.value == null) return '';
-      return c.value! ? context.tr('yes') : context.tr('no');
-    }
-    if (cell is ReportDurationCell) {
-      return '${(cell as ReportDurationCell).seconds ?? 0}s';
-    }
-    if (cell is ReportStringCell) {
-      return (cell as ReportStringCell).value ?? '';
-    }
-    return cell.displayValue ?? '';
+    return Text(
+      reportCellText(context, cell, column, formatter),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+    );
   }
 }
 
@@ -2459,12 +2475,24 @@ class _ReportCardList extends StatelessWidget {
             ? null
             : resolveDrillTarget(services.entityRegistry, wire);
         final canDrill = handlers != null && id != null && id.isNotEmpty;
+        // Map by column identifier (not raw cell position): visibleColumns is
+        // filtered/reordered and pins the group column to index 0 on drill, so
+        // `row.cells[k]` would pair the wrong value with the label. `_cellByColumn`
+        // resolves each visible column back to its original cell, exactly like
+        // the wide table.
         return ListTile(
           onTap: canDrill
               ? () => context.go('${handlers.routePath}/$id')
               : null,
           title: Text(
-            row.cells.first.displayValue ?? '',
+            view.visibleColumns.isEmpty
+                ? ''
+                : reportCellText(
+                    context,
+                    _cellByColumn(view, row, 0),
+                    view.visibleColumns.first,
+                    formatter,
+                  ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -2474,7 +2502,7 @@ class _ReportCardList extends StatelessWidget {
               for (var k = 1; k < view.visibleColumns.length && k < 4; k++)
                 Text(
                   '${view.visibleColumns[k].displayLabel}: '
-                  '${row.cells.length > k ? (row.cells[k].displayValue ?? '') : ''}',
+                  '${reportCellText(context, _cellByColumn(view, row, k), view.visibleColumns[k], formatter)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

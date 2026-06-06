@@ -233,3 +233,36 @@ Map<String, Set<String>> resolveRelativeFilterTokens(
   if (start.isEmpty || end.isEmpty) return (start: null, end: null);
   return (start: start, end: end);
 }
+
+const Set<String> _comparableDateOps = {'gt', 'gte', 'lt', 'lte', 'eq'};
+
+/// Single-date comparator slot for a `DateColumnFilterKey` (e.g. the
+/// transactions `date` filter). Wire is `op:value` (`gte:2026-01-01`) or a bare
+/// `value` (defaulting to `gte`, matching the key's `defaultOp`). Relative
+/// tokens (`rel:d7`) are resolved to absolute ISO first so the DB never sees
+/// one. Returns `(op, value)` with op ∈ gt|gte|lt|lte|eq, or `(null, null)`
+/// when the slot is absent/blank or holds a comma (a window wire — that lives in
+/// the `*_range` slot and is read by [parseDateRangeFilter]). Values are ISO
+/// `YYYY-MM-DD`, which compare correctly against a `date` TEXT column.
+({String? op, String? value}) parseComparableDateFilter(
+  Map<String, Set<String>> extraFilters,
+  String key, {
+  DateTime? now,
+}) {
+  final raw = extraFilters[key] ?? const <String>{};
+  if (raw.isEmpty) return (op: null, value: null);
+  var wire = raw.first.trim();
+  if (wire.isEmpty || wire.contains(',')) return (op: null, value: null);
+  // Resolve a `rel:` token (bare or after an `op:` prefix) to absolute ISO.
+  wire = wire.replaceAllMapped(
+    _relTokenInValue,
+    (m) => resolveRelativeDateToken(m.group(0)!, now: now) ?? m.group(0)!,
+  );
+  final idx = wire.indexOf(':');
+  if (idx > 0 && _comparableDateOps.contains(wire.substring(0, idx))) {
+    final value = wire.substring(idx + 1).trim();
+    if (value.isEmpty) return (op: null, value: null);
+    return (op: wire.substring(0, idx), value: value);
+  }
+  return (op: 'gte', value: wire);
+}

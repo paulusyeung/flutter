@@ -12,20 +12,22 @@ import 'package:admin/data/models/domain/recurring_expense.dart';
 import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/detail/custom_field_detail_rows.dart';
 import 'package:admin/ui/core/detail/entity_link_card.dart';
+import 'package:admin/ui/core/widgets/centered_form_column.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/recurring_expenses/widgets/recurring_expense_status_pill.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// Responsive grid for the recurring-expense detail body cards.
 ///
-/// - **≥1100 px**: two equal-width columns. Left holds Summary, Notes (when
+/// - **≥1000 px**: two equal-width columns. Left holds Summary, Notes (when
 ///   populated), Schedule (last-sent + remaining cycles + upcoming-runs
 ///   preview), and Tax Breakdown. Right holds the related-entity link cards
 ///   (Vendor / Client / Project / Category) and Custom Fields. If the right
 ///   column ends up empty we fall back to single-column.
-/// - **<1100 px**: single stacked column matching the pre-refactor order.
+/// - **<1000 px**: single centered column (≤820 px), pre-refactor order.
 class RecurringExpenseDetailCardsGrid extends StatelessWidget {
   const RecurringExpenseDetailCardsGrid({
     super.key,
@@ -38,15 +40,13 @@ class RecurringExpenseDetailCardsGrid extends StatelessWidget {
   final String companyId;
   final Formatter? formatter;
 
-  static const double _wideBreakpoint = 1100;
-
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = constraints.maxWidth >= _wideBreakpoint;
+        final wide = constraints.maxWidth >= Breakpoints.entityFormMultiColumn;
         if (wide) return _wide(context);
-        return _stacked(context);
+        return CenteredFormColumn(child: _stacked(context));
       },
     );
   }

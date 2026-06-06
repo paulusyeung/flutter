@@ -9,6 +9,7 @@ import 'package:admin/ui/core/detail/custom_fields_detail_card.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
 import 'package:admin/ui/core/detail/build_standard_documents_tab.dart';
+import 'package:admin/ui/core/widgets/centered_form_column.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/features/billing_shared/activity/billing_doc_activity_tab.dart';
 import 'package:admin/ui/features/payments/view_models/payment_detail_view_model.dart';
@@ -64,80 +65,82 @@ class _PaymentDetailScreenState extends State<PaymentDetailScreen>
       bodyBuilder: (context, p) {
         return SingleChildScrollView(
           padding: EdgeInsets.all(InSpacing.lg(context)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              PaymentDetailHeader(payment: p, formatter: formatter),
-              const SizedBox(height: InSpacing.xl),
-              EntityDetailTabs(
-                tabs: [
-                  EntityDetailTab(
-                    label: context.tr('overview'),
-                    icon: Icons.dashboard_outlined,
-                    bodyBuilder: (_) => Padding(
-                      padding: EdgeInsets.all(InSpacing.lg(context)),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          PaymentDetailKpiStrip(
-                            payment: p,
-                            formatter: formatter,
-                          ),
-                          PaymentUnappliedBand(
-                            payment: p,
-                            formatter: formatter,
-                          ),
-                          if (p.companyGatewayId.isNotEmpty) ...[
-                            SizedBox(height: InSpacing.md(context)),
-                            PaymentDetailGatewayCard(
-                              companyId: _companyId,
-                              companyGatewayId: p.companyGatewayId,
-                            ),
-                          ],
-                          if (p.customValue1.isNotEmpty ||
-                              p.customValue2.isNotEmpty ||
-                              p.customValue3.isNotEmpty ||
-                              p.customValue4.isNotEmpty) ...[
-                            SizedBox(height: InSpacing.md(context)),
-                            CustomFieldsDetailCard(
-                              companyId: _companyId,
-                              prefix: 'payment',
-                              values: [
-                                p.customValue1,
-                                p.customValue2,
-                                p.customValue3,
-                                p.customValue4,
-                              ],
+          child: CenteredFormColumn(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                PaymentDetailHeader(payment: p, formatter: formatter),
+                const SizedBox(height: InSpacing.xl),
+                EntityDetailTabs(
+                  tabs: [
+                    EntityDetailTab(
+                      label: context.tr('overview'),
+                      icon: Icons.dashboard_outlined,
+                      bodyBuilder: (_) => Padding(
+                        padding: EdgeInsets.all(InSpacing.lg(context)),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            PaymentDetailKpiStrip(
+                              payment: p,
                               formatter: formatter,
                             ),
+                            PaymentUnappliedBand(
+                              payment: p,
+                              formatter: formatter,
+                            ),
+                            if (p.companyGatewayId.isNotEmpty) ...[
+                              SizedBox(height: InSpacing.md(context)),
+                              PaymentDetailGatewayCard(
+                                companyId: _companyId,
+                                companyGatewayId: p.companyGatewayId,
+                              ),
+                            ],
+                            if (p.customValue1.isNotEmpty ||
+                                p.customValue2.isNotEmpty ||
+                                p.customValue3.isNotEmpty ||
+                                p.customValue4.isNotEmpty) ...[
+                              SizedBox(height: InSpacing.md(context)),
+                              CustomFieldsDetailCard(
+                                companyId: _companyId,
+                                prefix: 'payment',
+                                values: [
+                                  p.customValue1,
+                                  p.customValue2,
+                                  p.customValue3,
+                                  p.customValue4,
+                                ],
+                                formatter: formatter,
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                  buildStandardDocumentsTab(
-                    context: context,
-                    companyId: _companyId,
-                    entityId: p.id,
-                    documents: p.documents,
-                    repo: _services.payments,
-                    formatter: formatter,
-                  ),
-                  EntityDetailTab(
-                    label: context.tr('activity'),
-                    icon: Icons.history_outlined,
-                    bodyBuilder: (_) => BillingDocActivityTab(
-                      entityWireName: 'payment',
-                      entityId: p.id,
+                    buildStandardDocumentsTab(
+                      context: context,
                       companyId: _companyId,
-                      activitiesApi: _services.activities,
-                      outboxDao: _services.db.outboxDao,
+                      entityId: p.id,
+                      documents: p.documents,
+                      repo: _services.payments,
                       formatter: formatter,
                     ),
-                  ),
-                ],
-              ),
-            ],
+                    EntityDetailTab(
+                      label: context.tr('activity'),
+                      icon: Icons.history_outlined,
+                      bodyBuilder: (_) => BillingDocActivityTab(
+                        entityWireName: 'payment',
+                        entityId: p.id,
+                        companyId: _companyId,
+                        activitiesApi: _services.activities,
+                        outboxDao: _services.db.outboxDao,
+                        formatter: formatter,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         );
       },

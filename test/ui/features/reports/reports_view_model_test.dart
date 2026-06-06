@@ -43,6 +43,12 @@ class _FakeRepo implements ReportsRepository {
 
   int callCount = 0;
 
+  /// Records the `reportKeys` passed to each preview / export call so tests
+  /// can assert preview never narrows columns while export honors the
+  /// selection (F1).
+  final List<List<String>> previewReportKeys = [];
+  final List<List<String>> exportReportKeys = [];
+
   @override
   Future<ReportPreview> runPreview({
     required String reportIdentifier,
@@ -53,6 +59,7 @@ class _FakeRepo implements ReportsRepository {
     Duration pollInterval = ReportsApi.defaultPollInterval,
     ReportPollingCancellation? isCancelled,
   }) async {
+    previewReportKeys.add(reportKeys);
     final i = callCount++;
     await _gates[i].future;
     if (isCancelled?.call() == true) {
@@ -97,6 +104,7 @@ class _FakeRepo implements ReportsRepository {
     ReportPollingCancellation? isCancelled,
   }) async {
     exportCalls.add(format);
+    exportReportKeys.add(reportKeys);
     if (isCancelled?.call() == true) {
       throw const ReportError(kind: ReportErrorKind.cancelled);
     }
@@ -417,6 +425,69 @@ void main() {
     expect(notified, 1);
   });
 
+  group('column selection (F1)', () {
+    ReportPreview colsPreview(List<String> ids) => ReportPreview(
+      columns: [
+        for (final id in ids)
+          ReportColumn(
+            identifier: id,
+            displayLabel: id,
+            type: ReportColumnType.string,
+          ),
+      ],
+      rows: const [],
+    );
+
+    test(
+      'preview requests the full column set; export honors the selection',
+      () async {
+        final repo = _FakeRepo();
+        final g1 = _Trigger()..release();
+        repo.queue(g1, colsPreview(['a', 'b', 'c']));
+        final vm = ReportsViewModel(repo: repo, statics: statics);
+
+        // First run: no selection yet → preview sends empty report_keys, and
+        // the returned columns become the visible set.
+        await vm.runReport();
+        expect(repo.previewReportKeys.single, isEmpty);
+        expect(vm.visibleColumnIds, {'a', 'b', 'c'});
+
+        // Hide a column locally, then export → export carries the subset.
+        vm.setVisibleColumns({'a', 'c'});
+        await vm.runExport(ReportExportFormat.csv);
+        expect(repo.exportReportKeys.single, unorderedEquals(['a', 'c']));
+      },
+    );
+
+    test(
+      'a deselected column survives a re-run and stays re-addable',
+      () async {
+        final repo = _FakeRepo();
+        final g1 = _Trigger()..release();
+        final g2 = _Trigger()..release();
+        // The server returns the full set on every preview (the VM sends no
+        // report_keys on preview).
+        repo.queue(g1, colsPreview(['a', 'b', 'c']));
+        repo.queue(g2, colsPreview(['a', 'b', 'c']));
+        final vm = ReportsViewModel(repo: repo, statics: statics);
+
+        await vm.runReport();
+        vm.setVisibleColumns({'a', 'c'}); // hide 'b'
+        await vm.runReport();
+
+        // 'b' stays hidden across the re-run...
+        expect(vm.visibleColumnIds, {'a', 'c'});
+        // ...but is still in the preview, so the column picker can re-add it.
+        expect(
+          vm.run.preview!.columns.map((c) => c.identifier),
+          containsAll(['a', 'b', 'c']),
+        );
+        // Neither preview run narrowed the columns.
+        expect(repo.previewReportKeys, [isEmpty, isEmpty]);
+      },
+    );
+  });
+
   group('restore-on-restart persistence', () {
     test('round-trips report + payload + view state for the company', () async {
       final vm1 = ReportsViewModel(
@@ -540,9 +611,44 @@ void main() {
         await vm.hydration;
         expect(vm.visibleColumnIds, {'old1', 'old2'});
         await vm.runReport();
-        // old2 dropped (gone), newcol unioned in, group kept (old1 exists).
-        expect(vm.visibleColumnIds, {'old1', 'newcol'});
+        // old2 dropped (no longer returned); newcol NOT auto-shown — preview
+        // always requests the full set now, so auto-adding would re-show every
+        // hidden column on each run. The picker still exposes newcol for manual
+        // add. Group kept (old1 still exists).
+        expect(vm.visibleColumnIds, {'old1'});
         expect(vm.group, 'old1');
+      },
+    );
+
+    test(
+      'a user action before hydration is not clobbered by restore',
+      () async {
+        // Seed co1 with 'payment' persisted.
+        final seed = ReportsViewModel(
+          repo: _FakeRepo(),
+          statics: statics,
+          navStateDao: db.navStateDao,
+          companyId: 'co1',
+          persistDebounce: Duration.zero,
+        );
+        await seed.hydration;
+        seed.setReport('payment');
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+
+        // New VM for co1: hydration kicks off but suspends on the Drift read.
+        // Switch report synchronously, before hydration resolves.
+        final vm = ReportsViewModel(
+          repo: _FakeRepo(),
+          statics: statics,
+          navStateDao: db.navStateDao,
+          companyId: 'co1',
+        );
+        vm.setReport(
+          'invoice',
+        ); // user acts before _hydrate applies the snapshot
+        await vm.hydration;
+        // The live action wins; the persisted 'payment' did not overwrite it.
+        expect(vm.reportIdentifier, 'invoice');
       },
     );
   });

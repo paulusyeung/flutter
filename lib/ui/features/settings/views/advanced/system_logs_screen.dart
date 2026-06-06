@@ -21,13 +21,14 @@ import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart
 import 'package:admin/ui/features/settings/widgets/system_log_row.dart';
 import 'package:admin/utils/formatting.dart';
 
-/// Settings → System Logs. Hosts two distinct things on one screen:
-/// 1. The server-side System Logs feed (`/api/v1/system_logs`) — admin
-///    /owner only; surfaces gateway / email / webhook / PDF / security
-///    events with collapsible JSON payloads.
+/// Settings → System Logs. Admin/owner only (matches React's `Guard` on
+/// `/settings/system_logs`) — non-admins get a restricted state and the
+/// sidebar entry + search hit are hidden. Hosts two distinct things:
+/// 1. The server-side System Logs feed (`/api/v1/system_logs`) — surfaces
+///    gateway / email / webhook / PDF / security events with collapsible
+///    JSON payloads.
 /// 2. Local diagnostics — app version, server URL, outbox state, and the
-///    `claude-diagnostics.log` file path. Always visible (no permissions
-///    needed) since it's all local data and useful for support reports.
+///    `claude-diagnostics.log` file path — handy for support reports.
 class SystemLogsScreen extends StatefulWidget {
   const SystemLogsScreen({super.key});
 
@@ -149,85 +150,111 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
   @override
   Widget build(BuildContext context) {
     final services = context.read<Services>();
-    return ValueListenableBuilder<String?>(
-      valueListenable: services.serverVersion,
-      builder: (context, serverVersion, _) {
-        final session = services.auth.session.value;
-        final companyId = session?.currentCompanyId ?? '';
-        return StreamBuilder<int>(
-          stream: services.db.outboxDao.watchPendingCount(companyId: companyId),
-          builder: (context, pendingSnap) {
+    // Admin/owner-only page — matches React's Guard on /settings/system_logs.
+    // The session VLB keeps the gate reactive; the restricted branch blocks
+    // deep-links and restored routes too, not just the hidden sidebar entry.
+    return ValueListenableBuilder<AuthSession?>(
+      valueListenable: services.auth.session,
+      builder: (context, session, _) {
+        if (!_canViewServerLogs(session)) {
+          return SettingsScreenScaffold(
+            titleKey: 'system_logs',
+            body: Center(
+              child: EmptyState(
+                icon: Icons.lock_outline,
+                title: context.tr('restricted'),
+                subtitle: context.tr('only_admins_can_access'),
+              ),
+            ),
+          );
+        }
+        return ValueListenableBuilder<String?>(
+          valueListenable: services.serverVersion,
+          builder: (context, serverVersion, _) {
+            final companyId = session?.currentCompanyId ?? '';
             return StreamBuilder<int>(
-              stream: services.db.outboxDao.watchDeadCount(
+              stream: services.db.outboxDao.watchPendingCount(
                 companyId: companyId,
               ),
-              builder: (context, deadSnap) {
-                final pending = pendingSnap.data ?? 0;
-                final dead = deadSnap.data ?? 0;
-                final appRows = <(String, String)>[
-                  (
-                    context.tr('app_version'),
-                    '${_packageInfo?.version ?? '?'} (${_packageInfo?.buildNumber ?? '?'})',
+              builder: (context, pendingSnap) {
+                return StreamBuilder<int>(
+                  stream: services.db.outboxDao.watchDeadCount(
+                    companyId: companyId,
                   ),
-                  (
-                    context.tr('client_version_constant'),
-                    AppVersion.kClientVersion,
-                  ),
-                  (
-                    context.tr('min_server_version'),
-                    AppVersion.kMinServerVersion,
-                  ),
-                ];
-                final serverRows = <(String, String)>[
-                  (context.tr('server_url'), session?.baseUrl ?? '—'),
-                  (
-                    context.tr('server_version_label'),
-                    serverVersion ?? context.tr('not_yet_seen'),
-                  ),
-                  (
-                    context.tr('hosted'),
-                    (session?.isHosted ?? false)
-                        ? context.tr('yes')
-                        : context.tr('no'),
-                  ),
-                  (context.tr('account_id'), session?.accountId ?? '—'),
-                  (
-                    context.tr('company'),
-                    session?.currentCompany?.displayName ?? '—',
-                  ),
-                  (
-                    context.tr('company_id_label'),
-                    session?.currentCompanyId ?? '—',
-                  ),
-                ];
-                final outboxRows = <(String, String)>[
-                  (context.tr('pending_outbox_rows'), '$pending'),
-                  (context.tr('dead_outbox_rows'), '$dead'),
-                ];
-                final allRows = [...appRows, ...serverRows, ...outboxRows];
-                final diag = services.diagnosticsLog;
-                final canViewServerLogs = _canViewServerLogs(session);
+                  builder: (context, deadSnap) {
+                    final pending = pendingSnap.data ?? 0;
+                    final dead = deadSnap.data ?? 0;
+                    final appRows = <(String, String)>[
+                      (
+                        context.tr('app_version'),
+                        '${_packageInfo?.version ?? '?'} (${_packageInfo?.buildNumber ?? '?'})',
+                      ),
+                      (
+                        context.tr('client_version_constant'),
+                        AppVersion.kClientVersion,
+                      ),
+                      (
+                        context.tr('min_server_version'),
+                        AppVersion.kMinServerVersion,
+                      ),
+                    ];
+                    final serverRows = <(String, String)>[
+                      (context.tr('server_url'), session?.baseUrl ?? '—'),
+                      (
+                        context.tr('server_version_label'),
+                        serverVersion ?? context.tr('not_yet_seen'),
+                      ),
+                      (
+                        context.tr('hosted'),
+                        (session?.isHosted ?? false)
+                            ? context.tr('yes')
+                            : context.tr('no'),
+                      ),
+                      (context.tr('account_id'), session?.accountId ?? '—'),
+                      (
+                        context.tr('company'),
+                        session?.currentCompany?.displayName ?? '—',
+                      ),
+                      (
+                        context.tr('company_id_label'),
+                        session?.currentCompanyId ?? '—',
+                      ),
+                    ];
+                    final outboxRows = <(String, String)>[
+                      (context.tr('pending_outbox_rows'), '$pending'),
+                      (context.tr('dead_outbox_rows'), '$dead'),
+                    ];
+                    final allRows = [...appRows, ...serverRows, ...outboxRows];
+                    final diag = services.diagnosticsLog;
+                    final canViewServerLogs = _canViewServerLogs(session);
 
-                return SettingsScreenScaffold(
-                  titleKey: 'system_logs',
-                  actions: [
-                    IconButton(
-                      icon: const Icon(Icons.copy),
-                      tooltip: context.tr('copy_diagnostics'),
-                      onPressed: () => _copy(allRows),
-                    ),
-                  ],
-                  body: SettingsFormShell(
-                    sections: _buildSections(
-                      services: services,
-                      companyId: companyId,
-                      canViewServerLogs: canViewServerLogs,
-                      appRows: appRows,
-                      serverRows: serverRows,
-                      outboxRows: outboxRows,
-                      diag: diag,
-                    ),
-                  ),
+                    return SettingsScreenScaffold(
+                      titleKey: 'system_logs',
+                      actions: [
+                        IconButton(
+                          icon: const Icon(Icons.copy),
+                          tooltip: context.tr('copy_diagnostics'),
+                          onPressed: () => _copy(
+                            rows: allRows,
+                            services: services,
+                            companyId: companyId,
+                            diag: diag,
+                          ),
+                        ),
+                      ],
+                      body: SettingsFormShell(
+                        sections: _buildSections(
+                          services: services,
+                          companyId: companyId,
+                          canViewServerLogs: canViewServerLogs,
+                          appRows: appRows,
+                          serverRows: serverRows,
+                          outboxRows: outboxRows,
+                          diag: diag,
+                        ),
+                      ),
+                    );
+                  },
                 );
               },
             );
@@ -407,10 +434,55 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
     );
   }
 
-  Future<void> _copy(List<(String, String)> rows) async {
-    final text = rows.map((r) => '${r.$1}: ${r.$2}').join('\n');
+  /// Assembles a support bundle: the metadata rows, a compact server-log
+  /// summary (no JSON payloads — they can carry unredacted PII / payment
+  /// data), and the recent local diagnostics tail (already redacted at
+  /// capture time). Translation goes through a captured [Localization] so we
+  /// don't touch `context` across the `await`.
+  Future<void> _copy({
+    required List<(String, String)> rows,
+    required Services services,
+    required String companyId,
+    required DiagnosticsLog? diag,
+  }) async {
+    final l10n = Localization.of(context);
+    String tr(String key) => l10n?.lookup(key) ?? key;
+
+    final buffer = StringBuffer(rows.map((r) => '${r.$1}: ${r.$2}').join('\n'));
+
+    if (companyId.isNotEmpty) {
+      try {
+        final logs = await services.systemLogs.watch(companyId).first;
+        if (logs.isNotEmpty) {
+          buffer
+            ..writeln()
+            ..writeln()
+            ..writeln('--- ${tr('system_logs')} ---');
+          for (final l in logs) {
+            final type = l.typeDisplay();
+            final typeText = type.isKey ? tr(type.value) : type.value;
+            buffer.writeln(
+              '${tr(l.categoryKey)} · ${tr(l.eventKey)} · $typeText · '
+              '${l.createdAt.toUtc().toIso8601String()}',
+            );
+          }
+        }
+      } catch (_) {
+        // Best-effort — omit the server-log section if the cache read fails.
+      }
+    }
+
+    final recent = diag?.recent() ?? const <String>[];
+    if (recent.isNotEmpty) {
+      buffer
+        ..writeln()
+        ..writeln()
+        ..writeln('--- ${tr('diagnostics_log')} ---')
+        ..writeln(recent.join('\n'));
+    }
+
     try {
-      await Clipboard.setData(ClipboardData(text: text));
+      await Clipboard.setData(ClipboardData(text: buffer.toString()));
     } catch (_) {
       if (!mounted) return;
       Notify.error(context, context.tr('error'));

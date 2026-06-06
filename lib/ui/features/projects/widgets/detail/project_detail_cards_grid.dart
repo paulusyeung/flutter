@@ -12,19 +12,21 @@ import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/data/models/domain/user.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/detail/custom_field_detail_rows.dart';
 import 'package:admin/ui/core/detail/entity_link_card.dart';
+import 'package:admin/ui/core/widgets/centered_form_column.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/tasks/widgets/running_duration_label.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// Responsive grid for the project detail body cards.
 ///
-/// - **≥1100 px**: two equal-width columns. Left holds Details and Tasks
+/// - **≥1000 px**: two equal-width columns. Left holds Details and Tasks
 ///   (the long-list dominant content). Right holds the Client link card
 ///   and Custom Fields. If the right column is empty (no client, no custom
 ///   values) we fall back to a single column.
-/// - **<1100 px**: single stacked column in the legacy order.
+/// - **<1000 px**: single centered column (≤820 px) in the legacy order.
 ///
 /// Note: `ProjectProgressCard` sits above this grid in the screen body —
 /// it owns the hero KPI strip (Logged / Budgeted / Remaining / Projected)
@@ -41,15 +43,13 @@ class ProjectDetailCardsGrid extends StatelessWidget {
   final String companyId;
   final Formatter? formatter;
 
-  static const double _wideBreakpoint = 1100;
-
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = constraints.maxWidth >= _wideBreakpoint;
+        final wide = constraints.maxWidth >= Breakpoints.entityFormMultiColumn;
         if (wide) return _wide(context);
-        return _stacked(context);
+        return CenteredFormColumn(child: _stacked(context));
       },
     );
   }

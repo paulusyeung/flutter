@@ -130,4 +130,88 @@ void main() {
       expect(dateKeys.single.rangeServerKey, 'date_range');
     });
   });
+
+  group(
+    'TransactionListViewModel — status/type → client_status server param',
+    () {
+      late AppDatabase db;
+      late _FakeBankTransactionsApi api;
+
+      setUp(() {
+        db = AppDatabase(NativeDatabase.memory());
+        api = _FakeBankTransactionsApi();
+      });
+      tearDown(() async {
+        await db.close();
+      });
+
+      TransactionListViewModel makeVm() => TransactionListViewModel(
+        repo: BankTransactionRepository(db: db, api: api),
+        companyId: 'co',
+        navStateDao: db.navStateDao,
+        userSettings: UserSettingsRepository(db: db),
+        searchDebounce: const Duration(milliseconds: 1),
+        persistDebounce: const Duration(milliseconds: 1),
+      );
+
+      Future<Map<String, String>> sentFor(
+        Map<String, Set<String>> extraFilters,
+      ) async {
+        final vm = makeVm();
+        addTearDown(vm.dispose);
+        await vm.fetchPage(
+          page: 1,
+          search: null,
+          states: const {EntityState.active},
+          extraFilters: extraFilters,
+          ignoreCursor: false,
+        );
+        return api.listFilters.last;
+      }
+
+      test('status chip maps to a client_status keyword (no raw status_id) — '
+          'BankTransactionFilters has no status_id handler', () async {
+        final sent = await sentFor({
+          'status_id': {'2'},
+        });
+        expect(sent['client_status'], 'matched');
+        expect(sent.containsKey('status_id'), isFalse);
+      });
+
+      test(
+        'type chip maps to a client_status keyword (no raw base_type)',
+        () async {
+          final sent = await sentFor({
+            'base_type': {'CREDIT'},
+          });
+          expect(sent['client_status'], 'deposits');
+          expect(sent.containsKey('base_type'), isFalse);
+        },
+      );
+
+      test('status + type combine into one client_status value', () async {
+        final sent = await sentFor({
+          'status_id': {'2'},
+          'base_type': {'CREDIT'},
+        });
+        final parts = (sent['client_status'] ?? '').split(',');
+        expect(parts, containsAll(<String>['matched', 'deposits']));
+        expect(sent.containsKey('status_id'), isFalse);
+        expect(sent.containsKey('base_type'), isFalse);
+      });
+
+      test('multiple statuses map to multiple keywords', () async {
+        final sent = await sentFor({
+          'status_id': {'1', '3'},
+        });
+        final parts = (sent['client_status'] ?? '').split(',');
+        expect(parts, containsAll(<String>['unmatched', 'converted']));
+      });
+
+      test('no status/type filter → no client_status key', () async {
+        final sent = await sentFor(const {});
+        expect(sent.containsKey('client_status'), isFalse);
+      });
+    },
+  );
 }

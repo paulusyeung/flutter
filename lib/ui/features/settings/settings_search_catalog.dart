@@ -77,6 +77,7 @@ class SettingsSectionDef {
     required this.isBasic,
     this.clientEditable = true,
     this.enabledBy,
+    this.adminOnly = false,
   });
 
   /// Stable identifier; matches the leading path segment after `/settings/`.
@@ -103,6 +104,12 @@ class SettingsSectionDef {
   /// shell like Workflow Settings stays as long as one of its tabs applies);
   /// it's hidden only when every listed module is off for the company.
   final List<EnabledModule>? enabledBy;
+
+  /// When true, the section is visible only to admin/owner users — mirrors
+  /// React's `Guard` on `/settings/system_logs`. Enforced at render time by
+  /// the sidebar (`inScope`) and the settings search (`_buildResults`); the
+  /// static catalog stays complete so search_catalog_consistency_test passes.
+  final bool adminOnly;
 
   /// True when this section should appear for a company with the given
   /// [enabledModules] mask. Sections without [enabledBy] are always visible.
@@ -336,6 +343,7 @@ const kSettingsSections = <SettingsSectionDef>[
     route: '/settings/system_logs',
     isBasic: false,
     clientEditable: false,
+    adminOnly: true,
   ),
 ];
 

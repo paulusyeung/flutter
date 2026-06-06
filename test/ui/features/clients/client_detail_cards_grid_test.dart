@@ -70,5 +70,18 @@ void main() {
       // The three blank standard fields each render a `—` placeholder.
       expect(find.text('—'), findsNWidgets(3));
     });
+
+    testWidgets(
+      'two-column grid engages at 1050px (below the old 1100 breakpoint)',
+      (tester) async {
+        // Regression lock for Breakpoints.entityFormMultiColumn (1000): a
+        // full-width pane on a ~1280px window (~1048px content) must render
+        // the wide grid — keeping the empty Details card — not the stretched
+        // single column. Under the old 1100 threshold this width stacked and
+        // dropped the empty card.
+        await _pump(tester, _client(), 1050);
+        expect(find.byType(ClientDetailDetailsCard), findsOneWidget);
+      },
+    );
   });
 }

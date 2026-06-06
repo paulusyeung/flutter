@@ -1,9 +1,9 @@
 import 'package:admin/data/models/domain/report_definition.dart';
 import 'package:admin/domain/entity_type.dart';
 
-/// The 28 reports we mirror from React (`useReports.ts`). Identifier +
-/// endpoint + supportsPreview are the load-bearing fields; filter sets are
-/// kept sparse in Phase 1 and filled in by Phase 2 per
+/// The 28 reports we mirror from React (`useReports.ts`). Each entry carries
+/// its endpoint, `supportsPreview`, the server-side `filterFields` the settings
+/// panel renders, and `defaultFilterValues`. Field visibility mirrors
 /// `react/src/pages/reports/common/hooks/useShowReportField.ts`.
 const kReportDefinitions = <ReportDefinition>[
   // ─── Entity reports ───

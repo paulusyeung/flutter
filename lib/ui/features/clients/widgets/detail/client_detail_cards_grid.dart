@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/core/widgets/centered_form_column.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_address_card.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_contacts_card.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_details_card.dart';
@@ -12,18 +14,18 @@ import 'package:admin/utils/formatting.dart';
 
 /// Responsive grid for the client detail body cards.
 ///
-/// - **≥1100 px**: three equal-width columns — Details · Address · Contacts —
+/// - **≥1000 px**: three equal-width columns — Details · Address · Contacts —
 ///   with Notes spanning the full width on a second row when it has content.
 ///   If Contacts is empty, drops to two equal-width columns so Details and
 ///   Address don't get stretched by a zero-width sibling.
-/// - **<1100 px**: single scrolling column, all cards stacked.
+/// - **<1000 px**: single centered column (≤820 px), all cards stacked.
 ///
 /// The KPI/Standing card has moved up into `ClientDetailKpiStrip` (rendered
 /// by the screen above this grid), so this widget no longer owns it.
 ///
 /// Most cards return `SizedBox.shrink()` from `build` when they have no data,
 /// so empty cards collapse out of the layout naturally. The Details card is
-/// the exception: it's kept in the ≥1100 px grid even when empty (so the
+/// the exception: it's kept in the ≥1000 px grid even when empty (so the
 /// three `Expanded` columns stay aligned and no gap appears), but dropped
 /// from the stacked single-column layout — mobile and the master-detail
 /// sidebar preview pane — where an empty box is just wasted space.
@@ -37,15 +39,13 @@ class ClientDetailCardsGrid extends StatelessWidget {
   final Client client;
   final Formatter? formatter;
 
-  static const double _wideBreakpoint = 1100;
-
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = constraints.maxWidth >= _wideBreakpoint;
+        final wide = constraints.maxWidth >= Breakpoints.entityFormMultiColumn;
         if (wide) return _wide(context, client);
-        return _stacked(context, client);
+        return CenteredFormColumn(child: _stacked(context, client));
       },
     );
   }

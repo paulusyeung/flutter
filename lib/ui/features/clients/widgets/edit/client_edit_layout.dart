@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/core/widgets/centered_form_column.dart';
 import 'package:admin/ui/features/clients/view_models/client_edit_view_model.dart';
 import 'package:admin/ui/features/clients/widgets/edit/client_edit_address_section.dart';
 import 'package:admin/ui/features/clients/widgets/edit/client_edit_contacts_section.dart';
@@ -13,25 +15,27 @@ import 'package:admin/ui/features/clients/widgets/edit/client_edit_shipping_addr
 /// using the v2 mockup pattern: `1fr` main column + fixed-width side column
 /// on wide widths.
 ///
-/// - ≥1100 px: two columns. Left (`Expanded`) holds Details + Address; right
+/// - ≥1000 px: two columns. Left (`Expanded`) holds Details + Address; right
 ///   (`_sidebarWidth` 360 px) holds Contacts + Notes.
-/// - <1100 px: single scrolling column with all cards stacked.
+/// - <1000 px: single centered column (≤820 px) with all cards stacked.
 class ClientEditLayout extends StatelessWidget {
   const ClientEditLayout({super.key, required this.vm});
 
   final ClientEditViewModel vm;
 
-  static const double _twoColumnBreakpoint = 1100;
   static const double _sidebarWidth = 360;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final twoCol = constraints.maxWidth >= _twoColumnBreakpoint;
+        final twoCol =
+            constraints.maxWidth >= Breakpoints.entityFormMultiColumn;
         return SingleChildScrollView(
           padding: EdgeInsets.all(InSpacing.lg(context)),
-          child: twoCol ? _wide(context) : _narrow(context),
+          child: twoCol
+              ? _wide(context)
+              : CenteredFormColumn(child: _narrow(context)),
         );
       },
     );

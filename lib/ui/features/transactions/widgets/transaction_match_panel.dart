@@ -73,7 +73,7 @@ class _TransactionMatchPanelState extends State<TransactionMatchPanel> {
           label: context.tr(createLabelKey),
           icon: Icons.add_circle_outline,
           bodyBuilder: (ctx) => Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(InSpacing.lg(ctx)),
             child: tx.isDeposit
                 ? _CreditCreateTab(transaction: tx, formatter: widget.formatter)
                 : _DebitCreateTab(transaction: tx),
@@ -83,7 +83,7 @@ class _TransactionMatchPanelState extends State<TransactionMatchPanel> {
           label: context.tr(linkLabelKey),
           icon: Icons.link_outlined,
           bodyBuilder: (ctx) => Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(InSpacing.lg(ctx)),
             child: tx.isDeposit
                 ? _CreditLinkTab(transaction: tx, formatter: widget.formatter)
                 : _DebitLinkTab(transaction: tx, formatter: widget.formatter),
@@ -263,11 +263,14 @@ class _CreditCreateTabState extends State<_CreditCreateTab> {
           const SizedBox(height: 12),
           Row(
             children: [
-              Text(
-                context.tr('calculate_total'),
-                style: TextStyle(color: tokens.ink2),
+              Expanded(
+                child: Text(
+                  context.tr('calculate_total'),
+                  style: TextStyle(color: tokens.ink2),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Text(
                 _money(_selectedTotal),
                 style: TextStyle(
@@ -563,7 +566,9 @@ class _DebitLinkTabState extends State<_DebitLinkTab> {
     final expenses = await services.expenses
         .watchPage(
           companyId: companyId,
-          loadedPages: 4,
+          // Load a wide slice so the target expense is in range; the sheet's
+          // search filters this set client-side.
+          loadedPages: 20,
           states: const {EntityState.active},
         )
         .first;

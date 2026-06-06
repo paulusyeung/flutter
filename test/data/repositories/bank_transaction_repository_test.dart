@@ -210,6 +210,124 @@ void main() {
       expect(fromZero.transactionId, '');
     });
   });
+
+  group('BankTransactionRepository — local filter mirror (watchPage)', () {
+    late AppDatabase db;
+    late BankTransactionRepository repo;
+
+    setUp(() {
+      db = AppDatabase(NativeDatabase.memory());
+      repo = BankTransactionRepository(db: db, api: _FakeBankTransactionsApi());
+    });
+    tearDown(() async {
+      await db.close();
+    });
+
+    Future<void> seed(
+      String id, {
+      String statusId = kTransactionStatusUnmatched,
+      String baseType = kTransactionTypeCredit,
+      String date = '2026-03-15',
+    }) => repo.applyUpdateResponse(
+      companyId: 'co',
+      serverResponse: BankTransactionApi(
+        id: id,
+        statusId: statusId,
+        baseType: baseType,
+        date: date,
+      ),
+    );
+
+    Future<List<String>> idsOf(Stream<List<BankTransaction>> stream) async {
+      final rows = await stream.first;
+      return rows.map((t) => t.id).toList()..sort();
+    }
+
+    test('statusIds narrows to the matching statuses', () async {
+      await seed('a', statusId: kTransactionStatusUnmatched);
+      await seed('b', statusId: kTransactionStatusMatched);
+      await seed('c', statusId: kTransactionStatusConverted);
+      expect(
+        await idsOf(
+          repo.watchPage(
+            companyId: 'co',
+            statusIds: {kTransactionStatusMatched},
+          ),
+        ),
+        ['b'],
+      );
+    });
+
+    test('baseType narrows deposits vs withdrawals', () async {
+      await seed('a', baseType: kTransactionTypeCredit);
+      await seed('b', baseType: kTransactionTypeDebit);
+      expect(
+        await idsOf(
+          repo.watchPage(companyId: 'co', baseType: kTransactionTypeCredit),
+        ),
+        ['a'],
+      );
+    });
+
+    test('status + type AND together', () async {
+      await seed(
+        'a',
+        statusId: kTransactionStatusMatched,
+        baseType: kTransactionTypeCredit,
+      );
+      await seed(
+        'b',
+        statusId: kTransactionStatusMatched,
+        baseType: kTransactionTypeDebit,
+      );
+      expect(
+        await idsOf(
+          repo.watchPage(
+            companyId: 'co',
+            statusIds: {kTransactionStatusMatched},
+            baseType: kTransactionTypeDebit,
+          ),
+        ),
+        ['b'],
+      );
+    });
+
+    test('date window (between) narrows by the date column', () async {
+      await seed('a', date: '2026-01-05');
+      await seed('b', date: '2026-03-20');
+      expect(
+        await idsOf(
+          repo.watchPage(
+            companyId: 'co',
+            dateStart: '2026-03-01',
+            dateEnd: '2026-03-31',
+          ),
+        ),
+        ['b'],
+      );
+    });
+
+    test('date comparator (gte) narrows by the date column', () async {
+      await seed('a', date: '2026-01-05');
+      await seed('b', date: '2026-03-20');
+      expect(
+        await idsOf(
+          repo.watchPage(
+            companyId: 'co',
+            dateOp: 'gte',
+            dateValue: '2026-02-01',
+          ),
+        ),
+        ['b'],
+      );
+    });
+
+    test('no filters → all active rows', () async {
+      await seed('a');
+      await seed('b');
+      expect(await idsOf(repo.watchPage(companyId: 'co')), ['a', 'b']);
+    });
+  });
 }
 
 class _FakeBankTransactionsApi implements BankTransactionsApi {

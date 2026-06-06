@@ -1,4 +1,5 @@
 import 'package:admin/data/db/dao/bank_transaction_dao.dart';
+import 'package:admin/data/db/dao/billing_extra_filters.dart';
 import 'package:admin/data/models/domain/bank_transaction.dart';
 import 'package:admin/data/repositories/bank_transaction_repository.dart';
 import 'package:admin/domain/columns/bank_transaction_columns.dart';
@@ -76,15 +77,37 @@ class TransactionListViewModel extends GenericListViewModel<BankTransaction> {
   bool isDeleted(BankTransaction item) => item.isDeleted;
 
   @override
-  Stream<List<BankTransaction>> watchPage() => repo.watchPage(
-    companyId: companyId,
-    loadedPages: loadedPages,
-    search: search.isEmpty ? null : search,
-    states: states,
-    sortField: sortField,
-    sortAscending: sortAscending,
-    bankAccountId: bankAccountId,
-  );
+  Stream<List<BankTransaction>> watchPage() {
+    // Mirror the status + type chips into the local Drift query. The server
+    // fetch only narrows which rows are paged in; the watch re-emits the whole
+    // company cache otherwise, so the chips would look like they do nothing
+    // (the same gap billing_extra_filters.dart closes for the billing lists).
+    // Slot names match the FilterKey serverKeys in transaction_filter_keys.dart.
+    final baseTypes = extraFilters['base_type'];
+    // Date filter mirror: the `between` window (`date_range` slot) and the
+    // single-date comparator (`date` slot). The transactions `date` filter is
+    // not backed server-side (no `date()` handler), so the local mirror is what
+    // makes it work; the range also narrows the server fetch via `date_range`.
+    final dateRange = parseDateRangeFilter(extraFilters);
+    final dateCmp = parseComparableDateFilter(extraFilters, 'date');
+    return repo.watchPage(
+      companyId: companyId,
+      loadedPages: loadedPages,
+      search: search.isEmpty ? null : search,
+      states: states,
+      sortField: sortField,
+      sortAscending: sortAscending,
+      bankAccountId: bankAccountId,
+      statusIds: extraFilters['status_id'],
+      baseType: (baseTypes == null || baseTypes.isEmpty)
+          ? null
+          : baseTypes.first,
+      dateStart: dateRange.start,
+      dateEnd: dateRange.end,
+      dateOp: dateCmp.op,
+      dateValue: dateCmp.value,
+    );
+  }
 
   @override
   Future<bool> fetchPage({
@@ -94,19 +117,18 @@ class TransactionListViewModel extends GenericListViewModel<BankTransaction> {
     required Map<String, Set<String>> extraFilters,
     required bool ignoreCursor,
   }) {
-    // Embedded mode: thread the bank-account scope through to the server
-    // via the standard `extraFilters` plumbing. The repo's
-    // `ensurePageLoadedTemplate` joins it into the query string.
-    final filters = bankAccountId == null
-        ? extraFilters
-        : {
-            ...extraFilters,
-            // Server filter is `bank_integration_ids` (plural) — see
-            // `BankTransactionFilters::bank_integration_ids`, which decodes the
-            // comma list via `transformKeys`. The singular form is silently
-            // ignored, so a single id still goes through the plural key.
-            'bank_integration_ids': {bankAccountId!},
-          };
+    // Translate the status + type chips onto the server's single `client_status`
+    // keyword param. `BankTransactionFilters` has no `status_id` / `base_type`
+    // handler, and `QueryFilters::apply` silently skips params with no matching
+    // method — so without this the server-side narrowing is a no-op.
+    final filters = _toServerFilters(extraFilters);
+    if (bankAccountId != null) {
+      // Server filter is `bank_integration_ids` (plural) — see
+      // `BankTransactionFilters::bank_integration_ids`, which decodes the comma
+      // list via `transformKeys`. The singular form is silently ignored, so a
+      // single id still goes through the plural key.
+      filters['bank_integration_ids'] = {bankAccountId!};
+    }
     return repo.ensurePageLoaded(
       companyId: companyId,
       page: page,
@@ -115,6 +137,45 @@ class TransactionListViewModel extends GenericListViewModel<BankTransaction> {
       extraFilters: filters,
       ignoreCursor: ignoreCursor,
     );
+  }
+
+  /// Map the local `status_id` (`1`/`2`/`3`) and `base_type` (`CREDIT`/`DEBIT`)
+  /// filter slots onto the server's combined `client_status` keyword param
+  /// (`unmatched`/`matched`/`converted` + `deposits`/`withdrawals`). The server
+  /// ANDs the status and base-type `whereIn` groups in one closure
+  /// (`BankTransactionFilters::client_status`), matching the local DAO's AND.
+  /// Returns a fresh, deep-copied map with the raw (unhandled) slots removed so
+  /// the VM's stored filter sets are never mutated.
+  Map<String, Set<String>> _toServerFilters(
+    Map<String, Set<String>> extraFilters,
+  ) {
+    final out = {
+      for (final e in extraFilters.entries) e.key: {...e.value},
+    };
+    final clientStatus = <String>{};
+    for (final s in out.remove('status_id') ?? const <String>{}) {
+      final keyword = _statusKeyword(s);
+      if (keyword != null) clientStatus.add(keyword);
+    }
+    for (final b in out.remove('base_type') ?? const <String>{}) {
+      final keyword = _baseTypeKeyword(b);
+      if (keyword != null) clientStatus.add(keyword);
+    }
+    if (clientStatus.isNotEmpty) out['client_status'] = clientStatus;
+    return out;
+  }
+
+  static String? _statusKeyword(String statusId) {
+    if (statusId == kTransactionStatusUnmatched) return 'unmatched';
+    if (statusId == kTransactionStatusMatched) return 'matched';
+    if (statusId == kTransactionStatusConverted) return 'converted';
+    return null;
+  }
+
+  static String? _baseTypeKeyword(String baseType) {
+    if (baseType == kTransactionTypeCredit) return 'deposits';
+    if (baseType == kTransactionTypeDebit) return 'withdrawals';
+    return null;
   }
 
   @override

@@ -449,6 +449,59 @@ void main() {
         expect(warm.convertedGrandTotals!['invoice.amount'], d('300'));
       },
     );
+
+    test('groups a numeric column in numeric (not lexicographic) order', () {
+      const numCol = ReportColumn(
+        identifier: 'invoice.count',
+        displayLabel: 'Count',
+        type: ReportColumnType.number,
+      );
+      final preview = previewWith(
+        columns: const [numCol],
+        rows: [
+          [ReportNumberCell(value: d('9'), displayValue: '9')],
+          [ReportNumberCell(value: d('100'), displayValue: '100')],
+          [ReportNumberCell(value: d('10'), displayValue: '10')],
+        ],
+      );
+      final view = engine.compute(
+        preview: preview,
+        ui: const ReportUiState(group: 'invoice.count'),
+        exchangeRates: const {},
+        companyCurrencyId: '1',
+      );
+      // Display strings alone sort 10, 100, 9; numeric order is 9, 10, 100.
+      expect(view.groups.map((g) => g.key), ['9', '10', '100']);
+    });
+
+    test('row sort is stable for equal keys (preserves input order)', () {
+      const idCol = ReportColumn(
+        identifier: 'invoice.number',
+        displayLabel: 'Number',
+        type: ReportColumnType.string,
+      );
+      // 50 rows so Dart's sort would otherwise switch off insertion sort and
+      // could reorder equal-key rows; the engine's index tie-breaker prevents it.
+      final preview = previewWith(
+        columns: const [clientCol, idCol],
+        rows: [
+          for (var i = 0; i < 50; i++)
+            [
+              const ReportStringCell(value: 'ACME', displayValue: 'ACME'),
+              ReportStringCell(value: '$i', displayValue: '$i'),
+            ],
+        ],
+      );
+      final view = engine.compute(
+        preview: preview,
+        ui: const ReportUiState(sortField: 'client.name'),
+        exchangeRates: const {},
+        companyCurrencyId: '1',
+      );
+      expect(view.rows.map((r) => (r.cells[1] as ReportStringCell).value), [
+        for (var i = 0; i < 50; i++) '$i',
+      ]);
+    });
   });
 
   group('ReportUiState value equality', () {

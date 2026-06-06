@@ -39,15 +39,11 @@ class TransactionMatchedEntities extends StatelessWidget {
         );
       }
       if (tx.paymentId.isNotEmpty) {
-        // No PaymentRepository in this rebuild yet — render as a tooltip
-        // chip that doesn't pretend to be navigable.
         children.add(
-          Tooltip(
-            message: context.tr('coming_soon'),
-            child: _ReadOnlyChip(
-              icon: Icons.receipt_outlined,
-              label: '${context.tr('payment')}: ${tx.paymentId}',
-            ),
+          _PaymentChip(
+            id: tx.paymentId,
+            companyId: companyId,
+            services: services,
           ),
         );
       }
@@ -117,6 +113,35 @@ class _InvoiceChip extends StatelessWidget {
           icon: Icons.description_outlined,
           label: label,
           onTap: () => goEntityFullDetail(context, '/invoices', id),
+        );
+      },
+    );
+  }
+}
+
+class _PaymentChip extends StatelessWidget {
+  const _PaymentChip({
+    required this.id,
+    required this.companyId,
+    required this.services,
+  });
+  final String id;
+  final String companyId;
+  final Services services;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+      stream: services.payments.watch(companyId: companyId, id: id),
+      builder: (context, snapshot) {
+        final payment = snapshot.data;
+        final label = payment?.number.isNotEmpty == true
+            ? '#${payment!.number}'
+            : '#$id';
+        return _NavChip(
+          icon: Icons.payments_outlined,
+          label: label,
+          onTap: () => goEntityFullDetail(context, '/payments', id),
         );
       },
     );
@@ -250,33 +275,6 @@ class _NavChip extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _ReadOnlyChip extends StatelessWidget {
-  const _ReadOnlyChip({required this.icon, required this.label});
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: tokens.surfaceAlt,
-        borderRadius: BorderRadius.circular(InRadii.r2),
-        border: Border.all(color: tokens.border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: tokens.ink2),
-          const SizedBox(width: 6),
-          Text(label, style: TextStyle(fontSize: 13, color: tokens.ink2)),
-        ],
       ),
     );
   }

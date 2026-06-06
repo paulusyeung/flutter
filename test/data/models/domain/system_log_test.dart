@@ -31,6 +31,10 @@ void main() {
           3: 'webhook',
           4: 'pdf',
           5: 'security',
+          // Beyond React (stops at 5) — covers the server's full enum.
+          6: 'log',
+          7: 'verifactu',
+          8: 'peppol',
         };
         for (final entry in expectations.entries) {
           expect(
@@ -69,9 +73,17 @@ void main() {
         35: 'opened',
         40: 'webhook_response',
         41: 'webhook_success',
+        42: 'webhook_failure',
         50: 'pdf',
         60: 'login_failure',
         61: 'user',
+        // Beyond React — server enum 62 + Verifactu/Peppol (70-73 reuse the
+        // generic success/failure labels; the category cell carries context).
+        62: 'inbound_mail_blocked',
+        70: 'failure',
+        71: 'success',
+        72: 'failure',
+        73: 'success',
       };
       for (final entry in expectations.entries) {
         expect(
@@ -87,12 +99,13 @@ void main() {
     test('success/failure/warning/neutral assignments are stable', () {
       SystemLogTone toneOf(int id) =>
           _log(categoryId: 0, eventId: id, typeId: 0).tone;
-      // Successes
-      for (final id in [11, 21, 34, 35, 41]) {
+      // Successes (incl. Verifactu/Peppol success 71/73)
+      for (final id in [11, 21, 34, 35, 41, 71, 73]) {
         expect(toneOf(id), SystemLogTone.success, reason: 'event $id');
       }
-      // Failures
-      for (final id in [10, 22, 32, 33, 60]) {
+      // Failures (incl. webhook_failure 42, inbound-mail 62, Verifactu/Peppol
+      // failure 70/72)
+      for (final id in [10, 22, 32, 33, 42, 60, 62, 70, 72]) {
         expect(toneOf(id), SystemLogTone.failure, reason: 'event $id');
       }
       // Warnings
@@ -152,6 +165,19 @@ void main() {
         702: 'Deleted',
         800: 'Login Success',
         801: 'Login Failure',
+        // Beyond React — newer gateways + generic + Verifactu/Peppol types.
+        324: 'BTCPay',
+        325: 'Rotessa',
+        326: 'Blockonomics',
+        327: 'Powerboard',
+        328: 'LawPay',
+        329: 'Payware',
+        900: 'Generic',
+        1000: 'Verifactu Cancellation',
+        1001: 'Verifactu Invoice',
+        1002: 'Verifactu Rectification',
+        1100: 'Peppol Send',
+        1101: 'Peppol Receive',
       };
       for (final entry in mapping.entries) {
         final result = _log(

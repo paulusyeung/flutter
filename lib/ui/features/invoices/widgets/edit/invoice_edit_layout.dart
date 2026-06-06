@@ -12,6 +12,7 @@ import 'package:admin/data/models/domain/design.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
+import 'package:admin/ui/core/widgets/centered_form_column.dart';
 import 'package:admin/ui/core/widgets/in_date_field.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
@@ -91,7 +92,9 @@ class _InvoiceEditLayoutState extends State<InvoiceEditLayout>
         return LayoutBuilder(
           builder: (context, constraints) {
             final wide = constraints.maxWidth >= 1024;
-            return wide ? _buildDesktop(context) : _buildMobile(context);
+            return wide
+                ? _buildDesktop(context)
+                : CenteredFormColumn(child: _buildMobile(context));
           },
         );
       },

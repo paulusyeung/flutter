@@ -152,9 +152,10 @@ EntityHandlers? resolveDrillTarget(EntityRegistry registry, String wire) {
   return registry.byWireName(wire);
 }
 
-/// True for column types that the totals card can sum over.
+/// True for column types that the totals card can sum over. Age is
+/// deliberately excluded — a "sum of ages" (e.g. 612 days across 30 invoices)
+/// is meaningless, so age columns show per-row values but no grand total.
 bool isAggregatable(ReportColumnType type) =>
     type == ReportColumnType.money ||
     type == ReportColumnType.number ||
-    type == ReportColumnType.age ||
     type == ReportColumnType.duration;

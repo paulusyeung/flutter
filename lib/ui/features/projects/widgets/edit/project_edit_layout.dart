@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
+import 'package:admin/ui/core/widgets/centered_form_column.dart';
 import 'package:admin/ui/features/projects/view_models/project_edit_view_model.dart';
 import 'package:admin/ui/features/projects/widgets/edit/project_edit_budget_section.dart';
 import 'package:admin/ui/features/projects/widgets/edit/project_edit_details_section.dart';
@@ -14,15 +16,14 @@ import 'package:admin/ui/features/projects/widgets/edit/project_edit_notes_secti
 /// using the same `1fr` main + fixed-width sidebar pattern as
 /// `ClientEditLayout` / `ProductEditLayout`.
 ///
-/// - ≥1100 px: two columns. Left holds Details + Budget; right holds Notes
+/// - ≥1000 px: two columns. Left holds Details + Budget; right holds Notes
 ///   + Custom Fields.
-/// - <1100 px: single scrolling column.
+/// - <1000 px: single centered column (≤820 px).
 class ProjectEditLayout extends StatelessWidget {
   const ProjectEditLayout({super.key, required this.vm});
 
   final ProjectEditViewModel vm;
 
-  static const double _twoColumnBreakpoint = 1100;
   static const double _sidebarWidth = 360;
 
   @override
@@ -32,10 +33,13 @@ class ProjectEditLayout extends StatelessWidget {
       builder: (context, _) {
         return LayoutBuilder(
           builder: (context, constraints) {
-            final twoCol = constraints.maxWidth >= _twoColumnBreakpoint;
+            final twoCol =
+                constraints.maxWidth >= Breakpoints.entityFormMultiColumn;
             return SingleChildScrollView(
               padding: EdgeInsets.all(InSpacing.lg(context)),
-              child: twoCol ? _wide(context) : _narrow(context),
+              child: twoCol
+                  ? _wide(context)
+                  : CenteredFormColumn(child: _narrow(context)),
             );
           },
         );

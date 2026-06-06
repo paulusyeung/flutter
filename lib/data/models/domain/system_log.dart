@@ -42,7 +42,9 @@ abstract class SystemLog with _$SystemLog {
   );
 
   /// Translation key for the category cell. Mirrors React's
-  /// `SystemLog.tsx:76-82` mapping.
+  /// `SystemLog.tsx:76-82` mapping, and extends past it to cover the server's
+  /// full enum: `6=log`, `7=verifactu`, `8=peppol` (React stops at 5 and
+  /// renders the rest as "Undefined Category").
   String get categoryKey {
     switch (categoryId) {
       case 1:
@@ -57,6 +59,10 @@ abstract class SystemLog with _$SystemLog {
         return 'security';
       case 6:
         return 'log';
+      case 7:
+        return 'verifactu';
+      case 8:
+        return 'peppol';
       default:
         return 'unknown';
     }
@@ -103,6 +109,20 @@ abstract class SystemLog with _$SystemLog {
         return 'login_failure';
       case 61:
         return 'user';
+      case 62:
+        return 'inbound_mail_blocked';
+      // Verifactu (70/71) and Peppol (72/73) reuse the generic success /
+      // failure labels — the category cell already reads "Verifactu" /
+      // "PEPPOL", exactly like gateway success/failure under "Gateway".
+      // These extend past React, which leaves 62 and 70-73 undefined.
+      case 70:
+        return 'failure';
+      case 71:
+        return 'success';
+      case 72:
+        return 'failure';
+      case 73:
+        return 'success';
       default:
         return 'unknown';
     }
@@ -117,6 +137,8 @@ abstract class SystemLog with _$SystemLog {
       case 34:
       case 35:
       case 41:
+      case 71:
+      case 73:
         return SystemLogTone.success;
       case 10:
       case 22:
@@ -124,6 +146,9 @@ abstract class SystemLog with _$SystemLog {
       case 33:
       case 42:
       case 60:
+      case 62:
+      case 70:
+      case 72:
         return SystemLogTone.failure;
       case 23:
       case 31:
@@ -178,6 +203,18 @@ extension SystemLogType on SystemLog {
         return (isKey: false, value: 'Razorpay');
       case 323:
         return (isKey: true, value: 'paypal');
+      case 324:
+        return (isKey: false, value: 'BTCPay');
+      case 325:
+        return (isKey: false, value: 'Rotessa');
+      case 326:
+        return (isKey: false, value: 'Blockonomics');
+      case 327:
+        return (isKey: false, value: 'Powerboard');
+      case 328:
+        return (isKey: false, value: 'LawPay');
+      case 329:
+        return (isKey: false, value: 'Payware');
       case 400:
         return (isKey: false, value: 'Quota exceeded');
       case 401:
@@ -196,6 +233,18 @@ extension SystemLogType on SystemLog {
         return (isKey: false, value: 'Login Success');
       case 801:
         return (isKey: false, value: 'Login Failure');
+      case 900:
+        return (isKey: false, value: 'Generic');
+      case 1000:
+        return (isKey: false, value: 'Verifactu Cancellation');
+      case 1001:
+        return (isKey: false, value: 'Verifactu Invoice');
+      case 1002:
+        return (isKey: false, value: 'Verifactu Rectification');
+      case 1100:
+        return (isKey: false, value: 'Peppol Send');
+      case 1101:
+        return (isKey: false, value: 'Peppol Receive');
       default:
         return (isKey: false, value: 'Undefined Type');
     }

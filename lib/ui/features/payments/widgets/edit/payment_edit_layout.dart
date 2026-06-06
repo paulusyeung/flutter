@@ -11,8 +11,10 @@ import 'package:admin/data/models/value/currency.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/models/value/payment_type.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
 import 'package:admin/ui/core/edit/entity_edit_field.dart';
+import 'package:admin/ui/core/widgets/centered_form_column.dart';
 import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/core/widgets/in_date_field.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
@@ -23,7 +25,8 @@ import 'package:admin/ui/features/payments/widgets/edit/payment_allocations_sect
 import 'package:admin/utils/formatting.dart';
 
 /// Edit + create form body for a Payment. Two-column on wide widths
-/// (Expanded main + 360 px sidebar @ 1100 px), single column on narrow —
+/// (Expanded main + 360 px sidebar @ 1000 px), single centered column (≤820 px)
+/// on narrow —
 /// mirrors `ExpenseEditLayout`. Main column: Identity (client + number +
 /// date + amount + currency) plus the create-only allocations. Sidebar:
 /// Payment metadata (type + transaction reference), Currency conversion,
@@ -46,7 +49,6 @@ class PaymentEditLayout extends StatefulWidget {
 
 class _PaymentEditLayoutState extends State<PaymentEditLayout>
     with FormatterHostMixin {
-  static const double _twoColumnBreakpoint = 1100;
   static const double _sidebarWidth = 360;
 
   @override
@@ -73,10 +75,13 @@ class _PaymentEditLayoutState extends State<PaymentEditLayout>
         listenable: vm,
         builder: (context, _) => LayoutBuilder(
           builder: (context, constraints) {
-            final twoCol = constraints.maxWidth >= _twoColumnBreakpoint;
+            final twoCol =
+                constraints.maxWidth >= Breakpoints.entityFormMultiColumn;
             return SingleChildScrollView(
               padding: EdgeInsets.all(InSpacing.lg(context)),
-              child: twoCol ? _wide(context) : _narrow(context),
+              child: twoCol
+                  ? _wide(context)
+                  : CenteredFormColumn(child: _narrow(context)),
             );
           },
         ),

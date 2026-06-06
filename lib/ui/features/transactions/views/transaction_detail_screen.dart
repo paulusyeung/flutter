@@ -9,6 +9,7 @@ import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/generic_detail_view_model.dart';
 import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/widgets/bank_account_name_label.dart';
+import 'package:admin/ui/core/widgets/centered_form_column.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/core/widgets/transaction_rule_matched_chip.dart';
 import 'package:admin/ui/features/transactions/widgets/transaction_actions.dart';
@@ -64,21 +65,23 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen>
       bodyBuilder: (context, tx) {
         return SingleChildScrollView(
           padding: EdgeInsets.all(InSpacing.lg(context)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _Header(transaction: tx, formatter: formatter),
-              SizedBox(height: InSpacing.lg(context)),
-              if (tx.isUnmatched || tx.isMatched)
-                TransactionMatchPanel(transaction: tx, formatter: formatter),
-              if (tx.isMatched || tx.isConverted) ...[
+          child: CenteredFormColumn(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _Header(transaction: tx, formatter: formatter),
                 SizedBox(height: InSpacing.lg(context)),
-                _Section(
-                  title: context.tr(tx.isConverted ? 'converted' : 'matched'),
-                  child: TransactionMatchedEntities(transaction: tx),
-                ),
+                if (tx.isUnmatched || tx.isMatched)
+                  TransactionMatchPanel(transaction: tx, formatter: formatter),
+                if (tx.isMatched || tx.isConverted) ...[
+                  SizedBox(height: InSpacing.lg(context)),
+                  _Section(
+                    title: context.tr(tx.isConverted ? 'converted' : 'matched'),
+                    child: TransactionMatchedEntities(transaction: tx),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         );
       },

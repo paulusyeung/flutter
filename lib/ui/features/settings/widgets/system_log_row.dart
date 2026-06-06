@@ -137,7 +137,8 @@ class _SystemLogRowState extends State<SystemLogRow> {
 /// Collapsible JSON / text view for the `log` field. Pretty-prints decoded
 /// JSON; falls back to the raw string when `jsonDecode` throws. Collapsed
 /// state shows a one-line preview + chevron; expanded state shows the
-/// monospace `SelectableText` block with a copy button.
+/// monospace `SelectableText` block (horizontally scrollable so JSON
+/// indentation survives on narrow screens) with a copy button.
 class _LogBlock extends StatelessWidget {
   const _LogBlock({
     required this.raw,
@@ -212,13 +213,19 @@ class _LogBlock extends StatelessWidget {
               ),
             ],
           ),
-          SelectableText(
-            pretty,
-            style: TextStyle(
-              fontFamily: 'monospace',
-              fontSize: 12,
-              color: tokens.ink,
-              height: 1.4,
+          // Horizontal scroll so deep JSON indentation survives on narrow
+          // screens — without it the monospace text char-wraps and the
+          // structure is lost on mobile.
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SelectableText(
+              pretty,
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 12,
+                color: tokens.ink,
+                height: 1.4,
+              ),
             ),
           ),
         ],

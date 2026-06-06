@@ -45,6 +45,10 @@ class BankTransactionRepository
     String? bankAccountId,
     Set<String>? statusIds,
     String? baseType,
+    String? dateStart,
+    String? dateEnd,
+    String? dateOp,
+    String? dateValue,
     Set<EntityState> states = const {EntityState.active},
     String sortField = BankTransactionFieldIds.date,
     bool sortAscending = false,
@@ -59,6 +63,10 @@ class BankTransactionRepository
           bankAccountId: bankAccountId,
           statusIds: statusIds,
           baseType: baseType,
+          dateStart: dateStart,
+          dateEnd: dateEnd,
+          dateOp: dateOp,
+          dateValue: dateValue,
           states: states,
           sortField: sortField,
           sortAscending: sortAscending,
@@ -241,8 +249,11 @@ class BankTransactionRepository
         'transactions': [
           {
             'id': transactionId,
-            'vendor_id': vendorId,
-            'ninja_category_id': categoryId,
+            // Omit empty keys rather than leaning on Laravel's empty-string→null
+            // coercion. At least one is always present (the UI gates submit on
+            // vendor or category being set).
+            if (vendorId.isNotEmpty) 'vendor_id': vendorId,
+            if (categoryId.isNotEmpty) 'ninja_category_id': categoryId,
           },
         ],
       },

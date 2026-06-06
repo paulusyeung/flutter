@@ -293,10 +293,21 @@ class ReportEngine {
         ? -1
         : _columnIndex(preview.columns, ui.sortField!);
     if (sortIdx >= 0) {
-      filtered.sort(
-        (a, b) =>
-            _compareCells(a.cells[sortIdx], b.cells[sortIdx], ui.sortAscending),
-      );
+      // Stable sort: Dart's List.sort isn't stable, so equal-key rows could
+      // reshuffle between rebuilds (and within group buckets). Carry the
+      // pre-sort index as a tie-breaker to keep the order deterministic.
+      final indexed = [
+        for (var i = 0; i < filtered.length; i++) (i, filtered[i]),
+      ];
+      indexed.sort((a, b) {
+        final cmp = _compareCells(
+          a.$2.cells[sortIdx],
+          b.$2.cells[sortIdx],
+          ui.sortAscending,
+        );
+        return cmp != 0 ? cmp : a.$1.compareTo(b.$1);
+      });
+      filtered = [for (final e in indexed) e.$2];
     }
 
     // 5. Group or pass through.
@@ -519,32 +530,42 @@ class ReportEngine {
     return cell.filterText.contains(filter.toLowerCase());
   }
 
+  /// Null-aware compare over two typed sort keys (nulls last in ascending).
+  /// Returns 0 for mixed / incomparable types — sorting a column whose cells
+  /// share a type never hits that, and a tie beats a `toString` compare that
+  /// would mis-order Decimals ("100" < "20" as strings).
+  int _compareSortKeys(Object? ak, Object? bk) {
+    if (ak == null && bk == null) return 0;
+    if (ak == null) return 1;
+    if (bk == null) return -1;
+    if (ak is Comparable &&
+        bk is Comparable &&
+        ak.runtimeType == bk.runtimeType) {
+      return ak.compareTo(bk);
+    }
+    return 0;
+  }
+
   int _compareCells(ReportCell a, ReportCell b, bool ascending) {
     final ak = a.sortKey;
     final bk = b.sortKey;
-    int cmp;
-    if (ak == null && bk == null) {
-      cmp = 0;
-    } else if (ak == null) {
-      cmp = 1; // nulls last in ascending
-    } else if (bk == null) {
-      cmp = -1;
-    } else if (ak is Comparable &&
-        bk is Comparable &&
-        ak.runtimeType == bk.runtimeType) {
-      cmp = ak.compareTo(bk);
-    } else {
-      // Mixed-type sort keys shouldn't happen in a well-formed preview —
-      // all cells in a column share a type. Treat as ties rather than
-      // falling back to a `toString` lexicographic compare, which would
-      // give wrong order for Decimals ("100" < "20" as strings). Log the
-      // collision at FINE so a data-quality regression doesn't fail
-      // silently while the UI surface remains stable.
+    if (ak != null && bk != null && ak.runtimeType != bk.runtimeType) {
+      // Shouldn't happen in a well-formed preview (all cells in a column share
+      // a type); log at FINE so a data-quality regression surfaces without
+      // destabilising the UI (the compare falls back to a tie).
       _log.fine('mixed-type sort keys: ${ak.runtimeType} vs ${bk.runtimeType}');
-      cmp = 0;
     }
+    final cmp = _compareSortKeys(ak, bk);
     return ascending ? cmp : -cmp;
   }
+
+  /// Group columns whose typed sort key is numeric — their bucket keys are
+  /// display strings that must NOT be ordered lexicographically.
+  bool _numericGroupOrder(ReportColumnType t) =>
+      t == ReportColumnType.money ||
+      t == ReportColumnType.number ||
+      t == ReportColumnType.age ||
+      t == ReportColumnType.duration;
 
   List<GroupTotals> _bucket(
     List<ReportRow> rows,
@@ -562,7 +583,20 @@ class ReportEngine {
       );
       (buckets[key] ??= <ReportRow>[]).add(row);
     }
-    final keys = buckets.keys.toList()..sort();
+    final keys = buckets.keys.toList();
+    if (_numericGroupOrder(columns[groupIdx].type)) {
+      // Bucket keys are display strings; for numeric group columns those sort
+      // lexicographically ("$1,000" before "$200", "10" before "9"). Order by
+      // each bucket's representative typed sort key instead.
+      keys.sort(
+        (a, b) => _compareSortKeys(
+          buckets[a]!.first.cells[groupIdx].sortKey,
+          buckets[b]!.first.cells[groupIdx].sortKey,
+        ),
+      );
+    } else {
+      keys.sort();
+    }
     return [
       for (final key in keys)
         GroupTotals(
@@ -641,10 +675,6 @@ class ReportEngine {
           currencyId = cell.currencyId ?? '';
         } else if (cell is ReportDurationCell && cell.seconds != null) {
           add = Decimal.fromInt(cell.seconds!);
-        } else if (cell is ReportAgeCell &&
-            cell.days != null &&
-            cell.days! >= 0) {
-          add = Decimal.fromInt(cell.days!);
         }
         if (add == null) continue;
         perCurrency[currencyId] =

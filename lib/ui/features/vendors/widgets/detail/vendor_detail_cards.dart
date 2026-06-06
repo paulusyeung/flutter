@@ -8,7 +8,9 @@ import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/data/models/domain/vendor_contact.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/detail/custom_field_detail_rows.dart';
+import 'package:admin/ui/core/widgets/centered_form_column.dart';
 import 'package:admin/ui/core/widgets/detail_info_row.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
@@ -23,9 +25,9 @@ import 'package:admin/utils/formatting.dart';
 
 /// Responsive grid for the vendor detail body cards.
 ///
-/// - **≥1100 px**: three equal-width columns — Details · Address · Contacts —
+/// - **≥1000 px**: three equal-width columns — Details · Address · Contacts —
 ///   with Notes spanning the full width on a second row when it has content.
-/// - **<1100 px**: single scrolling column, all cards stacked.
+/// - **<1000 px**: single centered column (≤820 px), all cards stacked.
 ///
 /// The KPI strip has moved up into `VendorDetailKpiStrip` (rendered by the
 /// screen above this grid), so this widget no longer owns it. Mirror of
@@ -40,15 +42,13 @@ class VendorDetailCardsGrid extends StatelessWidget {
   final Vendor vendor;
   final Formatter? formatter;
 
-  static const double _wideBreakpoint = 1100;
-
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = constraints.maxWidth >= _wideBreakpoint;
+        final wide = constraints.maxWidth >= Breakpoints.entityFormMultiColumn;
         if (wide) return _wide(context);
-        return _stacked(context);
+        return CenteredFormColumn(child: _stacked(context));
       },
     );
   }

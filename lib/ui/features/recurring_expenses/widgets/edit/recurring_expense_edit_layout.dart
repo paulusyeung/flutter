@@ -6,6 +6,8 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/company_custom_fields.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/core/widgets/centered_form_column.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/recurring_expenses/view_models/recurring_expense_edit_view_model.dart';
 import 'package:admin/ui/features/recurring_expenses/widgets/edit/recurring_expense_edit_amount_tax_section.dart';
@@ -26,7 +28,6 @@ class RecurringExpenseEditLayout extends StatelessWidget {
 
   final RecurringExpenseEditViewModel vm;
 
-  static const double _twoColumnBreakpoint = 1100;
   static const double _sidebarWidth = 360;
 
   @override
@@ -36,10 +37,13 @@ class RecurringExpenseEditLayout extends StatelessWidget {
       builder: (context, _) {
         return LayoutBuilder(
           builder: (context, constraints) {
-            final twoCol = constraints.maxWidth >= _twoColumnBreakpoint;
+            final twoCol =
+                constraints.maxWidth >= Breakpoints.entityFormMultiColumn;
             return SingleChildScrollView(
               padding: EdgeInsets.all(InSpacing.lg(context)),
-              child: twoCol ? _wide(context) : _narrow(context),
+              child: twoCol
+                  ? _wide(context)
+                  : CenteredFormColumn(child: _narrow(context)),
             );
           },
         );

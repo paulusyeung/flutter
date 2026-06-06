@@ -12,22 +12,24 @@ import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/detail/custom_field_detail_rows.dart';
 import 'package:admin/ui/core/detail/entity_link_card.dart';
+import 'package:admin/ui/core/widgets/centered_form_column.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/expenses/widgets/expense_status_pill.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// Responsive grid for the expense detail body cards.
 ///
-/// - **≥1100 px**: two equal-width columns. Left holds Summary, Notes, and
+/// - **≥1000 px**: two equal-width columns. Left holds Summary, Notes, and
 ///   Tax Breakdown — the high-information cards that benefit from the wider
 ///   half-width column. Right holds the related-entity link cards (Vendor /
 ///   Client / Invoice / Project / Category), Payment metadata, and Custom
 ///   Fields. If the right column would be empty (no relations, no payment,
 ///   no custom fields) we fall back to single-column so the left content
 ///   doesn't get stretched by an empty sibling.
-/// - **<1100 px**: single stacked column matching the pre-refactor order.
+/// - **<1000 px**: single centered column (≤820 px), pre-refactor order.
 class ExpenseDetailCardsGrid extends StatelessWidget {
   const ExpenseDetailCardsGrid({
     super.key,
@@ -40,15 +42,13 @@ class ExpenseDetailCardsGrid extends StatelessWidget {
   final String companyId;
   final Formatter? formatter;
 
-  static const double _wideBreakpoint = 1100;
-
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = constraints.maxWidth >= _wideBreakpoint;
+        final wide = constraints.maxWidth >= Breakpoints.entityFormMultiColumn;
         if (wide) return _wide(context);
-        return _stacked(context);
+        return CenteredFormColumn(child: _stacked(context));
       },
     );
   }
