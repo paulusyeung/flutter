@@ -481,42 +481,43 @@ class _Overview extends StatelessWidget {
         recurringInvoice.customValue2.isNotEmpty ||
         recurringInvoice.customValue3.isNotEmpty ||
         recurringInvoice.customValue4.isNotEmpty;
+    final hasNotes = recurringInvoice.publicNotes.isNotEmpty;
+    final hasTerms = recurringInvoice.terms.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          context.tr('public_notes'),
-          style: TextStyle(
-            fontSize: 12,
-            color: tokens.ink3,
-            fontWeight: FontWeight.w600,
+        if (hasNotes) ...[
+          Text(
+            context.tr('public_notes'),
+            style: TextStyle(
+              fontSize: 12,
+              color: tokens.ink3,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          recurringInvoice.publicNotes.isEmpty
-              ? '—'
-              : recurringInvoice.publicNotes,
-          style: TextStyle(color: tokens.ink),
-        ),
-        SizedBox(height: InSpacing.md(context)),
-        Text(
-          context.tr('terms'),
-          style: TextStyle(
-            fontSize: 12,
-            color: tokens.ink3,
-            fontWeight: FontWeight.w600,
+          const SizedBox(height: 4),
+          Text(
+            recurringInvoice.publicNotes,
+            style: TextStyle(color: tokens.ink),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          recurringInvoice.terms.isEmpty ? '—' : recurringInvoice.terms,
-          style: TextStyle(color: tokens.ink),
-        ),
+        ],
+        if (hasTerms) ...[
+          if (hasNotes) SizedBox(height: InSpacing.md(context)),
+          Text(
+            context.tr('terms'),
+            style: TextStyle(
+              fontSize: 12,
+              color: tokens.ink3,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(recurringInvoice.terms, style: TextStyle(color: tokens.ink)),
+        ],
         // Reuses the `invoice` custom-field config slots (no separate
         // recurring-invoice keys exist server-side).
         if (hasCustomFields) ...[
-          SizedBox(height: InSpacing.md(context)),
+          if (hasNotes || hasTerms) SizedBox(height: InSpacing.md(context)),
           CustomFieldsDetailCard(
             companyId: companyId,
             prefix: 'invoice',

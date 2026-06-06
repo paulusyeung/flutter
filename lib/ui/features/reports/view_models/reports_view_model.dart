@@ -374,6 +374,8 @@ class ReportsViewModel extends ChangeNotifier {
     } catch (e, st) {
       _log.warning('Failed to hydrate reports state; using defaults', e, st);
     } finally {
+      // Marks the hydration *attempt* complete — state may have been skipped
+      // above when the user already acted — and opens the persist gate.
       _hydrated = true;
       notifyListeners();
     }

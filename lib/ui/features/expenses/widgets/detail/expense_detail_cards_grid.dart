@@ -303,10 +303,8 @@ class _SummaryCard extends StatelessWidget {
             label: context.tr('status'),
             value: ExpenseStatusPill(statusId: e.calculatedStatusId),
           ),
-          _Row(
-            label: context.tr('number'),
-            value: Text(e.number.isEmpty ? '—' : e.number),
-          ),
+          if (e.number.isNotEmpty)
+            _Row(label: context.tr('number'), value: Text(e.number)),
           _Row(label: context.tr('date'), value: Text(dateText)),
           _Row(label: context.tr('amount'), value: Text(amountText)),
           // Net (amount minus tax) is only distinct from amount for inclusive

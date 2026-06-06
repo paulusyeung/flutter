@@ -1711,8 +1711,8 @@ class _TotalsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    // Aggregatable columns (money / number / duration / age) the engine
-    // summed into `grandTotalsByCurrency` ({columnId: {currencyId: sum}}).
+    // Aggregatable columns (money / number / duration) the engine summed into
+    // `grandTotalsByCurrency` ({columnId: {currencyId: sum}}).
     final totalColumns = view.visibleColumns
         .where((c) => isAggregatable(c.type))
         .where(
@@ -2343,7 +2343,7 @@ class _GroupTotalText extends StatelessWidget {
 /// `0:13:42` duration, localized yes/no, …). Shared by the wide-table
 /// [_CellText] and the narrow [_ReportCardList] so both format identically —
 /// the card list previously read raw `displayValue` and skipped this.
-String reportCellText(
+String _reportCellText(
   BuildContext context,
   ReportCell cell,
   ReportColumn column,
@@ -2415,7 +2415,7 @@ class _CellText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      reportCellText(context, cell, column, formatter),
+      _reportCellText(context, cell, column, formatter),
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
     );
@@ -2487,7 +2487,7 @@ class _ReportCardList extends StatelessWidget {
           title: Text(
             view.visibleColumns.isEmpty
                 ? ''
-                : reportCellText(
+                : _reportCellText(
                     context,
                     _cellByColumn(view, row, 0),
                     view.visibleColumns.first,
@@ -2502,7 +2502,7 @@ class _ReportCardList extends StatelessWidget {
               for (var k = 1; k < view.visibleColumns.length && k < 4; k++)
                 Text(
                   '${view.visibleColumns[k].displayLabel}: '
-                  '${reportCellText(context, _cellByColumn(view, row, k), view.visibleColumns[k], formatter)}',
+                  '${_reportCellText(context, _cellByColumn(view, row, k), view.visibleColumns[k], formatter)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

@@ -205,10 +205,8 @@ class _DetailsCard extends StatelessWidget {
       title: context.tr('details'),
       child: Column(
         children: [
-          _Row(
-            label: context.tr('number'),
-            value: Text(p.number.isEmpty ? '—' : p.number),
-          ),
+          if (p.number.isNotEmpty)
+            _Row(label: context.tr('number'), value: Text(p.number)),
           _Row(label: context.tr('due_date'), value: Text(dueDateText)),
           if (p.assignedUserId.isNotEmpty)
             _Row(

@@ -28,6 +28,7 @@ class TaskEditScreen extends StatefulWidget {
     this.existingId,
     this.cloneFrom,
     this.prefillProjectId,
+    this.prefillClientId,
     super.key,
   });
 
@@ -40,6 +41,11 @@ class TaskEditScreen extends StatefulWidget {
   /// the project's task_rate. Wired by the "Add task" affordance on
   /// Project detail's Tasks card.
   final String? prefillProjectId;
+
+  /// Optional client id seed (`?client=<id>`). In create mode the form opens
+  /// with this client pre-selected (Clients list ⋮ → New Task). Delivered via
+  /// query param because `extra:` is dropped on the cross-branch hop.
+  final String? prefillClientId;
 
   @override
   State<TaskEditScreen> createState() => _TaskEditScreenState();
@@ -81,12 +87,21 @@ class _TaskEditScreenState extends State<TaskEditScreen>
       fetchExisting: (ctx, services, companyId, id) =>
           services.tasks.watch(companyId: companyId, id: id).first,
       buildVm: (ctx, services, companyId, existing) {
+        // `?client=<id>` (Clients list ⋮ → New Task): synthesize a draft
+        // carrying just the clientId so the client is set from first build —
+        // mirrors ProjectEditScreen. (No invitations on tasks.)
+        Task? clone = widget.cloneFrom;
+        if (clone == null &&
+            widget.prefillClientId != null &&
+            existing == null) {
+          clone = emptyTask().copyWith(clientId: widget.prefillClientId!);
+        }
         final vm = TaskEditViewModel(
           repo: services.tasks,
           companyId: companyId,
           now: DateTime.now,
           existing: existing,
-          cloneFrom: widget.cloneFrom,
+          cloneFrom: clone,
           useCommaAsDecimalPlace:
               services
                   .formatterIfReady(companyId)

@@ -432,6 +432,24 @@ abstract class GenericBillingDocEditViewModel<T>
     ];
   }
 
+  /// The client id currently on the draft.
+  String get clientId => clientIdOf(draft);
+
+  /// True when the draft already carries at least one invitation.
+  bool get hasInvitations => invitationsOf(draft).isNotEmpty;
+
+  /// Seed invitations from [contacts] when the draft arrived with a client
+  /// already set (e.g. "New Invoice" launched from a Client's action menu or
+  /// its embedded list) but no invitations yet. No-op once any invitation
+  /// exists, so a real clone or a manual Contacts-tab selection is never
+  /// clobbered. Keyed on "invitations empty" rather than "client changed"
+  /// — the client id is already on the draft here, so [selectClient] would
+  /// treat it as unchanged and skip seeding.
+  void seedClientInvitationsIfEmpty(Iterable<Contact> contacts) {
+    if (invitationsOf(draft).isNotEmpty) return;
+    updateDraft(copyWithInvitations(draft, _autoInvitations(contacts)));
+  }
+
   /// Update one key in the open-ended `eInvoice` map. Pass null to
   /// remove the key. When the resulting map is empty, the whole field
   /// is cleared to null (matches admin-portal's omit-when-empty

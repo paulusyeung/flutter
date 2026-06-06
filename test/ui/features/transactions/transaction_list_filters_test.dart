@@ -212,6 +212,19 @@ void main() {
         final sent = await sentFor(const {});
         expect(sent.containsKey('client_status'), isFalse);
       });
+
+      test('single-date `date` comparator is not sent (no server handler), '
+          'but the `date_range` window is forwarded', () async {
+        final dateOnly = await sentFor({
+          'date': {'gte:2026-01-01'},
+        });
+        expect(dateOnly.containsKey('date'), isFalse);
+
+        final windowed = await sentFor({
+          'date_range': {'date,2026-01-01,2026-03-31'},
+        });
+        expect(windowed['date_range'], 'date,2026-01-01,2026-03-31');
+      });
     },
   );
 }

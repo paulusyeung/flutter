@@ -12,6 +12,7 @@ import 'package:admin/ui/core/edit/after_save_create_action.dart';
 import 'package:admin/ui/core/edit/edit_action_filter.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
+import 'package:admin/ui/features/billing_shared/seed_client_invitations.dart';
 import 'package:admin/ui/features/quotes/view_models/quote_edit_view_model.dart';
 import 'package:admin/ui/features/quotes/widgets/edit/quote_edit_layout.dart';
 import 'package:admin/ui/features/quotes/widgets/quote_actions.dart';
@@ -22,6 +23,7 @@ class QuoteEditScreen extends StatelessWidget {
     this.cloneFrom,
     this.prefillProjectId,
     this.prefillProductId,
+    this.prefillClientId,
     super.key,
   });
 
@@ -39,6 +41,11 @@ class QuoteEditScreen extends StatelessWidget {
   /// nav reliably, where `extra:` payloads are not.
   final String? prefillProductId;
 
+  /// Optional client id seed (`?client=<id>`). In create mode the form opens
+  /// with this client pre-selected (Clients list ⋮ → New Quote). Delivered via
+  /// query param because `extra:` is dropped on the cross-branch hop.
+  final String? prefillClientId;
+
   @override
   Widget build(BuildContext context) {
     return EntityEditScreenScaffold<Quote, QuoteEditViewModel>(
@@ -47,6 +54,13 @@ class QuoteEditScreen extends StatelessWidget {
       fetchExisting: (ctx, services, companyId, id) =>
           services.quotes.watch(companyId: companyId, id: id).first,
       buildVm: (ctx, services, companyId, existing) {
+        // `?client=<id>` (Clients list ⋮ → New Quote): synthesize a draft
+        // carrying just the clientId so the client is set from first build —
+        // mirrors ProjectEditScreen; the contact seed below then fires.
+        Quote? clone = cloneFrom;
+        if (clone == null && prefillClientId != null && existing == null) {
+          clone = emptyQuote().copyWith(clientId: prefillClientId!);
+        }
         final vm = QuoteEditViewModel(
           repo: services.quotes,
           companyId: companyId,
@@ -54,7 +68,7 @@ class QuoteEditScreen extends StatelessWidget {
           crossClientLineItemsMessage: ctx.tr('cross_client_line_items'),
           partialInvalidMessage: ctx.tr('partial_value'),
           existing: existing,
-          cloneFrom: cloneFrom,
+          cloneFrom: clone,
           useCommaAsDecimalPlace:
               services
                   .formatterIfReady(companyId)
@@ -113,6 +127,16 @@ class QuoteEditScreen extends StatelessWidget {
                   .catchError((Object _) {}),
             );
           });
+        }
+        // Seed contact invitations when the draft arrived with a client
+        // already set (New Quote from a Client's actions or embedded list)
+        // but no invitations yet — mirrors picking the client in the dropdown.
+        if (existing == null) {
+          seedClientInvitationsFromPrefill(
+            services: services,
+            companyId: companyId,
+            vm: vm,
+          );
         }
         return vm;
       },

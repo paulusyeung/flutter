@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/company.dart';
@@ -13,24 +12,17 @@ import 'package:admin/ui/core/widgets/detail_info_row.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 
 /// "Details" card on the client detail screen — website, phone, vat / id
-/// numbers, custom fields. In the wide grid it always renders so the layout
-/// stays column-symmetric (empty standard fields show a muted `—`); the
-/// stacked layout drops it entirely when [hasContent] is false. Custom fields
+/// numbers, custom fields. Blank standard rows are omitted entirely (no dash
+/// placeholder) in every layout — only populated fields render. Custom fields
 /// stay conditional and append below the standard rows when populated.
 ///
-/// When [compact] is true (the stacked layout — mobile / master-detail
-/// preview pane) blank standard rows are omitted entirely rather than shown
-/// as a dimmed `—`; the wide grid keeps them (`compact: false`) so the three
-/// columns stay vertically symmetric.
+/// In the wide grid the card still renders even when empty so the first column
+/// keeps its slot (column symmetry); the stacked layout drops it entirely when
+/// [hasContent] is false.
 class ClientDetailDetailsCard extends StatelessWidget {
-  const ClientDetailDetailsCard({
-    super.key,
-    required this.client,
-    this.compact = false,
-  });
+  const ClientDetailDetailsCard({super.key, required this.client});
 
   final Client client;
-  final bool compact;
 
   /// Whether any field this card renders is populated. Mirrors the exact set
   /// shown in [build] (the four standard fields + the four conditional custom
@@ -52,10 +44,6 @@ class ClientDetailDetailsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    String orDash(String v) => v.isEmpty ? '—' : v;
-    Color? dimIfEmpty(String v) => v.isEmpty ? tokens.ink4 : null;
-
     final websiteUri = _parseWebsite(client.website);
     // Resolve currency / language names lazily — only touch `Services` when a
     // value is actually set, so the card still renders in tests (and the first
@@ -68,16 +56,11 @@ class ClientDetailDetailsCard extends StatelessWidget {
         context.read<Services>().statics.language(client.languageId)?.name ??
         client.languageId;
 
-    // Compact (stacked / pane): drop a blank standard row entirely instead of
-    // rendering a dimmed `—`. Wide keeps it for column symmetry.
+    // Blank standard rows are omitted entirely (no dash placeholder) in every
+    // layout — only populated fields render.
     DetailInfoRow? stdRow(String label, String value, {VoidCallback? onTap}) {
-      if (compact && value.isEmpty) return null;
-      return DetailInfoRow(
-        label: label,
-        value: orDash(value),
-        valueColor: dimIfEmpty(value),
-        onTap: onTap,
-      );
+      if (value.isEmpty) return null;
+      return DetailInfoRow(label: label, value: value, onTap: onTap);
     }
 
     final rows = <Widget?>[

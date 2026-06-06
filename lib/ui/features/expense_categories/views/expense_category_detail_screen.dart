@@ -89,15 +89,14 @@ class _OverviewCard extends StatelessWidget {
       title: context.tr('overview'),
       spacing: 0,
       children: [
-        _KeyValue(
-          labelKey: 'name',
-          value: category.name.isEmpty ? '—' : category.name,
-        ),
-        _ColorRow(
-          label: context.tr('color'),
-          swatch: swatch,
-          hex: category.color,
-        ),
+        if (category.name.isNotEmpty)
+          _KeyValue(labelKey: 'name', value: category.name),
+        if (category.color.isNotEmpty)
+          _ColorRow(
+            label: context.tr('color'),
+            swatch: swatch,
+            hex: category.color,
+          ),
       ],
     );
   }

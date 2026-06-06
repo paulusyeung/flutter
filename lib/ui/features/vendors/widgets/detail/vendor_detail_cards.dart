@@ -125,13 +125,10 @@ class VendorDetailDetailsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.inTheme;
     final services = context.read<Services>();
     final companyId = services.auth.session.value?.currentCompanyId ?? '';
     final yes = context.tr('yes');
     final no = context.tr('no');
-    String orDash(String v) => v.isEmpty ? '—' : v;
-    Color? dimIfEmpty(String v) => v.isEmpty ? tokens.ink4 : null;
     final websiteUri = _parseWebsite(vendor.website);
     return StreamBuilder<Company?>(
       stream: services.company.watchCompany(companyId),
@@ -161,41 +158,36 @@ class VendorDetailDetailsCard extends StatelessWidget {
             : (formatter?.date(vendor.lastLogin!.toIso8601String()) ??
                   vendor.lastLogin!.toIso8601String());
         final rows = <Widget?>[
-          DetailInfoRow(
-            label: context.tr('website'),
-            value: orDash(vendor.website),
-            valueColor: dimIfEmpty(vendor.website),
-            onTap: websiteUri == null
-                ? null
-                : () => _openWebsite(context, websiteUri),
-          ),
-          DetailInfoRow(
-            label: context.tr('phone'),
-            value: orDash(vendor.phone),
-            valueColor: dimIfEmpty(vendor.phone),
-          ),
-          DetailInfoRow(
-            label: context.tr('vat_number'),
-            value: orDash(vendor.vatNumber),
-            valueColor: dimIfEmpty(vendor.vatNumber),
-          ),
-          DetailInfoRow(
-            label: context.tr('id_number'),
-            value: orDash(vendor.idNumber),
-            valueColor: dimIfEmpty(vendor.idNumber),
-          ),
-          DetailInfoRow(
-            label: context.tr('classification'),
-            value: vendor.classification.isEmpty
-                ? '—'
-                : context.tr(vendor.classification),
-            valueColor: dimIfEmpty(vendor.classification),
-          ),
-          DetailInfoRow(
-            label: context.tr('routing_id'),
-            value: orDash(vendor.routingId),
-            valueColor: dimIfEmpty(vendor.routingId),
-          ),
+          if (vendor.website.isNotEmpty)
+            DetailInfoRow(
+              label: context.tr('website'),
+              value: vendor.website,
+              onTap: websiteUri == null
+                  ? null
+                  : () => _openWebsite(context, websiteUri),
+            ),
+          if (vendor.phone.isNotEmpty)
+            DetailInfoRow(label: context.tr('phone'), value: vendor.phone),
+          if (vendor.vatNumber.isNotEmpty)
+            DetailInfoRow(
+              label: context.tr('vat_number'),
+              value: vendor.vatNumber,
+            ),
+          if (vendor.idNumber.isNotEmpty)
+            DetailInfoRow(
+              label: context.tr('id_number'),
+              value: vendor.idNumber,
+            ),
+          if (vendor.classification.isNotEmpty)
+            DetailInfoRow(
+              label: context.tr('classification'),
+              value: context.tr(vendor.classification),
+            ),
+          if (vendor.routingId.isNotEmpty)
+            DetailInfoRow(
+              label: context.tr('routing_id'),
+              value: vendor.routingId,
+            ),
           if (vendor.isTaxExempt)
             DetailInfoRow(label: context.tr('tax_exempt'), value: yes),
           if (currencyName.isNotEmpty)

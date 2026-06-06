@@ -65,6 +65,9 @@ class _PaymentDetailScreenState extends State<PaymentDetailScreen>
       bodyBuilder: (context, p) {
         return SingleChildScrollView(
           padding: EdgeInsets.all(InSpacing.lg(context)),
+          // Whole body capped/centered (820) — not just an overview grid like
+          // client/vendor detail. Payment detail has no long browsable
+          // related-entity lists, so centering the tabs too reads cleanly.
           child: CenteredFormColumn(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

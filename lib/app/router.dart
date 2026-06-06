@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
@@ -200,7 +201,21 @@ ShellRoute buildEntityRouteBlock({
       GoRoute(path: basePath, builder: (_, _) => const _NoPaneSentinel()),
       GoRoute(
         path: '$basePath/new',
-        builder: create,
+        // Re-key the create screen on the seed generation so a "New X" that
+        // targets an already-mounted create route recreates its State —
+        // go_router reuses the mounted screen otherwise, skipping `buildVm`
+        // (and the staged client seed). Mirrors the `:id` KeyedSubtree on the
+        // detail/edit routes below.
+        builder: (context, state) {
+          final services = context.read<Services>();
+          return ValueListenableBuilder<int>(
+            valueListenable: services.seedGenTick,
+            builder: (context, _, _) => KeyedSubtree(
+              key: ValueKey('new:$basePath:${services.seedGenFor(basePath)}'),
+              child: create(context, state),
+            ),
+          );
+        },
         onExit: _confirmExitIfDirty,
       ),
       GoRoute(
@@ -370,7 +385,19 @@ void goEntityCreateFullWidth(
   BuildContext context,
   String basePath, {
   Object? extra,
-}) => GoRouter.of(context).go('$basePath/new?view=full', extra: extra);
+  String? clientId,
+}) {
+  // Seed the client on `Services`, not the route: go_router drops `extra:`/
+  // query params on the cross-branch jump AND reuses an already-mounted create
+  // screen, so a route-carried seed never reaches `buildVm`. `stageClientSeed`
+  // also bumps the seed generation the `/new` route keys on, so the create
+  // State is recreated and the seed is read even on a reused screen.
+  if (clientId != null && clientId.isNotEmpty) {
+    context.read<Services>().stageClientSeed(basePath, clientId);
+  }
+  Logger('seed').warning('NAV $basePath/new (client=$clientId)'); // TEMP
+  GoRouter.of(context).go('$basePath/new?view=full', extra: extra);
+}
 
 /// Build the app's [GoRouter].
 ///

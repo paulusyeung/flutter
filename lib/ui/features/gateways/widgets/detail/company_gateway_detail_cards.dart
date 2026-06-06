@@ -54,10 +54,8 @@ class _OverviewCard extends StatelessWidget {
       title: context.tr('overview'),
       spacing: 0,
       children: [
-        _KeyValue(
-          labelKey: 'label',
-          value: gateway.label.isEmpty ? '—' : gateway.label,
-        ),
+        if (gateway.label.isNotEmpty)
+          _KeyValue(labelKey: 'label', value: gateway.label),
         _KeyValue(labelKey: 'gateway_type', value: providerName),
         _KeyValue(
           labelKey: 'test_mode',

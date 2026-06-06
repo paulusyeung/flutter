@@ -118,16 +118,13 @@ class _OverviewCard extends StatelessWidget {
       title: context.tr('overview'),
       spacing: 0,
       children: [
-        _KeyValue(
-          labelKey: 'name',
-          value: paymentLink.name.isEmpty ? '—' : paymentLink.name,
-        ),
+        if (paymentLink.name.isNotEmpty)
+          _KeyValue(labelKey: 'name', value: paymentLink.name),
         _KeyValue(labelKey: 'price', value: priceText),
-        _KeyValue(
-          labelKey: 'frequency',
-          value: freqKey == null ? '—' : context.tr(freqKey),
-        ),
-        _PurchasePageRow(url: paymentLink.purchasePage),
+        if (freqKey != null)
+          _KeyValue(labelKey: 'frequency', value: context.tr(freqKey)),
+        if (paymentLink.purchasePage.isNotEmpty)
+          _PurchasePageRow(url: paymentLink.purchasePage),
       ],
     );
   }

@@ -236,14 +236,13 @@ class _DetailsCard extends StatelessWidget {
       title: context.tr('details').toUpperCase(),
       child: Column(
         children: [
-          _Row(
-            label: context.tr('number'),
-            value: Text(task.number.isEmpty ? '—' : task.number),
-          ),
-          _Row(
-            label: context.tr('description'),
-            value: Text(task.description.isEmpty ? '—' : task.description),
-          ),
+          if (task.number.isNotEmpty)
+            _Row(label: context.tr('number'), value: Text(task.number)),
+          if (task.description.isNotEmpty)
+            _Row(
+              label: context.tr('description'),
+              value: Text(task.description),
+            ),
           if (task.isInvoiced)
             _Row(
               label: context.tr('invoice'),

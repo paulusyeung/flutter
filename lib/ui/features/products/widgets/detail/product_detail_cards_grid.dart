@@ -164,10 +164,11 @@ class _DetailsCard extends StatelessWidget {
       title: context.tr('details'),
       child: DetailRowStack(
         children: [
-          DetailInfoRow(
-            label: context.tr('product'),
-            value: product.productKey.isEmpty ? '—' : product.productKey,
-          ),
+          if (product.productKey.isNotEmpty)
+            DetailInfoRow(
+              label: context.tr('product'),
+              value: product.productKey,
+            ),
           if (product.maxQuantity != Decimal.zero)
             DetailInfoRow(
               label: context.tr('max_quantity'),

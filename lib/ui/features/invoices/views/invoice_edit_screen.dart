@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
@@ -14,6 +15,7 @@ import 'package:admin/ui/core/edit/after_save_create_action.dart';
 import 'package:admin/ui/core/edit/edit_action_filter.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
+import 'package:admin/ui/features/billing_shared/seed_client_invitations.dart';
 import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
 import 'package:admin/ui/features/invoices/widgets/edit/invoice_edit_layout.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_actions.dart';
@@ -87,6 +89,20 @@ class InvoiceEditScreen extends StatelessWidget {
         return invoice;
       },
       buildVm: (ctx, services, companyId, existing) {
+        // "New Invoice" from a Client's actions stages the clientId on
+        // `Services` (go_router drops route `extra:`/query on the cross-branch
+        // jump from the Clients list). Consume it and synthesize a draft
+        // carrying just the clientId so the client is set from first build —
+        // the contact seed below then fires. Mirrors ProjectEditScreen.
+        final seedClientId = services.takeClientSeed('/invoices');
+        Logger('seed').warning(
+          'invoice.buildVm existing=${existing != null} '
+          'cloneFrom=${cloneFrom != null} took=$seedClientId',
+        ); // TEMP diagnostic
+        Invoice? clone = cloneFrom;
+        if (clone == null && existing == null && seedClientId != null) {
+          clone = emptyInvoice().copyWith(clientId: seedClientId);
+        }
         final vm = InvoiceEditViewModel(
           repo: services.invoices,
           companyId: companyId,
@@ -94,7 +110,7 @@ class InvoiceEditScreen extends StatelessWidget {
           crossClientLineItemsMessage: ctx.tr('cross_client_line_items'),
           partialInvalidMessage: ctx.tr('partial_value'),
           existing: existing,
-          cloneFrom: cloneFrom,
+          cloneFrom: clone,
           useCommaAsDecimalPlace:
               services
                   .formatterIfReady(companyId)
@@ -163,6 +179,16 @@ class InvoiceEditScreen extends StatelessWidget {
                   .catchError((Object _) {}),
             );
           });
+        }
+        // Seed contact invitations when the draft arrived with a client
+        // already set (New Invoice from a Client's actions or embedded list)
+        // but no invitations yet — mirrors picking the client in the dropdown.
+        if (existing == null) {
+          seedClientInvitationsFromPrefill(
+            services: services,
+            companyId: companyId,
+            vm: vm,
+          );
         }
         return vm;
       },

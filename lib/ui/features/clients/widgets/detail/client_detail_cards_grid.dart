@@ -104,7 +104,7 @@ class ClientDetailCardsGrid extends StatelessWidget {
   Widget _stacked(BuildContext context, Client c) {
     final cards = <Widget>[
       if (ClientDetailDetailsCard.hasContent(c))
-        ClientDetailDetailsCard(client: c, compact: true),
+        ClientDetailDetailsCard(client: c),
       ClientDetailAddressCard(client: c),
       if (ClientDetailShippingAddressCard.hasContent(c))
         ClientDetailShippingAddressCard(client: c),

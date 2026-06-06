@@ -162,6 +162,10 @@ class TransactionListViewModel extends GenericListViewModel<BankTransaction> {
       if (keyword != null) clientStatus.add(keyword);
     }
     if (clientStatus.isNotEmpty) out['client_status'] = clientStatus;
+    // The single-date `date` comparator has no server handler (only `date_range`
+    // is honored); it's applied locally via the watchPage mirror. Drop it so we
+    // don't send a param the server silently ignores. `date_range` stays.
+    out.remove('date');
     return out;
   }
 

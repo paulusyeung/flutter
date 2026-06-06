@@ -560,7 +560,9 @@ class ReportEngine {
   }
 
   /// Group columns whose typed sort key is numeric — their bucket keys are
-  /// display strings that must NOT be ordered lexicographically.
+  /// display strings that must NOT be ordered lexicographically. Age is
+  /// included so age *groups* sort numerically, even though it's excluded from
+  /// `isAggregatable` (group ordering and summability are separate concerns).
   bool _numericGroupOrder(ReportColumnType t) =>
       t == ReportColumnType.money ||
       t == ReportColumnType.number ||

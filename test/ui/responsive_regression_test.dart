@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:admin/data/models/api/client_api_model.dart';
+import 'package:admin/data/models/api/contact_api_model.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/system_log.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
@@ -31,7 +32,20 @@ void main() {
             id: 'c1',
             name: 'Acme Corporation',
             phone: '555-0100',
-            website: 'https://acme.example',
+            // Long values + a contact so the grid renders its 3-column wide
+            // layout (Details · Address · Contacts) — exercises overflow at
+            // the ~321 px/card width the 1000 px breakpoint introduces.
+            website:
+                'https://www.acme-corporation-international-holdings.example.com/portal',
+            contacts: const [
+              ContactApi(
+                firstName: 'Alexandra',
+                lastName: 'Montgomery-Worthington',
+                email:
+                    'alexandra.montgomery.worthington@a-very-long-enterprise-domain.example.com',
+                phone: '555-0100',
+              ),
+            ],
             updatedAt: 1,
           ),
         );

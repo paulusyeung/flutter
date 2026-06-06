@@ -99,6 +99,13 @@ class NavStatePersister {
     // name). The router decides whether to land here; we never want a
     // cold launch to deep-link directly to the wizard.
     if (uri == '/setup') return;
+    // Never resume into a transient create form (`/x/new`). Persisting it
+    // would pre-mount the create screen on next launch; go_router then reuses
+    // that mounted screen (without re-running its bootstrap) on the next
+    // "New X" navigation, so a staged client seed / `extra` is never consumed
+    // and the form opens blank. (Cold-start restore strips `/new` defensively
+    // too — see `main.dart` — so this is belt-and-suspenders for older rows.)
+    if (uri.endsWith('/new') || uri.contains('/new?')) return;
     _timer?.cancel();
     _timer = Timer(_debounce, () => unawaited(_flush(uri)));
   }

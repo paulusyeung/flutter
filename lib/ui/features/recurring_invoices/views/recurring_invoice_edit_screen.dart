@@ -9,6 +9,7 @@ import 'package:admin/ui/core/edit/after_save_create_action.dart';
 import 'package:admin/ui/core/edit/edit_action_filter.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
+import 'package:admin/ui/features/billing_shared/seed_client_invitations.dart';
 import 'package:admin/ui/features/recurring_invoices/view_models/recurring_invoice_edit_view_model.dart';
 import 'package:admin/ui/features/recurring_invoices/widgets/edit/recurring_invoice_edit_layout.dart';
 import 'package:admin/ui/features/recurring_invoices/widgets/recurring_invoice_actions.dart';
@@ -17,11 +18,18 @@ class RecurringInvoiceEditScreen extends StatelessWidget {
   const RecurringInvoiceEditScreen({
     this.existingId,
     this.cloneFrom,
+    this.prefillClientId,
     super.key,
   });
 
   final String? existingId;
   final RecurringInvoice? cloneFrom;
+
+  /// Optional client id seed (`?client=<id>`). In create mode the form opens
+  /// with this client pre-selected (Clients list ⋮ → New Recurring Invoice).
+  /// Delivered via query param because `extra:` is dropped on the cross-branch
+  /// hop.
+  final String? prefillClientId;
 
   @override
   Widget build(BuildContext context) {
@@ -34,13 +42,20 @@ class RecurringInvoiceEditScreen extends StatelessWidget {
       fetchExisting: (ctx, services, companyId, id) =>
           services.recurringInvoices.watch(companyId: companyId, id: id).first,
       buildVm: (ctx, services, companyId, existing) {
-        return RecurringInvoiceEditViewModel(
+        // `?client=<id>` (Clients list ⋮ → New Recurring Invoice): synthesize
+        // a draft carrying just the clientId so the client is set from first
+        // build — mirrors ProjectEditScreen; the contact seed below then fires.
+        RecurringInvoice? clone = cloneFrom;
+        if (clone == null && prefillClientId != null && existing == null) {
+          clone = emptyRecurringInvoice().copyWith(clientId: prefillClientId!);
+        }
+        final vm = RecurringInvoiceEditViewModel(
           repo: services.recurringInvoices,
           companyId: companyId,
           clientRequiredMessage: ctx.tr('please_select_a_client'),
           crossClientLineItemsMessage: ctx.tr('cross_client_line_items'),
           existing: existing,
-          cloneFrom: cloneFrom,
+          cloneFrom: clone,
           useCommaAsDecimalPlace:
               services
                   .formatterIfReady(companyId)
@@ -50,6 +65,18 @@ class RecurringInvoiceEditScreen extends StatelessWidget {
           sync: services.sync,
           connectivity: services.connectivity,
         );
+        // Seed contact invitations when the draft arrived with a client
+        // already set (New Recurring Invoice from a Client's actions or
+        // embedded list) but no invitations yet — mirrors picking the client
+        // in the dropdown.
+        if (existing == null) {
+          seedClientInvitationsFromPrefill(
+            services: services,
+            companyId: companyId,
+            vm: vm,
+          );
+        }
+        return vm;
       },
       titleWhileLoading: (ctx) =>
           existingId == null ? ctx.tr('new_recurring_invoice') : ctx.tr('edit'),

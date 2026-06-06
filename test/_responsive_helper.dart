@@ -22,7 +22,7 @@ import '_localization_helper.dart';
 
 /// Standard responsive breakpoints to sweep: narrow (mobile / sidebar),
 /// medium (split), wide (desktop).
-const kResponsiveWidths = <double>[500, 800, 1200];
+const kResponsiveWidths = <double>[500, 800, 1050, 1200];
 
 Future<void> pumpAt(
   WidgetTester tester,

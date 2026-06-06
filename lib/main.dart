@@ -183,10 +183,27 @@ Future<void> _bootstrap() async {
   // the user's last route here.
   final navState = await opened.db.navStateDao.current();
   // Strip any entity-row segment from the restored URL so cold-start
-  // lands on the bare entity list rather than the last-viewed row.
-  // `/clients/c_42` → `/clients`; `/clients/new` and `/settings/...`
-  // pass through unchanged (see `companySafeLocation`).
-  final restored = navState?.currentRoute;
+  // lands on the bare entity list rather than the last-viewed row
+  // (`/clients/c_42` → `/clients`; `/settings/...` passes through — see
+  // `companySafeLocation`).
+  //
+  // ALSO strip a trailing `/new` create segment: resuming into a transient
+  // create form pre-mounts the create screen, which go_router then reuses
+  // (without re-running its bootstrap) on the next "New X" navigation — so a
+  // staged client seed / `extra` is never consumed and the form opens blank.
+  // Verified via diagnostics: the create `buildVm` ran once at startup (from
+  // the restored `/invoices/new`) and never again on the click. Land on the
+  // base list instead (`/invoices/new` → `/invoices`).
+  final restoredRaw = navState?.currentRoute;
+  final restoredUri = restoredRaw == null ? null : Uri.tryParse(restoredRaw);
+  final restored =
+      (restoredUri != null &&
+          restoredUri.pathSegments.isNotEmpty &&
+          restoredUri.pathSegments.last == 'new')
+      ? (restoredUri.pathSegments.length == 1
+            ? null // bare `/new` (no base) → fall back to the default route
+            : '/${restoredUri.pathSegments.sublist(0, restoredUri.pathSegments.length - 1).join('/')}')
+      : restoredRaw;
   final initialLocation = services.auth.isAuthenticated
       ? (restored == null
             ? defaultPostLoginRoute(services.auth.session.value)

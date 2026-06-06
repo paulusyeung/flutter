@@ -65,6 +65,11 @@ class Breakpoints {
   /// Task edit/detail deliberately keep their own 1100 threshold: the
   /// time-log table needs ~792 px in the main column, which 1000 would
   /// starve.
+  ///
+  /// Trade-off: just above this width the main column (≈ width − 360 px
+  /// sidebar − padding) is still under the 600 px `ClientEditFieldPair`
+  /// threshold, so paired fields stack for a narrow (~36 px) window band
+  /// before going side-by-side — accepted in favor of two columns sooner.
   static const double entityFormMultiColumn = 1000;
 
   /// Width thresholds for the Reports screen's three-tier responsive

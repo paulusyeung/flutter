@@ -9,15 +9,26 @@ import 'package:admin/ui/core/edit/after_save_create_action.dart';
 import 'package:admin/ui/core/edit/edit_action_filter.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
+import 'package:admin/ui/features/billing_shared/seed_client_invitations.dart';
 import 'package:admin/ui/features/credits/view_models/credit_edit_view_model.dart';
 import 'package:admin/ui/features/credits/widgets/edit/credit_edit_layout.dart';
 import 'package:admin/ui/features/credits/widgets/credit_actions.dart';
 
 class CreditEditScreen extends StatelessWidget {
-  const CreditEditScreen({this.existingId, this.cloneFrom, super.key});
+  const CreditEditScreen({
+    this.existingId,
+    this.cloneFrom,
+    this.prefillClientId,
+    super.key,
+  });
 
   final String? existingId;
   final Credit? cloneFrom;
+
+  /// Optional client id seed (`?client=<id>`). In create mode the form opens
+  /// with this client pre-selected (Clients list ⋮ → New Credit). Delivered
+  /// via query param because `extra:` is dropped on the cross-branch hop.
+  final String? prefillClientId;
 
   @override
   Widget build(BuildContext context) {
@@ -27,14 +38,21 @@ class CreditEditScreen extends StatelessWidget {
       fetchExisting: (ctx, services, companyId, id) =>
           services.credits.watch(companyId: companyId, id: id).first,
       buildVm: (ctx, services, companyId, existing) {
-        return CreditEditViewModel(
+        // `?client=<id>` (Clients list ⋮ → New Credit): synthesize a draft
+        // carrying just the clientId so the client is set from first build —
+        // mirrors ProjectEditScreen; the contact seed below then fires.
+        Credit? clone = cloneFrom;
+        if (clone == null && prefillClientId != null && existing == null) {
+          clone = emptyCredit().copyWith(clientId: prefillClientId!);
+        }
+        final vm = CreditEditViewModel(
           repo: services.credits,
           companyId: companyId,
           clientRequiredMessage: ctx.tr('please_select_a_client'),
           crossClientLineItemsMessage: ctx.tr('cross_client_line_items'),
           partialInvalidMessage: ctx.tr('partial_value'),
           existing: existing,
-          cloneFrom: cloneFrom,
+          cloneFrom: clone,
           useCommaAsDecimalPlace:
               services
                   .formatterIfReady(companyId)
@@ -44,6 +62,17 @@ class CreditEditScreen extends StatelessWidget {
           sync: services.sync,
           connectivity: services.connectivity,
         );
+        // Seed contact invitations when the draft arrived with a client
+        // already set (New Credit from a Client's actions or embedded list)
+        // but no invitations yet — mirrors picking the client in the dropdown.
+        if (existing == null) {
+          seedClientInvitationsFromPrefill(
+            services: services,
+            companyId: companyId,
+            vm: vm,
+          );
+        }
+        return vm;
       },
       titleWhileLoading: (ctx) =>
           existingId == null ? ctx.tr('new_credit') : ctx.tr('edit'),

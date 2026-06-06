@@ -65,6 +65,10 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen>
       bodyBuilder: (context, tx) {
         return SingleChildScrollView(
           padding: EdgeInsets.all(InSpacing.lg(context)),
+          // Whole body capped/centered (820) — not just an overview grid like
+          // client/vendor detail. A transaction's match panel + matched
+          // entities are compact (no long related-entity list), so this reads
+          // cleanly at full width.
           child: CenteredFormColumn(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

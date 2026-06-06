@@ -331,40 +331,40 @@ class _Overview extends StatelessWidget {
         purchaseOrder.customValue2.isNotEmpty ||
         purchaseOrder.customValue3.isNotEmpty ||
         purchaseOrder.customValue4.isNotEmpty;
+    final hasNotes = purchaseOrder.publicNotes.isNotEmpty;
+    final hasTerms = purchaseOrder.terms.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          context.tr('public_notes'),
-          style: TextStyle(
-            fontSize: 12,
-            color: tokens.ink3,
-            fontWeight: FontWeight.w600,
+        if (hasNotes) ...[
+          Text(
+            context.tr('public_notes'),
+            style: TextStyle(
+              fontSize: 12,
+              color: tokens.ink3,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          purchaseOrder.publicNotes.isEmpty ? '—' : purchaseOrder.publicNotes,
-          style: TextStyle(color: tokens.ink),
-        ),
-        SizedBox(height: InSpacing.md(context)),
-        Text(
-          context.tr('terms'),
-          style: TextStyle(
-            fontSize: 12,
-            color: tokens.ink3,
-            fontWeight: FontWeight.w600,
+          const SizedBox(height: 4),
+          Text(purchaseOrder.publicNotes, style: TextStyle(color: tokens.ink)),
+        ],
+        if (hasTerms) ...[
+          if (hasNotes) SizedBox(height: InSpacing.md(context)),
+          Text(
+            context.tr('terms'),
+            style: TextStyle(
+              fontSize: 12,
+              color: tokens.ink3,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          purchaseOrder.terms.isEmpty ? '—' : purchaseOrder.terms,
-          style: TextStyle(color: tokens.ink),
-        ),
+          const SizedBox(height: 4),
+          Text(purchaseOrder.terms, style: TextStyle(color: tokens.ink)),
+        ],
         // Purchase orders reuse the `invoice` custom-field config slots — no
         // separate purchase_order keys exist server-side (matches admin-portal).
         if (hasCustomFields) ...[
-          SizedBox(height: InSpacing.md(context)),
+          if (hasNotes || hasTerms) SizedBox(height: InSpacing.md(context)),
           CustomFieldsDetailCard(
             companyId: companyId,
             prefix: 'invoice',

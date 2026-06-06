@@ -59,16 +59,18 @@ void main() {
       },
     );
 
-    testWidgets('wide grid keeps blank standard rows with a dimmed dash', (
+    testWidgets('wide grid also hides blank standard rows (no dash)', (
       tester,
     ) async {
       await _pump(tester, _client(phone: '555-1234'), 1200);
-      expect(find.text('Website'), findsOneWidget);
       expect(find.text('Phone'), findsOneWidget);
-      expect(find.text('VAT Number'), findsOneWidget);
-      expect(find.text('ID Number'), findsOneWidget);
-      // The three blank standard fields each render a `—` placeholder.
-      expect(find.text('—'), findsNWidgets(3));
+      expect(find.text('555-1234'), findsOneWidget);
+      // Website / VAT Number / ID Number are blank → no label, no dash, even in
+      // the wide multi-column layout (previously a dimmed `—` filled each).
+      expect(find.text('Website'), findsNothing);
+      expect(find.text('VAT Number'), findsNothing);
+      expect(find.text('ID Number'), findsNothing);
+      expect(find.text('—'), findsNothing);
     });
 
     testWidgets(

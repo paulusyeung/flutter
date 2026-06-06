@@ -483,7 +483,7 @@ void main() {
       // 50 rows so Dart's sort would otherwise switch off insertion sort and
       // could reorder equal-key rows; the engine's index tie-breaker prevents it.
       final preview = previewWith(
-        columns: const [clientCol, idCol],
+        columns: [clientCol, idCol],
         rows: [
           for (var i = 0; i < 50; i++)
             [

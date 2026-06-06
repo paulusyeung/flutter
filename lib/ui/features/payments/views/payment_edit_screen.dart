@@ -14,10 +14,20 @@ import 'package:admin/ui/features/payments/widgets/edit/payment_edit_layout.dart
 import 'package:admin/ui/features/payments/widgets/payment_actions.dart';
 
 class PaymentEditScreen extends StatelessWidget {
-  const PaymentEditScreen({this.existingId, this.cloneFrom, super.key});
+  const PaymentEditScreen({
+    this.existingId,
+    this.cloneFrom,
+    this.prefillClientId,
+    super.key,
+  });
 
   final String? existingId;
   final Payment? cloneFrom;
+
+  /// Optional client id seed (`?client=<id>`). In create mode the form opens
+  /// with this client pre-selected (Clients list ⋮ → New Payment). Delivered
+  /// via query param because `extra:` is dropped on the cross-branch hop.
+  final String? prefillClientId;
 
   @override
   Widget build(BuildContext context) {
@@ -37,11 +47,19 @@ class PaymentEditScreen extends StatelessWidget {
         // can be translated without dragging BuildContext through the VM
         // method signatures. Safe because the scaffold owns the ctx for
         // the VM's lifetime.
+        // `?client=<id>` (Clients list ⋮ → New Payment): synthesize a draft
+        // carrying just the clientId so the client is set from first build —
+        // mirrors ProjectEditScreen. The client's invoices then load for
+        // applying the payment.
+        Payment? clone = cloneFrom;
+        if (clone == null && prefillClientId != null && existing == null) {
+          clone = emptyPayment().copyWith(clientId: prefillClientId!);
+        }
         return PaymentEditViewModel(
           repo: services.payments,
           companyId: companyId,
           existing: existing,
-          cloneFrom: cloneFrom,
+          cloneFrom: clone,
           translate: ctx.tr,
           useCommaAsDecimalPlace:
               services

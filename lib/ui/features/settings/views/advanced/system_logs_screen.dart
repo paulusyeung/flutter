@@ -226,7 +226,6 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
                     ];
                     final allRows = [...appRows, ...serverRows, ...outboxRows];
                     final diag = services.diagnosticsLog;
-                    final canViewServerLogs = _canViewServerLogs(session);
 
                     return SettingsScreenScaffold(
                       titleKey: 'system_logs',
@@ -246,7 +245,6 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
                         sections: _buildSections(
                           services: services,
                           companyId: companyId,
-                          canViewServerLogs: canViewServerLogs,
                           appRows: appRows,
                           serverRows: serverRows,
                           outboxRows: outboxRows,
@@ -270,14 +268,13 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
   List<Widget> _buildSections({
     required Services services,
     required String companyId,
-    required bool canViewServerLogs,
     required List<(String, String)> appRows,
     required List<(String, String)> serverRows,
     required List<(String, String)> outboxRows,
     required DiagnosticsLog? diag,
   }) {
     return [
-      if (companyId.isNotEmpty && canViewServerLogs)
+      if (companyId.isNotEmpty)
         _buildSystemLogsSection(services: services, companyId: companyId),
       FormSection(
         title: context.tr('application'),

@@ -163,4 +163,53 @@ void main() {
       expect(vm.draft.invitations, isEmpty);
     });
   });
+
+  group('seedClientInvitationsIfEmpty', () {
+    test(
+      'seeds from contacts when the draft has a client but no invitations',
+      () {
+        // The bug: "New Invoice" from a Client hands the screen a draft with
+        // the client already set and invitations empty, so the dropdown's
+        // onChanged (and thus selectClient) never fires.
+        final vm = _Vm(const _Doc(clientId: 'client-1'));
+        expect(vm.hasInvitations, isFalse);
+
+        vm.seedClientInvitationsIfEmpty([
+          _contact('a', sendEmail: true),
+          _contact('b', sendEmail: false),
+          _contact('c', sendEmail: true),
+        ]);
+
+        expect(vm.draft.invitations.map((i) => i.clientContactId), ['a', 'c']);
+        expect(vm.hasInvitations, isTrue);
+      },
+    );
+
+    test('is a no-op when invitations already exist (clone / manual edit)', () {
+      final vm = _Vm(
+        _Doc(
+          clientId: 'client-1',
+          invitations: [const Invitation(clientContactId: 'manual')],
+        ),
+      );
+      vm.seedClientInvitationsIfEmpty([_contact('other', sendEmail: true)]);
+
+      expect(vm.draft.invitations.map((i) => i.clientContactId), ['manual']);
+    });
+
+    test('falls back to the primary contact when none opt in', () {
+      final vm = _Vm(const _Doc(clientId: 'client-1'));
+      vm.seedClientInvitationsIfEmpty([
+        _contact('a'),
+        _contact('b', isPrimary: true),
+      ]);
+
+      expect(vm.draft.invitations.map((i) => i.clientContactId), ['b']);
+    });
+
+    test('clientId getter reflects the draft', () {
+      expect(_Vm(const _Doc()).clientId, '');
+      expect(_Vm(const _Doc(clientId: 'client-9')).clientId, 'client-9');
+    });
+  });
 }

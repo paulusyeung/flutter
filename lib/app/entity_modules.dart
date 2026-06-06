@@ -250,6 +250,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
       // when rate is zero, locks the client picker). Wired by the
       // Project detail "Add task" affordance.
       prefillProjectId: state.uri.queryParameters['project'],
+      // `?client=<id>` seeds the client (Clients list ⋮ → New Task).
+      prefillClientId: state.uri.queryParameters['client'],
     ),
     detailBuilder: (context, state) =>
         TaskDetailScreen(id: state.pathParameters['id']!),
@@ -428,6 +430,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
     },
     createBuilder: (context, state) => PaymentEditScreen(
       cloneFrom: state.extra is Payment ? state.extra as Payment : null,
+      // `?client=<id>` seeds the client (Clients list ⋮ → New Payment).
+      prefillClientId: state.uri.queryParameters['client'],
     ),
     detailBuilder: (context, state) =>
         PaymentDetailScreen(id: state.pathParameters['id']!),
@@ -471,6 +475,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
       // `?project=<id>` seeds projectId + clientId (Project detail's
       // Expenses tab "New").
       prefillProjectId: state.uri.queryParameters['project'],
+      // `?client=<id>` seeds the client (Clients list ⋮ → New Expense).
+      prefillClientId: state.uri.queryParameters['client'],
     ),
     detailBuilder: (context, state) =>
         ExpenseDetailScreen(id: state.pathParameters['id']!),
@@ -583,6 +589,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
       // `?product=<id>` seeds a line item from the picked product
       // (Product kebab → "New Quote"). See InvoiceEditScreen.
       prefillProductId: state.uri.queryParameters['product'],
+      // `?client=<id>` seeds the client (Clients list ⋮ → New Quote).
+      prefillClientId: state.uri.queryParameters['client'],
     ),
     detailBuilder: (context, state) =>
         QuoteDetailScreen(id: state.pathParameters['id']!),
@@ -633,6 +641,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
     },
     createBuilder: (context, state) => CreditEditScreen(
       cloneFrom: state.extra is Credit ? state.extra as Credit : null,
+      // `?client=<id>` seeds the client (Clients list ⋮ → New Credit).
+      prefillClientId: state.uri.queryParameters['client'],
     ),
     detailBuilder: (context, state) =>
         CreditDetailScreen(id: state.pathParameters['id']!),
@@ -740,6 +750,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
       cloneFrom: state.extra is RecurringInvoice
           ? state.extra as RecurringInvoice
           : null,
+      // `?client=<id>` seeds the client (Clients list ⋮ → New Recurring Invoice).
+      prefillClientId: state.uri.queryParameters['client'],
     ),
     detailBuilder: (context, state) =>
         RecurringInvoiceDetailScreen(id: state.pathParameters['id']!),

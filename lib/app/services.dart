@@ -581,6 +581,51 @@ class Services implements SidebarBadgeContext {
   /// navigation between routes.
   final ValueNotifier<bool> debugPanelRevealed;
 
+  // -- Cross-branch create seed -------------------------------------------
+
+  /// A clientId staged by a Client's "New X" action so the next create screen
+  /// at that basePath opens pre-scoped to the client.
+  ///
+  /// go_router drops both `extra:` and query params on the cross-
+  /// `StatefulShellRoute`-branch jump from `/clients` to a create route, AND
+  /// reuses an already-mounted create screen without re-running its `buildVm`
+  /// (verified at runtime). So the seed rides on this singleton — which the
+  /// branch switch can't touch — and [seedGenTick]/[seedGenFor] drive a
+  /// generation-keyed `KeyedSubtree` on the `/new` route so the screen is
+  /// recreated (and re-reads the seed) on every stage.
+  ({String basePath, String clientId})? _stagedSeed;
+  final Map<String, int> _seedGen = {};
+
+  /// Bumps whenever a client seed is staged. The `/new` route watches this so
+  /// a stage recreates the create screen's State even when it was already
+  /// mounted (go_router would otherwise reuse it and skip `buildVm`).
+  final ValueNotifier<int> seedGenTick = ValueNotifier(0);
+
+  /// Stage [clientId] to pre-fill the next create screen at [basePath] (e.g.
+  /// `/invoices`). Call immediately before navigating to that create route.
+  void stageClientSeed(String basePath, String clientId) {
+    Logger('seed').warning('STAGE $basePath $clientId'); // TEMP diagnostic
+    _stagedSeed = (basePath: basePath, clientId: clientId);
+    _seedGen[basePath] = (_seedGen[basePath] ?? 0) + 1;
+    seedGenTick.value++;
+  }
+
+  /// Monotonic stage counter for [basePath] — the `/new` route keys its
+  /// content on this so a fresh stage forces a fresh create State.
+  int seedGenFor(String basePath) => _seedGen[basePath] ?? 0;
+
+  /// One-shot read of the staged clientId for [basePath], clearing it. Returns
+  /// null when nothing is staged or it was staged for a different create route.
+  String? takeClientSeed(String basePath) {
+    final seed = _stagedSeed;
+    final result = (seed != null && seed.basePath == basePath)
+        ? seed.clientId
+        : null;
+    Logger('seed').warning('TAKE $basePath -> $result (staged: $seed)'); // TEMP
+    if (result != null) _stagedSeed = null;
+    return result;
+  }
+
   // -- SidebarBadgeContext -------------------------------------------------
 
   @override

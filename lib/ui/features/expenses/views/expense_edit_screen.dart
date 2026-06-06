@@ -26,6 +26,7 @@ class ExpenseEditScreen extends StatelessWidget {
     this.existingId,
     this.cloneFrom,
     this.prefillProjectId,
+    this.prefillClientId,
     super.key,
   });
 
@@ -42,6 +43,11 @@ class ExpenseEditScreen extends StatelessWidget {
   /// "New Expense" from a Project's Expenses tab opens pre-scoped.
   final String? prefillProjectId;
 
+  /// Optional client id seed (`?client=<id>`). In create mode the form opens
+  /// with this client pre-selected (Clients list ⋮ → New Expense). Delivered
+  /// via query param because `extra:` is dropped on the cross-branch hop.
+  final String? prefillClientId;
+
   @override
   Widget build(BuildContext context) {
     return EntityEditScreenScaffold<Expense, ExpenseEditViewModel>(
@@ -50,11 +56,18 @@ class ExpenseEditScreen extends StatelessWidget {
       fetchExisting: (ctx, services, companyId, id) =>
           services.expenses.watch(companyId: companyId, id: id).first,
       buildVm: (ctx, services, companyId, existing) {
+        // `?client=<id>` (Clients list ⋮ → New Expense): synthesize a draft
+        // carrying just the clientId so the client is set from first build —
+        // mirrors ProjectEditScreen. (No invitations on expenses.)
+        Expense? clone = cloneFrom;
+        if (clone == null && prefillClientId != null && existing == null) {
+          clone = emptyExpense().copyWith(clientId: prefillClientId!);
+        }
         final vm = ExpenseEditViewModel(
           repo: services.expenses,
           companyId: companyId,
           existing: existing,
-          cloneFrom: cloneFrom,
+          cloneFrom: clone,
           useCommaAsDecimalPlace:
               services
                   .formatterIfReady(companyId)
