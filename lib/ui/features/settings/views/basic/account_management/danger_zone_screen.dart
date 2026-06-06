@@ -731,8 +731,11 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
                 onSubmitted: (_) => _submit(),
               ),
               SizedBox(height: InSpacing.lg(context)),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              Wrap(
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: InSpacing.md(context),
+                runSpacing: InSpacing.sm,
                 children: [
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
@@ -741,7 +744,6 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
                     onPressed: _busy ? null : () => Navigator.of(context).pop(),
                     child: Text(context.tr('cancel')),
                   ),
-                  SizedBox(width: InSpacing.md(context)),
                   FilledButton(
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(64, 44),

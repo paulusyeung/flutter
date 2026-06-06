@@ -1,14 +1,13 @@
-import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
-import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/expense.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/domain/entity_type.dart';
+import 'package:admin/domain/expense_invoice_line_item.dart';
 import 'package:admin/domain/expense_recurring_conversion.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
@@ -215,12 +214,20 @@ class ExpenseActions {
           Notify.error(context, context.tr('expense_already_invoiced'));
           return;
         }
-        final lineItem = _expenseLineItem(expense);
+        // A new invoice adopts the expense's inclusive-tax mode (React parity),
+        // so the carried line tax is interpreted the same way it was on the
+        // expense.
         final draft = emptyInvoice().copyWith(
           clientId: expense.clientId,
           projectId: expense.projectId,
           vendorId: expense.vendorId,
-          lineItems: [lineItem],
+          usesInclusiveTaxes: expense.usesInclusiveTaxes,
+          lineItems: [
+            expenseInvoiceLineItem(
+              expense,
+              invoiceInclusive: expense.usesInclusiveTaxes,
+            ),
+          ],
         );
         goEntityCreateFullWidth(context, '/invoices', extra: draft);
       case ExpenseAction.runTemplate:
@@ -260,35 +267,18 @@ class ExpenseActions {
           formatter: formatter,
         );
         if (target == null || !context.mounted) return;
-        final addItem = _expenseLineItem(expense);
+        // The target invoice's tax mode is fixed — seed the line cost to match
+        // it so the line total lands on the expense's gross either way.
+        final addItem = expenseInvoiceLineItem(
+          expense,
+          invoiceInclusive: target.usesInclusiveTaxes,
+        );
         context.go(
           '/invoices/${target.id}/edit',
           extra: target.copyWith(lineItems: [...target.lineItems, addItem]),
         );
     }
   }
-}
-
-/// Build the invoice line item for "Invoice expense" / "Add to invoice".
-/// Carries the expense's tax rates onto the line item (rate mode only — line
-/// items are rate-based, so by-amount taxes are skipped) so the generated
-/// invoice mirrors the expense's tax, matching admin-portal.
-LineItem _expenseLineItem(Expense expense) {
-  final item = emptyLineItem().copyWith(
-    expenseId: expense.id,
-    notes: expense.publicNotes,
-    quantity: Decimal.one,
-    cost: expense.amount,
-  );
-  if (expense.calculateTaxByAmount) return item;
-  return item.copyWith(
-    taxName1: expense.taxName1,
-    taxRate1: expense.taxRate1,
-    taxName2: expense.taxName2,
-    taxRate2: expense.taxRate2,
-    taxName3: expense.taxName3,
-    taxRate3: expense.taxRate3,
-  );
 }
 
 Future<void> _promptAddComment(

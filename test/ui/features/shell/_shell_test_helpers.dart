@@ -88,6 +88,10 @@ Future<ShellFixture> buildFixture({
   String plan = 'pro',
   int hostedCompanyCount = 10,
   bool online = false,
+  // Override the HTTP client to program specific responses (e.g. a 412 on a
+  // destructive mutation). Defaults to the fail-fast offline client so the
+  // bulk of widget tests never touch the network.
+  http.Client? httpClient,
 }) async {
   final db = AppDatabase(NativeDatabase.memory());
 
@@ -142,7 +146,7 @@ Future<ShellFixture> buildFixture({
     db: db,
     tokenStorage: storage,
     connectivityWatcher: ConnectivityWatcher.fixed(online: online),
-    httpClient: _failFastClient(),
+    httpClient: httpClient ?? _failFastClient(),
   );
   await services.auth.restore();
   // `restore()` starts the Services-owned RefreshScheduler's periodic 5-min

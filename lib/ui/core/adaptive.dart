@@ -50,6 +50,23 @@ class Breakpoints {
   static bool isSlideOver(BuildContext context) =>
       MediaQuery.sizeOf(context).width >= slideOver;
 
+  /// Two-column ⇄ single-column threshold for entity edit / detail card
+  /// layouts (client / product / expense / vendor / …). At or above this
+  /// width the body splits into a main column + 360 px sidebar (or a 2–3
+  /// column detail grid); below it the body collapses to a single column
+  /// centered and capped at [kEntityFormMaxWidth] so fields don't stretch
+  /// edge-to-edge.
+  ///
+  /// Picked at 1000 — not 1100 — so a **full-width** pane on a ~1280 px
+  /// window (content ≈ 1048 px after the 232 px nav rail) shows two
+  /// columns rather than one stretched column. The slide-over pane
+  /// (440–560 px) always falls below this, so it stays single-column.
+  ///
+  /// Task edit/detail deliberately keep their own 1100 threshold: the
+  /// time-log table needs ~792 px in the main column, which 1000 would
+  /// starve.
+  static const double entityFormMultiColumn = 1000;
+
   /// Width thresholds for the Reports screen's three-tier responsive
   /// rendering. The Reports table carries more chrome (sticky header,
   /// per-column filter row, drill-down breadcrumb) than a typical entity

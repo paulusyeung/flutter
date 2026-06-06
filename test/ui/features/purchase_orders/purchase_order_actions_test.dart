@@ -14,7 +14,7 @@ import '../shell/_shell_test_helpers.dart';
 /// (verified against the Laravel `PurchaseOrderController`):
 ///   - there is NO admin Accept (a PO is accepted by the vendor via the
 ///     portal; the `/bulk` allow-list has no `accept`),
-///   - Cancel only on a Sent PO (server no-ops cancel once `status > SENT`),
+///   - Cancel on a Draft or Sent PO (server no-ops cancel once `status > SENT`),
 ///   - Add to inventory only on an Accepted PO (→ Received),
 ///   - Convert to expense only while no expense exists; once expensed the menu
 ///     shows View expense instead,
@@ -110,14 +110,14 @@ void main() {
     );
   });
 
-  testWidgets('cancel is enabled only on a Sent PO', (tester) async {
+  testWidgets('cancel is enabled on a Draft or Sent PO', (tester) async {
     expect(
       enabledOf(
         await resolveItems(tester, _po(statusId: '1')),
         PurchaseOrderAction.cancel,
       ),
-      isFalse,
-      reason: 'an unsent draft is deleted, not cancelled',
+      isTrue,
+      reason: 'server allows cancel while status <= SENT (Draft included)',
     );
     expect(
       enabledOf(

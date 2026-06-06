@@ -169,11 +169,14 @@ class _PlanCard extends StatelessWidget {
       return '';
     }
     if (s.planExpires.isNotEmpty) {
-      // Treat as ISO-date or "yyyy-MM-dd" prefix. Strip time-of-day for clean
-      // display; downstream Formatter could fully localize, but the
-      // formatter requires a per-company snapshot and this is a read-only
-      // label.
-      final display = s.planExpires.split(' ').first;
+      // Format through the active company's Formatter so the expiry honors
+      // `date_format_id`; fall back to the raw date-only prefix when that
+      // company's formatter isn't cached yet (read-only label, so no async load).
+      final fmt = context.read<Services>().formatterIfReady(s.currentCompanyId);
+      final formatted = fmt?.date(s.planExpires) ?? '';
+      final display = formatted.isNotEmpty
+          ? formatted
+          : s.planExpires.split(' ').first;
       return '${context.tr('expires_on')} $display';
     }
     return '';

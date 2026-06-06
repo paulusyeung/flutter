@@ -806,13 +806,22 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
                     ),
                   ),
                   // Scope only the rows (not the toolbar above) so tiles +
-                  // their action menu adopt the Client-datatable look.
+                  // their action menu adopt the Client-datatable look, and so
+                  // money cells resolve the per-client/vendor currency cascade
+                  // (`cellMoney` / `PartyCurrencyBuilder` read it via
+                  // FormatterScope) — the standalone path wraps the same way.
                   EmbeddedListScope(
-                    child: _bodyWithBanner(
-                      context,
-                      wide: wide,
-                      selecting: selecting,
-                    ),
+                    child: () {
+                      final body = _bodyWithBanner(
+                        context,
+                        wide: wide,
+                        selecting: selecting,
+                      );
+                      final f = formatter;
+                      return (widget.wantsFormatter && f != null)
+                          ? FormatterScope(formatter: f, child: body)
+                          : body;
+                    }(),
                   ),
                 ],
               );

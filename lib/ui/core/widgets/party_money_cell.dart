@@ -53,27 +53,29 @@ class _PartyCurrencyBuilderState extends State<PartyCurrencyBuilder> {
   }
 
   void _ensure() {
+    final vendorId = widget.vendorId ?? '';
+    final clientId = widget.clientId ?? '';
+    if (vendorId.isEmpty && clientId.isEmpty) return;
     final services = context.read<Services>();
     final companyId = services.auth.session.value?.currentCompanyId;
     if (companyId == null || companyId.isEmpty) return;
-    final vendorId = widget.vendorId ?? '';
-    final clientId = widget.clientId ?? '';
     if (vendorId.isNotEmpty) {
       services.vendors.ensureLoaded(companyId: companyId, id: vendorId);
-    } else if (clientId.isNotEmpty) {
+    } else {
       services.clients.ensureLoaded(companyId: companyId, id: clientId);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final services = context.read<Services>();
-    final companyId = services.auth.session.value?.currentCompanyId;
     final vendorId = widget.vendorId ?? '';
     final clientId = widget.clientId ?? '';
-    if (companyId == null ||
-        companyId.isEmpty ||
-        (vendorId.isEmpty && clientId.isEmpty)) {
+    if (vendorId.isEmpty && clientId.isEmpty) {
+      return widget.builder(context, null);
+    }
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId;
+    if (companyId == null || companyId.isEmpty) {
       return widget.builder(context, null);
     }
     if (vendorId.isNotEmpty) {

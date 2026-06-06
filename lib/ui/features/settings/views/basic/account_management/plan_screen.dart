@@ -56,6 +56,20 @@ class AccountManagementPlanScreen extends StatelessWidget {
   }
 }
 
+/// Plan-expiry display: format through the active company's [Formatter] so it
+/// honors `date_format_id`, falling back to the raw date-only prefix when that
+/// company's formatter isn't cached yet (rare — the active company's formatter
+/// is loaded on company switch).
+String _expiryDisplay(BuildContext context, AuthSession session) {
+  final fmt = context.read<Services>().formatterIfReady(
+    session.currentCompanyId,
+  );
+  final formatted = fmt?.date(session.planExpires) ?? '';
+  return formatted.isNotEmpty
+      ? formatted
+      : session.planExpires.split(' ').first;
+}
+
 class _PlanStatusCard extends StatelessWidget {
   const _PlanStatusCard({required this.session});
 
@@ -90,7 +104,7 @@ class _PlanStatusCard extends StatelessWidget {
             session.plan.isNotEmpty) ...[
           SizedBox(height: InSpacing.sm),
           Text(
-            '${context.tr('expires_on')} ${session.planExpires.split(' ').first}',
+            '${context.tr('expires_on')} ${_expiryDisplay(context, session)}',
             style: theme.textTheme.bodyMedium?.copyWith(color: tokens.ink2),
           ),
         ],
@@ -169,36 +183,46 @@ class _HostedActionsCard extends StatelessWidget {
     return FormSection(
       title: context.tr('change_plan'),
       children: [
-        Text(
-          context.tr('use_mobile_to_manage_plan'),
-          style: TextStyle(color: tokens.ink2),
-        ),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Wrap(
-            spacing: InSpacing.md(context),
-            runSpacing: InSpacing.sm,
-            children: [
-              FilledButton.icon(
-                style: FilledButton.styleFrom(minimumSize: const Size(160, 44)),
-                icon: const Icon(Icons.open_in_new, size: 18),
-                label: Text(context.tr(labelKey)),
-                // Store IAP on iOS/Android; hosted portal on web/desktop.
-                // Disabled only on the web/desktop dead-end where no portal
-                // URL is available yet (transient pre-refresh state).
-                onPressed: canUpgrade ? () => launchUpgrade(context) : null,
-              ),
-            ],
-          ),
-        ),
-        if (!canUpgrade)
-          Padding(
-            padding: EdgeInsets.only(top: InSpacing.sm),
-            child: Text(
-              context.tr('error_refresh_page'),
-              style: TextStyle(color: tokens.ink3),
+        if (session.hasIapPlan)
+          // Plan was purchased via in-app purchase — it can only be managed in
+          // the store's subscription settings, not here. Show guidance and no
+          // action button (mirrors admin-portal's `isProPlan && hasIapPlan`
+          // branch). Showing this unconditionally would tell every web/desktop
+          // and non-IAP user to "use their phone", which is wrong.
+          Text(
+            context.tr('use_mobile_to_manage_plan'),
+            style: TextStyle(color: tokens.ink2),
+          )
+        else ...[
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Wrap(
+              spacing: InSpacing.md(context),
+              runSpacing: InSpacing.sm,
+              children: [
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(160, 44),
+                  ),
+                  icon: const Icon(Icons.open_in_new, size: 18),
+                  label: Text(context.tr(labelKey)),
+                  // Store IAP on iOS/Android; hosted portal on web/desktop.
+                  // Disabled only on the web/desktop dead-end where no portal
+                  // URL is available yet (transient pre-refresh state).
+                  onPressed: canUpgrade ? () => launchUpgrade(context) : null,
+                ),
+              ],
             ),
           ),
+          if (!canUpgrade)
+            Padding(
+              padding: EdgeInsets.only(top: InSpacing.sm),
+              child: Text(
+                context.tr('error_refresh_page'),
+                style: TextStyle(color: tokens.ink3),
+              ),
+            ),
+        ],
       ],
     );
   }
