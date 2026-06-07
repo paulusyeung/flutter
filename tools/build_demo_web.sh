@@ -24,7 +24,11 @@ cd "$repo_root"
 deploy_dir="${1:-$repo_root/../hillelcoren.github.io/admin}"
 
 echo "==> flutter build web --wasm (demo, base-href /admin/)"
+# --no-web-resources-cdn bundles the CanvasKit/skwasm engine into build/web/
+# (served from /admin/) instead of fetching it from www.gstatic.com at runtime,
+# so the demo loads entirely from our own origin.
 flutter build web --wasm --release \
+  --no-web-resources-cdn \
   --base-href /admin/ \
   --dart-define=IN_DEMO_API_TOKEN=TOKEN
 

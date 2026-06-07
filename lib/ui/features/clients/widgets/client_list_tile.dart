@@ -1,6 +1,5 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/client.dart';
@@ -315,7 +314,8 @@ class _ClientListTileState extends State<ClientListTile> {
       isZero ? '—' : text,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: GoogleFonts.jetBrainsMono(
+      style: TextStyle(
+        fontFamily: kMonoFontFamily,
         fontSize: fontSize,
         fontWeight: bold ? FontWeight.w500 : FontWeight.w400,
         color: color,

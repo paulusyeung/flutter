@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:admin/app/design_tokens.dart';
 
@@ -57,11 +56,16 @@ ThemeData buildInTheme(InTheme baseTokens, {Color? accentOverride}) {
   );
 
   // The v2 design system specifies Geist as the primary sans, with Inter
-  // Tight as its declared fallback. `google_fonts` 6.2.1 doesn't expose
-  // Geist, so we use Inter Tight — same geometric-humanist family.
-  final textTheme = GoogleFonts.interTightTextTheme(
-    base.textTheme,
-  ).apply(bodyColor: tokens.ink, displayColor: tokens.ink);
+  // Tight as its declared fallback. Geist isn't bundled, so we use Inter
+  // Tight — same geometric-humanist family — shipped as a bundled asset font
+  // ([kSansFontFamily], see pubspec `fonts:`) so it loads from our own origin
+  // instead of fetching from fonts.gstatic.com at runtime. The variable
+  // font's `wght` axis is driven by each text style's `fontWeight`.
+  final textTheme = base.textTheme.apply(
+    fontFamily: kSansFontFamily,
+    bodyColor: tokens.ink,
+    displayColor: tokens.ink,
+  );
 
   return base.copyWith(
     textTheme: textTheme,

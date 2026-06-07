@@ -100,3 +100,15 @@ flutter:
     - assets/i18n/
     - assets/images/
     - assets/images/gateway_logos/
+  # Bundled app fonts (variable TTFs) so the web app loads them from our own
+  # origin instead of fetching from fonts.gstatic.com at runtime. Each is a
+  # single variable file; a TextStyle's `fontWeight` drives its `wght` axis.
+  # The invoice designer still fetches arbitrary user-chosen fonts on demand
+  # via `google_fonts` (GoogleFonts.getFont) — that's intentional.
+  fonts:
+    - family: Inter Tight
+      fonts:
+        - asset: assets/fonts/InterTight.ttf
+    - family: JetBrains Mono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono.ttf

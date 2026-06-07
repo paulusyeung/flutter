@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
@@ -1310,7 +1309,8 @@ class _RowTitle extends StatelessWidget {
           const SizedBox(width: 12),
           Text(
             right,
-            style: GoogleFonts.jetBrainsMono(
+            style: TextStyle(
+              fontFamily: kMonoFontFamily,
               color: tokens.ink,
               fontFeatures: const [FontFeature.tabularFigures()],
               fontWeight: FontWeight.w600,

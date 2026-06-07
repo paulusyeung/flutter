@@ -1,6 +1,5 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import 'package:admin/app/design_tokens.dart';
@@ -234,7 +233,8 @@ class TotalsWidget extends StatelessWidget {
           ),
           Text(
             amountText,
-            style: GoogleFonts.jetBrainsMono(
+            style: TextStyle(
+              fontFamily: kMonoFontFamily,
               fontSize: size,
               color: color,
               fontWeight: strong ? FontWeight.w600 : FontWeight.w400,

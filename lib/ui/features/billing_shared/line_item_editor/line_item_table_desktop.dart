@@ -4,7 +4,6 @@ import 'dart:ui' show lerpDouble;
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
@@ -377,7 +376,8 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
                 alignment: Alignment.centerRight,
                 child: Text(
                   total,
-                  style: GoogleFonts.jetBrainsMono(
+                  style: TextStyle(
+                    fontFamily: kMonoFontFamily,
                     color: tokens.ink,
                     fontSize: 13,
                     fontFeatures: const [FontFeature.tabularFigures()],
@@ -897,7 +897,8 @@ class _RowStateW extends State<_Row> {
           alignment: Alignment.centerRight,
           child: Text(
             display,
-            style: GoogleFonts.jetBrainsMono(
+            style: TextStyle(
+              fontFamily: kMonoFontFamily,
               color: tokens.ink,
               fontSize: 13,
               fontFeatures: const [FontFeature.tabularFigures()],
@@ -1248,7 +1249,8 @@ class _NumericCell extends StatelessWidget {
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       textAlign: TextAlign.right,
       textAlignVertical: TextAlignVertical.center,
-      style: GoogleFonts.jetBrainsMono(
+      style: TextStyle(
+        fontFamily: kMonoFontFamily,
         color: tokens.ink,
         fontSize: 13,
         fontFeatures: const [FontFeature.tabularFigures()],

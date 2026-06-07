@@ -5,6 +5,13 @@ import 'package:flutter/material.dart';
 
 import 'package:admin/app/color_hex.dart';
 
+/// Bundled font families (declared in pubspec `fonts:`), referenced by name so
+/// they load from our own assets instead of fetching from fonts.gstatic.com.
+/// [kSansFontFamily] is the primary UI typeface; [kMonoFontFamily] is used for
+/// tabular numerals (amounts, line-item quantities, column cells).
+const String kSansFontFamily = 'Inter Tight';
+const String kMonoFontFamily = 'JetBrains Mono';
+
 /// Invoice Ninja v2 design tokens. The single source of truth for the
 /// visual language; the JSX equivalent lives at `docs/design/v2/tokens.jsx`.
 ///

@@ -1,6 +1,5 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import 'package:admin/app/design_tokens.dart';
@@ -206,7 +205,8 @@ class MoneyCellText extends StatelessWidget {
       text,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: GoogleFonts.jetBrainsMono(
+      style: TextStyle(
+        fontFamily: kMonoFontFamily,
         fontSize: 13,
         height: 1.2,
         color: isZero ? tokens.ink3 : tokens.ink,

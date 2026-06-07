@@ -1711,6 +1711,60 @@ void main() {
       expect(calls, ['co_a']);
     });
 
+    test('fires exactly once from restore even when the background refresh '
+        'succeeds (no duplicate sidebar-prefetch sweep)', () async {
+      // Regression for the warm-load double sweep: restore() activates from
+      // the cached session (fire #1) AND kicks `_refreshSessionQuietly`, a
+      // full /refresh that reaches `_persistAndActivate` (which would be fire
+      // #2). Both target the *same* company, so the activation guard must
+      // collapse them to one — otherwise the full entity prefetch runs twice.
+      // Unlike the test above, here the background refresh SUCCEEDS (a real
+      // apiClient is wired), so the second activation is genuinely reached.
+      authService.queueLogin(_envelope());
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a',
+        password: 'b',
+      );
+
+      final fakeHttp = MockClient((req) async {
+        if (req.url.path == '/api/v1/refresh') {
+          // Full snapshot of the same single company → same-company re-activate.
+          return http.Response(jsonEncode(_envelope().toJson()), 200);
+        }
+        return http.Response('not found', 404);
+      });
+      final fresh = AuthRepository(
+        db: db,
+        authService: authService,
+        tokenStorage: storage,
+        passwordCache: passwordCache,
+      );
+      fresh.apiClient = ApiClient(
+        credentials: fresh.credentials,
+        passwordCache: PasswordCache(),
+        onUnauthorized: () async {},
+        httpClient: fakeHttp,
+      );
+      final calls = <String>[];
+      fresh.onActiveCompanyChanged = calls.add;
+
+      await fresh.restore();
+      // Drain the fire-and-forget `_refreshSessionQuietly` round-trip
+      // (network + `_persistAndActivate` transaction) so the second
+      // activation, if any, has run before we assert.
+      await pumpEventQueue();
+
+      expect(
+        calls,
+        ['co_a'],
+        reason:
+            'restore + successful background refresh of the same company '
+            'must activate once, not twice',
+      );
+    });
+
     test('no fire on switchCompany when the target token is missing', () async {
       authService.queueLogin(_envelope());
       await repo.login(

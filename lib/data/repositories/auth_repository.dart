@@ -68,6 +68,15 @@ class AuthRepository {
   /// and forget; failures surface via the sync engine's own event stream.
   void Function(String companyId)? onActiveCompanyChanged;
 
+  /// Last company id for which [_fireActiveCompanyChanged] invoked
+  /// [onActiveCompanyChanged]. Guards against re-running the activation work
+  /// (sidebar prefetch, settings reset, formatter warm) when a /refresh
+  /// re-activates the *same* company — the background `_refreshSessionQuietly`
+  /// after [restore] and the periodic delta pump both go through
+  /// `_persistAndActivate`. Reset to null on [logout] so re-login to the same
+  /// company re-activates.
+  String? _lastActivatedCompanyId;
+
   /// Wired by DI to fan-out the per-entity `applyBundle` calls (task
   /// statuses, company gateways, …). Invoked once per company in the
   /// `/login` or `/refresh` envelope, *after* the user / company / settings
@@ -317,7 +326,7 @@ class AuthRepository {
       isHosted: s.isHosted,
     );
     await _secure.write(kAuthCurrentCompanyIdKey, companyId);
-    onActiveCompanyChanged?.call(companyId);
+    _fireActiveCompanyChanged(companyId);
   }
 
   /// Create a new company under the current account. Mirrors admin-portal's
@@ -523,6 +532,9 @@ class AuthRepository {
     _credentials.value = null;
     _requiresBiometricUnlock.value = false;
     _tokensByCompany = const {};
+    // Re-arm the activation guard so a fresh login (even to the same company)
+    // re-fires onActiveCompanyChanged and re-runs the sidebar prefetch.
+    _lastActivatedCompanyId = null;
     _passwordCache.clear();
     await _secure.delete(kAuthTokensKey);
     await _secure.delete(kAuthBaseUrlKey);
@@ -737,7 +749,7 @@ class AuthRepository {
     // now need a kick — biometric-gated restore included (the drain will
     // only successfully dispatch once the credentials are honored, but
     // queuing it here is harmless because drainOnce is idempotent).
-    onActiveCompanyChanged?.call(session.currentCompanyId);
+    _fireActiveCompanyChanged(session.currentCompanyId);
 
     // Best-effort: re-pull the session in the background so stale
     // per-(user,company) flags (`is_owner`, `is_admin`) and account-level
@@ -765,6 +777,21 @@ class AuthRepository {
     } catch (e, st) {
       _log.fine('restore(): background refresh skipped', e, st);
     }
+  }
+
+  /// Invoke [onActiveCompanyChanged] only when the active company actually
+  /// changes. `_persistAndActivate` runs on every /refresh — the background
+  /// `_refreshSessionQuietly` right after [restore] (which already activated
+  /// from the cached session) and the periodic delta pump both reach it — but
+  /// the prefetch + settings reset hung off this callback are per-activation
+  /// work, not per-refresh. Without this guard a warm load fires the full
+  /// sidebar prefetch sweep twice. The drain is kicked independently
+  /// (connectivity, app-resume, periodic, per-mutation), so suppressing a
+  /// redundant same-company fire here strands nothing.
+  void _fireActiveCompanyChanged(String companyId) {
+    if (companyId == _lastActivatedCompanyId) return;
+    _lastActivatedCompanyId = companyId;
+    onActiveCompanyChanged?.call(companyId);
   }
 
   Future<void> _persistAndActivate({
@@ -1177,7 +1204,7 @@ class AuthRepository {
       isHosted: isHosted,
     );
     _attachCompaniesWatcher();
-    onActiveCompanyChanged?.call(currentId);
+    _fireActiveCompanyChanged(currentId);
   }
 
   /// Subscribe to the Drift `companies` table once per repo lifetime so a
