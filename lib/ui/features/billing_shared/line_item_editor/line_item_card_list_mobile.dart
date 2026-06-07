@@ -210,14 +210,7 @@ class _ItemCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
-                fmt(gross),
-                style: TextStyle(
-                  fontFamily: kMonoFontFamily,
-                  color: tokens.ink,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
+              Text(fmt(gross), style: moneyTextStyle(color: tokens.ink)),
               IconButton(
                 icon: const Icon(Icons.delete_outline, size: 20),
                 color: tokens.ink3,

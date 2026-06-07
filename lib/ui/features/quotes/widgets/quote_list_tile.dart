@@ -150,9 +150,8 @@ class _QuoteListTileState extends State<QuoteListTile> {
                     : _quoteAmountFallback.format(amount.toDouble());
                 return Text(
                   amountText,
-                  style: TextStyle(
+                  style: moneyTextStyle(
                     color: w.quote.isExpired ? tokens.overdue : tokens.ink,
-                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 );
               },

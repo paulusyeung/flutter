@@ -64,11 +64,10 @@ class PaymentUnappliedBand extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   unappliedText,
-                  style: TextStyle(
+                  style: moneyTextStyle(
                     color: tokens.ink,
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
               ],

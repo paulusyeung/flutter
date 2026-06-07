@@ -426,6 +426,7 @@ class _Header extends StatelessWidget {
                 ),
                 builder: (context, clientSnap) => _LabelValue(
                   label: context.tr('amount'),
+                  mono: true,
                   value:
                       formatter?.money(
                         recurringInvoice.amount,
@@ -566,9 +567,17 @@ String _frequencyLabel(BuildContext context, String id) {
 }
 
 class _LabelValue extends StatelessWidget {
-  const _LabelValue({required this.label, required this.value});
+  const _LabelValue({
+    required this.label,
+    required this.value,
+    this.mono = false,
+  });
   final String label;
   final String value;
+
+  /// Render the value in the mono money typeface. The amount field sets this;
+  /// frequency / next-send-date / remaining-cycles keep the sans UI font.
+  final bool mono;
 
   @override
   Widget build(BuildContext context) {
@@ -581,12 +590,18 @@ class _LabelValue extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           value,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: tokens.ink,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
+          style: mono
+              ? moneyTextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: tokens.ink,
+                )
+              : TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: tokens.ink,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
         ),
       ],
     );

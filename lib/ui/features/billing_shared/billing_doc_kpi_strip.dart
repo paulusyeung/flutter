@@ -122,11 +122,10 @@ class BillingDocKpiStrip extends StatelessWidget {
           value,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(
+          style: moneyTextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w600,
             color: color,
-            fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
       ],

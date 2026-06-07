@@ -253,12 +253,11 @@ class MobileDashboardBody extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           outstandingText,
-                          style: TextStyle(
+                          style: moneyTextStyle(
                             fontSize: 30,
                             fontWeight: FontWeight.w500,
                             letterSpacing: -0.5,
                             color: tokens.ink,
-                            fontFamilyFallback: const ['Menlo', 'Consolas'],
                           ),
                         ),
                         if (convertedHint != null) ...[
@@ -360,11 +359,10 @@ class MobileDashboardBody extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
+            style: moneyTextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
               color: valueColor,
-              fontFamilyFallback: const ['Menlo', 'Consolas'],
             ),
           ),
         ],

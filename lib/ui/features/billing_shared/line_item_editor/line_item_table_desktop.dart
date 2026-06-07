@@ -376,12 +376,7 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
                 alignment: Alignment.centerRight,
                 child: Text(
                   total,
-                  style: TextStyle(
-                    fontFamily: kMonoFontFamily,
-                    color: tokens.ink,
-                    fontSize: 13,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
+                  style: moneyTextStyle(color: tokens.ink, fontSize: 13),
                 ),
               ),
             ),
@@ -897,12 +892,7 @@ class _RowStateW extends State<_Row> {
           alignment: Alignment.centerRight,
           child: Text(
             display,
-            style: TextStyle(
-              fontFamily: kMonoFontFamily,
-              color: tokens.ink,
-              fontSize: 13,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
+            style: moneyTextStyle(color: tokens.ink, fontSize: 13),
           ),
         ),
       );
@@ -1249,12 +1239,7 @@ class _NumericCell extends StatelessWidget {
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       textAlign: TextAlign.right,
       textAlignVertical: TextAlignVertical.center,
-      style: TextStyle(
-        fontFamily: kMonoFontFamily,
-        color: tokens.ink,
-        fontSize: 13,
-        fontFeatures: const [FontFeature.tabularFigures()],
-      ),
+      style: moneyTextStyle(color: tokens.ink, fontSize: 13),
       decoration: InputDecoration(
         isDense: true,
         errorText: errorText,

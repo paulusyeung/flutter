@@ -149,11 +149,10 @@ class _AppliedRow extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               appliedText,
-              style: TextStyle(
+              style: moneyTextStyle(
                 color: tokens.ink,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ],

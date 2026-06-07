@@ -141,13 +141,7 @@ class _RecurringExpenseListTileState extends State<RecurringExpenseListTile> {
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              amountText,
-              style: TextStyle(
-                color: tokens.ink,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
+            Text(amountText, style: moneyTextStyle(color: tokens.ink)),
             const SizedBox(height: 4),
             RecurringExpenseStatusPill(
               statusId: w.recurringExpense.calculatedStatusId,

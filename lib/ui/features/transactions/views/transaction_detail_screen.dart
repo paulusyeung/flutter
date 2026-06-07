@@ -129,11 +129,10 @@ class _Header extends StatelessWidget {
               const Spacer(),
               Text(
                 '$sign$amountBody',
-                style: TextStyle(
+                style: moneyTextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
                   color: amountColor,
-                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ],

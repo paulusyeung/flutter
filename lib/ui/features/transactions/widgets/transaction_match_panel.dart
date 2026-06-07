@@ -273,10 +273,9 @@ class _CreditCreateTabState extends State<_CreditCreateTab> {
               const SizedBox(width: 8),
               Text(
                 _money(_selectedTotal),
-                style: TextStyle(
+                style: moneyTextStyle(
                   color: tokens.ink,
                   fontWeight: FontWeight.w600,
-                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ],

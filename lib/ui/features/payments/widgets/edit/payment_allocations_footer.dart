@@ -107,11 +107,7 @@ class _Cell extends StatelessWidget {
         Text('$label ', style: TextStyle(color: tokens.ink3, fontSize: 12)),
         Text(
           value,
-          style: TextStyle(
-            color: valueColor,
-            fontWeight: FontWeight.w600,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
+          style: moneyTextStyle(color: valueColor, fontWeight: FontWeight.w600),
         ),
       ],
     );

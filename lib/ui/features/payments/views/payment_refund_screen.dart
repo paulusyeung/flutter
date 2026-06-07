@@ -167,10 +167,9 @@ class _PaymentRefundScreenState extends State<PaymentRefundScreen> {
                 const SizedBox(width: 8),
                 Text(
                   _money(_remaining),
-                  style: TextStyle(
+                  style: moneyTextStyle(
                     color: _remaining < Decimal.zero ? Colors.red : tokens.ink,
                     fontWeight: FontWeight.w600,
-                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
               ],
@@ -244,11 +243,10 @@ class _PaymentRefundScreenState extends State<PaymentRefundScreen> {
               const SizedBox(height: 4),
               Text(
                 _money(p.refundable),
-                style: TextStyle(
+                style: moneyTextStyle(
                   color: tokens.ink,
                   fontWeight: FontWeight.w600,
                   fontSize: 20,
-                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ],

@@ -130,11 +130,7 @@ class DashboardInvoiceTable extends StatelessWidget {
       cells: [
         LinkText(
           label: row.number.isEmpty ? '—' : row.number,
-          style: const TextStyle(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w500,
-            fontFamilyFallback: ['Menlo', 'Consolas'],
-          ),
+          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500),
         ),
         LinkText(
           label: row.clientName,
@@ -156,21 +152,16 @@ class DashboardInvoiceTable extends StatelessWidget {
           children: [
             Text(
               amountText,
-              style: TextStyle(
+              style: moneyTextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
                 color: tokens.ink,
-                fontFamilyFallback: const ['Menlo', 'Consolas'],
               ),
             ),
             if (partialPaidText != null)
               Text(
                 partialPaidText,
-                style: TextStyle(
-                  fontSize: 10.5,
-                  color: tokens.partial,
-                  fontFamilyFallback: const ['Menlo', 'Consolas'],
-                ),
+                style: moneyTextStyle(fontSize: 10.5, color: tokens.partial),
               ),
           ],
         ),

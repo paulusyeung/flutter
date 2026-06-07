@@ -78,10 +78,8 @@ class _Strip extends StatelessWidget {
         label: context.tr('price'),
         value: Text(
           fmt(p.price),
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: tokens.ink,
-            fontWeight: FontWeight.w600,
-            fontFeatures: const [FontFeature.tabularFigures()],
+          style: theme.textTheme.titleLarge?.merge(
+            moneyTextStyle(color: tokens.ink, fontWeight: FontWeight.w600),
           ),
         ),
         tokens: tokens,
@@ -90,10 +88,8 @@ class _Strip extends StatelessWidget {
         label: context.tr('cost'),
         value: Text(
           fmt(p.cost),
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: tokens.ink,
-            fontWeight: FontWeight.w600,
-            fontFeatures: const [FontFeature.tabularFigures()],
+          style: theme.textTheme.titleLarge?.merge(
+            moneyTextStyle(color: tokens.ink, fontWeight: FontWeight.w600),
           ),
         ),
         tokens: tokens,

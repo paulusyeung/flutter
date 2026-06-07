@@ -219,11 +219,10 @@ class LineItemsReadonlyTable extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 _money(it.gross),
-                style: TextStyle(
+                style: moneyTextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w600,
                   color: tokens.ink,
-                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ],
@@ -332,11 +331,10 @@ class LineItemsReadonlyTable extends StatelessWidget {
       textAlign: TextAlign.right,
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
-      style: TextStyle(
+      style: moneyTextStyle(
         fontSize: 13,
         fontWeight: strong ? FontWeight.w600 : FontWeight.w400,
         color: tokens.ink,
-        fontFeatures: const [FontFeature.tabularFigures()],
       ),
     ),
   );

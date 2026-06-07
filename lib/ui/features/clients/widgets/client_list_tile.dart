@@ -314,14 +314,12 @@ class _ClientListTileState extends State<ClientListTile> {
       isZero ? '—' : text,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: TextStyle(
-        fontFamily: kMonoFontFamily,
+      // Tabular figures align decimal columns row-to-row.
+      style: moneyTextStyle(
         fontSize: fontSize,
         fontWeight: bold ? FontWeight.w500 : FontWeight.w400,
         color: color,
         height: 1.2,
-        // Tabular figures align decimal columns row-to-row.
-        fontFeatures: const [FontFeature.tabularFigures()],
       ),
     );
   }

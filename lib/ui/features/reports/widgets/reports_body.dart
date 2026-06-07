@@ -2333,7 +2333,10 @@ class _GroupTotalText extends StatelessWidget {
         // placeholder so the column doesn't briefly flash a raw Decimal.
         final f = formatter;
         if (f == null) return const Text('—');
-        return Text(f.money(value, currencyId: e.key.isEmpty ? null : e.key));
+        return Text(
+          f.money(value, currencyId: e.key.isEmpty ? null : e.key),
+          style: moneyTextStyle(),
+        );
       }
       return Text('$value');
     }
@@ -2421,6 +2424,7 @@ class _CellText extends StatelessWidget {
       _reportCellText(context, cell, column, formatter),
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
+      style: column.type == ReportColumnType.money ? moneyTextStyle() : null,
     );
   }
 }

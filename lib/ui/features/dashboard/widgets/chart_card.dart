@@ -67,11 +67,10 @@ class ChartCard extends StatelessWidget {
             children: [
               Text(
                 heroValueText,
-                style: TextStyle(
+                style: moneyTextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w500,
                   color: tokens.ink,
-                  fontFamilyFallback: const ['Menlo', 'Consolas'],
                 ),
               ),
               const SizedBox(width: 12),
@@ -327,7 +326,7 @@ class ChartCard extends StatelessWidget {
                   Decimal.parse(value.toStringAsFixed(0)),
                   compact: true,
                 ),
-                style: TextStyle(fontSize: 10, color: tokens.ink3),
+                style: moneyTextStyle(fontSize: 10, color: tokens.ink3),
               ),
             ),
           ),
@@ -359,7 +358,7 @@ class ChartCard extends StatelessWidget {
               return touchedSpots.map((spot) {
                 return LineTooltipItem(
                   formatter.money(Decimal.parse(spot.y.toStringAsFixed(2))),
-                  TextStyle(color: tokens.surface, fontSize: 11.5),
+                  moneyTextStyle(color: tokens.surface, fontSize: 11.5),
                 );
               }).toList();
             },

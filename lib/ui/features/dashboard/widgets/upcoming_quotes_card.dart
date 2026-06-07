@@ -166,11 +166,7 @@ DashboardEntityTableRow _quoteRow({
     cells: [
       LinkText(
         label: row.number.isEmpty ? '—' : row.number,
-        style: const TextStyle(
-          fontSize: 12.5,
-          fontWeight: FontWeight.w500,
-          fontFamilyFallback: ['Menlo', 'Consolas'],
-        ),
+        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500),
       ),
       LinkText(
         label: row.clientName,
@@ -188,11 +184,10 @@ DashboardEntityTableRow _quoteRow({
       ),
       Text(
         amountText,
-        style: TextStyle(
+        style: moneyTextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w500,
           color: tokens.ink,
-          fontFamilyFallback: const ['Menlo', 'Consolas'],
         ),
       ),
       Icon(Icons.more_vert, size: 16, color: tokens.ink3),

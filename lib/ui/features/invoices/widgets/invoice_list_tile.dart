@@ -158,9 +158,8 @@ class _InvoiceListTileState extends State<InvoiceListTile> {
                     : _invoiceAmountFallback.format(amount.toDouble());
                 return Text(
                   amountText,
-                  style: TextStyle(
+                  style: moneyTextStyle(
                     color: w.invoice.isPastDue ? tokens.overdue : tokens.ink,
-                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 );
               },

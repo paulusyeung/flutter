@@ -150,10 +150,7 @@ class _CreditListTileState extends State<CreditListTile> {
                     : _creditAmountFallback.format(amount.toDouble());
                 return Text(
                   amountText,
-                  style: TextStyle(
-                    color: tokens.ink,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
+                  style: moneyTextStyle(color: tokens.ink),
                 );
               },
             ),

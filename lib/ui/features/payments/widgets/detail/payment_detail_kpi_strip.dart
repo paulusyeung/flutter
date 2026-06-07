@@ -39,11 +39,9 @@ class PaymentDetailKpiStrip extends StatelessWidget {
         label: context.tr('amount'),
         value: Text(
           fmt(p.amount),
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: tokens.ink,
-            fontWeight: FontWeight.w600,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
+          style: theme.textTheme.titleLarge
+              ?.copyWith(color: tokens.ink, fontWeight: FontWeight.w600)
+              .merge(moneyTextStyle()),
         ),
         tokens: tokens,
       ),
@@ -51,11 +49,9 @@ class PaymentDetailKpiStrip extends StatelessWidget {
         label: context.tr('applied'),
         value: Text(
           fmt(p.applied),
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: tokens.ink,
-            fontWeight: FontWeight.w600,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
+          style: theme.textTheme.titleLarge
+              ?.copyWith(color: tokens.ink, fontWeight: FontWeight.w600)
+              .merge(moneyTextStyle()),
         ),
         tokens: tokens,
       ),
@@ -63,11 +59,9 @@ class PaymentDetailKpiStrip extends StatelessWidget {
         label: context.tr('refunded'),
         value: Text(
           fmt(p.refunded),
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: tokens.ink,
-            fontWeight: FontWeight.w600,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
+          style: theme.textTheme.titleLarge
+              ?.copyWith(color: tokens.ink, fontWeight: FontWeight.w600)
+              .merge(moneyTextStyle()),
         ),
         tokens: tokens,
       ),
@@ -75,11 +69,9 @@ class PaymentDetailKpiStrip extends StatelessWidget {
         label: context.tr('refundable'),
         value: Text(
           fmt(p.refundable),
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: tokens.ink,
-            fontWeight: FontWeight.w600,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
+          style: theme.textTheme.titleLarge
+              ?.copyWith(color: tokens.ink, fontWeight: FontWeight.w600)
+              .merge(moneyTextStyle()),
         ),
         tokens: tokens,
       ),

@@ -214,11 +214,9 @@ class _KpiCell extends StatelessWidget {
       theme: theme,
       value: Text(
         value,
-        style: theme.textTheme.titleLarge?.copyWith(
-          color: valueColor,
-          fontWeight: FontWeight.w600,
-          fontFeatures: const [FontFeature.tabularFigures()],
-        ),
+        style: theme.textTheme.titleLarge
+            ?.copyWith(color: valueColor, fontWeight: FontWeight.w600)
+            .merge(moneyTextStyle()),
       ),
     );
   }

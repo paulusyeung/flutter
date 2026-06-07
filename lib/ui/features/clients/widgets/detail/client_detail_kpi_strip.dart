@@ -196,11 +196,9 @@ class _KpiCell extends StatelessWidget {
           // wrap to a second line and shove the strip taller on a phone.
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: valueColor,
-            fontWeight: FontWeight.w600,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
+          style: theme.textTheme.titleLarge
+              ?.copyWith(color: valueColor, fontWeight: FontWeight.w600)
+              .merge(moneyTextStyle()),
         ),
       ],
     );

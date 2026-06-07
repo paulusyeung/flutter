@@ -151,10 +151,7 @@ class _PurchaseOrderListTileState extends State<PurchaseOrderListTile> {
                     : _poAmountFallback.format(amount.toDouble());
                 return Text(
                   amountText,
-                  style: TextStyle(
-                    color: tokens.ink,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
+                  style: moneyTextStyle(color: tokens.ink),
                 );
               },
             ),

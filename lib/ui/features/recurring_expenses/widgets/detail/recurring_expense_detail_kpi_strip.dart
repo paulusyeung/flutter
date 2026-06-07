@@ -49,10 +49,8 @@ class RecurringExpenseDetailKpiStrip extends StatelessWidget {
         label: context.tr('amount'),
         value: Text(
           amountText,
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: tokens.ink,
-            fontWeight: FontWeight.w600,
-            fontFeatures: const [FontFeature.tabularFigures()],
+          style: theme.textTheme.titleLarge?.merge(
+            moneyTextStyle(color: tokens.ink, fontWeight: FontWeight.w600),
           ),
         ),
         tokens: tokens,

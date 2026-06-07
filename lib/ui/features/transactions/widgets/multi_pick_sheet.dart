@@ -263,10 +263,9 @@ class _MultiPickSheetState<T> extends State<_MultiPickSheet<T>> {
                     const Spacer(),
                     Text(
                       '${context.tr('total')}: $_selectedTotalText',
-                      style: TextStyle(
+                      style: moneyTextStyle(
                         color: tokens.ink,
                         fontWeight: FontWeight.w600,
-                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
                   ],

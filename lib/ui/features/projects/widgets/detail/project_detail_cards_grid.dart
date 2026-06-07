@@ -220,6 +220,7 @@ class _DetailsCard extends StatelessWidget {
             label: context.tr('task_rate'),
             value: Text(
               f == null ? p.taskRate.toString() : f.money(p.taskRate),
+              style: moneyTextStyle(),
             ),
           ),
           if (p.color.isNotEmpty)

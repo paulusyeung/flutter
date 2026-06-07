@@ -167,13 +167,7 @@ class _ProductListTileState extends State<ProductListTile> {
         const SizedBox(width: 12),
         Expanded(child: _identity(context, tokens)),
         const SizedBox(width: 12),
-        Text(
-          priceText,
-          style: TextStyle(
-            color: tokens.ink,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
-        ),
+        Text(priceText, style: moneyTextStyle(color: tokens.ink)),
         if (w.onAction != null && !w.selecting) ...[
           const SizedBox(width: 4),
           EntityActionsPopupButton<ProductAction>(

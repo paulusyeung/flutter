@@ -274,10 +274,7 @@ class _LeadingIdentity extends StatelessWidget {
       number.isEmpty ? '—' : number,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: const TextStyle(
-        fontSize: 11.5,
-        fontFamilyFallback: ['Menlo', 'Consolas'],
-      ),
+      style: const TextStyle(fontSize: 11.5),
     );
 
     return Column(
@@ -332,11 +329,10 @@ class _TrailingAmountDate extends StatelessWidget {
           amountText,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(
+          style: moneyTextStyle(
             fontSize: 13.5,
             fontWeight: FontWeight.w500,
             color: tokens.ink,
-            fontFamilyFallback: const ['Menlo', 'Consolas'],
           ),
         ),
         const SizedBox(height: 2),

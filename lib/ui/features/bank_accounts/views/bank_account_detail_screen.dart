@@ -167,11 +167,10 @@ class _Header extends StatelessWidget {
               SizedBox(width: InSpacing.md(context)),
               Text(
                 balanceText,
-                style: TextStyle(
+                style: moneyTextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
                   color: tokens.ink,
-                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ],

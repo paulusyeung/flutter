@@ -233,12 +233,10 @@ class TotalsWidget extends StatelessWidget {
           ),
           Text(
             amountText,
-            style: TextStyle(
-              fontFamily: kMonoFontFamily,
+            style: moneyTextStyle(
               fontSize: size,
               color: color,
               fontWeight: strong ? FontWeight.w600 : FontWeight.w400,
-              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
         ],

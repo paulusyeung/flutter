@@ -153,10 +153,7 @@ class _RecurringInvoiceListTileState extends State<RecurringInvoiceListTile> {
                     : _recurringInvoiceAmountFallback.format(amount.toDouble());
                 return Text(
                   amountText,
-                  style: TextStyle(
-                    color: tokens.ink,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
+                  style: moneyTextStyle(color: tokens.ink),
                 );
               },
             ),

@@ -1309,10 +1309,8 @@ class _RowTitle extends StatelessWidget {
           const SizedBox(width: 12),
           Text(
             right,
-            style: TextStyle(
-              fontFamily: kMonoFontFamily,
+            style: moneyTextStyle(
               color: tokens.ink,
-              fontFeatures: const [FontFeature.tabularFigures()],
               fontWeight: FontWeight.w600,
             ),
           ),

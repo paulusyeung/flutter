@@ -95,10 +95,9 @@ class PaymentAllocationCard extends StatelessWidget {
                 formatter == null
                     ? row.amount.toString()
                     : formatter!.money(row.amount),
-                style: TextStyle(
+                style: moneyTextStyle(
                   color: tokens.ink,
                   fontWeight: FontWeight.w600,
-                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
               IconButton(

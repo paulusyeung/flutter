@@ -205,12 +205,10 @@ class MoneyCellText extends StatelessWidget {
       text,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: TextStyle(
-        fontFamily: kMonoFontFamily,
+      style: moneyTextStyle(
         fontSize: 13,
         height: 1.2,
         color: isZero ? tokens.ink3 : tokens.ink,
-        fontFeatures: const [FontFeature.tabularFigures()],
       ),
     );
   }

@@ -92,12 +92,7 @@ class InvoicePaymentScheduleTab extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(child: Text(r.date)),
-                  Text(
-                    r.amount,
-                    style: const TextStyle(
-                      fontFeatures: [FontFeature.tabularFigures()],
-                    ),
-                  ),
+                  Text(r.amount, style: moneyTextStyle()),
                   SizedBox(width: InSpacing.md(context)),
                   Icon(
                     r.autoBill ? Icons.bolt : Icons.bolt_outlined,

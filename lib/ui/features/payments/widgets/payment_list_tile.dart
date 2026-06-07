@@ -148,13 +148,7 @@ class _PaymentListTileState extends State<PaymentListTile> {
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              amountText,
-              style: TextStyle(
-                color: tokens.ink,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
+            Text(amountText, style: moneyTextStyle(color: tokens.ink)),
             const SizedBox(height: 4),
             PaymentStatusPill(statusId: w.payment.calculatedStatusId),
           ],

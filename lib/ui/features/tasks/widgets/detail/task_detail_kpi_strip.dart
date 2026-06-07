@@ -78,11 +78,12 @@ class TaskDetailKpiStrip extends StatelessWidget {
         label: context.tr('rate'),
         value: Text(
           rateText,
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: rateText == '—' ? tokens.ink3 : tokens.ink,
-            fontWeight: FontWeight.w600,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
+          style: theme.textTheme.titleLarge
+              ?.copyWith(
+                color: rateText == '—' ? tokens.ink3 : tokens.ink,
+                fontWeight: FontWeight.w600,
+              )
+              .merge(moneyTextStyle()),
         ),
         tokens: tokens,
       ),

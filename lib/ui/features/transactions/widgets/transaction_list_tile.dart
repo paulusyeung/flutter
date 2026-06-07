@@ -147,9 +147,8 @@ class _TransactionListTileState extends State<TransactionListTile> {
           children: [
             Text(
               amountText,
-              style: TextStyle(
+              style: moneyTextStyle(
                 color: amountColor,
-                fontFeatures: const [FontFeature.tabularFigures()],
                 fontWeight: FontWeight.w600,
               ),
             ),

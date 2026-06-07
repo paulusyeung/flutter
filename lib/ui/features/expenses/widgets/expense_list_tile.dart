@@ -152,13 +152,7 @@ class _ExpenseListTileState extends State<ExpenseListTile> {
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              amountText,
-              style: TextStyle(
-                color: tokens.ink,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
+            Text(amountText, style: moneyTextStyle(color: tokens.ink)),
             const SizedBox(height: 4),
             ExpenseStatusPill(statusId: w.expense.calculatedStatusId),
           ],
