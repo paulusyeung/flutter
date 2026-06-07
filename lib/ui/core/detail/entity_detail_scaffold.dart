@@ -128,22 +128,29 @@ class _EntityDetailScaffoldState<T> extends State<EntityDetailScaffold<T>> {
   Widget _embeddedBody(BuildContext context, T? item) {
     final tokens = context.inTheme;
     final paneActions = MasterDetailPaneScope.paneActionsOf(context);
+    // Narrow viewport: the pane publishes a leading back arrow (and no
+    // trailing X / full-screen toggle). Render it at the start of the header.
+    final paneLeading = MasterDetailPaneScope.paneLeadingOf(context);
     final hasHeaderContent = item != null && widget.actionsForItem != null;
-    final showHeader = hasHeaderContent || paneActions != null;
+    final showHeader =
+        hasHeaderContent || paneActions != null || paneLeading != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (showHeader)
           Container(
-            padding: EdgeInsetsDirectional.symmetric(
-              horizontal: InSpacing.lg(context),
-              vertical: 8,
+            padding: EdgeInsetsDirectional.only(
+              start: paneLeading != null ? 4 : InSpacing.lg(context),
+              end: InSpacing.lg(context),
+              top: 8,
+              bottom: 8,
             ),
             decoration: BoxDecoration(
               border: Border(bottom: BorderSide(color: tokens.border)),
             ),
             child: Row(
               children: [
+                if (paneLeading != null) paneLeading,
                 if (hasHeaderContent)
                   Expanded(child: widget.actionsForItem!(context, item))
                 else

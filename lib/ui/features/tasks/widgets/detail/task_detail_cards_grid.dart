@@ -327,6 +327,7 @@ class _TimeEntrySummary extends StatelessWidget {
             ),
             style: TextStyle(
               color: tokens.ink,
+              fontSize: 13,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           );

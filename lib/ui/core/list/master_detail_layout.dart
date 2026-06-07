@@ -447,11 +447,21 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
       return Stack(
         children: [
           Offstage(offstage: true, child: widget.list),
-          _PaneRoot(
-            basePath: widget.basePath,
-            isFullScreen: true,
-            navController: _navController,
-            child: widget.rightPane!,
+          // Full-page pane on narrow. Wrap in Material (mirroring the wide
+          // branch) so the embedded detail/edit body has a Material ancestor:
+          // without it, plain-Container cards inherit the fallback
+          // DefaultTextStyle and paint the "missing Material" yellow
+          // underlines + oversized text (which also overflows the time-log
+          // rows).
+          Material(
+            color: context.inTheme.bg,
+            child: _PaneRoot(
+              basePath: widget.basePath,
+              isFullScreen: true,
+              isNarrow: true,
+              navController: _navController,
+              child: widget.rightPane!,
+            ),
           ),
         ],
       );
@@ -507,6 +517,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
                         child: _PaneRoot(
                           basePath: widget.basePath,
                           isFullScreen: _isFullScreen,
+                          isNarrow: false,
                           navController: _navController,
                           onClose: _closePaneAnimated,
                           child: widget.rightPane!,
@@ -545,6 +556,7 @@ class _PaneRoot extends StatelessWidget {
   const _PaneRoot({
     required this.basePath,
     required this.isFullScreen,
+    required this.isNarrow,
     required this.navController,
     required this.child,
     this.onClose,
@@ -552,6 +564,11 @@ class _PaneRoot extends StatelessWidget {
 
   final String basePath;
   final bool isFullScreen;
+
+  /// Narrow viewport (`< Breakpoints.slideOver`): the pane is rendered
+  /// full-page, so the chrome is a mobile-standard leading back arrow
+  /// instead of the desktop trailing full-screen-toggle + X.
+  final bool isNarrow;
   final MasterDetailNavController navController;
   final Widget child;
 
@@ -590,18 +607,30 @@ class _PaneRoot extends StatelessWidget {
     // the screen-reader announcement (no visible verb in the chrome).
     final path = GoRouterState.of(context).uri.path;
     final isEditing = path.endsWith('/edit') || path.endsWith('/new');
-    final actionsRow = _PaneActionsRow(
-      basePath: basePath,
-      isFullScreen: isFullScreen,
-      onClose: () => _close(context),
-    );
-    // Publish the actions row through the scope so the embedded
-    // screen's inline header places the close / full-screen-toggle
-    // chrome next to its own actions (Edit / Archive / Save). One
-    // unified pane handles both slide-over and full-screen, so this
-    // single path always supplies the chrome.
+    // Viewport-aware chrome. On a narrow viewport the pane is full-page, so
+    // the desktop full-screen toggle is meaningless and the X is replaced by
+    // a mobile-standard leading back arrow. On wide the pane floats as a
+    // slide-over and keeps the trailing full-screen-toggle + X.
+    final Widget? actionsRow = isNarrow
+        ? null
+        : _PaneActionsRow(
+            basePath: basePath,
+            isFullScreen: isFullScreen,
+            onClose: () => _close(context),
+          );
+    final Widget? leading = isNarrow
+        ? IconButton(
+            tooltip: context.tr('back'),
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => _close(context),
+          )
+        : null;
+    // Publish the chrome through the scope so the embedded screen's inline
+    // header places it alongside its own actions (Edit / Archive / Save).
+    // One unified pane handles both slide-over and full-screen.
     return MasterDetailPaneScope(
       paneActions: actionsRow,
+      paneLeading: leading,
       // Single-key pane shortcuts (F / J / K / ↑ / ↓ / Esc). Routed
       // through Shortcuts + Actions rather than a bare CallbackShortcuts
       // so they can stand down while a text input has focus — otherwise
@@ -828,14 +857,20 @@ class MasterDetailPaneScope extends InheritedWidget {
   const MasterDetailPaneScope({
     super.key,
     this.paneActions,
+    this.paneLeading,
     required super.child,
   });
 
-  /// The X + full-screen toggle row that embedded scaffolds should
-  /// place at the trailing end of their inline header. Always supplied
-  /// by `_PaneRoot` (one unified pane covers both slide-over and
-  /// full-screen); nullable only for scopes constructed without it.
+  /// The full-screen toggle + X row that embedded scaffolds should place at
+  /// the trailing end of their inline header. Supplied by `_PaneRoot` on wide
+  /// viewports; null on narrow (where [paneLeading] carries the chrome).
   final Widget? paneActions;
+
+  /// The mobile-standard leading back arrow that embedded scaffolds should
+  /// place at the **start** of their inline header. Supplied by `_PaneRoot` on
+  /// narrow viewports (the pane is full-page there); null on wide (where
+  /// [paneActions] carries the trailing chrome).
+  final Widget? paneLeading;
 
   static bool isInPane(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<MasterDetailPaneScope>() !=
@@ -845,9 +880,14 @@ class MasterDetailPaneScope extends InheritedWidget {
       .dependOnInheritedWidgetOfExactType<MasterDetailPaneScope>()
       ?.paneActions;
 
+  static Widget? paneLeadingOf(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<MasterDetailPaneScope>()
+      ?.paneLeading;
+
   @override
   bool updateShouldNotify(MasterDetailPaneScope oldWidget) =>
-      paneActions != oldWidget.paneActions;
+      paneActions != oldWidget.paneActions ||
+      paneLeading != oldWidget.paneLeading;
 }
 
 // ─── Pane keyboard shortcuts ─────────────────────────────────────────────

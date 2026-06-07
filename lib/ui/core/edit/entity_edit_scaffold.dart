@@ -349,12 +349,15 @@ class EntityEditScaffold<T> extends StatelessWidget {
               // share a row with Save instead of floating overlay on
               // top of it.
               final paneActions = MasterDetailPaneScope.paneActionsOf(context);
+              // Narrow viewport: the pane publishes a leading back arrow (and
+              // no trailing X / full-screen toggle).
+              final paneLeading = MasterDetailPaneScope.paneLeadingOf(context);
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Container(
-                    padding: const EdgeInsetsDirectional.only(
-                      start: 16,
+                    padding: EdgeInsetsDirectional.only(
+                      start: paneLeading != null ? 4 : 16,
                       end: 4,
                       top: 4,
                       bottom: 4,
@@ -373,6 +376,10 @@ class EntityEditScaffold<T> extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
+                        if (paneLeading != null) ...[
+                          paneLeading,
+                          const SizedBox(width: 4),
+                        ],
                         // Title is NON-flex (capped + ellipsised) so the
                         // actions `Expanded` below is the *only* flex child
                         // and gets every remaining pixel — mirroring the
