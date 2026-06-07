@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/mdi_icons.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_activity.dart';
@@ -125,7 +126,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                 title: context.tr('actions'),
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.edit_outlined),
+                    leading: const Icon(MdiIcons.circleEditOutline),
                     title: Text(context.tr('edit_user')),
                     onTap: canModify
                         ? () => context.go('/settings/users/${user.id}/edit')

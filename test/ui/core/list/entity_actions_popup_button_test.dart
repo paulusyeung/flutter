@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/mdi_icons.dart';
 import 'package:admin/app/theme.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
@@ -16,7 +17,7 @@ List<EntityActionItem<String>> _items({
 }) => [
   EntityActionItem(
     kind: 'edit',
-    icon: Icons.edit_outlined,
+    icon: MdiIcons.circleEditOutline,
     label: 'Edit',
     enabled: true,
     isPrimary: true,
@@ -71,7 +72,10 @@ void main() {
       onArchive: () => archived++,
     );
 
-    final editButton = find.widgetWithIcon(IconButton, Icons.edit_outlined);
+    final editButton = find.widgetWithIcon(
+      IconButton,
+      MdiIcons.circleEditOutline,
+    );
     expect(editButton, findsOneWidget);
 
     await tester.tap(editButton);
@@ -95,7 +99,10 @@ void main() {
       onArchive: () {},
     );
 
-    expect(find.widgetWithIcon(IconButton, Icons.edit_outlined), findsNothing);
+    expect(
+      find.widgetWithIcon(IconButton, MdiIcons.circleEditOutline),
+      findsNothing,
+    );
 
     await tester.tap(find.widgetWithIcon(IconButton, Icons.more_vert));
     await tester.pumpAndSettle();
@@ -116,7 +123,7 @@ void main() {
     expect(find.widgetWithIcon(IconButton, Icons.more_vert), findsOneWidget);
     expect(find.widgetWithIcon(IconButton, Icons.more_horiz), findsNothing);
     expect(
-      find.widgetWithIcon(IconButton, Icons.edit_outlined),
+      find.widgetWithIcon(IconButton, MdiIcons.circleEditOutline),
       findsOneWidget,
     );
   });
@@ -232,11 +239,13 @@ void main() {
     );
 
     final editButton = tester.widget<IconButton>(
-      find.widgetWithIcon(IconButton, Icons.edit_outlined),
+      find.widgetWithIcon(IconButton, MdiIcons.circleEditOutline),
     );
     expect(editButton.onPressed, isNull);
 
-    await tester.tap(find.widgetWithIcon(IconButton, Icons.edit_outlined));
+    await tester.tap(
+      find.widgetWithIcon(IconButton, MdiIcons.circleEditOutline),
+    );
     await tester.pumpAndSettle();
     expect(edited, 0);
   });

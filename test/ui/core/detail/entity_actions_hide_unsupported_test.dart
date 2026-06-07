@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/mdi_icons.dart';
 import 'package:admin/app/theme.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
@@ -19,7 +20,7 @@ import '../../../_localization_helper.dart';
 List<EntityActionItem<String>> _items() => [
   const EntityActionItem(
     kind: 'edit',
-    icon: Icons.edit_outlined,
+    icon: MdiIcons.circleEditOutline,
     label: 'Edit',
     enabled: true,
     isPrimary: true,

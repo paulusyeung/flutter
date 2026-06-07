@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/mdi_icons.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/list/embedded_list_scope.dart';
@@ -89,7 +90,7 @@ class EntityActionsPopupButton<A> extends StatelessWidget {
       children: [
         IconButton(
           // Edit affordance carried over from the old admin-portal data table.
-          icon: Icon(Icons.edit_outlined),
+          icon: Icon(MdiIcons.circleEditOutline),
           tooltip: context.tr('edit'),
           padding: EdgeInsets.zero,
           visualDensity: VisualDensity.compact,

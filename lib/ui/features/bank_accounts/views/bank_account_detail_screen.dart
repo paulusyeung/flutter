@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/mdi_icons.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/bank_account.dart';
 import 'package:admin/l10n/localization.dart';
@@ -260,7 +261,7 @@ class _ActionsRow extends StatelessWidget {
       children: [
         TextButton.icon(
           style: TextButton.styleFrom(minimumSize: const Size(64, 40)),
-          icon: const Icon(Icons.edit_outlined, size: 18),
+          icon: const Icon(MdiIcons.circleEditOutline, size: 18),
           label: Text(context.tr('edit')),
           onPressed: () => GoRouter.of(
             context,

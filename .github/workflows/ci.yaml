@@ -69,7 +69,9 @@ jobs:
 
       # Pinned to match local dev (3.44.1). Bumped deliberately from 3.41.9:
       # 3.44 made IconData a final class, so material_design_icons_flutter
-      # (which subclassed it) was removed; super_editor / re_editor compile
+      # (which subclassed it) was removed; the pencil-in-circle edit glyph we
+      # still want from it is now vendored as a plain const IconData over a
+      # bundled font (lib/app/mdi_icons.dart). super_editor / re_editor compile
       # cleanly under 3.44 (the new TextInput members are all defaulted).
       # Keep pinned — never let `channel: stable` drift the version on its own.
       # `cache: true` caches the Flutter SDK; `pub-cache` defaults to it, so

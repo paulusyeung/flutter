@@ -1,23 +1,32 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/settings/views/advanced/client_portal/widgets/portal_url_display.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
 const String _kReferralBaseUrl = 'https://app.invoicing.co/#/register?rc=';
 const String _kReferralLearnMoreUrl = 'https://invoiceninja.com/referrals/';
 
-/// Account Management → Referral Program. Hosted-only display screen:
-/// shows the user's referral URL (tap-to-copy) and per-plan referral counts
-/// pulled from `AuthSession.referralCode` / `referralMeta`. Self-hosted
-/// sessions get an `EmptyState` explaining why the feature is unavailable.
+/// Canonical plan tiers shown in the referral stats strip, in display order.
+/// We always render these three (defaulting to 0) so a brand-new user with no
+/// referrals still sees the categories; any extra tier the server sends is
+/// appended after them. Iterating `referralMeta.entries` directly would render
+/// whatever order the payload arrived in (alphabetical in practice).
+const List<String> _kReferralTierOrder = ['free', 'pro', 'enterprise'];
+
+/// Account Management → Referral Program. Hosted-only display screen: shows the
+/// referral value proposition, the user's referral URL (copy / open via the
+/// shared [PortalUrlDisplay]) and per-plan referral counts pulled from
+/// `AuthSession.referralCode` / `referralMeta`. Self-hosted sessions get an
+/// [EmptyState] explaining the feature is hosted-only.
 class AccountManagementReferralProgramScreen extends StatelessWidget {
   const AccountManagementReferralProgramScreen({super.key});
 
@@ -28,6 +37,14 @@ class AccountManagementReferralProgramScreen extends StatelessWidget {
       return EmptyState(
         icon: Icons.public,
         title: context.tr('referral_program'),
+        subtitle: context.tr('referral_program_hosted_only'),
+        action: FilledButton.tonal(
+          // Centered single-action button must constrain its own width or it
+          // renders edge-to-edge (Size.fromHeight default = infinite width).
+          style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
+          onPressed: () => _openUrl(context, _kReferralLearnMoreUrl),
+          child: Text(context.tr('learn_more')),
+        ),
       );
     }
     return _ReferralBody(
@@ -45,83 +62,104 @@ class _ReferralBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final tokens = context.inTheme;
     final url = '$_kReferralBaseUrl$code';
     return SettingsFormShell(
       sections: [
         FormSection(
-          title: context.tr('referral_code'),
-          spacing: 0,
+          title: context.tr('referral_program'),
           children: [
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.link, color: tokens.ink2),
-              title: SelectableText(
-                url,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: tokens.ink),
+            Text(
+              context.tr('referral_code_help'),
+              style: theme.textTheme.bodyMedium?.copyWith(color: tokens.ink2),
+            ),
+            PortalUrlDisplay(label: context.tr('referral_code'), url: url),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton.tonal(
+                style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
+                onPressed: () => _openUrl(context, _kReferralLearnMoreUrl),
+                child: Text(context.tr('learn_more')),
               ),
-              trailing: Icon(Icons.content_copy, color: tokens.ink3),
-              onTap: () => _copyUrl(context, url),
             ),
           ],
         ),
-        if (meta.isNotEmpty)
-          FormSection(
-            title: context.tr('referral_program'),
-            spacing: 0,
-            children: [
-              for (final entry in meta.entries)
-                _StatRow(planKey: entry.key, count: entry.value),
-            ],
-          ),
-        Padding(
-          padding: EdgeInsets.only(top: InSpacing.lg(context)),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: FilledButton.tonal(
-              style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
-              onPressed: () => _openExternal(context, _kReferralLearnMoreUrl),
-              child: Text(context.tr('learn_more')),
-            ),
-          ),
+        FormSection(
+          title: context.tr('referral_signups'),
+          spacing: 0,
+          children: [_ReferralStatsStrip(meta: meta)],
         ),
       ],
     );
   }
+}
 
-  Future<void> _copyUrl(BuildContext context, String url) async {
-    final copiedText = context
-        .tr('copied_to_clipboard')
-        .replaceAll(':value', url);
-    await Clipboard.setData(ClipboardData(text: url));
-    if (!context.mounted) return;
-    Notify.success(context, copiedText);
+/// Per-plan referral counts. On wide layouts the tiles sit side-by-side as an
+/// equal-width row; on narrow layouts they stack. Order is fixed
+/// ([_kReferralTierOrder]) with the three core tiers always shown (default 0)
+/// and any unknown server tier appended.
+class _ReferralStatsStrip extends StatelessWidget {
+  const _ReferralStatsStrip({required this.meta});
+
+  final Map<String, int> meta;
+
+  @override
+  Widget build(BuildContext context) {
+    final tiles = _orderedTiles(meta);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (!Breakpoints.isWide(constraints)) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < tiles.length; i++) ...[
+                if (i > 0) SizedBox(height: InSpacing.md(context)),
+                _ReferralStatTile(planKey: tiles[i].key, count: tiles[i].count),
+              ],
+            ],
+          );
+        }
+        return Row(
+          // Top-align rather than stretch: the strip lives in a vertically
+          // unbounded scroll, so `stretch` would force an infinite-height
+          // constraint. Tiles share uniform content, so heights match anyway.
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (var i = 0; i < tiles.length; i++) ...[
+              if (i > 0) SizedBox(width: InSpacing.md(context)),
+              Expanded(
+                child: _ReferralStatTile(
+                  planKey: tiles[i].key,
+                  count: tiles[i].count,
+                ),
+              ),
+            ],
+          ],
+        );
+      },
+    );
   }
 
-  Future<void> _openExternal(BuildContext context, String url) async {
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    final loc = Localization.of(context);
-    final errorMessage =
-        loc?.lookup('failed_to_open_url') ?? 'failed_to_open_url';
-    final uri = Uri.parse(url);
-    try {
-      if (await canLaunchUrl(uri)) {
-        final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-        if (ok) return;
-      }
-    } catch (_) {
-      /* fall through */
+  static List<({String key, int count})> _orderedTiles(Map<String, int> meta) {
+    final out = <({String key, int count})>[];
+    for (final tier in _kReferralTierOrder) {
+      out.add((key: tier, count: meta[tier] ?? 0));
     }
-    if (messenger == null) return;
-    // ignore: use_build_context_synchronously
-    Notify.error(messenger.context, errorMessage, messenger: messenger);
+    for (final entry in meta.entries) {
+      if (!_kReferralTierOrder.contains(entry.key)) {
+        out.add((key: entry.key, count: entry.value));
+      }
+    }
+    return out;
   }
 }
 
-class _StatRow extends StatelessWidget {
-  const _StatRow({required this.planKey, required this.count});
+/// Flat stat tile (no shadow) — it lives inside a [FormSection] card, so a
+/// raised card here would read as a card-in-card. Counts use the sans face,
+/// not `moneyTextStyle`, since they're integers, not currency.
+class _ReferralStatTile extends StatelessWidget {
+  const _ReferralStatTile({required this.planKey, required this.count});
 
   final String planKey;
   final int count;
@@ -129,16 +167,27 @@ class _StatRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: InSpacing.sm),
-      child: Row(
+    final tokens = context.inTheme;
+    return Container(
+      padding: EdgeInsets.all(InSpacing.lg(context)),
+      decoration: BoxDecoration(
+        color: tokens.surfaceAlt,
+        borderRadius: BorderRadius.circular(InRadii.r2),
+        border: Border.all(color: tokens.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: Text(context.tr(planKey), style: theme.textTheme.bodyLarge),
+          Text(
+            context.tr(planKey),
+            style: theme.textTheme.labelLarge?.copyWith(color: tokens.ink3),
           ),
+          const SizedBox(height: 4),
           Text(
             '$count',
             style: theme.textTheme.headlineSmall?.copyWith(
+              color: tokens.ink,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -146,4 +195,25 @@ class _StatRow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Opens [url] in an external browser, surfacing a toast on failure. Shared by
+/// the self-hosted empty-state action and the hosted "Learn more" button.
+Future<void> _openUrl(BuildContext context, String url) async {
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  final loc = Localization.of(context);
+  final errorMessage =
+      loc?.lookup('failed_to_open_url') ?? 'failed_to_open_url';
+  final uri = Uri.parse(url);
+  try {
+    if (await canLaunchUrl(uri)) {
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (ok) return;
+    }
+  } catch (_) {
+    /* fall through */
+  }
+  if (messenger == null) return;
+  // ignore: use_build_context_synchronously
+  Notify.error(messenger.context, errorMessage, messenger: messenger);
 }

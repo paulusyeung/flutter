@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/mdi_icons.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/api/tax_config_api_model.dart';
 import 'package:admin/l10n/localization.dart';
@@ -715,7 +716,7 @@ class _SubregionRow extends StatelessWidget {
               if (firstError != null)
                 Icon(Icons.error_outline, size: 18, color: tokens.overdue),
               IconButton(
-                icon: const Icon(Icons.edit_outlined),
+                icon: const Icon(MdiIcons.circleEditOutline),
                 tooltip: context.tr('edit'),
                 onPressed: () async {
                   final next = await SubregionEditDialog.show(

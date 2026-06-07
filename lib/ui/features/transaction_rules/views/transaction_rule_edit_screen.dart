@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/mdi_icons.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/bank_transaction.dart';
 import 'package:admin/data/models/domain/expense_category.dart';
@@ -336,7 +337,7 @@ class _CriterionRow extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: const Icon(Icons.edit_outlined),
+              icon: const Icon(MdiIcons.circleEditOutline),
               onPressed: onEdit,
               tooltip: context.tr('edit'),
             ),

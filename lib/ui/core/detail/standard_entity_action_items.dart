@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:admin/app/mdi_icons.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 
@@ -21,7 +22,7 @@ EntityActionItem<A> editActionItem<A>({
   bool isPrimary = true,
 }) => EntityActionItem(
   kind: kind,
-  icon: Icons.edit_outlined,
+  icon: MdiIcons.circleEditOutline,
   label: context.tr('edit'),
   enabled: true,
   isPrimary: isPrimary,

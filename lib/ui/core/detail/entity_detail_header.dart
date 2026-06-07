@@ -29,11 +29,18 @@ class EntityDetailHeader extends StatelessWidget {
     required this.isArchived,
     required this.isDirty,
     this.formatter,
+    this.fallbackIcon,
   });
 
   final String seedForAvatar;
   final String displayName;
   final String? number;
+
+  /// Entity-type icon shown in the avatar when [displayName] yields no
+  /// initials — i.e. a number-only identity like a task/invoice/payment
+  /// (`#0009`). Named entities keep their tinted initials; this only swaps in
+  /// for the otherwise-`?` case. Null falls back to the literal `?`.
+  final IconData? fallbackIcon;
 
   /// Optional widget rendered in the secondary slot beside the display
   /// name (no `#` prefix), used for resolved references like a client
@@ -53,7 +60,11 @@ class EntityDetailHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        _Avatar(seed: seedForAvatar, label: _initials(displayName)),
+        _Avatar(
+          seed: seedForAvatar,
+          initials: _initials(displayName),
+          fallbackIcon: fallbackIcon,
+        ),
         SizedBox(width: InSpacing.lg(context)),
         Expanded(
           child: Column(
@@ -196,9 +207,10 @@ class _HeaderPills extends StatelessWidget {
 }
 
 class _Avatar extends StatelessWidget {
-  const _Avatar({required this.seed, required this.label});
+  const _Avatar({required this.seed, this.initials, this.fallbackIcon});
   final String seed;
-  final String label;
+  final String? initials;
+  final IconData? fallbackIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -210,8 +222,15 @@ class _Avatar extends StatelessWidget {
         color: avatarTintFor(seed),
         borderRadius: BorderRadius.circular(InRadii.r2),
       ),
-      child: Text(
-        label,
+      child: _content(),
+    );
+  }
+
+  Widget _content() {
+    final text = initials;
+    if (text != null) {
+      return Text(
+        text,
         style: const TextStyle(
           color: Colors.white,
           fontSize: 22,
@@ -219,19 +238,35 @@ class _Avatar extends StatelessWidget {
           letterSpacing: 0.4,
           height: 1,
         ),
+      );
+    }
+    if (fallbackIcon != null) {
+      return Icon(fallbackIcon, color: Colors.white, size: 28);
+    }
+    // No usable initials and no entity icon — last-resort placeholder.
+    return const Text(
+      '?',
+      style: TextStyle(
+        color: Colors.white,
+        fontSize: 22,
+        fontWeight: FontWeight.w600,
+        height: 1,
       ),
     );
   }
 }
 
-String _initials(String name) {
+/// Initials for the avatar, or null when [name] carries no letters (a
+/// number-only identity like `#0009`) — the caller then shows the entity
+/// icon instead.
+String? _initials(String name) {
   final nonLetter = RegExp(r'\P{L}', unicode: true);
   final words = name
       .split(RegExp(r'\s+'))
       .map((w) => w.replaceAll(nonLetter, ''))
       .where((w) => w.isNotEmpty)
       .toList();
-  if (words.isEmpty) return '?';
+  if (words.isEmpty) return null;
   if (words.length == 1) return words.first.characters.first.toUpperCase();
   return (words.first.characters.first + words.last.characters.first)
       .toUpperCase();

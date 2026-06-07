@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
+import 'package:provider/provider.dart';
 
+import 'package:admin/app/services.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/detail/entity_detail_header.dart';
 import 'package:admin/ui/core/detail/recent_visit_recorder.dart';
@@ -70,6 +72,13 @@ class EntityDetailHeaderHost<T> extends StatelessWidget {
     // (client/vendor/project name, payment/expense `#number`, task
     // description, product key). `f.number` is an overloaded subtitle slot
     // (sometimes a vendor id), so it's deliberately not folded in here.
+    //
+    // The entity-type icon backstops number-only identities (`#0009`), whose
+    // display name yields no initials and would otherwise show a bare `?`.
+    final fallbackIcon = context
+        .read<Services>()
+        .entityRegistry[entityType]
+        ?.icon;
     return RecentVisitRecorder(
       type: entityType,
       id: recordId,
@@ -85,6 +94,7 @@ class EntityDetailHeaderHost<T> extends StatelessWidget {
         isArchived: f.isArchived,
         isDirty: f.isDirty,
         formatter: formatter,
+        fallbackIcon: fallbackIcon,
       ),
     );
   }
