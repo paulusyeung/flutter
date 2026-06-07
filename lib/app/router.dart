@@ -83,6 +83,33 @@ String companySafeLocation(
   return currentLocation;
 }
 
+/// Redirect target for the `/settings` index.
+///
+/// On viewports wide enough for the two-pane settings layout — shell width
+/// (window width minus the global `InSidebar`) ≥ [Breakpoints.settingsTwoPane]
+/// — land directly on Company Details; the persistent `SettingsListSidebar`
+/// makes the "select a setting" hint redundant. Below that, return null so the
+/// full-screen `SettingsScreen` list renders and push-nav reaches each section.
+///
+/// The threshold MUST stay equal to `SettingsShell`'s `LayoutBuilder` gate
+/// (also [Breakpoints.settingsTwoPane]): both split the same shell width, and a
+/// drift between them strands the user on a section page with no menu list
+/// (redirected past the `/settings` list, but below the width that shows the
+/// sidebar). [kInSidebarWidth] / [kInSidebarCollapsedWidth] must match the inset
+/// `ScaffoldWithNav` applies to the routed content in its wide layout.
+String? settingsIndexRedirect({
+  required double screenWidth,
+  required bool sidebarCollapsed,
+}) {
+  final sidebarWidth = sidebarCollapsed
+      ? kInSidebarCollapsedWidth
+      : kInSidebarWidth;
+  final shellWidth = screenWidth - sidebarWidth;
+  return shellWidth >= Breakpoints.settingsTwoPane
+      ? '/settings/company_details'
+      : null;
+}
+
 /// Top-level route paths whose backing module is disabled for a company with
 /// the given [enabledModules] mask. Used by the router's `redirect` to bounce
 /// a deep link / restored route that points at a now-hidden module. Kept
@@ -570,31 +597,19 @@ StatefulShellBranch _buildFixedBranch(FixedBranchKind kind) {
             routes: [
               GoRoute(
                 path: '/settings',
-                // On wide viewports the persistent sidebar makes the
-                // "select a setting" hint redundant — land directly on
-                // Company Details. Narrow keeps the master list as the
-                // index. Only fires when the user is *exactly* on
-                // `/settings`; deep paths pass through untouched.
-                //
-                // "Wide" here must match `SettingsShell`'s own
-                // `LayoutBuilder` check (constraints ≥ `Breakpoints.wide`)
-                // — that's the screen width *minus* the global `InSidebar`.
-                // Using raw `MediaQuery` width would redirect at medium
-                // widths (≈600–832 px) where the shell falls back to
-                // single-pane and the section list never renders, dumping
-                // the user on Company Details with no way to the list.
+                // On viewports wide enough for the two-pane layout, the
+                // persistent sidebar makes the "select a setting" hint
+                // redundant — land directly on Company Details. Narrower
+                // widths keep the full-screen master list as the index.
+                // Only fires when the user is *exactly* on `/settings`;
+                // deep paths pass through untouched. Threshold logic and
+                // rationale live in [settingsIndexRedirect].
                 redirect: (context, state) {
                   if (state.uri.path != '/settings') return null;
-                  final screenWidth = MediaQuery.sizeOf(context).width;
-                  if (screenWidth < Breakpoints.wide) return null;
-                  final collapsed = context.read<Services>().sidebar.value;
-                  final sidebarWidth = collapsed
-                      ? kInSidebarCollapsedWidth
-                      : kInSidebarWidth;
-                  final shellWidth = screenWidth - sidebarWidth;
-                  return shellWidth >= Breakpoints.wide
-                      ? '/settings/company_details'
-                      : null;
+                  return settingsIndexRedirect(
+                    screenWidth: MediaQuery.sizeOf(context).width,
+                    sidebarCollapsed: context.read<Services>().sidebar.value,
+                  );
                 },
                 builder: (context, state) => const SettingsScreen(),
                 routes: settingsRoutes,

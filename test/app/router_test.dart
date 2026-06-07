@@ -268,4 +268,66 @@ void main() {
       expect(roots, isNot(contains('/clients')));
     });
   });
+
+  group('settingsIndexRedirect', () {
+    // The redirect threshold splits the *shell* width (window minus the global
+    // InSidebar: 232 px expanded / 64 px collapsed) against
+    // Breakpoints.settingsTwoPane (880) — the same gate SettingsShell uses to
+    // show its menu sidebar. So with the sidebar expanded it fires at
+    // screenWidth ≥ 1112, collapsed at ≥ 944.
+
+    test('redirects to Company Details once the shell can host two panes', () {
+      // 1200 − 232 = 968 ≥ 880.
+      expect(
+        settingsIndexRedirect(screenWidth: 1200, sidebarCollapsed: false),
+        '/settings/company_details',
+      );
+    });
+
+    test('stays on the /settings list while the menu sidebar is hidden', () {
+      // 1000 − 232 = 768 < 880. This is the regression band: the old
+      // `Breakpoints.wide` (600) threshold redirected here, stranding the
+      // user on Company Details with no menu list.
+      expect(
+        settingsIndexRedirect(screenWidth: 1000, sidebarCollapsed: false),
+        isNull,
+      );
+    });
+
+    test('expanded-sidebar boundary: redirects at exactly shell width 880', () {
+      // 1112 − 232 = 880 (redirect); 1111 − 232 = 879 (stay).
+      expect(
+        settingsIndexRedirect(screenWidth: 1112, sidebarCollapsed: false),
+        '/settings/company_details',
+      );
+      expect(
+        settingsIndexRedirect(screenWidth: 1111, sidebarCollapsed: false),
+        isNull,
+      );
+    });
+
+    test('collapsed sidebar frees width, so it redirects sooner', () {
+      // 944 − 64 = 880 (redirect); 943 − 64 = 879 (stay). At 1000 a collapsed
+      // sidebar redirects (936 ≥ 880) where an expanded one does not.
+      expect(
+        settingsIndexRedirect(screenWidth: 944, sidebarCollapsed: true),
+        '/settings/company_details',
+      );
+      expect(
+        settingsIndexRedirect(screenWidth: 943, sidebarCollapsed: true),
+        isNull,
+      );
+      expect(
+        settingsIndexRedirect(screenWidth: 1000, sidebarCollapsed: true),
+        '/settings/company_details',
+      );
+    });
+
+    test('narrow (mobile) widths never redirect', () {
+      expect(
+        settingsIndexRedirect(screenWidth: 500, sidebarCollapsed: false),
+        isNull,
+      );
+    });
+  });
 }

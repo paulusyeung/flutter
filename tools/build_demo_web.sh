@@ -32,6 +32,34 @@ flutter build web --wasm --release \
   --base-href /admin/ \
   --dart-define=IN_DEMO_API_TOKEN=TOKEN
 
+# Cache-bust the app entrypoints so a single browser refresh picks up a new
+# deploy. GitHub Pages serves every file with `Cache-Control: max-age=600` and
+# can't set custom headers, and the Flutter entry files have fixed names — so a
+# fresh deploy would otherwise stay hidden behind the browser cache for up to
+# 10 minutes. Stamp a content-hash token onto `flutter_bootstrap.js` and the app
+# entrypoints (main.dart.{wasm,mjs,js}) as a `?v=` query: a new build yields
+# brand-new URLs no cache can satisfy, so one refresh — which revalidates
+# index.html via the Pages ETag — loads the new bootstrap + app code. The engine
+# files under canvaskit/ are immutable per Flutter SDK, so they're left as-is
+# (busting them every deploy would force a needless multi-MB re-download).
+token="$(cat build/web/main.dart.wasm build/web/main.dart.mjs build/web/main.dart.js \
+  | shasum -a 256 | cut -c1-12)"
+sed -i '' \
+  -e "s#\"main.dart.wasm\"#\"main.dart.wasm?v=$token\"#g" \
+  -e "s#\"main.dart.mjs\"#\"main.dart.mjs?v=$token\"#g" \
+  -e "s#\"main.dart.js\"#\"main.dart.js?v=$token\"#g" \
+  build/web/flutter_bootstrap.js
+sed -i '' \
+  "s#src=\"flutter_bootstrap.js\"#src=\"flutter_bootstrap.js?v=$token\"#" \
+  build/web/index.html
+# Fail loudly if a future Flutter output change breaks the rewrites above,
+# rather than silently shipping an un-busted (cache-stale) build.
+grep -q "src=\"flutter_bootstrap.js?v=$token\"" build/web/index.html \
+  || { echo "!! cache-bust failed: index.html not stamped" >&2; exit 1; }
+grep -q "main.dart.wasm?v=$token" build/web/flutter_bootstrap.js \
+  || { echo "!! cache-bust failed: flutter_bootstrap.js not stamped" >&2; exit 1; }
+echo "==> cache-bust token: $token"
+
 if [[ "$deploy_dir" == "-" ]]; then
   echo "==> build complete — build/web/ (deploy skipped)"
   exit 0

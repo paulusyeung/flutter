@@ -19,6 +19,12 @@ class Breakpoints {
   /// (a 700 px window would give the content barely ~420 px). Below this we
   /// fall through to single-pane full-screen navigation, which has its own
   /// section list + push nav. 280 sidebar + ~600 content ≈ 880.
+  ///
+  /// Two sites split the same shell width against this value and MUST stay in
+  /// agreement: `SettingsShell`'s `LayoutBuilder` gate (shows the sidebar) and
+  /// `settingsIndexRedirect` in `router.dart` (sends `/settings` straight to
+  /// Company Details). If they diverge, the in-between band redirects the user
+  /// past the list while the sidebar is still hidden — leaving no menu.
   static const double settingsTwoPane = 880;
 
   /// True when the global persistent `InSidebar` is visible (i.e. the
