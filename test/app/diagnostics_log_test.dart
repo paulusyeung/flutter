@@ -76,6 +76,42 @@ void main() {
     expect(body, isNot(contains('hunter2')));
   });
 
+  test('recordError survives a stack trace whose toString() throws', () async {
+    final diag = await openLog();
+    addTearDown(diag.close);
+    // Real-world failure: package:stack_trace's lazy Chain.toString() can raise
+    // LateInitializationError. The logger must still capture the head line
+    // rather than throw (and drop) the very record it was logging.
+    diag.recordError(
+      StateError('boom'),
+      _ThrowingStackTrace(),
+      context: 'hostileStack',
+    );
+    await diag.flush();
+    final body = await File(diag.path).readAsString();
+    expect(body, contains('[hostileStack]'));
+    expect(body, contains('Bad state: boom'));
+    expect(body, contains('<stack trace unavailable:'));
+  });
+
+  test('recordLog survives a stack trace whose toString() throws', () async {
+    final diag = await openLog();
+    addTearDown(diag.close);
+    final record = LogRecord(
+      Level.SEVERE,
+      'kaboom',
+      'unit.test.logger',
+      StateError('cause'),
+      _ThrowingStackTrace(),
+    );
+    diag.recordLog(record);
+    await diag.flush();
+    final body = await File(diag.path).readAsString();
+    expect(body, contains('[unit.test.logger]'));
+    expect(body, contains('kaboom'));
+    expect(body, contains('<stack trace unavailable:'));
+  });
+
   test(
     'collapses a storm of identical errors into one entry + tally',
     () async {
@@ -327,4 +363,11 @@ void main() {
       );
     });
   });
+}
+
+/// A [StackTrace] whose `toString()` throws — mirrors the package:stack_trace
+/// `LateInitializationError` that took down `recordLog` in the diagnostics log.
+class _ThrowingStackTrace implements StackTrace {
+  @override
+  String toString() => throw StateError('stack toString boom');
 }

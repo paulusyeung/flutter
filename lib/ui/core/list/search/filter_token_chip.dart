@@ -96,11 +96,18 @@ class FilterTokenChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _Segment(
-                onTap: onTap == null ? null : (r) => onTap!(r),
-                semanticLabel:
-                    '${token.displayKey}, ${context.tr('filter_field')}',
-                child: Text(token.displayKey.toLowerCase(), style: keyStyle),
+              Flexible(
+                child: _Segment(
+                  onTap: onTap == null ? null : (r) => onTap!(r),
+                  semanticLabel:
+                      '${token.displayKey}, ${context.tr('filter_field')}',
+                  child: Text(
+                    token.displayKey.toLowerCase(),
+                    style: keyStyle,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                  ),
+                ),
               ),
               _divider(tokens),
               _Segment(
@@ -117,26 +124,33 @@ class FilterTokenChip extends StatelessWidget {
                 ),
               ),
               _divider(tokens),
-              _Segment(
-                onTap: onValueTap,
-                semanticLabel:
-                    '${token.displayValue}, ${context.tr('change_value')}',
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _maybeTooltip(
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 140),
-                        child: Text(
-                          token.displayValue,
-                          style: valueStyle,
-                          overflow: TextOverflow.ellipsis,
-                          softWrap: false,
+              // Flexible so the value segment shrinks (its Text ellipsizes)
+              // rather than overflowing when the chip is squeezed into a
+              // narrow `Wrap` cell.
+              Flexible(
+                child: _Segment(
+                  onTap: onValueTap,
+                  semanticLabel:
+                      '${token.displayValue}, ${context.tr('change_value')}',
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: _maybeTooltip(
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 140),
+                            child: Text(
+                              token.displayValue,
+                              style: valueStyle,
+                              overflow: TextOverflow.ellipsis,
+                              softWrap: false,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                    _caret(tokens),
-                  ],
+                      _caret(tokens),
+                    ],
+                  ),
                 ),
               ),
               _closeButton(context, tokens),
@@ -150,17 +164,29 @@ class FilterTokenChip extends StatelessWidget {
     final body = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(token.displayKey.toLowerCase(), style: keyStyle),
+        // Key and value both shrink/ellipsize so the chip never overflows a
+        // `Wrap` cell narrower than its natural width; the value is the long
+        // part, so it carries most of the shrink.
+        Flexible(
+          child: Text(
+            token.displayKey.toLowerCase(),
+            style: keyStyle,
+            overflow: TextOverflow.ellipsis,
+            softWrap: false,
+          ),
+        ),
         const SizedBox(width: 4),
         if (token.displayComparator != null) ...[
           Text(token.displayComparator!, style: comparatorStyle),
           const SizedBox(width: 4),
         ],
         Flexible(
+          flex: 2,
           child: Text(
             token.displayValue,
             style: valueStyle,
             overflow: TextOverflow.ellipsis,
+            softWrap: false,
           ),
         ),
       ],
@@ -202,7 +228,10 @@ class FilterTokenChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            tappableBody,
+            // Flexible so a long value shrinks (its inner Text ellipsizes)
+            // instead of overflowing when a `Wrap` squeezes the chip into a
+            // cell narrower than its natural width.
+            Flexible(child: tappableBody),
             if (!readOnly) ...[
               const SizedBox(width: 2),
               _closeButton(context, tokens),

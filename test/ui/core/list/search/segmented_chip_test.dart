@@ -128,4 +128,58 @@ void main() {
       expect(find.text('United States'), findsOneWidget);
     });
   });
+
+  // Regression: a long value squeezed into a narrow cell (a `Wrap` cell
+  // smaller than the chip's natural width) must ellipsize, not overflow.
+  group('FilterTokenChip — narrow-cell overflow', () {
+    const longPlain = FilterToken(
+      keyId: 'client',
+      displayKey: 'Client',
+      rawValue: '1',
+      displayValue: 'A Very Long Client Company Name That Would Overflow',
+    );
+    const longSegmented = FilterToken(
+      keyId: 'created',
+      displayKey: 'Created',
+      rawValue: 'is:x',
+      displayValue: 'A Very Long Value That Would Overflow A Narrow Cell',
+      displayComparator: 'is',
+    );
+
+    testWidgets('plain chip ellipsizes instead of overflowing', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          SizedBox(
+            width: 120,
+            child: FilterTokenChip(
+              token: longPlain,
+              onRemove: () {},
+              onTap: (_) {},
+            ),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('segmented chip ellipsizes instead of overflowing', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          SizedBox(
+            width: 200,
+            child: FilterTokenChip(
+              token: longSegmented,
+              onRemove: () {},
+              onTap: (_) {},
+              onComparatorTap: (_) {},
+              onValueTap: (_) {},
+            ),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+    });
+  });
 }

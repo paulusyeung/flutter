@@ -112,3 +112,11 @@ flutter:
     - family: JetBrains Mono
       fonts:
         - asset: assets/fonts/JetBrainsMono.ttf
+    # Satisfies the Flutter web engine's hardcoded default-font check
+    # (canvaskit + skwasm both look for a family literally named "Roboto") so it
+    # never downloads Roboto from fonts.gstatic.com at boot. Aliased to the
+    # bundled Inter Tight — no extra bytes; any text that hits the engine
+    # fallback renders in the app's own typeface.
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/InterTight.ttf
