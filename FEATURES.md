@@ -501,6 +501,7 @@ the honest default.
 | Product — documents / attachments | ✅ | ✅ | ✅ | ✅ | |
 | Product — tax category | ✅ | ✅ | ✅ | ✅ | |
 | Product — stock / inventory tracking | ✅ | 🟡 | ✅ | ✅ | |
+| Product — stock shown when selecting products (invoice line items) | ✅ | ✅ | ✅ | | |
 | Product — custom fields | ✅ | ✅ | ✅ | ✅ | |
 | Product — activities | ✅ | ✅ | ✅ | ✅ | |
 | Product — archive / restore / delete / purge | ✅ | ✅ | ✅ | ✅ | |

@@ -28,7 +28,7 @@ class ClientEditViewModel extends GenericEditViewModel<Client> {
          initialDraft:
              cloneFrom ??
              existing ??
-             _emptyClient(groupSettingsId: prefillGroupId),
+             emptyClient(groupSettingsId: prefillGroupId),
          original: existing,
          companyId: companyId,
        );
@@ -68,7 +68,7 @@ class ClientEditViewModel extends GenericEditViewModel<Client> {
   }
 
   /// Reset back to the original draft (or an empty client in create mode).
-  void resetToEmpty() => reset(emptyDraft: _emptyClient());
+  void resetToEmpty() => reset(emptyDraft: emptyClient());
 
   void setGroupSettingsId(String id) =>
       updateDraft(draft.copyWith(groupSettingsId: id));
@@ -419,7 +419,7 @@ class ClientEditViewModel extends GenericEditViewModel<Client> {
   }
 }
 
-Client _emptyClient({String? groupSettingsId}) => Client(
+Client emptyClient({String? groupSettingsId}) => Client(
   id: '',
   name: '',
   displayName: '',

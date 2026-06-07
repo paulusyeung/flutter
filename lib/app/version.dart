@@ -13,11 +13,28 @@ class AppVersion {
   AppVersion._();
 
   /// Sent as `X-CLIENT-VERSION` on every request.
-  static const String kClientVersion = '5.1.0';
+  static const String kClientVersion = '5.1.1';
 
   /// The minimum Invoice Ninja server version this client can talk to.
   ///
   /// The server returns `x-app-version` on every response; if it's below this
   /// we surface a "server needs upgrade" screen.
   static const String kMinServerVersion = '5.0.0';
+
+  /// Combined version label shown in the About dialog, mirroring admin-portal's
+  /// `AppState.appVersion`: `v<serverVersion>-<platformLetter><clientBuild>`
+  /// (e.g. `v5.11.40-M0`). `clientBuild` is the last dotted segment of
+  /// [kClientVersion]; pass [platformLetter] from `Env.platformLetter`.
+  ///
+  /// [serverVersion] is the server's `x-app-version` value
+  /// (`Services.serverVersion`); when it's null/empty the label is `v-<…>`,
+  /// matching the old app before the first response arrives.
+  static String versionLabel({
+    required String? serverVersion,
+    required String platformLetter,
+  }) {
+    final server = (serverVersion ?? '').trim();
+    final clientBuild = kClientVersion.split('.').last;
+    return 'v$server-$platformLetter$clientBuild';
+  }
 }

@@ -560,6 +560,7 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
                 MarkdownNotesField(
                   label: context.tr('terms'),
                   showLabel: false,
+                  expand: true,
                   value: vm.draft.terms,
                   onChanged: vm.setTerms,
                   onSaveAsDefault: (v) => saveBillingDocDefault(
@@ -574,6 +575,7 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
                 MarkdownNotesField(
                   label: context.tr('footer'),
                   showLabel: false,
+                  expand: true,
                   value: vm.draft.footer,
                   onChanged: vm.setFooter,
                   onSaveAsDefault: (v) => saveBillingDocDefault(
@@ -588,12 +590,14 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
                 MarkdownNotesField(
                   label: context.tr('public_notes'),
                   showLabel: false,
+                  expand: true,
                   value: vm.draft.publicNotes,
                   onChanged: vm.setPublicNotes,
                 ),
                 MarkdownNotesField(
                   label: context.tr('private_notes'),
                   showLabel: false,
+                  expand: true,
                   value: vm.draft.privateNotes,
                   onChanged: vm.setPrivateNotes,
                 ),

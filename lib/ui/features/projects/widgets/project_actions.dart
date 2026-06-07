@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
@@ -17,6 +16,7 @@ import 'package:admin/ui/features/expenses/view_models/expense_edit_view_model.d
 import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
 import 'package:admin/ui/features/quotes/view_models/quote_edit_view_model.dart';
+import 'package:admin/ui/features/tasks/view_models/task_edit_view_model.dart';
 
 /// Action set surfaced for a project. Mirrors `ProductAction` — all
 /// branches are wired.
@@ -186,7 +186,11 @@ class ProjectActions {
       case ProjectAction.edit:
         goEntityEdit(context, '/projects', project.id);
       case ProjectAction.newTask:
-        context.go('/tasks/new?project=${project.id}');
+        goEntityCreateFullWidth(
+          context,
+          '/tasks',
+          extra: emptyTask().copyWith(projectId: project.id),
+        );
       case ProjectAction.archive:
         await StandardEntityActions.archive(
           context: context,

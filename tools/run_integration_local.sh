@@ -99,6 +99,10 @@ else
     all_files+=("$f")
   done < <(find integration_test -name '*_test.dart' | sort)
   for f in "${all_files[@]}"; do
+    if [[ "$f" == */screenshots_test.dart ]]; then
+      echo "skip (asset-gen, use tools/capture_screenshots.sh): $f"
+      continue
+    fi
     if [[ "$f" == integration_test/demo/* ]] && [[ "$include_demo" != true ]]; then
       echo "skip (live demo, use --include-demo): $f"
       continue

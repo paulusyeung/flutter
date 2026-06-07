@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/services.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/views/basic/account_management/account_management_shell.dart';
@@ -491,11 +492,17 @@ final List<RouteBase> settingsRoutes = [
     routes: [
       _settingsRoute(
         path: 'new',
-        builder: (_, state) => SchedulesEditScreen(
+        builder: (context, state) => SchedulesEditScreen(
           starter: state.uri.queryParameters['starter'],
-          seed: state.extra is ReportScheduleSeed
-              ? state.extra as ReportScheduleSeed
-              : null,
+          // Cross-branch (Reports → Schedule) drops route `extra:`, so the seed
+          // rides on `Services`; fall back to `extra:` for same-branch callers.
+          seed:
+              context.read<Services>().takeCreateDraft<ReportScheduleSeed>(
+                '/settings/schedules',
+              ) ??
+              (state.extra is ReportScheduleSeed
+                  ? state.extra as ReportScheduleSeed
+                  : null),
         ),
       ),
       _settingsRoute(

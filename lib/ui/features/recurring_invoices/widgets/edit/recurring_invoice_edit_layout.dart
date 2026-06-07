@@ -370,16 +370,6 @@ class _ScheduleCardDesktop extends StatelessWidget {
         SizedBox(height: InSpacing.md(context)),
         _DueDateDaysField(vm: vm),
         SizedBox(height: InSpacing.md(context)),
-        DropdownButtonFormField<String>(
-          initialValue: vm.draft.autoBill.isEmpty ? 'off' : vm.draft.autoBill,
-          decoration: billingFieldDecoration(
-            context,
-            label: context.tr('auto_bill'),
-          ),
-          items: _autoBillItems(context),
-          onChanged: (v) => vm.setAutoBill(v ?? 'off'),
-        ),
-        SizedBox(height: InSpacing.md(context)),
         EntityCustomFieldsSection(
           keyPrefix: 'invoice',
           companyStream: context.read<Services>().company.watchCompany(
@@ -497,6 +487,16 @@ class _NumberCardDesktopState extends State<_NumberCardDesktop> {
           ],
         ),
         SizedBox(height: InSpacing.md(context)),
+        DropdownButtonFormField<String>(
+          initialValue: vm.draft.autoBill.isEmpty ? 'off' : vm.draft.autoBill,
+          decoration: billingFieldDecoration(
+            context,
+            label: context.tr('auto_bill'),
+          ),
+          items: _autoBillItems(context),
+          onChanged: (v) => vm.setAutoBill(v ?? 'off'),
+        ),
+        SizedBox(height: InSpacing.md(context)),
         EntityCustomFieldsSection(
           keyPrefix: 'invoice',
           companyStream: context.read<Services>().company.watchCompany(
@@ -603,24 +603,28 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
               MarkdownNotesField(
                 label: context.tr('terms'),
                 showLabel: false,
+                expand: true,
                 value: vm.draft.terms,
                 onChanged: vm.setTerms,
               ),
               MarkdownNotesField(
                 label: context.tr('footer'),
                 showLabel: false,
+                expand: true,
                 value: vm.draft.footer,
                 onChanged: vm.setFooter,
               ),
               MarkdownNotesField(
                 label: context.tr('public_notes'),
                 showLabel: false,
+                expand: true,
                 value: vm.draft.publicNotes,
                 onChanged: vm.setPublicNotes,
               ),
               MarkdownNotesField(
                 label: context.tr('private_notes'),
                 showLabel: false,
+                expand: true,
                 value: vm.draft.privateNotes,
                 onChanged: vm.setPrivateNotes,
               ),
@@ -947,6 +951,13 @@ class _DetailsTabState extends State<_DetailsTab> {
               ),
             ],
           ),
+          SizedBox(height: InSpacing.md(context)),
+          DropdownButtonFormField<String>(
+            initialValue: vm.draft.autoBill.isEmpty ? 'off' : vm.draft.autoBill,
+            decoration: InputDecoration(labelText: context.tr('auto_bill')),
+            items: _autoBillItems(context),
+            onChanged: (v) => vm.setAutoBill(v ?? 'off'),
+          ),
           _TaxSurchargeSection(vm: vm),
           SizedBox(height: InSpacing.lg(context)),
           _DesignPicker(vm: vm),
@@ -1077,13 +1088,6 @@ class _ScheduleTab extends StatelessWidget {
           _RemainingCyclesField(vm: vm),
           SizedBox(height: InSpacing.md(context)),
           _DueDateDaysField(vm: vm),
-          SizedBox(height: InSpacing.lg(context)),
-          DropdownButtonFormField<String>(
-            initialValue: vm.draft.autoBill.isEmpty ? 'off' : vm.draft.autoBill,
-            decoration: InputDecoration(labelText: context.tr('auto_bill')),
-            items: _autoBillItems(context),
-            onChanged: (v) => vm.setAutoBill(v ?? 'off'),
-          ),
         ],
       ),
     );

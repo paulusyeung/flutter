@@ -22,31 +22,14 @@ import 'package:admin/ui/features/expenses/widgets/expense_actions.dart';
 /// otherwise. The three densest sections (Currency conversion, Banking,
 /// Custom fields) start collapsed per the UX spec § Progressive disclosure.
 class ExpenseEditScreen extends StatelessWidget {
-  const ExpenseEditScreen({
-    this.existingId,
-    this.cloneFrom,
-    this.prefillProjectId,
-    this.prefillClientId,
-    super.key,
-  });
+  const ExpenseEditScreen({this.existingId, this.cloneFrom, super.key});
 
   final String? existingId;
 
-  /// When non-null and [existingId] is null, the create form opens
-  /// pre-filled with this expense's fields. Identity-bearing fields (id,
-  /// number, timestamps, invoice link, payment metadata) should already
-  /// be stripped by the caller.
+  /// Edit-mode override draft (parallels InvoiceEditScreen). Null for a normal
+  /// edit and for create (which reads the staged draft via
+  /// `Services.takeCreateDraft`).
   final Expense? cloneFrom;
-
-  /// Optional project id seed (`?project=<id>`). In create mode the VM
-  /// resolves the project and seeds the expense's projectId + clientId so
-  /// "New Expense" from a Project's Expenses tab opens pre-scoped.
-  final String? prefillProjectId;
-
-  /// Optional client id seed (`?client=<id>`). In create mode the form opens
-  /// with this client pre-selected (Clients list ⋮ → New Expense). Delivered
-  /// via query param because `extra:` is dropped on the cross-branch hop.
-  final String? prefillClientId;
 
   @override
   Widget build(BuildContext context) {
@@ -56,13 +39,15 @@ class ExpenseEditScreen extends StatelessWidget {
       fetchExisting: (ctx, services, companyId, id) =>
           services.expenses.watch(companyId: companyId, id: id).first,
       buildVm: (ctx, services, companyId, existing) {
-        // `?client=<id>` (Clients list ⋮ → New Expense): synthesize a draft
-        // carrying just the clientId so the client is set from first build —
-        // mirrors ProjectEditScreen. (No invitations on expenses.)
-        Expense? clone = cloneFrom;
-        if (clone == null && prefillClientId != null && existing == null) {
-          clone = emptyExpense().copyWith(clientId: prefillClientId!);
-        }
+        // Create-mode seed staged on `Services` (route extra:/query is dropped
+        // cross-branch + on screen reuse); the keyed `/new` route recreates the
+        // screen on each stage so buildVm re-reads it. `cloneFrom` is the
+        // edit-mode override.
+        final clone =
+            cloneFrom ??
+            (existing == null
+                ? services.takeCreateDraft<Expense>('/expenses')
+                : null);
         final vm = ExpenseEditViewModel(
           repo: services.expenses,
           companyId: companyId,
@@ -77,15 +62,20 @@ class ExpenseEditScreen extends StatelessWidget {
           sync: services.sync,
           connectivity: services.connectivity,
         );
-        // Seed project + client from `?project=<id>` on first build (create
-        // mode only). Wrapped in postFrame so listeners are attached before
-        // notifyListeners fires — see InvoiceEditScreen for the trace.
-        final seedId = prefillProjectId;
-        if (seedId != null && seedId.isNotEmpty && existing == null) {
+        // Embedded Project → Expenses-tab "New" stages a draft with a projectId
+        // but no client; resolve the project to set clientId. Actions that bake
+        // the clientId skip this.
+        final seedProjectId =
+            (clone != null &&
+                clone.projectId.isNotEmpty &&
+                clone.clientId.isEmpty)
+            ? clone.projectId
+            : null;
+        if (seedProjectId != null && existing == null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             unawaited(
               services.projects
-                  .watch(companyId: companyId, id: seedId)
+                  .watch(companyId: companyId, id: seedProjectId)
                   .first
                   .then((project) {
                     if (project != null) {

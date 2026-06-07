@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
@@ -44,8 +43,9 @@ class RecurringInvoiceListScreen extends StatelessWidget {
       newLabelKey: 'new_recurring_invoice',
       embeddedNewOverride: cid == null
           ? null
-          : (ctx) => ctx.go(
-              '/recurring_invoices/new',
+          : (ctx) => goEntityCreateFullWidth(
+              ctx,
+              '/recurring_invoices',
               extra: emptyRecurringInvoice().copyWith(clientId: cid),
             ),
       emptyIcon: Icons.event_repeat_outlined,

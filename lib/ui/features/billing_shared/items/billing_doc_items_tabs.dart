@@ -49,6 +49,7 @@ class BillingDocItemsTabs extends StatefulWidget {
     required this.config,
     required this.rowErrors,
     required this.onPickItems,
+    this.showStockQuantity = false,
   });
 
   /// For `addBeforeSaveHook` + `stripEmptyLineItems`. Type-erased to keep
@@ -61,6 +62,10 @@ class BillingDocItemsTabs extends StatefulWidget {
   final LineItemColumnConfig config;
   final Map<int, Map<String, String>>? rowErrors;
   final VoidCallback onPickItems;
+
+  /// Invoice host only — show the bracketed in-stock count in the products
+  /// tab's product typeahead. Forwarded to the products `LineItemEditor`.
+  final bool showStockQuantity;
 
   @override
   State<BillingDocItemsTabs> createState() => _BillingDocItemsTabsState();
@@ -258,6 +263,9 @@ class _BillingDocItemsTabsState extends State<BillingDocItemsTabs>
       newItemFactory: widget.newItemFactory,
       config: widget.config,
       controller: _controllerFor(kind),
+      // Stock count is a product-selection affordance — only the products
+      // tab's typeahead surfaces it (and only on invoices, via the host).
+      showStockQuantity: widget.showStockQuantity && kind == _LineKind.products,
       // Row-error indices key off the full list; per-tab indices won't
       // line up. The cross-client error still surfaces in the validation
       // banner, so the per-row tint is just a polish loss in tabbed mode.

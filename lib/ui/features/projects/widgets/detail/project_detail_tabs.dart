@@ -36,7 +36,7 @@ class ProjectDetailTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final services = context.read<Services>();
-    final companyId = services.auth.session.value!.currentCompanyId;
+    final companyId = services.auth.currentCompanyId ?? '';
     final projectId = project.id;
     // Hide related-entity tabs whose module is disabled for this company.
     final me = services.auth.session.value?.currentCompany;

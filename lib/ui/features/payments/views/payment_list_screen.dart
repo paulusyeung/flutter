@@ -36,10 +36,13 @@ class PaymentListScreen extends StatelessWidget {
       newLabelKey: 'new_payment',
       embeddedNewOverride: cid == null
           ? null
-          : (ctx) => ctx.go(
-              '/payments/new',
-              extra: emptyPayment().copyWith(clientId: cid),
-            ),
+          : (ctx) {
+              ctx.read<Services>().stageCreateDraft(
+                '/payments',
+                emptyPayment().copyWith(clientId: cid),
+              );
+              ctx.go('/payments/new');
+            },
       emptyIcon: Icons.payments_outlined,
       emptyTitleKey: 'no_payments_yet',
       wantsFormatter: true,

@@ -381,6 +381,22 @@ class _MarkdownTextFieldState extends State<MarkdownTextField> {
             // registrations across the many-editor screens.
             autofocus: true,
             stylesheet: _buildStylesheet(t),
+            // Caret color isn't stylesheet-controllable in super_editor; the
+            // only seam is the overlay-builder list. The package default caret
+            // (`DefaultCaretOverlayBuilder`) hardcodes black — invisible in
+            // dark mode — so reuse the default builders (keeping the mobile
+            // selection/handle overlays untouched) and swap just the desktop
+            // caret for a theme-aware one. `t.ink` is the primary foreground
+            // token: near-black in light mode, near-white in dark, matching
+            // the editor's body text color above.
+            documentOverlayBuilders: [
+              ...defaultSuperEditorDocumentOverlayBuilders.where(
+                (b) => b is! DefaultCaretOverlayBuilder,
+              ),
+              DefaultCaretOverlayBuilder(
+                caretStyle: CaretStyle(width: 2, color: t.ink),
+              ),
+            ],
           )
         : SuperReader(editor: _editor, stylesheet: _buildStylesheet(t));
 

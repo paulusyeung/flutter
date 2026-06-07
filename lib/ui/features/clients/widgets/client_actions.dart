@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
@@ -21,7 +20,14 @@ import 'package:admin/ui/features/clients/widgets/detail/add_comment_dialog.dart
 import 'package:admin/ui/features/clients/widgets/detail/assign_group_dialog.dart';
 import 'package:admin/ui/features/clients/widgets/detail/merge_client_dialog.dart';
 import 'package:admin/ui/features/clients/widgets/detail/purge_client_dialog.dart';
+import 'package:admin/ui/features/credits/view_models/credit_edit_view_model.dart';
+import 'package:admin/ui/features/expenses/view_models/expense_edit_view_model.dart';
+import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
+import 'package:admin/ui/features/payments/view_models/payment_edit_view_model.dart';
+import 'package:admin/ui/features/quotes/view_models/quote_edit_view_model.dart';
+import 'package:admin/ui/features/recurring_invoices/view_models/recurring_invoice_edit_view_model.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
+import 'package:admin/ui/features/tasks/view_models/task_edit_view_model.dart';
 
 /// Full action set surfaced for a client. Mirrors the actions exposed in
 /// admin-portal's `client_model.dart#getActions`, minus a few multiselect-
@@ -470,8 +476,11 @@ class ClientActions {
           Notify.error(context, context.tr('sync_first'));
           return;
         }
-        Logger('seed').warning('ACTION newInvoice ${client.id}'); // TEMP
-        goEntityCreateFullWidth(context, '/invoices', clientId: client.id);
+        goEntityCreateFullWidth(
+          context,
+          '/invoices',
+          extra: emptyInvoice().copyWith(clientId: client.id),
+        );
       case ClientAction.newRecurringInvoice:
         if (client.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));
@@ -480,20 +489,28 @@ class ClientActions {
         goEntityCreateFullWidth(
           context,
           '/recurring_invoices',
-          clientId: client.id,
+          extra: emptyRecurringInvoice().copyWith(clientId: client.id),
         );
       case ClientAction.newQuote:
         if (client.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));
           return;
         }
-        goEntityCreateFullWidth(context, '/quotes', clientId: client.id);
+        goEntityCreateFullWidth(
+          context,
+          '/quotes',
+          extra: emptyQuote().copyWith(clientId: client.id),
+        );
       case ClientAction.newCredit:
         if (client.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));
           return;
         }
-        goEntityCreateFullWidth(context, '/credits', clientId: client.id);
+        goEntityCreateFullWidth(
+          context,
+          '/credits',
+          extra: emptyCredit().copyWith(clientId: client.id),
+        );
       case ClientAction.newPayment:
         if (client.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));
@@ -501,21 +518,33 @@ class ClientActions {
         }
         // `/payments/new` defaults to the slide-over sidebar (see
         // `_kEditDefaultsToSlide` in `master_detail_layout.dart`); do not
-        // force `?view=full` here. Seed the client via `?client=` so it
-        // survives the cross-branch hop (unlike `extra:`).
-        context.go('/payments/new?client=${client.id}');
+        // force `?view=full` here. Stage the seed on `Services` (survives the
+        // cross-branch hop + screen reuse, unlike `extra:`).
+        services.stageCreateDraft(
+          '/payments',
+          emptyPayment().copyWith(clientId: client.id),
+        );
+        context.go('/payments/new');
       case ClientAction.newTask:
         if (client.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));
           return;
         }
-        goEntityCreateFullWidth(context, '/tasks', clientId: client.id);
+        goEntityCreateFullWidth(
+          context,
+          '/tasks',
+          extra: emptyTask().copyWith(clientId: client.id),
+        );
       case ClientAction.newExpense:
         if (client.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));
           return;
         }
-        goEntityCreateFullWidth(context, '/expenses', clientId: client.id);
+        goEntityCreateFullWidth(
+          context,
+          '/expenses',
+          extra: emptyExpense().copyWith(clientId: client.id),
+        );
       case ClientAction.merge:
         if (client.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/tasks/view_models/kanban_view_model.dart';
 import 'package:admin/ui/features/tasks/views/task_list_screen.dart';
 import 'package:admin/ui/features/tasks/widgets/kanban/kanban_board.dart';
@@ -115,7 +115,7 @@ class _KanbanScreenState extends State<KanbanScreen> {
             ),
       floatingActionButton: FloatingActionButton(
         tooltip: context.tr('new_task'),
-        onPressed: () => context.go('/tasks/new'),
+        onPressed: () => goToCreateRoute(context, '/tasks/new'),
         child: const Icon(Icons.add),
       ),
       body: ChangeNotifierProvider<KanbanViewModel>.value(

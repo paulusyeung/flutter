@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
@@ -11,7 +11,10 @@ import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
 import 'package:admin/ui/features/products/widgets/tax_category_dialog.dart';
+import 'package:admin/ui/features/purchase_orders/view_models/purchase_order_edit_view_model.dart';
+import 'package:admin/ui/features/quotes/view_models/quote_edit_view_model.dart';
 
 /// Action set surfaced for a product. Mirrors `ClientAction`. The
 /// new-document branches seed a draft with this product as a line item;
@@ -198,7 +201,11 @@ class ProductActions {
               services.products.restore(companyId: companyId, id: product.id),
         );
       case ProductAction.clone:
-        context.go('/products/new', extra: cloneDraftFor(product));
+        goEntityCreateFullWidth(
+          context,
+          '/products',
+          extra: cloneDraftFor(product),
+        );
       case ProductAction.delete:
         if (product.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));
@@ -215,32 +222,39 @@ class ProductActions {
           Notify.error(context, context.tr('sync_first'));
           return;
         }
-        // Encode the product id as a URL query param rather than passing a
-        // pre-built Invoice draft via `extra:`. URL params survive every
-        // hop go_router makes (cross-StatefulShellRoute-branch nav,
-        // serialization round-trips, State persistence in IndexedStack)
-        // — `extra:` does not, reliably. Mirrors the `?project=<id>`
-        // pattern in `entity_modules.dart`; the destination edit screen
-        // watches the product from the repo and seeds a line item after
-        // the VM is built.
-        GoRouter.of(context).go(
-          '/invoices/new?view=full&product=${Uri.encodeQueryComponent(product.id)}',
+        // Stage a draft pre-seeded with a line item for this product. The
+        // staged draft survives the cross-branch hop + create-screen reuse
+        // (a route `extra:`/query seed does not).
+        goEntityCreateFullWidth(
+          context,
+          '/invoices',
+          extra: emptyInvoice().copyWith(
+            lineItems: [lineItemForProduct(product)],
+          ),
         );
       case ProductAction.newQuote:
         if (product.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));
           return;
         }
-        GoRouter.of(context).go(
-          '/quotes/new?view=full&product=${Uri.encodeQueryComponent(product.id)}',
+        goEntityCreateFullWidth(
+          context,
+          '/quotes',
+          extra: emptyQuote().copyWith(
+            lineItems: [lineItemForProduct(product)],
+          ),
         );
       case ProductAction.newPurchaseOrder:
         if (product.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));
           return;
         }
-        GoRouter.of(context).go(
-          '/purchase_orders/new?view=full&product=${Uri.encodeQueryComponent(product.id)}',
+        goEntityCreateFullWidth(
+          context,
+          '/purchase_orders',
+          extra: emptyPurchaseOrder().copyWith(
+            lineItems: [lineItemForProduct(product)],
+          ),
         );
       case ProductAction.setTaxCategory:
         if (product.id.startsWith('tmp_')) {

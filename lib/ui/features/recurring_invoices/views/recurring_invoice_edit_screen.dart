@@ -18,18 +18,15 @@ class RecurringInvoiceEditScreen extends StatelessWidget {
   const RecurringInvoiceEditScreen({
     this.existingId,
     this.cloneFrom,
-    this.prefillClientId,
     super.key,
   });
 
   final String? existingId;
-  final RecurringInvoice? cloneFrom;
 
-  /// Optional client id seed (`?client=<id>`). In create mode the form opens
-  /// with this client pre-selected (Clients list ⋮ → New Recurring Invoice).
-  /// Delivered via query param because `extra:` is dropped on the cross-branch
-  /// hop.
-  final String? prefillClientId;
+  /// Edit-mode override draft (parallels InvoiceEditScreen). Null for a normal
+  /// edit (uses the fetched record) and for create (which reads the staged
+  /// draft via `Services.takeCreateDraft`).
+  final RecurringInvoice? cloneFrom;
 
   @override
   Widget build(BuildContext context) {
@@ -42,13 +39,17 @@ class RecurringInvoiceEditScreen extends StatelessWidget {
       fetchExisting: (ctx, services, companyId, id) =>
           services.recurringInvoices.watch(companyId: companyId, id: id).first,
       buildVm: (ctx, services, companyId, existing) {
-        // `?client=<id>` (Clients list ⋮ → New Recurring Invoice): synthesize
-        // a draft carrying just the clientId so the client is set from first
-        // build — mirrors ProjectEditScreen; the contact seed below then fires.
-        RecurringInvoice? clone = cloneFrom;
-        if (clone == null && prefillClientId != null && existing == null) {
-          clone = emptyRecurringInvoice().copyWith(clientId: prefillClientId!);
-        }
+        // Create-mode seed staged on `Services` (route extra:/query is dropped
+        // cross-branch + on screen reuse); the keyed `/new` route recreates the
+        // screen on each stage so buildVm re-reads it. `cloneFrom` is the
+        // edit-mode override (parallels InvoiceEditScreen).
+        final clone =
+            cloneFrom ??
+            (existing == null
+                ? services.takeCreateDraft<RecurringInvoice>(
+                    '/recurring_invoices',
+                  )
+                : null);
         final vm = RecurringInvoiceEditViewModel(
           repo: services.recurringInvoices,
           companyId: companyId,

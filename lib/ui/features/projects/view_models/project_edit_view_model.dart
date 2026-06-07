@@ -22,7 +22,7 @@ class ProjectEditViewModel extends GenericEditViewModel<Project> {
     super.connectivity,
     super.useCommaAsDecimalPlace,
   }) : super(
-         initialDraft: cloneFrom ?? existing ?? _emptyProject(),
+         initialDraft: cloneFrom ?? existing ?? emptyProject(),
          original: existing,
          companyId: companyId,
        );
@@ -79,7 +79,7 @@ class ProjectEditViewModel extends GenericEditViewModel<Project> {
     return repo.save(companyId: companyId, project: draft);
   }
 
-  void resetToEmpty() => reset(emptyDraft: _emptyProject());
+  void resetToEmpty() => reset(emptyDraft: emptyProject());
 
   /// Seed [rate] as the default task rate, but only on a fresh create where
   /// the user hasn't entered one yet. Backs the async company-default seed
@@ -124,7 +124,7 @@ class ProjectEditViewModel extends GenericEditViewModel<Project> {
       updateDraft(draft.copyWith(customValue4: v));
 }
 
-Project _emptyProject() => Project(
+Project emptyProject() => Project(
   id: '',
   userId: '',
   assignedUserId: '',

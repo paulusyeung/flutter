@@ -168,7 +168,7 @@ class _LiveSectionState extends State<_LiveSection> {
       return _stream!;
     }
     final services = context.read<Services>();
-    final companyId = services.auth.session.value!.currentCompanyId;
+    final companyId = services.auth.currentCompanyId ?? '';
     final next = widget.kind == AllocationKind.invoice
         ? services.invoices
               .watchForClient(companyId: companyId, clientId: widget.clientId)

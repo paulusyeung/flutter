@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
@@ -58,11 +57,16 @@ class InvoiceListScreen extends StatelessWidget {
       newRoute: '/invoices/new',
       newLabelKey: 'new_invoice',
       embeddedNewOverride: pid != null
-          ? ((ctx) => ctx.go('/invoices/new?project=$pid'))
+          ? ((ctx) => goEntityCreateFullWidth(
+              ctx,
+              '/invoices',
+              extra: emptyInvoice().copyWith(projectId: pid),
+            ))
           : cid == null
           ? null
-          : (ctx) => ctx.go(
-              '/invoices/new',
+          : (ctx) => goEntityCreateFullWidth(
+              ctx,
+              '/invoices',
               extra: emptyInvoice().copyWith(clientId: cid),
             ),
       emptyIcon: Icons.receipt_long_outlined,

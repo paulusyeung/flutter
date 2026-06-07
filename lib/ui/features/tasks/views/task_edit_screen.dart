@@ -24,28 +24,14 @@ import 'package:admin/ui/features/tasks/widgets/task_actions.dart';
 /// [FormatterHostMixin] — the time-log rows render their date portion
 /// through this formatter so the date layout honors the company setting.
 class TaskEditScreen extends StatefulWidget {
-  const TaskEditScreen({
-    this.existingId,
-    this.cloneFrom,
-    this.prefillProjectId,
-    this.prefillClientId,
-    super.key,
-  });
+  const TaskEditScreen({this.existingId, this.cloneFrom, super.key});
 
   final String? existingId;
+
+  /// Edit-mode override draft (parallels InvoiceEditScreen). Null for a normal
+  /// edit and for create (which reads the staged draft via
+  /// `Services.takeCreateDraft`).
   final Task? cloneFrom;
-
-  /// Optional project id seed. When non-null and we're in create mode,
-  /// the VM resolves the project and calls `selectProject(...)` so the
-  /// task picks up the project's clientId + (when current rate is zero)
-  /// the project's task_rate. Wired by the "Add task" affordance on
-  /// Project detail's Tasks card.
-  final String? prefillProjectId;
-
-  /// Optional client id seed (`?client=<id>`). In create mode the form opens
-  /// with this client pre-selected (Clients list ⋮ → New Task). Delivered via
-  /// query param because `extra:` is dropped on the cross-branch hop.
-  final String? prefillClientId;
 
   @override
   State<TaskEditScreen> createState() => _TaskEditScreenState();
@@ -87,15 +73,15 @@ class _TaskEditScreenState extends State<TaskEditScreen>
       fetchExisting: (ctx, services, companyId, id) =>
           services.tasks.watch(companyId: companyId, id: id).first,
       buildVm: (ctx, services, companyId, existing) {
-        // `?client=<id>` (Clients list ⋮ → New Task): synthesize a draft
-        // carrying just the clientId so the client is set from first build —
-        // mirrors ProjectEditScreen. (No invitations on tasks.)
-        Task? clone = widget.cloneFrom;
-        if (clone == null &&
-            widget.prefillClientId != null &&
-            existing == null) {
-          clone = emptyTask().copyWith(clientId: widget.prefillClientId!);
-        }
+        // Create-mode seed staged on `Services` (route extra:/query is dropped
+        // cross-branch + on screen reuse); the keyed `/new` route recreates the
+        // screen on each stage so buildVm re-reads it. `cloneFrom` is the
+        // edit-mode override.
+        final clone =
+            widget.cloneFrom ??
+            (existing == null
+                ? services.takeCreateDraft<Task>('/tasks')
+                : null);
         final vm = TaskEditViewModel(
           repo: services.tasks,
           companyId: companyId,
@@ -125,12 +111,21 @@ class _TaskEditScreenState extends State<TaskEditScreen>
         // Wrapped in postFrame so the scaffold's listeners are attached
         // before vm.selectProject's notifyListeners fires. See
         // InvoiceEditScreen for the full trace.
-        final seedId = widget.prefillProjectId;
-        if (seedId != null && seedId.isNotEmpty && existing == null) {
+        // Embedded Project → Tasks-tab "New" stages a draft with a projectId
+        // but no client; resolve the project so `selectProject` sets clientId +
+        // (when rate is zero) the project task_rate. Actions that bake the
+        // clientId skip this.
+        final seedProjectId =
+            (clone != null &&
+                clone.projectId.isNotEmpty &&
+                clone.clientId.isEmpty)
+            ? clone.projectId
+            : null;
+        if (seedProjectId != null && existing == null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             unawaited(
               services.projects
-                  .watch(companyId: companyId, id: seedId)
+                  .watch(companyId: companyId, id: seedProjectId)
                   .first
                   .then((project) {
                     if (project != null) vm.selectProject(project);
@@ -143,7 +138,9 @@ class _TaskEditScreenState extends State<TaskEditScreen>
         // with a running timer (admin-portal parity). Clones carry their own
         // entries, so skip them. Fire-and-forget, post-frame so the
         // scaffold's listeners are attached before the seed notifies.
-        if (existing == null && widget.cloneFrom == null) {
+        // Auto-start applies to any new task; `applyAutoStartIfEmpty` no-ops
+        // when the staged draft already carries time entries (a clone).
+        if (existing == null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             unawaited(
               services.company

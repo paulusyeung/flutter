@@ -82,7 +82,7 @@ class _BillingEditTotalsState extends State<BillingEditTotals> {
   /// (Re)build the currency stream only when the source id actually changes.
   void _ensureStream() {
     final services = context.read<Services>();
-    final companyId = services.auth.session.value!.currentCompanyId;
+    final companyId = services.auth.currentCompanyId ?? '';
     final vendorId = widget.vendorId ?? '';
     final clientId = widget.clientId ?? '';
     final key = vendorId.isNotEmpty ? 'v:$vendorId' : 'c:$clientId';

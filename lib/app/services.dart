@@ -593,19 +593,24 @@ class Services implements SidebarBadgeContext {
   /// branch switch can't touch — and [seedGenTick]/[seedGenFor] drive a
   /// generation-keyed `KeyedSubtree` on the `/new` route so the screen is
   /// recreated (and re-reads the seed) on every stage.
-  ({String basePath, String clientId})? _stagedSeed;
+  Object? _stagedDraft;
+  String? _stagedDraftBasePath;
   final Map<String, int> _seedGen = {};
 
-  /// Bumps whenever a client seed is staged. The `/new` route watches this so
+  /// Bumps whenever a create draft is staged. The `/new` route watches this so
   /// a stage recreates the create screen's State even when it was already
   /// mounted (go_router would otherwise reuse it and skip `buildVm`).
   final ValueNotifier<int> seedGenTick = ValueNotifier(0);
 
-  /// Stage [clientId] to pre-fill the next create screen at [basePath] (e.g.
-  /// `/invoices`). Call immediately before navigating to that create route.
-  void stageClientSeed(String basePath, String clientId) {
-    Logger('seed').warning('STAGE $basePath $clientId'); // TEMP diagnostic
-    _stagedSeed = (basePath: basePath, clientId: clientId);
+  /// Stage [draft] (a seed entity, e.g. an `Invoice`) to pre-fill the next
+  /// create screen at [basePath] (e.g. `/invoices`), bumping that route's
+  /// generation so the screen is recreated and its `buildVm` re-reads the seed.
+  /// go_router drops route `extra:`/query on the cross-branch jump and reuses
+  /// an already-mounted create screen, so the seed rides on this singleton
+  /// instead. Pass null for a blank create (still bumps, clearing a stale seed).
+  void stageCreateDraft(String basePath, Object? draft) {
+    _stagedDraft = draft;
+    _stagedDraftBasePath = draft == null ? null : basePath;
     _seedGen[basePath] = (_seedGen[basePath] ?? 0) + 1;
     seedGenTick.value++;
   }
@@ -614,15 +619,17 @@ class Services implements SidebarBadgeContext {
   /// content on this so a fresh stage forces a fresh create State.
   int seedGenFor(String basePath) => _seedGen[basePath] ?? 0;
 
-  /// One-shot read of the staged clientId for [basePath], clearing it. Returns
-  /// null when nothing is staged or it was staged for a different create route.
-  String? takeClientSeed(String basePath) {
-    final seed = _stagedSeed;
-    final result = (seed != null && seed.basePath == basePath)
-        ? seed.clientId
+  /// One-shot read of the staged draft for [basePath] as [T], clearing it.
+  /// Null when nothing is staged or it was staged for a different route / type.
+  T? takeCreateDraft<T>(String basePath) {
+    final draft = _stagedDraft;
+    final result = (_stagedDraftBasePath == basePath && draft is T)
+        ? draft
         : null;
-    Logger('seed').warning('TAKE $basePath -> $result (staged: $seed)'); // TEMP
-    if (result != null) _stagedSeed = null;
+    if (result != null) {
+      _stagedDraft = null;
+      _stagedDraftBasePath = null;
+    }
     return result;
   }
 

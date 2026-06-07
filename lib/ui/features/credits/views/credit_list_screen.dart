@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
@@ -38,8 +37,9 @@ class CreditListScreen extends StatelessWidget {
       newLabelKey: 'new_credit',
       embeddedNewOverride: cid == null
           ? null
-          : (ctx) => ctx.go(
-              '/credits/new',
+          : (ctx) => goEntityCreateFullWidth(
+              ctx,
+              '/credits',
               extra: emptyCredit().copyWith(clientId: cid),
             ),
       emptyIcon: Icons.assignment_return_outlined,

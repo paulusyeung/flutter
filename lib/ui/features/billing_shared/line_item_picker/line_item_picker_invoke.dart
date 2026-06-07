@@ -45,6 +45,7 @@ Future<void> openLineItemPicker(
     Map<String, String> expenses,
   )
   registerSourceClientIds,
+  bool showStockQuantity = false,
 }) async {
   final services = context.read<Services>();
   final excludedTaskIds = currentLineItems
@@ -66,6 +67,7 @@ Future<void> openLineItemPicker(
     excludedTaskIds: excludedTaskIds,
     excludedExpenseIds: excludedExpenseIds,
     formatter: services.formatterIfReady(companyId),
+    showStockQuantity: showStockQuantity,
   );
   if (result == null || result.lineItems.isEmpty) return;
 

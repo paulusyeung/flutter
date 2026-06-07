@@ -341,9 +341,9 @@ class CreditActions {
         // (mirrors v1's "Apply Credit" → payment-with-credits flow).
         // `/payments/new` defaults to the slide-over sidebar (see
         // `_kEditDefaultsToSlide`); do not force `?view=full` here.
-        context.go(
-          '/payments/new',
-          extra: emptyPayment().copyWith(
+        services.stageCreateDraft(
+          '/payments',
+          emptyPayment().copyWith(
             clientId: credit.clientId,
             paymentables: [
               Paymentable(
@@ -354,6 +354,7 @@ class CreditActions {
             ],
           ),
         );
+        context.go('/payments/new');
 
       case CreditAction.cloneGroup:
         break; // Submenu parent — never dispatched; children carry the action.

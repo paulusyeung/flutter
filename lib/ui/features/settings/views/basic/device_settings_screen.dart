@@ -11,7 +11,6 @@ import 'package:admin/ui/features/settings/settings_actions.dart';
 import 'package:admin/ui/features/settings/widgets/biometric_toggle_tile.dart';
 import 'package:admin/ui/features/settings/widgets/customize_colors_section.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
-import 'package:admin/ui/features/settings/widgets/segmented_setting_row.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 import 'package:admin/ui/features/settings/widgets/theme_tile.dart';
@@ -78,8 +77,8 @@ class _DeviceSettingsScreenState extends State<DeviceSettingsScreen> {
 }
 
 /// Device-local UI text-scale picker (Small / Normal / Large / Extra Large).
-/// Same responsive [SegmentedSettingRow] shape as the theme mode/palette rows,
-/// so it lines up under them in the Theme section.
+/// A compact dropdown in the trailing slot of a [ListTile], matching the
+/// leading-icon + title shape of the theme mode/palette rows above it.
 class _FontSizeRow extends StatelessWidget {
   const _FontSizeRow({required this.controller});
 
@@ -90,34 +89,40 @@ class _FontSizeRow extends StatelessWidget {
     return ValueListenableBuilder<double>(
       valueListenable: controller,
       builder: (context, scale, _) {
-        return SegmentedSettingRow(
+        return ListTile(
           leading: const Icon(Icons.format_size_outlined),
-          title: context.tr('font_size'),
-          subtitle: context.tr(textScaleLabelKey(scale)),
-          // Natural-width 4-segment button (vs the fixed-width theme rows):
-          // cap + scroll it in the trailing slot so "Extra Large" at a large
-          // text scale can't overflow the ListTile.
-          scrollableTrailing: true,
-          control: SegmentedButton<double>(
-            showSelectedIcon: false,
-            segments: [
+          title: Text(context.tr('font_size')),
+          trailing: DropdownButton<double>(
+            // Snap to the nearest preset so an off-by-epsilon stored value
+            // can't trip DropdownButton's "exactly one matching item" assert
+            // (the labels are threshold-matched for the same float-drift
+            // reason — see textScaleLabelKey).
+            value: _nearestTextScaleOption(scale),
+            isDense: true,
+            // Borderless — sits flush in the trailing slot like the rows above.
+            underline: const SizedBox.shrink(),
+            onChanged: (value) {
+              if (value != null) controller.set(value);
+            },
+            items: [
               for (final option in kTextScaleOptions)
-                ButtonSegment(
+                DropdownMenuItem(
                   value: option,
-                  // Natural width rather than the fixed-80px `segmentLabel`:
-                  // these 4 size labels don't column-align with the 3-segment
-                  // theme rows above, and "Extra Large" clips in 80px.
-                  label: Text(context.tr(textScaleLabelKey(option))),
+                  child: Text(context.tr(textScaleLabelKey(option))),
                 ),
             ],
-            selected: {scale},
-            onSelectionChanged: (s) => controller.set(s.first),
           ),
         );
       },
     );
   }
 }
+
+/// The [kTextScaleOptions] entry closest to [scale] — guards the dropdown
+/// against a stored value that isn't exactly one of the four presets.
+double _nearestTextScaleOption(double scale) => kTextScaleOptions.reduce(
+  (a, b) => (scale - a).abs() <= (scale - b).abs() ? a : b,
+);
 
 class _DataSection extends StatefulWidget {
   const _DataSection();

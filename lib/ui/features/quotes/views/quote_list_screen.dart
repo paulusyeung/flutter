@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
@@ -48,11 +47,16 @@ class QuoteListScreen extends StatelessWidget {
       newRoute: '/quotes/new',
       newLabelKey: 'new_quote',
       embeddedNewOverride: pid != null
-          ? ((ctx) => ctx.go('/quotes/new?project=$pid'))
+          ? ((ctx) => goEntityCreateFullWidth(
+              ctx,
+              '/quotes',
+              extra: emptyQuote().copyWith(projectId: pid),
+            ))
           : cid == null
           ? null
-          : (ctx) => ctx.go(
-              '/quotes/new',
+          : (ctx) => goEntityCreateFullWidth(
+              ctx,
+              '/quotes',
               extra: emptyQuote().copyWith(clientId: cid),
             ),
       emptyIcon: Icons.request_quote_outlined,

@@ -20,6 +20,7 @@ import 'package:admin/data/models/value/currency.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/billing_shared/add_unbilled/unbilled_line_items.dart';
+import 'package:admin/ui/features/billing_shared/line_item_editor/product_stock_label.dart';
 import 'package:admin/ui/features/billing_shared/line_item_picker/line_item_picker_result.dart';
 import 'package:admin/utils/formatting.dart';
 
@@ -43,6 +44,7 @@ class LineItemPickerBody extends StatefulWidget {
     required this.excludedTaskIds,
     required this.excludedExpenseIds,
     required this.formatter,
+    this.showStockQuantity = false,
     this.maxHeight,
   });
 
@@ -52,6 +54,10 @@ class LineItemPickerBody extends StatefulWidget {
   final Set<String> excludedTaskIds;
   final Set<String> excludedExpenseIds;
   final Formatter? formatter;
+
+  /// `docTypeIsInvoice` — gates the bracketed in-stock count (`[N]`) on each
+  /// product row. ANDed with the live company's `trackInventory` below.
+  final bool showStockQuantity;
 
   /// Caps the body's overall height — non-null inside a bottom sheet so the
   /// modal honors the standard 0.85·screen cap; null inside a Dialog whose
@@ -674,6 +680,8 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
           filter: _filter,
           formatter: widget.formatter,
           showProductDetails: _company?.showProductDetails ?? false,
+          showStock:
+              widget.showStockQuantity && (_company?.trackInventory ?? false),
           maxListHeight: maxListHeight,
           onToggle: (id) => setState(() {
             if (!_selProducts.add(id)) _selProducts.remove(id);
@@ -944,6 +952,7 @@ class _ProductsTab extends StatelessWidget {
     required this.filter,
     required this.formatter,
     required this.showProductDetails,
+    required this.showStock,
     required this.maxListHeight,
     required this.onToggle,
     required this.onSelectAll,
@@ -959,6 +968,10 @@ class _ProductsTab extends StatelessWidget {
   /// Company `show_product_details` — when false, the product description is
   /// hidden from each row (only the product key + price show).
   final bool showProductDetails;
+
+  /// When true, render the bracketed in-stock count (`[N]`) on each row —
+  /// already resolved to `company.trackInventory && docTypeIsInvoice`.
+  final bool showStock;
   final double maxListHeight;
   final void Function(String id) onToggle;
   final VoidCallback onSelectAll;
@@ -1003,6 +1016,8 @@ class _ProductsTab extends StatelessWidget {
                         ? p.productKey
                         : context.tr('product'),
                     right: f == null ? '' : f.money(p.price),
+                    stockQuantity: p.inStockQuantity,
+                    showStock: showStock,
                   ),
                   subtitle: (!showProductDetails || notesLine.isEmpty)
                       ? null
@@ -1256,9 +1271,19 @@ class _ExpensesTab extends StatelessWidget {
 /// are read LTR universally even in RTL UIs — matches how iOS / Material
 /// money cells behave in their own list patterns.
 class _RowTitle extends StatelessWidget {
-  const _RowTitle({required this.left, required this.right});
+  const _RowTitle({
+    required this.left,
+    required this.right,
+    this.stockQuantity,
+    this.showStock = false,
+  });
   final String left;
   final String right;
+
+  /// In-stock count rendered as `[N]` between the title and the trailing
+  /// price — products only; null / `showStock: false` on task & expense rows.
+  final Decimal? stockQuantity;
+  final bool showStock;
 
   @override
   Widget build(BuildContext context) {
@@ -1268,7 +1293,19 @@ class _RowTitle extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(left, maxLines: 1, overflow: TextOverflow.ellipsis),
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    left,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (showStock && stockQuantity != null)
+                  ProductStockLabel(quantity: stockQuantity!, show: true),
+              ],
+            ),
           ),
           const SizedBox(width: 12),
           Text(

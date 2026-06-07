@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
@@ -52,11 +51,16 @@ class ExpenseListScreen extends StatelessWidget {
       newRoute: '/expenses/new',
       newLabelKey: 'new_expense',
       embeddedNewOverride: pid != null
-          ? ((ctx) => ctx.go('/expenses/new?project=$pid'))
+          ? ((ctx) => goEntityCreateFullWidth(
+              ctx,
+              '/expenses',
+              extra: emptyExpense().copyWith(projectId: pid),
+            ))
           : (cid == null && vid == null)
           ? null
-          : (ctx) => ctx.go(
-              '/expenses/new',
+          : (ctx) => goEntityCreateFullWidth(
+              ctx,
+              '/expenses',
               extra: emptyExpense().copyWith(
                 clientId: cid ?? '',
                 vendorId: vid ?? '',

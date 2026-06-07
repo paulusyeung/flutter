@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
@@ -385,17 +384,14 @@ void goEntityCreateFullWidth(
   BuildContext context,
   String basePath, {
   Object? extra,
-  String? clientId,
 }) {
-  // Seed the client on `Services`, not the route: go_router drops `extra:`/
-  // query params on the cross-branch jump AND reuses an already-mounted create
-  // screen, so a route-carried seed never reaches `buildVm`. `stageClientSeed`
-  // also bumps the seed generation the `/new` route keys on, so the create
-  // State is recreated and the seed is read even on a reused screen.
-  if (clientId != null && clientId.isNotEmpty) {
-    context.read<Services>().stageClientSeed(basePath, clientId);
-  }
-  Logger('seed').warning('NAV $basePath/new (client=$clientId)'); // TEMP
+  // Stage the seed draft on `Services` (immune to the cross-branch jump that
+  // drops route `extra:`/query) and bump the route generation so the keyed
+  // `/new` route recreates the create screen and its `buildVm` re-reads it —
+  // go_router reuses an already-mounted create screen otherwise. `extra:` is
+  // still passed on the route for create screens not yet migrated to read the
+  // staged draft (transitional; works same-branch only).
+  context.read<Services>().stageCreateDraft(basePath, extra);
   GoRouter.of(context).go('$basePath/new?view=full', extra: extra);
 }
 

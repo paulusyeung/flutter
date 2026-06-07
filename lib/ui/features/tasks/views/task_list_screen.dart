@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
@@ -60,11 +59,16 @@ class TaskListScreen extends StatelessWidget {
       newRoute: '/tasks/new',
       newLabelKey: 'new_task',
       embeddedNewOverride: pid != null
-          ? ((ctx) => ctx.go('/tasks/new?project=$pid'))
+          ? ((ctx) => goEntityCreateFullWidth(
+              ctx,
+              '/tasks',
+              extra: emptyTask().copyWith(projectId: pid),
+            ))
           : cid == null
           ? null
-          : (ctx) => ctx.go(
-              '/tasks/new',
+          : (ctx) => goEntityCreateFullWidth(
+              ctx,
+              '/tasks',
               extra: emptyTask().copyWith(clientId: cid),
             ),
       emptyIcon: Icons.task_outlined,

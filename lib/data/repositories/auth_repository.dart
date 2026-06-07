@@ -124,6 +124,16 @@ class AuthRepository {
   StreamSubscription<List<CompanyRow>>? _companiesSub;
 
   ValueListenable<AuthSession?> get session => _session;
+
+  /// The active company id, or `null` when there is no session — e.g. during
+  /// logout teardown, after [logout] clears [session] but before the router has
+  /// swapped to `/login`. Re-entrant `build` / `didChangeDependencies` /
+  /// `didUpdateWidget` paths MUST use this instead of
+  /// `session.value!.currentCompanyId`, since they can rebuild once more on the
+  /// logout frame while still mounted. `initState`-cached reads keep
+  /// `session.value!` (they run once, pre-logout).
+  String? get currentCompanyId => _session.value?.currentCompanyId;
+
   ValueListenable<ApiCredentials?> get credentials => _credentials;
   ValueListenable<bool> get requiresBiometricUnlock => _requiresBiometricUnlock;
 

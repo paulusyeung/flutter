@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
-import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/quote.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
@@ -18,33 +17,14 @@ import 'package:admin/ui/features/quotes/widgets/edit/quote_edit_layout.dart';
 import 'package:admin/ui/features/quotes/widgets/quote_actions.dart';
 
 class QuoteEditScreen extends StatelessWidget {
-  const QuoteEditScreen({
-    this.existingId,
-    this.cloneFrom,
-    this.prefillProjectId,
-    this.prefillProductId,
-    this.prefillClientId,
-    super.key,
-  });
+  const QuoteEditScreen({this.existingId, this.cloneFrom, super.key});
 
   final String? existingId;
+
+  /// Edit-mode override draft (parallels InvoiceEditScreen). Null for a normal
+  /// edit (uses the fetched record) and for create (which reads the staged
+  /// draft via `Services.takeCreateDraft`).
   final Quote? cloneFrom;
-
-  /// Optional project id seed (`?project=<id>`). In create mode the VM
-  /// resolves the project and seeds the quote's projectId + clientId so
-  /// "New Quote" from a Project's Quotes tab opens a submittable form.
-  final String? prefillProjectId;
-
-  /// Optional product id seed (`?product=<id>`). In create mode the VM
-  /// resolves the product and appends one line item built from it. Drives
-  /// the Product kebab → "New Quote" flow. URL params survive cross-branch
-  /// nav reliably, where `extra:` payloads are not.
-  final String? prefillProductId;
-
-  /// Optional client id seed (`?client=<id>`). In create mode the form opens
-  /// with this client pre-selected (Clients list ⋮ → New Quote). Delivered via
-  /// query param because `extra:` is dropped on the cross-branch hop.
-  final String? prefillClientId;
 
   @override
   Widget build(BuildContext context) {
@@ -54,13 +34,15 @@ class QuoteEditScreen extends StatelessWidget {
       fetchExisting: (ctx, services, companyId, id) =>
           services.quotes.watch(companyId: companyId, id: id).first,
       buildVm: (ctx, services, companyId, existing) {
-        // `?client=<id>` (Clients list ⋮ → New Quote): synthesize a draft
-        // carrying just the clientId so the client is set from first build —
-        // mirrors ProjectEditScreen; the contact seed below then fires.
-        Quote? clone = cloneFrom;
-        if (clone == null && prefillClientId != null && existing == null) {
-          clone = emptyQuote().copyWith(clientId: prefillClientId!);
-        }
+        // Create-mode seed staged on `Services` (route extra:/query is dropped
+        // cross-branch + on screen reuse); the keyed `/new` route recreates the
+        // screen on each stage so buildVm re-reads it. `cloneFrom` is the
+        // edit-mode override (parallels InvoiceEditScreen).
+        final clone =
+            cloneFrom ??
+            (existing == null
+                ? services.takeCreateDraft<Quote>('/quotes')
+                : null);
         final vm = QuoteEditViewModel(
           repo: services.quotes,
           companyId: companyId,
@@ -78,21 +60,24 @@ class QuoteEditScreen extends StatelessWidget {
           sync: services.sync,
           connectivity: services.connectivity,
         );
-        // Seed project + client from `?project=<id>` on first build (create
-        // mode only). Wrapped in postFrame so listeners are attached before
-        // notifyListeners fires — see InvoiceEditScreen for the full trace.
-        final seedId = prefillProjectId;
-        if (seedId != null && seedId.isNotEmpty && existing == null) {
+        // Embedded Project → Quotes-tab "New" stages a draft with a projectId
+        // but no client; resolve the project's client so its contacts seed.
+        // Actions that bake the clientId skip this. PostFrame per the
+        // InvoiceEditScreen trace.
+        final seedProjectId =
+            (clone != null &&
+                clone.projectId.isNotEmpty &&
+                clone.clientId.isEmpty)
+            ? clone.projectId
+            : null;
+        if (seedProjectId != null && existing == null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             unawaited(
               services.projects
-                  .watch(companyId: companyId, id: seedId)
+                  .watch(companyId: companyId, id: seedProjectId)
                   .first
                   .then((project) async {
                     if (project == null) return;
-                    vm.setProjectId(project.id);
-                    // Resolve the client so its "add to invoices" contacts
-                    // seed invitations, same as picking it in the dropdown.
                     final client = await services.clients
                         .watch(companyId: companyId, id: project.clientId)
                         .first;
@@ -106,31 +91,8 @@ class QuoteEditScreen extends StatelessWidget {
             );
           });
         }
-        // Seed a line item from `?product=<id>` on first build (create
-        // mode only). See InvoiceEditScreen for the rationale — URL params
-        // are the only reliable seed channel across cross-branch nav,
-        // and postFrame deferral ensures listeners are attached before
-        // notifyListeners fires.
-        final productSeedId = prefillProductId;
-        if (productSeedId != null &&
-            productSeedId.isNotEmpty &&
-            existing == null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            unawaited(
-              services.products
-                  .watch(companyId: companyId, id: productSeedId)
-                  .first
-                  .then((product) {
-                    if (product == null) return;
-                    vm.addLineItem(lineItemForProduct(product));
-                  })
-                  .catchError((Object _) {}),
-            );
-          });
-        }
-        // Seed contact invitations when the draft arrived with a client
-        // already set (New Quote from a Client's actions or embedded list)
-        // but no invitations yet — mirrors picking the client in the dropdown.
+        // Seed contact invitations when the draft carries a client but no
+        // invitations yet — mirrors picking the client in the dropdown.
         if (existing == null) {
           seedClientInvitationsFromPrefill(
             services: services,

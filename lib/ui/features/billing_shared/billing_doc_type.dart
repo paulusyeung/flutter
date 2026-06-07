@@ -60,4 +60,10 @@ enum BillingDocType {
   /// "schedule" there silently degrades to an immediate send. The email
   /// composer hides the Schedule action when this is false.
   bool get supportsScheduledSend => this != BillingDocType.recurringInvoice;
+
+  /// In-stock quantity is shown at the product-selection point (line-item
+  /// picker + inline typeahead) only on invoices — the doc that consumes
+  /// stock. React parity (its product selector passes `displayStockQuantity`
+  /// only on `/invoices`). Other billing docs leave the count hidden.
+  bool get showsProductStock => this == BillingDocType.invoice;
 }

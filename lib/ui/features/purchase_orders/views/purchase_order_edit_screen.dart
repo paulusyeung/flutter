@@ -1,10 +1,7 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
-import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/purchase_order.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
@@ -17,21 +14,14 @@ import 'package:admin/ui/features/purchase_orders/widgets/edit/purchase_order_ed
 import 'package:admin/ui/features/purchase_orders/widgets/purchase_order_actions.dart';
 
 class PurchaseOrderEditScreen extends StatelessWidget {
-  const PurchaseOrderEditScreen({
-    this.existingId,
-    this.cloneFrom,
-    this.prefillProductId,
-    super.key,
-  });
+  const PurchaseOrderEditScreen({this.existingId, this.cloneFrom, super.key});
 
   final String? existingId;
-  final PurchaseOrder? cloneFrom;
 
-  /// Optional product id seed (`?product=<id>`). In create mode the VM
-  /// resolves the product and appends one line item built from it. Drives
-  /// the Product kebab → "New Purchase Order" flow. URL params survive
-  /// cross-branch nav reliably, where `extra:` payloads are not.
-  final String? prefillProductId;
+  /// Edit-mode override draft (parallels InvoiceEditScreen). Null for a normal
+  /// edit (uses the fetched record) and for create (which reads the staged
+  /// draft via `Services.takeCreateDraft`).
+  final PurchaseOrder? cloneFrom;
 
   @override
   Widget build(BuildContext context) {
@@ -41,12 +31,22 @@ class PurchaseOrderEditScreen extends StatelessWidget {
       fetchExisting: (ctx, services, companyId, id) =>
           services.purchaseOrders.watch(companyId: companyId, id: id).first,
       buildVm: (ctx, services, companyId, existing) {
-        final vm = PurchaseOrderEditViewModel(
+        // Create-mode seed staged on `Services` (route extra:/query is dropped
+        // cross-branch + on screen reuse); the keyed `/new` route recreates the
+        // screen on each stage so buildVm re-reads it. `cloneFrom` is the
+        // edit-mode override (parallels InvoiceEditScreen). Product → New PO
+        // bakes the line item into the staged draft.
+        final clone =
+            cloneFrom ??
+            (existing == null
+                ? services.takeCreateDraft<PurchaseOrder>('/purchase_orders')
+                : null);
+        return PurchaseOrderEditViewModel(
           repo: services.purchaseOrders,
           companyId: companyId,
           vendorRequiredMessage: ctx.tr('please_select_a_vendor'),
           existing: existing,
-          cloneFrom: cloneFrom,
+          cloneFrom: clone,
           useCommaAsDecimalPlace:
               services
                   .formatterIfReady(companyId)
@@ -56,30 +56,6 @@ class PurchaseOrderEditScreen extends StatelessWidget {
           sync: services.sync,
           connectivity: services.connectivity,
         );
-        // Seed a line item from `?product=<id>` on first build (create
-        // mode only). See InvoiceEditScreen for the rationale — URL params
-        // are the reliable seed channel across cross-branch nav, and the
-        // postFrame deferral ensures the scaffold's listeners are attached
-        // before notifyListeners fires (otherwise LineItemTableDesktop's
-        // cached `_rows` never picks up the seed).
-        final productSeedId = prefillProductId;
-        if (productSeedId != null &&
-            productSeedId.isNotEmpty &&
-            existing == null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            unawaited(
-              services.products
-                  .watch(companyId: companyId, id: productSeedId)
-                  .first
-                  .then((product) {
-                    if (product == null) return;
-                    vm.addLineItem(lineItemForProduct(product));
-                  })
-                  .catchError((Object _) {}),
-            );
-          });
-        }
-        return vm;
       },
       titleWhileLoading: (ctx) =>
           existingId == null ? ctx.tr('new_purchase_order') : ctx.tr('edit'),

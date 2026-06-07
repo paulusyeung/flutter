@@ -16,6 +16,7 @@ import 'package:admin/data/models/domain/tax_rate.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_column_config.dart';
+import 'package:admin/ui/features/billing_shared/line_item_editor/product_stock_label.dart';
 import 'package:admin/utils/formatting.dart';
 
 // Cell-level layout constants. These are sub-token (smaller than
@@ -71,6 +72,7 @@ class LineItemTableDesktop extends StatefulWidget {
     this.productConversionRate,
     this.controller,
     this.rowErrors,
+    this.showStockQuantity = false,
   });
 
   final String companyId;
@@ -90,6 +92,10 @@ class LineItemTableDesktop extends StatefulWidget {
   /// inner map keys API field names (`cost`, `quantity`, `product_key`,
   /// `notes`) to localized error messages.
   final Map<int, Map<String, String>>? rowErrors;
+
+  /// Invoice host only — show the bracketed in-stock count on product rows in
+  /// the typeahead. ANDed with the company's `trackInventory` at the cell.
+  final bool showStockQuantity;
 
   @override
   State<LineItemTableDesktop> createState() => _LineItemTableDesktopState();
@@ -465,6 +471,7 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
                         config: widget.config,
                         companyId: widget.companyId,
                         company: company,
+                        showStockQuantity: widget.showStockQuantity,
                         useComma: _useComma,
                         formatter: _formatter,
                         row: row,
@@ -797,6 +804,7 @@ class _Row extends StatefulWidget {
     required this.config,
     required this.companyId,
     required this.company,
+    required this.showStockQuantity,
     required this.useComma,
     required this.formatter,
     required this.row,
@@ -817,6 +825,7 @@ class _Row extends StatefulWidget {
   final LineItemColumnConfig config;
   final String companyId;
   final Company? company;
+  final bool showStockQuantity;
   final bool useComma;
   final Formatter? formatter;
   final _RowState row;
@@ -942,6 +951,9 @@ class _RowStateW extends State<_Row> {
                     companyId: companyId,
                     showProductDetails:
                         widget.company?.showProductDetails ?? false,
+                    showStock:
+                        widget.showStockQuantity &&
+                        (widget.company?.trackInventory ?? false),
                     controller: row.product,
                     focusNode: row.productFocus,
                     hintKey: isGhost ? 'add_an_item' : 'product',
@@ -1284,6 +1296,7 @@ class _ProductCell extends StatefulWidget {
   const _ProductCell({
     required this.companyId,
     required this.showProductDetails,
+    required this.showStock,
     required this.controller,
     required this.focusNode,
     required this.hintKey,
@@ -1297,6 +1310,10 @@ class _ProductCell extends StatefulWidget {
   /// Company `show_product_details` — when false, the product description is
   /// hidden from the autocomplete option rows (only the product key shows).
   final bool showProductDetails;
+
+  /// Resolved `company.trackInventory && docTypeIsInvoice` — show the
+  /// bracketed in-stock count on each option row.
+  final bool showStock;
   final TextEditingController controller;
   final FocusNode focusNode;
   final String hintKey;
@@ -1609,13 +1626,25 @@ class _ProductCellState extends State<_ProductCell> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text(
-                                      product.productKey,
-                                      style: TextStyle(
-                                        color: tokens.ink,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            product.productKey,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: tokens.ink,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                        ProductStockLabel(
+                                          quantity: product.inStockQuantity,
+                                          show: widget.showStock,
+                                        ),
+                                      ],
                                     ),
                                     if (widget.showProductDetails &&
                                         product.notes.isNotEmpty)

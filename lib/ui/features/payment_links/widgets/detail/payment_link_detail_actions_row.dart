@@ -16,7 +16,7 @@ class PaymentLinkDetailActionsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final services = context.read<Services>();
-    final companyId = services.auth.session.value!.currentCompanyId;
+    final companyId = services.auth.currentCompanyId ?? '';
     return EntityDetailActionsRow<PaymentLinkAction>(
       items: PaymentLinkActions.itemsFor(
         context,

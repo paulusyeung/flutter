@@ -223,7 +223,7 @@ class _Header extends StatelessWidget {
     final tokens = context.inTheme;
     final formatter = FormatterScope.maybeOf(context);
     final services = context.read<Services>();
-    final companyId = services.auth.session.value!.currentCompanyId;
+    final companyId = services.auth.currentCompanyId ?? '';
     return Container(
       padding: EdgeInsets.all(InSpacing.lg(context)),
       decoration: BoxDecoration(
@@ -326,7 +326,7 @@ class _Overview extends StatelessWidget {
   Widget build(BuildContext context) {
     final formatter = FormatterScope.maybeOf(context);
     final services = context.read<Services>();
-    final companyId = services.auth.session.value!.currentCompanyId;
+    final companyId = services.auth.currentCompanyId ?? '';
     return StreamBuilder<Client?>(
       stream: services.clients.watch(companyId: companyId, id: quote.clientId),
       builder: (context, clientSnap) {

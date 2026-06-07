@@ -768,6 +768,13 @@ void _toggleFullScreenInUrl(
 /// slide-over panel (the redirect dedup won't re-promote it). `route`
 /// carries no query, so compare against `matchedLocation`.
 void goToCreateRoute(BuildContext context, String route) {
+  // Bump the create route's seed generation (and clear any stale staged draft)
+  // so the keyed `/new` route recreates the create screen — a blank "New" even
+  // when a seeded create was left mounted (go_router would reuse it otherwise).
+  final basePath = route.endsWith('/new')
+      ? route.substring(0, route.length - '/new'.length)
+      : route;
+  context.read<Services>().stageCreateDraft(basePath, null);
   if (GoRouterState.of(context).matchedLocation == route) return;
   GoRouter.of(context).go(route);
 }

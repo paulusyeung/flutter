@@ -1,10 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/env.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/app/version.dart';
 import 'package:admin/data/repositories/auth/auth_session.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/link_text.dart';
@@ -31,13 +32,6 @@ Future<void> showAppLicensePage(BuildContext context, String version) {
 Future<void> showAppAboutDialog(BuildContext context) async {
   final services = context.read<Services>();
   final session = services.auth.session.value;
-  PackageInfo? info;
-  try {
-    info = await PackageInfo.fromPlatform();
-  } catch (_) {
-    info = null;
-  }
-  if (!context.mounted) return;
   // Capture the caller's context for the Health Check chain so the
   // re-open survives popping the About dialog (the builder's `ctx`
   // unmounts on pop).
@@ -45,7 +39,7 @@ Future<void> showAppAboutDialog(BuildContext context) async {
   await showDialog<void>(
     context: context,
     builder: (ctx) => _AboutDialog(
-      info: info,
+      serverVersion: services.serverVersion,
       userEmail: session?.userEmail,
       onShowHealthCheck: _canShowHealthCheck(session)
           ? () {
@@ -81,25 +75,25 @@ bool _canShowHealthCheck(AuthSession? s) {
 
 class _AboutDialog extends StatelessWidget {
   const _AboutDialog({
-    required this.info,
+    required this.serverVersion,
     required this.userEmail,
     required this.onShowHealthCheck,
     required this.onShowKeyboardShortcuts,
     required this.onShowDebugPanel,
   });
 
-  final PackageInfo? info;
+  final ValueListenable<String?> serverVersion;
   final String? userEmail;
   final VoidCallback? onShowHealthCheck;
   final VoidCallback onShowKeyboardShortcuts;
   final VoidCallback onShowDebugPanel;
 
-  String _versionLine() {
-    if (info == null) return '—';
-    final v = info!.version;
-    final b = info!.buildNumber;
-    return b.isEmpty ? v : '$v ($b)';
-  }
+  /// Combined `v<server>-<platformLetter><clientBuild>` label (see
+  /// [AppVersion.versionLabel]). [server] is the live `x-app-version` value.
+  String _versionLabel(String? server) => AppVersion.versionLabel(
+    serverVersion: server,
+    platformLetter: Env.platformLetter,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -121,9 +115,12 @@ class _AboutDialog extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 2),
-            Text(
-              _versionLine(),
-              style: TextStyle(fontSize: 13, color: tokens.ink3),
+            ValueListenableBuilder<String?>(
+              valueListenable: serverVersion,
+              builder: (context, server, _) => Text(
+                _versionLabel(server),
+                style: TextStyle(fontSize: 13, color: tokens.ink3),
+              ),
             ),
             if (userEmail != null && userEmail!.isNotEmpty) ...[
               SizedBox(height: InSpacing.md(context)),
@@ -137,7 +134,10 @@ class _AboutDialog extends StatelessWidget {
               label: context.tr('view_licenses'),
               style: const TextStyle(fontSize: 12),
               color: tokens.accent,
-              onTap: () => showAppLicensePage(context, _versionLine()),
+              onTap: () => showAppLicensePage(
+                context,
+                _versionLabel(serverVersion.value),
+              ),
             ),
             SizedBox(height: InSpacing.md(context)),
             Text(

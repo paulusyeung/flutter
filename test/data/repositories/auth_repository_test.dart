@@ -690,6 +690,30 @@ void main() {
     });
 
     test(
+      'currentCompanyId mirrors the session and is null once logged out',
+      () async {
+        authService.queueLogin(_envelope(defaultCompanyId: 'co_a'));
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a',
+          password: 'b',
+        );
+
+        // Live session → the convenience accessor returns the active id.
+        expect(repo.currentCompanyId, 'co_a');
+
+        await repo.logout();
+
+        // After logout `session` is null; the accessor degrades to null instead
+        // of throwing. Re-entrant `build` / `didChangeDependencies` paths that
+        // rebuild one last time on the logout frame rely on this (regression for
+        // the BillingEditTotals red-screen crash on sign-out).
+        expect(repo.currentCompanyId, isNull);
+      },
+    );
+
+    test(
       'awaits onBeforeLogout before wiping Drift so in-flight sync settles',
       () async {
         authService.queueLogin(_envelope());

@@ -100,6 +100,28 @@ class Env {
     }
   }
 
+  /// Single-letter platform code for the combined version label in the About
+  /// dialog (mirrors admin-portal's `getPlatformLetter()`): web→`C`, iOS→`I`,
+  /// android→`A`, windows→`W`, linux→`L`, macos→`M`, fuchsia→`F`. Web-safe like
+  /// [clientPlatform] (`kIsWeb` first, then `defaultTargetPlatform`).
+  static String get platformLetter {
+    if (kIsWeb) return 'C';
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.iOS:
+        return 'I';
+      case TargetPlatform.android:
+        return 'A';
+      case TargetPlatform.windows:
+        return 'W';
+      case TargetPlatform.linux:
+        return 'L';
+      case TargetPlatform.macOS:
+        return 'M';
+      case TargetPlatform.fuchsia:
+        return 'F';
+    }
+  }
+
   /// True on the three desktop platforms; never web or mobile. Single source of
   /// truth for "is this desktop" — mirrors the `fileDropSupported` check in
   /// `file_drop_zone.dart`. Web-safe (`kIsWeb` first, then `defaultTargetPlatform`).

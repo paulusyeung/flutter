@@ -37,6 +37,7 @@ class LineItemEditor extends StatelessWidget {
     this.disabledReasonKey,
     this.rowErrors,
     this.onPickItems,
+    this.showStockQuantity = false,
   });
 
   /// Company scope for the desktop table's product autocomplete +
@@ -84,6 +85,11 @@ class LineItemEditor extends StatelessWidget {
   /// the same closure). No-op on desktop; the desktop table's ghost row
   /// covers the same affordance inline.
   final VoidCallback? onPickItems;
+
+  /// Invoice host only — show the bracketed in-stock count on product rows in
+  /// the desktop typeahead. ANDed with the company's `trackInventory` at the
+  /// cell; other billing docs leave it false.
+  final bool showStockQuantity;
 
   @override
   Widget build(BuildContext context) {
@@ -164,6 +170,7 @@ class LineItemEditor extends StatelessWidget {
             productConversionRate: productConversionRate,
             controller: controller,
             rowErrors: rowErrors,
+            showStockQuantity: showStockQuantity,
           );
         }
         return LineItemCardListMobile(

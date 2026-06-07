@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
@@ -10,6 +9,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
+import 'package:admin/ui/features/clients/view_models/client_edit_view_model.dart';
 import 'package:admin/ui/features/clients/view_models/client_list_view_model.dart';
 import 'package:admin/ui/features/clients/widgets/client_actions.dart';
 import 'package:admin/ui/features/clients/widgets/client_list_column_headers.dart';
@@ -43,11 +43,15 @@ class ClientListScreen extends StatelessWidget {
       newRoute: '/clients/new',
       newLabelKey: 'new_client',
       embedded: embedded,
-      // Client's createBuilder reads `?group=` (prefillGroupId) so a new
-      // client lands pre-assigned to this group.
+      // Stage a draft pre-assigned to this group (route query is dropped on
+      // the cross-branch jump; the create screen reads the staged draft).
       embeddedNewOverride: gid == null
           ? null
-          : (ctx) => ctx.go('/clients/new?group=$gid'),
+          : (ctx) => goEntityCreateFullWidth(
+              ctx,
+              '/clients',
+              extra: emptyClient(groupSettingsId: gid),
+            ),
       // Money columns — let the scaffold wire `FormatterHostMixin` so the
       // tile renders the per-client currency cascade.
       wantsFormatter: true,

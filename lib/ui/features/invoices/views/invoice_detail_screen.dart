@@ -392,7 +392,7 @@ class _HeaderState extends State<_Header> {
 
   Future<void> _resolve() async {
     final services = context.read<Services>();
-    final companyId = services.auth.session.value!.currentCompanyId;
+    final companyId = services.auth.currentCompanyId ?? '';
     final reason = await resolveInvoiceLockReason(
       settings: services.settings,
       companyId: companyId,
@@ -409,7 +409,7 @@ class _HeaderState extends State<_Header> {
     final tokens = context.inTheme;
     final formatter = FormatterScope.maybeOf(context);
     final services = context.read<Services>();
-    final companyId = services.auth.session.value!.currentCompanyId;
+    final companyId = services.auth.currentCompanyId ?? '';
     final effectiveDue = invoice.partialDueDate ?? invoice.dueDate;
     return Container(
       padding: EdgeInsets.all(InSpacing.lg(context)),
@@ -505,7 +505,7 @@ class _Overview extends StatelessWidget {
   Widget build(BuildContext context) {
     final formatter = FormatterScope.maybeOf(context);
     final services = context.read<Services>();
-    final companyId = services.auth.session.value!.currentCompanyId;
+    final companyId = services.auth.currentCompanyId ?? '';
     return StreamBuilder<Client?>(
       stream: services.clients.watch(
         companyId: companyId,

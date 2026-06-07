@@ -2,14 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:admin/data/db/app_database.dart' show OutboxRow;
-import 'package:admin/data/models/domain/client.dart';
-import 'package:admin/data/models/domain/expense.dart';
 import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/data/models/domain/expense_category.dart';
 import 'package:admin/data/models/domain/product.dart';
-import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/recurring_expense.dart';
-import 'package:admin/data/models/domain/payment.dart';
 import 'package:admin/data/models/domain/payment_link.dart';
 import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/domain/entity_type.dart';
@@ -29,27 +25,22 @@ import 'package:admin/ui/features/gateways/views/company_gateway_detail_screen.d
 import 'package:admin/ui/features/gateways/views/company_gateway_edit_screen.dart';
 import 'package:admin/ui/features/gateways/views/company_gateway_list_screen.dart';
 import 'package:admin/data/models/domain/invoice.dart';
-import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/ui/features/invoices/views/invoice_detail_screen.dart';
 import 'package:admin/ui/features/invoices/views/invoice_edit_screen.dart';
 import 'package:admin/ui/features/invoices/views/invoice_list_screen.dart';
 import 'package:admin/ui/features/invoices/views/invoice_pdf_route_screen.dart';
-import 'package:admin/data/models/domain/quote.dart';
 import 'package:admin/ui/features/quotes/views/quote_detail_screen.dart';
 import 'package:admin/ui/features/quotes/views/quote_edit_screen.dart';
 import 'package:admin/ui/features/quotes/views/quote_list_screen.dart';
 import 'package:admin/ui/features/quotes/views/quote_pdf_route_screen.dart';
-import 'package:admin/data/models/domain/credit.dart';
 import 'package:admin/ui/features/credits/views/credit_detail_screen.dart';
 import 'package:admin/ui/features/credits/views/credit_edit_screen.dart';
 import 'package:admin/ui/features/credits/views/credit_list_screen.dart';
 import 'package:admin/ui/features/credits/views/credit_pdf_route_screen.dart';
-import 'package:admin/data/models/domain/purchase_order.dart';
 import 'package:admin/ui/features/purchase_orders/views/purchase_order_detail_screen.dart';
 import 'package:admin/ui/features/purchase_orders/views/purchase_order_edit_screen.dart';
 import 'package:admin/ui/features/purchase_orders/views/purchase_order_list_screen.dart';
 import 'package:admin/ui/features/purchase_orders/views/purchase_order_pdf_route_screen.dart';
-import 'package:admin/data/models/domain/recurring_invoice.dart';
 import 'package:admin/ui/features/recurring_invoices/views/recurring_invoice_detail_screen.dart';
 import 'package:admin/ui/features/recurring_invoices/views/recurring_invoice_edit_screen.dart';
 import 'package:admin/ui/features/recurring_invoices/views/recurring_invoice_list_screen.dart';
@@ -178,12 +169,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
     sidebarOrder: 10,
     requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
     listBuilder: (context, state) => const ClientListScreen(),
-    createBuilder: (context, state) => ClientEditScreen(
-      cloneFrom: state.extra is Client ? state.extra as Client : null,
-      // `?group=<id>` seeds the group when "New client" is launched from a
-      // group's Clients tab.
-      prefillGroupId: state.uri.queryParameters['group'],
-    ),
+    // Create-mode seed comes from `Services.takeCreateDraft('/clients')`.
+    createBuilder: (context, state) => const ClientEditScreen(),
     detailBuilder: (context, state) =>
         ClientDetailScreen(id: state.pathParameters['id']!),
     editBuilder: (context, state) =>
@@ -243,16 +230,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
         clientId: clientId == null || clientId.isEmpty ? null : clientId,
       );
     },
-    createBuilder: (context, state) => TaskEditScreen(
-      cloneFrom: state.extra is Task ? state.extra as Task : null,
-      // `?project=<id>` seeds the new task with the project (and side-
-      // effects: clientId from the project, rate from project.task_rate
-      // when rate is zero, locks the client picker). Wired by the
-      // Project detail "Add task" affordance.
-      prefillProjectId: state.uri.queryParameters['project'],
-      // `?client=<id>` seeds the client (Clients list ⋮ → New Task).
-      prefillClientId: state.uri.queryParameters['client'],
-    ),
+    // Create-mode seed comes from `Services.takeCreateDraft('/tasks')`.
+    createBuilder: (context, state) => const TaskEditScreen(),
     detailBuilder: (context, state) =>
         TaskDetailScreen(id: state.pathParameters['id']!),
     editBuilder: (context, state) =>
@@ -364,12 +343,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
         clientId: clientId == null || clientId.isEmpty ? null : clientId,
       );
     },
-    createBuilder: (context, state) => ProjectEditScreen(
-      cloneFrom: state.extra is Project ? state.extra as Project : null,
-      // `?client=<id>` seeds the picker when the user kicks off
-      // "New project" from a Client detail screen.
-      prefillClientId: state.uri.queryParameters['client'],
-    ),
+    // Create-mode seed comes from `Services.takeCreateDraft('/projects')`.
+    createBuilder: (context, state) => const ProjectEditScreen(),
     detailBuilder: (context, state) =>
         ProjectDetailScreen(id: state.pathParameters['id']!),
     editBuilder: (context, state) =>
@@ -428,11 +403,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
         clientId: clientId == null || clientId.isEmpty ? null : clientId,
       );
     },
-    createBuilder: (context, state) => PaymentEditScreen(
-      cloneFrom: state.extra is Payment ? state.extra as Payment : null,
-      // `?client=<id>` seeds the client (Clients list ⋮ → New Payment).
-      prefillClientId: state.uri.queryParameters['client'],
-    ),
+    // Create-mode seed comes from `Services.takeCreateDraft('/payments')`.
+    createBuilder: (context, state) => const PaymentEditScreen(),
     detailBuilder: (context, state) =>
         PaymentDetailScreen(id: state.pathParameters['id']!),
     editBuilder: (context, state) =>
@@ -470,14 +442,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
         vendorId: vendorId == null || vendorId.isEmpty ? null : vendorId,
       );
     },
-    createBuilder: (context, state) => ExpenseEditScreen(
-      cloneFrom: state.extra is Expense ? state.extra as Expense : null,
-      // `?project=<id>` seeds projectId + clientId (Project detail's
-      // Expenses tab "New").
-      prefillProjectId: state.uri.queryParameters['project'],
-      // `?client=<id>` seeds the client (Clients list ⋮ → New Expense).
-      prefillClientId: state.uri.queryParameters['client'],
-    ),
+    // Create-mode seed comes from `Services.takeCreateDraft('/expenses')`.
+    createBuilder: (context, state) => const ExpenseEditScreen(),
     detailBuilder: (context, state) =>
         ExpenseDetailScreen(id: state.pathParameters['id']!),
     editBuilder: (context, state) =>
@@ -512,16 +478,9 @@ final kWiredEntityModules = <EntityModuleSpec>[
         clientId: clientId == null || clientId.isEmpty ? null : clientId,
       );
     },
-    createBuilder: (context, state) => InvoiceEditScreen(
-      cloneFrom: state.extra is Invoice ? state.extra as Invoice : null,
-      // `?project=<id>` seeds projectId + clientId (Project detail's
-      // Invoices tab "New").
-      prefillProjectId: state.uri.queryParameters['project'],
-      // `?product=<id>` seeds a line item from the picked product
-      // (Product kebab → "New Invoice"). URL params survive cross-branch
-      // nav reliably — `extra:` does not, per the Bug 1 follow-up.
-      prefillProductId: state.uri.queryParameters['product'],
-    ),
+    // Create-mode seed comes from `Services.takeCreateDraft('/invoices')`
+    // (staged by the "New Invoice" sources), consumed in the screen's buildVm.
+    createBuilder: (context, state) => const InvoiceEditScreen(),
     detailBuilder: (context, state) =>
         InvoiceDetailScreen(id: state.pathParameters['id']!),
     editBuilder: (context, state) => InvoiceEditScreen(
@@ -581,17 +540,9 @@ final kWiredEntityModules = <EntityModuleSpec>[
         clientId: clientId == null || clientId.isEmpty ? null : clientId,
       );
     },
-    createBuilder: (context, state) => QuoteEditScreen(
-      cloneFrom: state.extra is Quote ? state.extra as Quote : null,
-      // `?project=<id>` seeds projectId + clientId (Project detail's
-      // Quotes tab "New").
-      prefillProjectId: state.uri.queryParameters['project'],
-      // `?product=<id>` seeds a line item from the picked product
-      // (Product kebab → "New Quote"). See InvoiceEditScreen.
-      prefillProductId: state.uri.queryParameters['product'],
-      // `?client=<id>` seeds the client (Clients list ⋮ → New Quote).
-      prefillClientId: state.uri.queryParameters['client'],
-    ),
+    // Create-mode seed comes from `Services.takeCreateDraft('/quotes')`,
+    // consumed in the screen's buildVm.
+    createBuilder: (context, state) => const QuoteEditScreen(),
     detailBuilder: (context, state) =>
         QuoteDetailScreen(id: state.pathParameters['id']!),
     editBuilder: (context, state) =>
@@ -639,11 +590,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
         clientId: clientId == null || clientId.isEmpty ? null : clientId,
       );
     },
-    createBuilder: (context, state) => CreditEditScreen(
-      cloneFrom: state.extra is Credit ? state.extra as Credit : null,
-      // `?client=<id>` seeds the client (Clients list ⋮ → New Credit).
-      prefillClientId: state.uri.queryParameters['client'],
-    ),
+    // Create-mode seed comes from `Services.takeCreateDraft('/credits')`.
+    createBuilder: (context, state) => const CreditEditScreen(),
     detailBuilder: (context, state) =>
         CreditDetailScreen(id: state.pathParameters['id']!),
     editBuilder: (context, state) =>
@@ -691,14 +639,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
         vendorId: vendorId == null || vendorId.isEmpty ? null : vendorId,
       );
     },
-    createBuilder: (context, state) => PurchaseOrderEditScreen(
-      cloneFrom: state.extra is PurchaseOrder
-          ? state.extra as PurchaseOrder
-          : null,
-      // `?product=<id>` seeds a line item from the picked product
-      // (Product kebab → "New Purchase Order"). See InvoiceEditScreen.
-      prefillProductId: state.uri.queryParameters['product'],
-    ),
+    // Create-mode seed comes from `Services.takeCreateDraft('/purchase_orders')`.
+    createBuilder: (context, state) => const PurchaseOrderEditScreen(),
     detailBuilder: (context, state) =>
         PurchaseOrderDetailScreen(id: state.pathParameters['id']!),
     editBuilder: (context, state) =>
@@ -746,13 +688,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
         clientId: clientId == null || clientId.isEmpty ? null : clientId,
       );
     },
-    createBuilder: (context, state) => RecurringInvoiceEditScreen(
-      cloneFrom: state.extra is RecurringInvoice
-          ? state.extra as RecurringInvoice
-          : null,
-      // `?client=<id>` seeds the client (Clients list ⋮ → New Recurring Invoice).
-      prefillClientId: state.uri.queryParameters['client'],
-    ),
+    // Create-mode seed: `Services.takeCreateDraft('/recurring_invoices')`.
+    createBuilder: (context, state) => const RecurringInvoiceEditScreen(),
     detailBuilder: (context, state) =>
         RecurringInvoiceDetailScreen(id: state.pathParameters['id']!),
     editBuilder: (context, state) =>

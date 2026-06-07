@@ -116,6 +116,7 @@ class _InvoiceEditLayoutState extends State<InvoiceEditLayout>
       setClientId: vm.setClientId,
       registerSourceClientIds: (tasks, expenses) =>
           vm.registerSourceClientIds(tasks: tasks, expenses: expenses),
+      showStockQuantity: BillingDocType.invoice.showsProductStock,
     );
   }
 
@@ -547,6 +548,7 @@ class _ItemsSectionDesktop extends StatelessWidget {
       config: const LineItemColumnConfig(showDiscount: true, taxColumnCount: 1),
       rowErrors: vm.lineItemRowErrors,
       onPickItems: onPickItems,
+      showStockQuantity: BillingDocType.invoice.showsProductStock,
     );
   }
 }
@@ -1212,6 +1214,7 @@ class _ItemsTab extends StatelessWidget {
               ),
               rowErrors: vm.lineItemRowErrors,
               onPickItems: onPickItems,
+              showStockQuantity: BillingDocType.invoice.showsProductStock,
             ),
           ),
           Positioned(

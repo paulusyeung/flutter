@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
@@ -42,8 +41,9 @@ class PurchaseOrderListScreen extends StatelessWidget {
       newLabelKey: 'new_purchase_order',
       embeddedNewOverride: vid == null
           ? null
-          : (ctx) => ctx.go(
-              '/purchase_orders/new',
+          : (ctx) => goEntityCreateFullWidth(
+              ctx,
+              '/purchase_orders',
               extra: emptyPurchaseOrder().copyWith(vendorId: vid),
             ),
       emptyIcon: Icons.shopping_bag_outlined,

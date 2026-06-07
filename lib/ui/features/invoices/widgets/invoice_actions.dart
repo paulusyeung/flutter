@@ -589,9 +589,9 @@ class InvoiceActions {
         // auto-sync `amount` from the paymentables.
         // `/payments/new` defaults to the slide-over sidebar (see
         // `_kEditDefaultsToSlide`); do not force `?view=full` here.
-        context.go(
-          '/payments/new',
-          extra: emptyPayment().copyWith(
+        services.stageCreateDraft(
+          '/payments',
+          emptyPayment().copyWith(
             clientId: invoice.clientId,
             paymentables: [
               Paymentable(
@@ -602,6 +602,7 @@ class InvoiceActions {
             ],
           ),
         );
+        context.go('/payments/new');
 
       case InvoiceAction.cloneGroup:
         break; // Submenu parent — never dispatched; children carry the action.

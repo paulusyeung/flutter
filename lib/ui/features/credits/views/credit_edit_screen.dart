@@ -15,20 +15,14 @@ import 'package:admin/ui/features/credits/widgets/edit/credit_edit_layout.dart';
 import 'package:admin/ui/features/credits/widgets/credit_actions.dart';
 
 class CreditEditScreen extends StatelessWidget {
-  const CreditEditScreen({
-    this.existingId,
-    this.cloneFrom,
-    this.prefillClientId,
-    super.key,
-  });
+  const CreditEditScreen({this.existingId, this.cloneFrom, super.key});
 
   final String? existingId;
-  final Credit? cloneFrom;
 
-  /// Optional client id seed (`?client=<id>`). In create mode the form opens
-  /// with this client pre-selected (Clients list ⋮ → New Credit). Delivered
-  /// via query param because `extra:` is dropped on the cross-branch hop.
-  final String? prefillClientId;
+  /// Edit-mode override draft (parallels InvoiceEditScreen). Null for a normal
+  /// edit (uses the fetched record) and for create (which reads the staged
+  /// draft via `Services.takeCreateDraft`).
+  final Credit? cloneFrom;
 
   @override
   Widget build(BuildContext context) {
@@ -38,13 +32,15 @@ class CreditEditScreen extends StatelessWidget {
       fetchExisting: (ctx, services, companyId, id) =>
           services.credits.watch(companyId: companyId, id: id).first,
       buildVm: (ctx, services, companyId, existing) {
-        // `?client=<id>` (Clients list ⋮ → New Credit): synthesize a draft
-        // carrying just the clientId so the client is set from first build —
-        // mirrors ProjectEditScreen; the contact seed below then fires.
-        Credit? clone = cloneFrom;
-        if (clone == null && prefillClientId != null && existing == null) {
-          clone = emptyCredit().copyWith(clientId: prefillClientId!);
-        }
+        // Create-mode seed staged on `Services` (route extra:/query is dropped
+        // cross-branch + on screen reuse); the keyed `/new` route recreates the
+        // screen on each stage so buildVm re-reads it. `cloneFrom` is the
+        // edit-mode override (parallels InvoiceEditScreen).
+        final clone =
+            cloneFrom ??
+            (existing == null
+                ? services.takeCreateDraft<Credit>('/credits')
+                : null);
         final vm = CreditEditViewModel(
           repo: services.credits,
           companyId: companyId,

@@ -19,25 +19,14 @@ import 'package:admin/ui/features/clients/widgets/edit/client_edit_layout.dart';
 /// fetch the existing row, how to build the VM, the title, and the form
 /// body.
 class ClientEditScreen extends StatelessWidget {
-  const ClientEditScreen({
-    this.existingId,
-    this.cloneFrom,
-    this.prefillGroupId,
-    super.key,
-  });
+  const ClientEditScreen({this.existingId, this.cloneFrom, super.key});
 
   final String? existingId;
 
-  /// When non-null and [existingId] is null, the create form opens
-  /// pre-filled with this client's fields. Identity-bearing fields (id,
-  /// number, balances, timestamps, contact ids) are stripped by the
-  /// caller before navigating.
+  /// Edit-mode override draft. Null for a normal edit and for create (which
+  /// reads the staged draft via `Services.takeCreateDraft`). A group's Clients
+  /// tab → "New client" stages a draft pre-assigned to that group.
   final Client? cloneFrom;
-
-  /// Optional group seed for the create form. Set when "New client" is
-  /// launched from a group's Clients tab (`/clients/new?group=<id>`) so the
-  /// new client lands pre-assigned to that group.
-  final String? prefillGroupId;
 
   @override
   Widget build(BuildContext context) {
@@ -50,8 +39,11 @@ class ClientEditScreen extends StatelessWidget {
         repo: services.clients,
         companyId: companyId,
         existing: existing,
-        cloneFrom: cloneFrom,
-        prefillGroupId: prefillGroupId,
+        cloneFrom:
+            cloneFrom ??
+            (existing == null
+                ? services.takeCreateDraft<Client>('/clients')
+                : null),
         sync: services.sync,
         connectivity: services.connectivity,
       ),

@@ -1293,7 +1293,10 @@ class _ScheduleButton extends StatelessWidget {
                   .toList(),
           groupBy: vm.group,
         );
-        context.go('/settings/schedules/new', extra: seed);
+        // Cross-branch (Reports → Settings) drops route `extra:`; stage the
+        // seed on `Services` so the schedule create screen reads it.
+        context.read<Services>().stageCreateDraft('/settings/schedules', seed);
+        context.go('/settings/schedules/new');
       },
     );
   }

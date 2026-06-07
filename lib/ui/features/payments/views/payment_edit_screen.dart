@@ -14,20 +14,14 @@ import 'package:admin/ui/features/payments/widgets/edit/payment_edit_layout.dart
 import 'package:admin/ui/features/payments/widgets/payment_actions.dart';
 
 class PaymentEditScreen extends StatelessWidget {
-  const PaymentEditScreen({
-    this.existingId,
-    this.cloneFrom,
-    this.prefillClientId,
-    super.key,
-  });
+  const PaymentEditScreen({this.existingId, this.cloneFrom, super.key});
 
   final String? existingId;
-  final Payment? cloneFrom;
 
-  /// Optional client id seed (`?client=<id>`). In create mode the form opens
-  /// with this client pre-selected (Clients list ⋮ → New Payment). Delivered
-  /// via query param because `extra:` is dropped on the cross-branch hop.
-  final String? prefillClientId;
+  /// Edit-mode override draft (parallels InvoiceEditScreen). Null for a normal
+  /// edit (uses the fetched record) and for create (which reads the staged
+  /// draft via `Services.takeCreateDraft`).
+  final Payment? cloneFrom;
 
   @override
   Widget build(BuildContext context) {
@@ -47,14 +41,16 @@ class PaymentEditScreen extends StatelessWidget {
         // can be translated without dragging BuildContext through the VM
         // method signatures. Safe because the scaffold owns the ctx for
         // the VM's lifetime.
-        // `?client=<id>` (Clients list ⋮ → New Payment): synthesize a draft
-        // carrying just the clientId so the client is set from first build —
-        // mirrors ProjectEditScreen. The client's invoices then load for
-        // applying the payment.
-        Payment? clone = cloneFrom;
-        if (clone == null && prefillClientId != null && existing == null) {
-          clone = emptyPayment().copyWith(clientId: prefillClientId!);
-        }
+        // Create-mode seed staged on `Services` (route extra:/query is dropped
+        // cross-branch + on screen reuse); the keyed `/new` route recreates the
+        // screen on each stage so buildVm re-reads it. `cloneFrom` is the
+        // edit-mode override. Sources (client/invoice/credit) stage a payment
+        // draft (clientId + any paymentables) before navigating.
+        final clone =
+            cloneFrom ??
+            (existing == null
+                ? services.takeCreateDraft<Payment>('/payments')
+                : null);
         return PaymentEditViewModel(
           repo: services.payments,
           companyId: companyId,

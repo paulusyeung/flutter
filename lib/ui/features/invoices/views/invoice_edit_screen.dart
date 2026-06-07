@@ -2,11 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
-import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/domain/billing/invoice_lock.dart';
 import 'package:admin/l10n/localization.dart';
@@ -26,31 +24,15 @@ import 'package:admin/ui/features/invoices/widgets/invoice_locked_dialog.dart';
 /// full tabbed layout (Details / Contacts / Items / Notes / PDF / E-Invoice)
 /// backed by [InvoiceEditViewModel]'s full setter surface.
 class InvoiceEditScreen extends StatelessWidget {
-  const InvoiceEditScreen({
-    this.existingId,
-    this.cloneFrom,
-    this.prefillProjectId,
-    this.prefillProductId,
-    super.key,
-  });
+  const InvoiceEditScreen({this.existingId, this.cloneFrom, super.key});
 
   final String? existingId;
 
-  /// When non-null and [existingId] is null, the create form opens
-  /// pre-filled with this invoice's fields. Identity-bearing fields (id,
-  /// number, timestamps, locked flag, balance) are stripped by the caller.
+  /// Edit-mode override draft: the "Add to invoice" (task / expense) flow
+  /// routes to `/invoices/:id/edit` with the chosen invoice + appended line
+  /// item as `extra` for review before saving. Null for a normal edit (uses the
+  /// fetched record) and for create (which reads the staged draft instead).
   final Invoice? cloneFrom;
-
-  /// Optional project id seed (`?project=<id>`). In create mode the VM
-  /// resolves the project and seeds the invoice's projectId + clientId so
-  /// "New Invoice" from a Project's Invoices tab opens a submittable form.
-  final String? prefillProjectId;
-
-  /// Optional product id seed (`?product=<id>`). In create mode the VM
-  /// resolves the product and appends one line item built from it. Used
-  /// by the Product kebab → "New Invoice" flow — URL params survive
-  /// cross-StatefulShellRoute-branch nav reliably, where `extra:` doesn't.
-  final String? prefillProductId;
 
   @override
   Widget build(BuildContext context) {
@@ -89,20 +71,16 @@ class InvoiceEditScreen extends StatelessWidget {
         return invoice;
       },
       buildVm: (ctx, services, companyId, existing) {
-        // "New Invoice" from a Client's actions stages the clientId on
-        // `Services` (go_router drops route `extra:`/query on the cross-branch
-        // jump from the Clients list). Consume it and synthesize a draft
-        // carrying just the clientId so the client is set from first build —
-        // the contact seed below then fires. Mirrors ProjectEditScreen.
-        final seedClientId = services.takeClientSeed('/invoices');
-        Logger('seed').warning(
-          'invoice.buildVm existing=${existing != null} '
-          'cloneFrom=${cloneFrom != null} took=$seedClientId',
-        ); // TEMP diagnostic
-        Invoice? clone = cloneFrom;
-        if (clone == null && existing == null && seedClientId != null) {
-          clone = emptyInvoice().copyWith(clientId: seedClientId);
-        }
+        // Create-mode seed: a Client / Product / Project / clone "New Invoice"
+        // stages the draft on `Services` (the route `extra:`/query channel is
+        // dropped on the cross-branch jump and on create-screen reuse). The
+        // generation-keyed `/new` route recreates this screen on each stage, so
+        // `buildVm` re-reads the staged draft here.
+        final clone =
+            cloneFrom ??
+            (existing == null
+                ? services.takeCreateDraft<Invoice>('/invoices')
+                : null);
         final vm = InvoiceEditViewModel(
           repo: services.invoices,
           companyId: companyId,
@@ -120,29 +98,27 @@ class InvoiceEditScreen extends StatelessWidget {
           sync: services.sync,
           connectivity: services.connectivity,
         );
-        // Seed project + client from `?project=<id>` on first build (create
-        // mode only). Fire-and-forget; no-op if the project isn't cached.
-        //
-        // Wrapped in addPostFrameCallback so the watch starts AFTER the
-        // scaffold's first paint has mounted the outer `ListenableBuilder`
-        // and inner `AnimatedBuilder`. Without the deferral, a fast Drift
-        // emission can land before any listener has subscribed to the vm
-        // — `notifyListeners` fires into the void, and any subwidget that
-        // caches state internally on first mount (e.g. LineItemTableDesktop's
-        // _rows) never picks up the seed. Hot-reload's reassemble() then
-        // becomes the only way to recover. See plan PR3 for the trace.
-        final seedId = prefillProjectId;
-        if (seedId != null && seedId.isNotEmpty && existing == null) {
+        // When the staged draft carries a projectId but no client (the embedded
+        // Project → Invoices-tab "New", which only knows the project id),
+        // resolve the project's client so its contacts seed — same as picking
+        // the client in the dropdown. Actions that bake the clientId skip this.
+        // Deferred via postFrame so the scaffold's listeners are attached
+        // before notifyListeners fires (else a subwidget caching state on first
+        // mount — e.g. LineItemTableDesktop's _rows — misses the seed).
+        final seedProjectId =
+            (clone != null &&
+                clone.projectId.isNotEmpty &&
+                clone.clientId.isEmpty)
+            ? clone.projectId
+            : null;
+        if (seedProjectId != null && existing == null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             unawaited(
               services.projects
-                  .watch(companyId: companyId, id: seedId)
+                  .watch(companyId: companyId, id: seedProjectId)
                   .first
                   .then((project) async {
                     if (project == null) return;
-                    vm.setProjectId(project.id);
-                    // Resolve the client so its "add to invoices" contacts
-                    // seed invitations, same as picking it in the dropdown.
                     final client = await services.clients
                         .watch(companyId: companyId, id: project.clientId)
                         .first;
@@ -156,33 +132,8 @@ class InvoiceEditScreen extends StatelessWidget {
             );
           });
         }
-        // Seed a line item from `?product=<id>` on first build (create
-        // mode only). Watches the product from Drift and appends a line
-        // item shaped like the line-item picker output once resolved.
-        // Drives the Product kebab → "New Invoice" flow — URL params
-        // survive cross-branch nav where `extra:` payloads are unreliable.
-        // Deferred via postFrame for the same reason as prefillProjectId
-        // above.
-        final productSeedId = prefillProductId;
-        if (productSeedId != null &&
-            productSeedId.isNotEmpty &&
-            existing == null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            unawaited(
-              services.products
-                  .watch(companyId: companyId, id: productSeedId)
-                  .first
-                  .then((product) {
-                    if (product == null) return;
-                    vm.addLineItem(lineItemForProduct(product));
-                  })
-                  .catchError((Object _) {}),
-            );
-          });
-        }
-        // Seed contact invitations when the draft arrived with a client
-        // already set (New Invoice from a Client's actions or embedded list)
-        // but no invitations yet — mirrors picking the client in the dropdown.
+        // Seed contact invitations when the draft carries a client but no
+        // invitations yet — mirrors picking the client in the dropdown.
         if (existing == null) {
           seedClientInvitationsFromPrefill(
             services: services,
