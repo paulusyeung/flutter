@@ -150,11 +150,15 @@ Future<void> _bootstrap() async {
   // builds — `Env.demoApiToken` is empty unless set via --dart-define.
   if (!services.auth.isAuthenticated && Env.demoApiToken.isNotEmpty) {
     try {
-      await services.auth.loginWithToken(
-        baseUrl: Env.demoApiUrl,
-        isHosted: false,
-        token: Env.demoApiToken,
-      );
+      // Time-bounded so a stalled network call can't trap boot on the loader;
+      // a throw or timeout just leaves the user unauthenticated → /login.
+      await services.auth
+          .loginWithToken(
+            baseUrl: Env.demoApiUrl,
+            isHosted: false,
+            token: Env.demoApiToken,
+          )
+          .timeout(const Duration(seconds: 15));
     } catch (e, st) {
       Logger('main').warning('Demo token bootstrap failed', e, st);
     }
@@ -167,7 +171,16 @@ Future<void> _bootstrap() async {
   // "loading". Reads from the Drift cache when fresh (≤ TTL); only the rare
   // stale/empty case pays a network round-trip.
   if (services.auth.isAuthenticated) {
-    await services.statics.ensureLoaded();
+    // Time-bounded + guarded: warming statics is a nice-to-have, never a
+    // reason to block the first frame. A slow/failed fetch just means the
+    // first screen reads statics from cache (or lazily warms later).
+    try {
+      await services.statics.ensureLoaded().timeout(
+        const Duration(seconds: 10),
+      );
+    } catch (e, st) {
+      Logger('main').warning('Statics warm failed at boot', e, st);
+    }
     mark('statics warm');
   }
 
