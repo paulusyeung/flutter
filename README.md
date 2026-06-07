@@ -1,19 +1,19 @@
 # Invoice Ninja
 
-Next-generation client app for [Invoice Ninja](https://github.com/invoiceninja/invoiceninja) —
+Next-generation client app for [Invoice Ninja](https://github.com/invoiceninja/invoiceninja):
 a ground-up rebuild of the Redux-based
 [`admin-portal`](https://github.com/invoiceninja/admin-portal) with three goals:
 
-1. **Page-by-page data loading** — never `per_page=999999`.
-2. **True offline editing** — every change lands in a local mutation outbox and syncs when back online.
-3. **No Redux** — plain `ChangeNotifier` state. No bloc, no Riverpod.
+1. **Page-by-page data loading**: never `per_page=999999`.
+2. **True offline editing**: every change lands in a local mutation outbox and syncs when back online.
+3. **No Redux**: plain `ChangeNotifier` state. No bloc, no Riverpod.
 
 Plus two non-negotiables carried over from v1: app restart restores exactly where the
 user left off (route, company, filters), and full multi-company support.
 
 #### Try it
 
-- **Live web demo:** <https://hillelcoren.github.io/admin/> — pre-authenticated against the demo server.
+- **Live web demo:** <https://hillelcoren.github.io/admin/>, pre-authenticated against the demo server.
 
 # Table of Contents
 
@@ -55,13 +55,13 @@ Don't have an Invoice Ninja backend? Test against the demo server:
 - **Password:** `Password0`
 
 To avoid retyping credentials, copy `dev.json.example` → `dev.json` and run with
-`--dart-define-from-file=dev.json` (debug/profile only — release builds tree-shake it).
+`--dart-define-from-file=dev.json` (debug/profile only; release builds tree-shake it).
 macOS entitlements, platform targets, and the web/WASM assets are documented in
 [`docs/setup.md`](docs/setup.md).
 
 ## Application architecture
 
-Layered MVVM — `ChangeNotifier` + `ListenableBuilder` only.
+Layered MVVM: `ChangeNotifier` + `ListenableBuilder` only.
 
 ```
 View (StatelessWidget)
@@ -102,12 +102,12 @@ mirror `Client`.
 
 ### Documentation
 
-- [`ARCHITECTURE.md`](ARCHITECTURE.md) — start here: the five layers, the login and
+- [`ARCHITECTURE.md`](ARCHITECTURE.md), start here: the five layers, the login and
   create-product code flows, and cross-cutting concerns.
-- [`CLAUDE.md`](CLAUDE.md) — strict rules and invariants.
-- [`FEATURES.md`](FEATURES.md) — live parity tracker (React vs Flutter v1 vs this rebuild).
-- [`BACKEND.md`](BACKEND.md) — upstream API gaps this client depends on.
-- [`docs/`](docs/) — deep dives: [adding an entity](docs/adding-an-entity.md),
+- [`CLAUDE.md`](CLAUDE.md): strict rules and invariants.
+- [`FEATURES.md`](FEATURES.md): live parity tracker (React vs Flutter v1 vs this rebuild).
+- [`BACKEND.md`](BACKEND.md): upstream API gaps this client depends on.
+- [`docs/`](docs/), deep dives: [adding an entity](docs/adding-an-entity.md),
   [settings screens](docs/settings-screens.md),
   [the offline write pipeline](docs/architecture.md),
   [probing the demo API](docs/probing-the-demo-api.md),
@@ -132,12 +132,12 @@ flutter build web --wasm    # the authoritative web compile gate
 ```
 
 Integration tests (`integration_test/`) boot the real app and **take over the
-foreground** — let CI run them; don't run them during a focused session. The
+foreground**. Let CI run them; don't run them during a focused session. The
 on-request procedure is in [`docs/integration-tests.md`](docs/integration-tests.md).
 
 ## Screenshots
 
-The images at the top are generated, not hand-captured — produced by
+The images at the top are generated, not hand-captured, produced by
 `integration_test/screenshots_test.dart`, which boots the real app (web) against the
 demo server and captures each marketing screen. This is a **local, on-demand** task
 (needs `chromedriver`):
@@ -151,7 +151,7 @@ bash tools/capture_screenshots.sh   # writes PNGs into samples/screenshots/
 - **Now:** iOS, macOS, web.
 - **Later:** Android, Windows, Linux.
 
-Web runs on drift WASM over IndexedDB (unencrypted — the browser origin sandbox is the
+Web runs on drift WASM over IndexedDB (unencrypted: the browser origin sandbox is the
 trust boundary); native iOS/macOS behavior is byte-identical. See
 [`CLAUDE.md` § Web](CLAUDE.md#web) and [`docs/setup.md`](docs/setup.md).
 

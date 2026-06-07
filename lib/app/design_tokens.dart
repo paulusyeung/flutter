@@ -12,6 +12,28 @@ import 'package:admin/app/color_hex.dart';
 const String kSansFontFamily = 'Inter Tight';
 const String kMonoFontFamily = 'JetBrains Mono';
 
+/// Canonical text style for any standalone currency/amount display: the
+/// bundled [kMonoFontFamily] (JetBrains Mono) plus tabular figures so digits
+/// align across rows. Every money `Text` goes through this — pass the per-site
+/// size/weight/color; never re-inline the family, or it silently drifts back
+/// to the sans face. Money rendered inside prose/activity spans is the one
+/// exception (it stays in the body font).
+TextStyle moneyTextStyle({
+  double? fontSize,
+  FontWeight? fontWeight,
+  Color? color,
+  double? height,
+  double? letterSpacing,
+}) => TextStyle(
+  fontFamily: kMonoFontFamily,
+  fontFeatures: const [FontFeature.tabularFigures()],
+  fontSize: fontSize,
+  fontWeight: fontWeight,
+  color: color,
+  height: height,
+  letterSpacing: letterSpacing,
+);
+
 /// Invoice Ninja v2 design tokens. The single source of truth for the
 /// visual language; the JSX equivalent lives at `docs/design/v2/tokens.jsx`.
 ///
