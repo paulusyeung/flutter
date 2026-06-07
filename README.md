@@ -15,13 +15,6 @@ user left off (route, company, filters), and full multi-company support.
 
 - **Live web demo:** <https://hillelcoren.github.io/admin/> — pre-authenticated against the demo server.
 
-<p align="center">
-    <img src="samples/screenshots/01-dashboard.png" alt="Dashboard" width="45%"/>
-    <img src="samples/screenshots/02-invoice-list.png" alt="Invoice list" width="45%"/>
-    <img src="samples/screenshots/03-invoice-view.png" alt="View invoice" width="45%"/>
-    <img src="samples/screenshots/04-invoice-edit.png" alt="Edit invoice" width="45%"/>
-</p>
-
 # Table of Contents
 
 - [Setting up the app](#setting-up-the-app)
