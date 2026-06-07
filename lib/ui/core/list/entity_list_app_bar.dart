@@ -122,6 +122,17 @@ class EntityListNormalAppBar<T> extends StatelessWidget
       automaticallyImplyLeading: false,
       title: Text(context.tr(titleKey)),
       actions: [
+        // Visible entry into multi-select on mobile. On touch there's no
+        // hover-reveal checkbox, so the only other way in is the
+        // undiscoverable row long-press; this button makes selection obvious.
+        // Hidden on an empty list (nothing to select). Tapping it enters
+        // selection mode, swapping in the selection AppBar + row checkboxes.
+        if (vm.items.isNotEmpty)
+          IconButton(
+            tooltip: context.tr('select'),
+            icon: const Icon(Icons.checklist),
+            onPressed: vm.enterSelectionMode,
+          ),
         IconButton(
           tooltip: context.tr('sort'),
           icon: const Icon(Icons.sort),
@@ -129,6 +140,7 @@ class EntityListNormalAppBar<T> extends StatelessWidget
         ),
         ...extraActions,
       ],
+
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(56),
         // The token search field carries every filter dimension; tapping it

@@ -938,6 +938,7 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   Future<void> _resetAndReload({required bool ignoreCursor}) async {
     final epoch = ++_fetchEpoch;
     _selectedIds.clear();
+    _selectionMode = false;
     loadedPages = 1;
     hasMore = true;
     isLoadingPage = true;
@@ -1136,9 +1137,27 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
 
   final Set<String> _selectedIds = <String>{};
 
-  bool get isInMultiselect => _selectedIds.isNotEmpty;
+  /// Explicit selection-mode latch. Lets the list enter multi-select with
+  /// *zero* rows selected so the checkboxes appear before the user has picked
+  /// anything — the mobile top-bar "Select" button sets this. (Desktop still
+  /// enters by clicking a hover-revealed checkbox, which selects a row
+  /// directly.) Without it `isInMultiselect` was purely `_selectedIds`-derived,
+  /// so on touch — where there's no hover-reveal — selection was only reachable
+  /// via the undiscoverable row long-press. Cleared whenever the selection
+  /// clears or the list reloads.
+  bool _selectionMode = false;
+
+  bool get isInMultiselect => _selectionMode || _selectedIds.isNotEmpty;
   int get countSelected => _selectedIds.length;
   bool isSelected(String id) => _selectedIds.contains(id);
+
+  /// Enter multi-select with nothing selected yet (the mobile "Select"
+  /// affordance). No-op when already selecting.
+  void enterSelectionMode() {
+    if (isInMultiselect) return;
+    _selectionMode = true;
+    notifyListeners();
+  }
 
   /// Snapshot of the currently-selected items, in list order. Backs
   /// selection-level bulk actions (`EntityListBulkAction.onSelection`) that
@@ -1163,8 +1182,9 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   }
 
   void clearSelection() {
-    if (_selectedIds.isEmpty) return;
+    if (_selectedIds.isEmpty && !_selectionMode) return;
     _selectedIds.clear();
+    _selectionMode = false;
     notifyListeners();
   }
 
@@ -1243,6 +1263,7 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     } finally {
       _bulkInFlight = false;
       _selectedIds.clear();
+      _selectionMode = false;
       notifyListeners();
     }
   }

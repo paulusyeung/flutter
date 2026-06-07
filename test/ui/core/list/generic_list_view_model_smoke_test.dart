@@ -181,6 +181,60 @@ void main() {
     },
   );
 
+  test('enterSelectionMode latches multiselect with nothing selected; '
+      'clearSelection exits', () async {
+    final vm = FakeInvoiceListViewModel(
+      companyId: 'co',
+      navStateDao: db.navStateDao,
+      userSettings: UserSettingsRepository(db: db),
+      searchDebounce: const Duration(milliseconds: 1),
+      persistDebounce: const Duration(milliseconds: 1),
+    );
+    await settle();
+
+    // The mobile "Select" button entry point: selection mode is on even
+    // though no row is selected yet. (Previously impossible —
+    // isInMultiselect was purely _selectedIds-derived, so the checkboxes
+    // only appeared after a long-press had already selected something.)
+    expect(vm.isInMultiselect, isFalse);
+    vm.enterSelectionMode();
+    expect(vm.isInMultiselect, isTrue);
+    expect(vm.countSelected, 0);
+
+    // Picking rows works on top of the latch.
+    vm.toggleSelected('inv_1');
+    expect(vm.countSelected, 1);
+
+    // The X / Cancel exits even though the latch is set.
+    vm.clearSelection();
+    expect(vm.isInMultiselect, isFalse);
+    expect(vm.countSelected, 0);
+
+    vm.dispose();
+  });
+
+  test('a filter reload exits an empty (latched) selection mode', () async {
+    final vm = FakeInvoiceListViewModel(
+      companyId: 'co',
+      navStateDao: db.navStateDao,
+      userSettings: UserSettingsRepository(db: db),
+      searchDebounce: const Duration(milliseconds: 1),
+      persistDebounce: const Duration(milliseconds: 1),
+    );
+    await settle();
+    vm.enterSelectionMode();
+    expect(vm.isInMultiselect, isTrue);
+
+    // Changing a filter reloads the list (_resetAndReload); the latch must
+    // not survive it, or the user lands back on the list still "selecting"
+    // with the FAB hidden and the selection AppBar stuck up.
+    await vm.setStates({EntityState.archived});
+    await settle();
+    expect(vm.isInMultiselect, isFalse);
+
+    vm.dispose();
+  });
+
   test(
     'countEligibleSelected counts only selected, loaded, eligible rows',
     () async {
