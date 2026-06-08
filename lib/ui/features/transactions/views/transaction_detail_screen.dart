@@ -5,9 +5,9 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/bank_transaction.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/generic_detail_view_model.dart';
-import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/widgets/bank_account_name_label.dart';
 import 'package:admin/ui/core/widgets/centered_form_column.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
@@ -250,25 +250,18 @@ class _ActionsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final services = context.read<Services>();
     final companyId = services.auth.session.value?.currentCompanyId ?? '';
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      mainAxisSize: MainAxisSize.max,
-      children: [
-        EntityActionsPopupButton<TransactionAction>(
-          icon: Icons.more_vert,
-          items: TransactionActions.itemsFor(
-            context,
-            transaction,
-            (action) => TransactionActions.dispatch(
-              context,
-              services,
-              companyId,
-              transaction,
-              action,
-            ),
-          ),
+    return EntityDetailActionsRow<TransactionAction>(
+      items: TransactionActions.itemsFor(
+        context,
+        transaction,
+        (action) => TransactionActions.dispatch(
+          context,
+          services,
+          companyId,
+          transaction,
+          action,
         ),
-      ],
+      ),
     );
   }
 }

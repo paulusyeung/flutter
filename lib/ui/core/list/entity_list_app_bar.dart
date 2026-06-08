@@ -236,9 +236,19 @@ class EntityListSelectionAppBar<T> extends StatelessWidget
                 const SizedBox(width: 8),
                 selectAll,
                 const SizedBox(width: 8),
-                // Same overflow cluster as the detail-screen header — right
-                // aligned, collapses into a "More" menu when constrained.
-                Expanded(child: EntityDetailActionsRow<String>(items: items)),
+                // Bulk actions have no primary Edit, so they keep the
+                // spread-inline-then-collapse-into-"More" overflow bar — the
+                // detail header now uses a dedicated Edit + ⋮ cluster instead.
+                // Right-aligned within the Expanded, matching the old layout.
+                Expanded(
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: EntityOverflowActionBar<String>(items: items),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

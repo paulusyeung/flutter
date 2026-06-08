@@ -129,18 +129,16 @@ class EntityActionItem<A> {
   }
 }
 
-/// Overflow-aware action row shared by every entity detail screen.
-///
-/// Layout: a horizontal cluster of buttons right-aligned in the AppBar's
-/// title slot; whatever doesn't fit collapses into a trailing "More"
-/// `PopupMenuButton`. Per-entity wrappers (e.g. `ClientDetailActionsRow`)
-/// only contribute the action enum and the [EntityActionItem] list.
 /// The bare overflow-aware button cluster: visible buttons left-to-right,
-/// whatever doesn't fit collapses into a trailing "More" menu. Shared by the
-/// detail-header action row ([EntityDetailActionsRow]) and the list-screen
-/// multi-select AppBar so both surfaces overflow identically. The caller owns
-/// outer sizing / alignment — this widget just lays the cluster out at its
-/// natural width.
+/// whatever doesn't fit collapses into a trailing "More" menu. Used by the
+/// edit-screen action bar (the Save button forwarded as [leading] + the
+/// edit-screen actions) and the list-screen multi-select AppBar, so both
+/// surfaces overflow identically. The caller owns outer sizing / alignment —
+/// this widget just lays the cluster out at its natural width.
+///
+/// (Entity *detail* headers instead use [EntityDetailActionsRow], which
+/// surfaces only the primary Edit and tucks every other action behind a single
+/// `⋮` menu — it does not spread buttons inline.)
 class EntityOverflowActionBar<A> extends StatelessWidget {
   const EntityOverflowActionBar({super.key, required this.items, this.leading});
 
@@ -184,6 +182,17 @@ class EntityOverflowActionBar<A> extends StatelessWidget {
   }
 }
 
+/// The detail-header action cluster shared by every entity detail screen:
+/// the primary **Edit** action as a dedicated labeled button, followed by a
+/// single `⋮` overflow menu holding every *other* action. Per-entity wrappers
+/// (e.g. `VendorDetailActionsRow`) only contribute the action enum and the
+/// [EntityActionItem] list.
+///
+/// Layout is a plain right-aligned `Row` (not an `OverflowView`) — the Edit
+/// button never collapses and the rest always live in the menu, so the cluster
+/// reads identically at every width. Degenerate cases: a soft-deleted record
+/// (no `isPrimary` item) shows just the `⋮`; a record whose only action is Edit
+/// shows just the Edit button (the `⋮` is suppressed when it would be empty).
 class EntityDetailActionsRow<A> extends StatelessWidget {
   const EntityDetailActionsRow({super.key, required this.items});
 
@@ -191,6 +200,19 @@ class EntityDetailActionsRow<A> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final visible = [
+      for (final item in items)
+        if (item.isVisible) item,
+    ];
+    final primaryIndex = visible.indexWhere((item) => item.isPrimary);
+    final primary = primaryIndex == -1 ? null : visible[primaryIndex];
+    // Everything that isn't the surfaced primary goes into the overflow menu.
+    // (When there's no primary, `primaryIndex` is -1 and every item is kept.)
+    final overflow = [
+      for (var i = 0; i < visible.length; i++)
+        if (i != primaryIndex) visible[i],
+    ];
+
     // The AppBar's title slot passes loose constraints (minWidth: 0), so the
     // title widget hugs its content by default. SizedBox(width: infinity)
     // forces it to fill the slot; Align then pushes the cluster to the
@@ -200,7 +222,15 @@ class EntityDetailActionsRow<A> extends StatelessWidget {
       width: double.infinity,
       child: Align(
         alignment: Alignment.centerRight,
-        child: EntityOverflowActionBar<A>(items: items),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (primary != null) _ActionButton<A>(item: primary),
+            if (primary != null && overflow.isNotEmpty)
+              SizedBox(width: InSpacing.md(context)),
+            if (overflow.isNotEmpty) _OverflowMenuButton<A>(items: overflow),
+          ],
+        ),
       ),
     );
   }
@@ -276,6 +306,29 @@ class _MoreMenu<A> extends StatelessWidget {
         style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
         icon: const Icon(Icons.more_horiz, size: 18),
         label: Text(context.tr('more')),
+      ),
+    );
+  }
+}
+
+/// The detail-header `⋮` overflow: an `IconButton` opening a [MenuAnchor] with
+/// every non-primary action. Used by [EntityDetailActionsRow] (the detail
+/// header is a plain `Row`, so unlike [_MoreMenu] — a child of `OverflowView`
+/// in [EntityOverflowActionBar] — this is free to use an `IconButton`/`Tooltip`).
+class _OverflowMenuButton<A> extends StatelessWidget {
+  const _OverflowMenuButton({required this.items});
+  final List<EntityActionItem<A>> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return MenuAnchor(
+      consumeOutsideTap: true,
+      menuChildren: EntityActionItem.menuChildrenFor<A>(context, items),
+      builder: (context, controller, _) => IconButton(
+        tooltip: context.tr('more'),
+        icon: const Icon(Icons.more_vert),
+        onPressed: () =>
+            controller.isOpen ? controller.close() : controller.open(),
       ),
     );
   }

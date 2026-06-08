@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/reports/view_models/reports_view_model.dart';
 import 'package:admin/ui/features/reports/widgets/reports_body.dart';
+import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// Top-level Reports page reachable from the sidebar at `/reports`.
@@ -76,10 +78,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final globalNav = Breakpoints.isGlobalNavVisible(context);
     return ChangeNotifierProvider<ReportsViewModel>.value(
       value: _vm,
       child: Scaffold(
-        appBar: AppBar(title: Text(context.tr('reports'))),
+        drawer: globalNav ? null : const AppDrawer(),
+        appBar: AppBar(
+          title: Text(context.tr('reports')),
+          leading: globalNav ? null : const DrawerHamburger(),
+          automaticallyImplyLeading: !globalNav,
+        ),
         body: ReportsBody(formatter: _formatter),
       ),
     );

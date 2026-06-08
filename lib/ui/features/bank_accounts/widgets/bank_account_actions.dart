@@ -1,0 +1,102 @@
+import 'package:flutter/material.dart';
+
+import 'package:admin/app/router.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/bank_account.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
+import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
+import 'package:admin/ui/core/detail/standard_entity_actions.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
+
+/// Action set surfaced for a bank account. Mirrors the standard minimum
+/// surface — edit / archive / restore / delete — since bank accounts (bank
+/// integrations) carry no clone or cross-entity navigation. Mirrors
+/// `ExpenseCategoryActions`.
+enum BankAccountAction { edit, archive, restore, delete }
+
+/// Single source of truth for what BankAccount actions exist and what they
+/// do. The detail header (`EntityDetailActionsRow<BankAccountAction>`)
+/// consumes this.
+class BankAccountActions {
+  BankAccountActions._();
+
+  static List<EntityActionItem<BankAccountAction>> itemsFor(
+    BuildContext context,
+    BankAccount account,
+    void Function(BankAccountAction) onTap,
+  ) {
+    final canArchive = account.archivedAt == null && !account.isDeleted;
+    final canRestore = account.archivedAt != null || account.isDeleted;
+
+    return [
+      editActionItem(
+        context: context,
+        kind: BankAccountAction.edit,
+        onTap: () => onTap(BankAccountAction.edit),
+      ),
+      ?archiveActionItem(
+        context: context,
+        kind: BankAccountAction.archive,
+        canArchive: canArchive,
+        onTap: () => onTap(BankAccountAction.archive),
+      ),
+      ?restoreActionItem(
+        context: context,
+        kind: BankAccountAction.restore,
+        canRestore: canRestore,
+        onTap: () => onTap(BankAccountAction.restore),
+      ),
+      ?deleteActionItem(
+        context: context,
+        kind: BankAccountAction.delete,
+        canDelete: !account.isDeleted,
+        onTap: () => onTap(BankAccountAction.delete),
+      ),
+    ];
+  }
+
+  static Future<void> dispatch(
+    BuildContext context,
+    Services services,
+    String companyId,
+    BankAccount account,
+    BankAccountAction action,
+  ) async {
+    switch (action) {
+      case BankAccountAction.edit:
+        goEntityEdit(context, '/settings/bank_accounts', account.id);
+      case BankAccountAction.archive:
+        await StandardEntityActions.archive(
+          context: context,
+          wireName: 'bank_account',
+          op: () => services.bankAccounts.archive(
+            companyId: companyId,
+            id: account.id,
+          ),
+        );
+      case BankAccountAction.restore:
+        await StandardEntityActions.restore(
+          context: context,
+          wireName: 'bank_account',
+          op: () => services.bankAccounts.restore(
+            companyId: companyId,
+            id: account.id,
+          ),
+        );
+      case BankAccountAction.delete:
+        if (account.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        await StandardEntityActions.delete(
+          context: context,
+          wireName: 'bank_account',
+          op: () => services.bankAccounts.delete(
+            companyId: companyId,
+            id: account.id,
+          ),
+        );
+    }
+  }
+}

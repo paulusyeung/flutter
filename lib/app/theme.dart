@@ -74,8 +74,13 @@ ThemeData buildInTheme(InTheme baseTokens, {Color? accentOverride}) {
     // Flat header app-wide: kill M3's "scrolled under" tint so an AppBar
     // never changes color when content scrolls beneath it. `surfaceTint`
     // transparent + zero scrolled-under/base elevation keeps the bar a
-    // constant, flat color. (Per-AppBar `style` can still override.)
+    // constant, flat color. `centerTitle: false` pins left-aligned titles
+    // on every platform — without it macOS/iOS center the title whenever an
+    // AppBar has fewer than 2 actions, so action-less screens (Reports,
+    // Settings, Outbox) drifted out of line with the action-bearing list
+    // screens. (Per-AppBar `style`/properties can still override.)
     appBarTheme: const AppBarTheme(
+      centerTitle: false,
       scrolledUnderElevation: 0,
       surfaceTintColor: Colors.transparent,
       elevation: 0,

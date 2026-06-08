@@ -1,19 +1,19 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
-import 'package:admin/app/mdi_icons.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/bank_account.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/detail_scroll_scope.dart';
+import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/generic_detail_view_model.dart';
 import 'package:admin/ui/features/bank_accounts/views/bank_account_list_screen.dart'
     show kBankAccountsListSearchKeys;
+import 'package:admin/ui/features/bank_accounts/widgets/bank_account_actions.dart';
 import 'package:admin/ui/features/bank_accounts/widgets/reconnect_banner.dart';
 import 'package:admin/ui/features/transactions/views/transaction_list_screen.dart';
 import 'package:admin/utils/formatting.dart';
@@ -255,19 +255,20 @@ class _ActionsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      mainAxisSize: MainAxisSize.max,
-      children: [
-        TextButton.icon(
-          style: TextButton.styleFrom(minimumSize: const Size(64, 40)),
-          icon: const Icon(MdiIcons.circleEditOutline, size: 18),
-          label: Text(context.tr('edit')),
-          onPressed: () => GoRouter.of(
-            context,
-          ).go('/settings/bank_accounts/${account.id}/edit'),
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    return EntityDetailActionsRow<BankAccountAction>(
+      items: BankAccountActions.itemsFor(
+        context,
+        account,
+        (action) => BankAccountActions.dispatch(
+          context,
+          services,
+          companyId,
+          account,
+          action,
         ),
-      ],
+      ),
     );
   }
 }
