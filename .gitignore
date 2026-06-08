@@ -55,3 +55,6 @@ dev.json
 # resolves the directory inside the working tree.
 claude-diagnostics.log
 claude-diagnostics.log.*
+
+key.properties
+key.jks
