@@ -761,6 +761,198 @@ void main() {
     });
   });
 
+  group('logout vs in-flight refresh', () {
+    // Repro for "I clicked Log out and was immediately logged back in": a
+    // /refresh (boot-time heal or the 5-min scheduler) is still in flight when
+    // the user logs out. Before the session-epoch guard, the late response ran
+    // _persistAndActivate and re-seeded tokens + credentials, bouncing the
+    // user back into the app.
+
+    ApiClient gatedClient(MockClient http) => ApiClient(
+      credentials: repo.credentials,
+      passwordCache: PasswordCache(),
+      onUnauthorized: () async {},
+      httpClient: http,
+    );
+
+    test(
+      'a logout while /refresh is in flight is not undone by the response',
+      () async {
+        authService.queueLogin(_envelope());
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a',
+          password: 'b',
+        );
+        expect(repo.isAuthenticated, isTrue);
+
+        // Park /refresh mid-flight so we can interleave a logout.
+        final refreshEntered = Completer<void>();
+        final releaseRefresh = Completer<void>();
+        repo.apiClient = gatedClient(
+          MockClient((req) async {
+            if (req.url.path == '/api/v1/refresh') {
+              if (!refreshEntered.isCompleted) refreshEntered.complete();
+              await releaseRefresh.future;
+              return http.Response(jsonEncode(_envelope().toJson()), 200);
+            }
+            return http.Response('not found', 404);
+          }),
+        );
+
+        final refreshFuture = repo.refresh();
+        await refreshEntered.future.timeout(const Duration(seconds: 2));
+
+        await repo.logout();
+        expect(repo.isAuthenticated, isFalse);
+        expect(repo.session.value, isNull);
+        expect(repo.credentials.value, isNull);
+
+        // Let the stale refresh resolve — it must NOT re-authenticate.
+        releaseRefresh.complete();
+        await refreshFuture;
+        await pumpEventQueue();
+
+        expect(
+          repo.isAuthenticated,
+          isFalse,
+          reason: 'stale /refresh must not re-authenticate after logout',
+        );
+        expect(repo.session.value, isNull);
+        expect(repo.credentials.value, isNull);
+        expect(
+          await storage.read('invoiceninja.tokens.v1'),
+          isNull,
+          reason: 'stale /refresh must not re-write tokens to secure storage',
+        );
+        expect(
+          await db.companiesDao.account(),
+          isNull,
+          reason: 'stale /refresh must not re-seed Drift after the wipe',
+        );
+      },
+    );
+
+    test(
+      'a logout during _persistAndActivate is not undone by the commit',
+      () async {
+        authService.queueLogin(_envelope());
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a',
+          password: 'b',
+        );
+
+        // /refresh returns immediately, but onApplyStatic parks execution
+        // *inside* _persistAndActivate — after the Drift transaction, before the
+        // secure-storage + credential commit — so the logout lands during the
+        // persist rather than during the network call. This exercises the
+        // commit-side guard, not just the post-network one.
+        final persistEntered = Completer<void>();
+        final releasePersist = Completer<void>();
+        repo.onApplyStatic = (_) async {
+          if (!persistEntered.isCompleted) persistEntered.complete();
+          await releasePersist.future;
+        };
+        repo.apiClient = gatedClient(
+          MockClient((req) async {
+            if (req.url.path == '/api/v1/refresh') {
+              return http.Response(jsonEncode(_envelope().toJson()), 200);
+            }
+            return http.Response('not found', 404);
+          }),
+        );
+
+        final refreshFuture = repo.refresh(fullSync: true);
+        await persistEntered.future.timeout(const Duration(seconds: 2));
+
+        await repo.logout();
+
+        releasePersist.complete();
+        await refreshFuture;
+        await pumpEventQueue();
+
+        expect(
+          repo.isAuthenticated,
+          isFalse,
+          reason:
+              'the epoch-guarded commit must not re-auth a logged-out session',
+        );
+        expect(repo.credentials.value, isNull);
+        expect(await storage.read('invoiceninja.tokens.v1'), isNull);
+        expect(await db.companiesDao.account(), isNull);
+      },
+    );
+
+    test(
+      'a re-login after logout is not clobbered by the stale refresh',
+      () async {
+        authService.queueLogin(_envelope()); // co_a / tok_a
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a',
+          password: 'b',
+        );
+
+        final refreshEntered = Completer<void>();
+        final releaseRefresh = Completer<void>();
+        repo.apiClient = gatedClient(
+          MockClient((req) async {
+            if (req.url.path == '/api/v1/refresh') {
+              if (!refreshEntered.isCompleted) refreshEntered.complete();
+              await releaseRefresh.future;
+              // The stale refresh carries the OLD session's token.
+              return http.Response(jsonEncode(_envelope().toJson()), 200);
+            }
+            return http.Response('not found', 404);
+          }),
+        );
+
+        final refreshFuture = repo.refresh();
+        await refreshEntered.future.timeout(const Duration(seconds: 2));
+
+        // Log out, then immediately log back in with a DIFFERENT token.
+        await repo.logout();
+        authService.queueLogin(
+          _envelope(
+            companies: [
+              (
+                id: 'co_a',
+                name: 'Acme',
+                token: 'tok_NEW',
+                isAdmin: false,
+                isOwner: false,
+              ),
+            ],
+          ),
+        );
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a',
+          password: 'b',
+        );
+        expect(repo.credentials.value!.token, 'tok_NEW');
+
+        // Release the stale refresh. A boolean "logging out" flag reset by the
+        // new login would let it overwrite tok_NEW with tok_a; the monotonic
+        // epoch counter leaves it permanently mismatched, so it bails.
+        releaseRefresh.complete();
+        await refreshFuture;
+        await pumpEventQueue();
+
+        expect(
+          repo.credentials.value!.token,
+          'tok_NEW',
+          reason: 'stale refresh must not clobber the new session token',
+        );
+      },
+    );
+  });
+
   group('restore', () {
     test('rebuilds session + credentials from disk on next launch', () async {
       authService.queueLogin(_envelope());

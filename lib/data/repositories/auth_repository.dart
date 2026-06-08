@@ -152,6 +152,16 @@ class AuthRepository {
   /// is the durable copy.
   Map<String, String> _tokensByCompany = const {};
 
+  /// Monotonic session epoch, bumped at the top of [logout]. A
+  /// `_refreshSession` whose `/refresh` network call was already in flight when
+  /// the user logged out captures the old value, sees the mismatch on return,
+  /// and refuses to re-activate credentials — otherwise the late response would
+  /// re-seed the session and bounce the user straight back into the app. A
+  /// counter, not a bool: a logout *followed by an immediate re-login* leaves
+  /// the stale refresh mismatched against the new session too, so it can't
+  /// clobber the new session's token.
+  int _sessionGeneration = 0;
+
   /// Hot login. Calls `/api/v1/login`, persists everything, and primes
   /// [credentials] so subsequent API calls work.
   Future<void> login({
@@ -361,6 +371,11 @@ class AuthRepository {
       fullSync: true,
     );
 
+    // A logout raced this foreground add (very unlikely, but `_refreshSession`
+    // now bails silently on a mid-flight logout instead of persisting, leaving
+    // `_session.value` null). Nothing to switch into — return rather than throw
+    // on the `!` below.
+    if (_session.value == null) return;
     // 4. Identify the new company by id-set diff. Server order isn't
     //    guaranteed across the two calls; this is the only safe way.
     final after = _session.value!.companies.map((c) => c.id).toSet();
@@ -448,6 +463,9 @@ class AuthRepository {
     if (s == null) {
       throw StateError('_refreshSession called without an active session');
     }
+    // Snapshot the session epoch so we can detect a logout (or re-login) that
+    // lands while the `/refresh` round-trip below is in flight.
+    final generation = _sessionGeneration;
 
     final activeId = preserveActiveCompanyId?.isNotEmpty == true
         ? preserveActiveCompanyId!
@@ -496,6 +514,11 @@ class AuthRepository {
       query: query,
       readOnly: true,
     );
+    // A logout (or re-login) landed while the request was in flight. The
+    // session this refresh was computed against is gone — parsing and
+    // persisting now would re-activate credentials and log the user back in.
+    // Abandon quietly.
+    if (generation != _sessionGeneration) return;
     if (raw is! Map<String, dynamic>) {
       throw StateError(
         'Unexpected /refresh response shape: ${raw.runtimeType}',
@@ -509,12 +532,19 @@ class AuthRepository {
       preserveActiveCompanyId: preserveActiveCompanyId ?? s.currentCompanyId,
       isFullSync: isFullSync,
       syncWatermarkMs: reqStartMs,
+      expectedGeneration: generation,
     );
   }
 
   /// Called by [ApiClient] when a 401 lands. Wipes everything and flips
   /// [credentials] back to null so the redirect to `/login` fires.
   Future<void> logout() async {
+    // Invalidate any refresh whose `/refresh` call is already in flight. Bump
+    // BEFORE awaiting onBeforeLogout (which can take a while draining the
+    // outbox) so a response landing during that await is rejected too — see
+    // [_sessionGeneration] and the guards in [_refreshSession] /
+    // [_persistAndActivate].
+    _sessionGeneration++;
     // Let any in-flight outbox drain settle BEFORE we wipe the DB — without
     // this, a successful send racing logout could mutate server state on
     // behalf of the user who just logged out.
@@ -808,6 +838,12 @@ class AuthRepository {
     // company's `lastSyncAt` so the next refresh asks for the delta since
     // then. Null on the login path → fall back to "now".
     int? syncWatermarkMs,
+    // Set by the [_refreshSession] (refresh) path to the session epoch captured
+    // before the network call. When it no longer matches [_sessionGeneration], a
+    // logout raced this refresh — bail without committing rather than re-activate
+    // a logged-out session. Null on the login/OAuth/signup/token paths, which
+    // create a session from scratch and must always commit.
+    int? expectedGeneration,
   }) async {
     if (response.data.isEmpty) {
       throw StateError('Login response had no companies');
@@ -872,6 +908,12 @@ class AuthRepository {
           : response.data.first.company.id;
     }
 
+    // A logout landed between the network return and here. Bail before the
+    // wipe/re-seed so we don't repopulate Drift that `logout()` just cleared.
+    if (expectedGeneration != null &&
+        expectedGeneration != _sessionGeneration) {
+      return;
+    }
     await _db.transaction(() async {
       // Full snapshot: wipe + re-seed (drops companies the account no longer
       // has). Delta: keep every existing row — the response carries only the
@@ -1121,6 +1163,16 @@ class AuthRepository {
       }
     }
 
+    // Final guard before anything observable is committed. This sits ahead of
+    // the secure-storage writes, the `_session`/`_credentials` assignments, AND
+    // the `_attachCompaniesWatcher` / `_fireActiveCompanyChanged` tail below —
+    // that tail fires `onActiveCompanyChanged`, which would otherwise restart
+    // the refresh scheduler `logout()` just stopped. If a logout slipped in
+    // during the Drift/bundle/static awaits above, stop here.
+    if (expectedGeneration != null &&
+        expectedGeneration != _sessionGeneration) {
+      return;
+    }
     await _secure.write(kAuthTokensKey, jsonEncode(tokens));
     await _secure.write(kAuthBaseUrlKey, baseUrl);
     await _secure.write(kAuthIsHostedKey, isHosted ? 'true' : 'false');
