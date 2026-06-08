@@ -1,10 +1,17 @@
 name: admin
-description: "Invoice Ninja admin client — Flutter rebuild (iOS, macOS, web)."
+description: 'Client for Invoice Ninja'
 publish_to: 'none'
 version: 5.1.1+1
 
 environment:
   sdk: ^3.11.5
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/icon.png"
+  adaptive_icon_foreground: "assets/images/icon.png"
+  adaptive_icon_background: "#000000"
 
 # Dependency versions: `flutter pub outdated` lists ~22 transitive packages with a
 # newer "Latest" (analyzer 13, xml 7, qr 4, meta / vector_math / the test family, …)
@@ -64,6 +71,7 @@ dependencies:
 dev_dependencies:
   build_runner: ^2.4.13
   drift_dev: ^2.33.0
+  flutter_launcher_icons: ^0.14.4
   flutter_lints: ^6.0.0
   flutter_native_splash: ^2.4.8
   flutter_test:
