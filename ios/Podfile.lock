@@ -1,0 +1,28 @@
+PODS:
+  - Flutter (1.0.0)
+  - printing (1.0.0):
+    - Flutter
+  - super_keyboard (0.0.1):
+    - Flutter
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - printing (from `.symlinks/plugins/printing/ios`)
+  - super_keyboard (from `.symlinks/plugins/super_keyboard/ios`)
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  printing:
+    :path: ".symlinks/plugins/printing/ios"
+  super_keyboard:
+    :path: ".symlinks/plugins/super_keyboard/ios"
+
+SPEC CHECKSUMS:
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  printing: 233e1b73bd1f4a05615548e9b5a324c98588640b
+  super_keyboard: 8e7a8c2e2499f32476103eb3be4069f2545fc92a
+
+PODFILE CHECKSUM: d71a8f9d234bf288cee64b372c30c196c8075224
+
+COCOAPODS: 1.16.2
