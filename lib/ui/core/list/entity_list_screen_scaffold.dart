@@ -798,10 +798,22 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
                       newLabelKey: widget.newLabelKey,
                       canCreate: widget.canCreate,
                       onNewPressed: widget.embeddedNewOverride,
-                      searchField: widget.searchFieldBuilder(
-                        context,
-                        _vm,
-                        searchWide,
+                      // Key by company so the search field's State (which
+                      // binds its TokenSearchController to the VM ONCE in
+                      // initState — `TokenSearchController.vm` is final) is
+                      // recreated on a company switch. Without this the same
+                      // element is reused via didUpdateWidget with the new
+                      // `_vm`, but the controller + its VM listener still
+                      // point at the old, now-disposed VM, so chips reflect
+                      // the previous workspace and chip edits no-op. Same
+                      // value-keyed-identity idiom as the row KeyedSubtree.
+                      searchField: KeyedSubtree(
+                        key: ValueKey(_companyId),
+                        child: widget.searchFieldBuilder(
+                          context,
+                          _vm,
+                          searchWide,
+                        ),
                       ),
                     ),
                   ),
@@ -862,10 +874,17 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
                       newRoute: widget.newRoute,
                       newLabelKey: widget.newLabelKey,
                       sortOptions: widget.sortOptions(context),
-                      searchField: widget.searchFieldBuilder(
-                        context,
-                        _vm,
-                        searchWide,
+                      // See the embedded-list searchField above: key by
+                      // company so the token-search State is recreated (and
+                      // its controller rebound to the new VM) on a company
+                      // switch rather than reused with a stale, disposed VM.
+                      searchField: KeyedSubtree(
+                        key: ValueKey(_companyId),
+                        child: widget.searchFieldBuilder(
+                          context,
+                          _vm,
+                          searchWide,
+                        ),
                       ),
                       extraActions:
                           widget.extraAppBarActions?.call(context, _vm, wide) ??

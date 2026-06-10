@@ -59,6 +59,27 @@ class _AccountManagementSecuritySettingsScreenState
     extends State<AccountManagementSecuritySettingsScreen> {
   bool _endingSessions = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // Pull the canonical company from GET /companies/{id} before the user can
+    // edit anything. The login envelope omits the SMTP / expense / task-
+    // invoicing / enable_applying_payments / convert_*_currency columns, so the
+    // cached row carries table defaults for them; saving a timeout dropdown
+    // PUTs draft.toApiJson() (all top-level fillable fields) and would clobber
+    // the server's real values. Mirrors the DraftStreamHost.load -> kickRefresh
+    // mount refresh every VM-backed cascade settings page already does, and
+    // system_logs_screen.dart's post-frame mount refresh. Errors are swallowed
+    // inside refresh() (logged only); the page still renders from the cache.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final services = context.read<Services>();
+      final companyId = services.auth.session.value?.currentCompanyId;
+      if (companyId == null || companyId.isEmpty) return;
+      services.company.refresh(companyId);
+    });
+  }
+
   Future<void> _onEndAllSessions() async {
     final services = context.read<Services>();
     final messenger = ScaffoldMessenger.maybeOf(context);

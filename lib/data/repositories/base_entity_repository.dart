@@ -14,6 +14,7 @@ import 'package:admin/data/db/dao/billing_extra_filters.dart'
 import 'package:admin/data/db/dao/id_remap_dao.dart';
 import 'package:admin/data/db/dao/outbox_dao.dart';
 import 'package:admin/data/db/dao/sync_state_dao.dart';
+import 'package:admin/data/services/api_exception.dart';
 
 /// Shared outbox + id-remap + cursor mechanics. Concrete repositories
 /// (`ClientRepository`, `ProductRepository`, ...) extend this with their
@@ -581,8 +582,12 @@ abstract class BaseEntityRepository<TDomain, TApi> {
   ///
   /// Safe to call from many rows / every rebuild: short-circuits when the
   /// row is already cached, coalesces concurrent calls for the same id,
-  /// skips empty / `tmp_` (local-only) ids, and negative-caches ids that
-  /// fail so a deleted/unknown reference doesn't hammer the network. This
+  /// skips empty / `tmp_` (local-only) ids, and negative-caches ids the
+  /// server reports as gone (`NotFoundException` / 404) so a deleted/unknown
+  /// reference doesn't hammer the network. A *transient* failure
+  /// (network down, 5xx, rate-limit, stale 401) is NOT negative-cached — the
+  /// id stays eligible so the next rebuild retries once connectivity
+  /// recovers, instead of showing a raw id for the rest of the session. This
   /// is a read-only hydrate — no outbox / `is_dirty` semantics.
   @protected
   Future<void> ensureLoadedTemplate<TItem, TCompanion>({
@@ -602,8 +607,15 @@ abstract class BaseEntityRepository<TDomain, TApi> {
         if (cached != null) return;
         final item = await fetch(id);
         await upsert({idOf(item): toCompanion(item)});
-      } catch (_) {
+      } on NotFoundException {
+        // Genuinely gone server-side (404) — negative-cache so a deleted /
+        // unknown reference isn't re-fetched on every rebuild this session.
         _ensureMissing.add(id);
+      } catch (_) {
+        // Transient failure (NetworkException / 5xx ServerException /
+        // RateLimitedException / stale 401): leave the id eligible so the
+        // next rebuild retries once the network recovers, rather than
+        // pinning the *NameLabel to a raw id for the rest of the session.
       } finally {
         // `remove` returns the in-flight future itself; awaiting it here
         // would deadlock, so explicitly mark it unawaited.

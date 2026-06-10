@@ -81,12 +81,14 @@ class _OverridableNumberFieldState extends State<OverridableNumberField> {
   }
 
   /// The company-global decimal-separator choice. `use_comma_as_decimal_place`
-  /// is a TOP-LEVEL company field (not a cascade setting), read off the company
-  /// draft. These numeric settings live at company scope, where `host.draft` is
-  /// the company; at client scope it's null → `false` (dot), which matches the
-  /// prior behaviour (the flag never reached the merged client view anyway).
+  /// is a TOP-LEVEL company field (not a cascade setting). Read it via
+  /// `companyContext`, not `draft`: at company scope `companyContext == draft`
+  /// (base getter), but at client/group scope `draft` is null while
+  /// `companyContext` carries the loaded company's flag. Reading `draft` here
+  /// forced `false` (dot) at client/group scope, corrupting comma-locale money
+  /// input via `parseDecimal` (`10,50` → `1050`). Mirrors `TaxRatePicker`.
   bool _useComma(SettingsDraftHost host) =>
-      host.draft?.useCommaAsDecimalPlace ?? false;
+      host.companyContext?.useCommaAsDecimalPlace ?? false;
 
   /// Empty-for-zero, no scientific notation. Mirrors `Formatter.inputAmount`
   /// without taking a dependency on the currency map.

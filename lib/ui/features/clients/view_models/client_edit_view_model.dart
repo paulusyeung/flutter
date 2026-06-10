@@ -24,6 +24,7 @@ class ClientEditViewModel extends GenericEditViewModel<Client> {
     String? prefillGroupId,
     super.sync,
     super.connectivity,
+    super.useCommaAsDecimalPlace,
   }) : super(
          initialDraft:
              cloneFrom ??
@@ -152,7 +153,11 @@ class ClientEditViewModel extends GenericEditViewModel<Client> {
   void setDefaultTaskRate(String value) {
     // `zeroIsNull` so a blank field (or a typed 0) clears the override and
     // inherits, rather than persisting a meaningless 0 task rate.
-    final parsed = parseDouble(value, zeroIsNull: true);
+    final parsed = parseDouble(
+      value,
+      zeroIsNull: true,
+      useCommaAsDecimalPlace: useCommaAsDecimalPlace,
+    );
     final next = Map<String, dynamic>.from(draft.settings ?? const {});
     if (parsed == null) {
       next.remove('default_task_rate');

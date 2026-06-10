@@ -58,11 +58,7 @@ class CertificateCard extends StatelessWidget {
       title: context.tr('upload_certificate'),
       children: [
         if (company.hasEInvoiceCertificate)
-          _CertificateRow(
-            onRemove: () => host.updateCompany(
-              (c) => c.copyWith(hasEInvoiceCertificate: false),
-            ),
-          )
+          _CertificateRow(onRemove: () => _remove(context))
         else
           FileDropZone(
             allowedExtensions: _kCertExts,
@@ -73,6 +69,23 @@ class CertificateCard extends StatelessWidget {
           isSet: company.hasEInvoiceCertificatePassphrase,
         ),
       ],
+    );
+  }
+
+  /// Enqueue a server-side certificate removal and flip the local flag so the
+  /// upload dropzone reappears immediately. A plain company PUT only carries
+  /// the read-only `has_e_invoice_certificate` flag (ignored on write); the
+  /// server removes the cert only when the request sends `e_invoice_certificate:
+  /// null`, so removal must go through the dedicated outbox path — see
+  /// [CompanyRepository.enqueueEInvoiceCertificateRemoval].
+  Future<void> _remove(BuildContext context) async {
+    final services = context.read<Services>();
+    final host = context.read<SettingsDraftHost>();
+    final companyId = host.draft?.id;
+    if (companyId == null) return;
+    host.updateCompany((c) => c.copyWith(hasEInvoiceCertificate: false));
+    await services.company.enqueueEInvoiceCertificateRemoval(
+      companyId: companyId,
     );
   }
 

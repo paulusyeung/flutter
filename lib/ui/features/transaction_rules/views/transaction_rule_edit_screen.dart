@@ -325,6 +325,8 @@ class _CriterionRow extends StatelessWidget {
     final valueLabel =
         criterion.operator == kRuleOperatorIsEmpty || criterion.value.isEmpty
         ? '—'
+        : isCredit
+        ? labelForSearchKey(criterion.value)
         : criterion.value;
     return Container(
       decoration: BoxDecoration(

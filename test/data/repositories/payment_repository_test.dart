@@ -182,24 +182,39 @@ void main() {
       expect(domain.paymentables[1].creditId, 'c_1');
     });
 
-    test('toApiJson filters paymentables with zero amount or no target id — '
-        'guards against the edit dialog persisting cleared rows (B2)', () {
-      final api = const PaymentApi(
-        id: 'p_zero',
-        paymentables: [
-          PaymentableApi(invoiceId: 'i_keep', amount: '50'),
-          PaymentableApi(invoiceId: 'i_drop_zero', amount: '0'),
-          PaymentableApi(amount: '25'), // no id
-        ],
-      );
-      final p = Payment.fromApi(api);
-      final wire = p.toApiJson();
-      final rows = wire['paymentables'] as List;
-      expect(rows, hasLength(1));
-      final only = rows.single as Map<String, dynamic>;
-      expect(only['invoice_id'], 'i_keep');
-      expect(only['amount'], '50');
-    });
+    test(
+      'toApiJson emits allocations under invoices/credits (not paymentables) '
+      'and filters zero-amount or untargeted rows (B2)',
+      () {
+        // The server applies allocations ONLY from the `invoices`/`credits`
+        // wire keys (PaymentRepository::applyPayment gates on
+        // array_key_exists('invoices'|'credits')); a `paymentables` array is
+        // ignored, leaving the invoices unpaid. toApiJson must therefore split
+        // allocations into those keys, matching the apply/refund flow.
+        final api = const PaymentApi(
+          id: 'p_zero',
+          paymentables: [
+            PaymentableApi(invoiceId: 'i_keep', amount: '50'),
+            PaymentableApi(invoiceId: 'i_drop_zero', amount: '0'),
+            PaymentableApi(creditId: 'c_keep', amount: '25'),
+            PaymentableApi(amount: '25'), // no id — dropped
+          ],
+        );
+        final p = Payment.fromApi(api);
+        final wire = p.toApiJson();
+        expect(wire.containsKey('paymentables'), isFalse);
+        final invoices = wire['invoices'] as List;
+        expect(invoices, hasLength(1));
+        final inv = invoices.single as Map<String, dynamic>;
+        expect(inv['invoice_id'], 'i_keep');
+        expect(inv['amount'], '50');
+        final credits = wire['credits'] as List;
+        expect(credits, hasLength(1));
+        final cr = credits.single as Map<String, dynamic>;
+        expect(cr['credit_id'], 'c_keep');
+        expect(cr['amount'], '25');
+      },
+    );
   });
 
   group('PaymentRepository — refund + apply enqueue', () {

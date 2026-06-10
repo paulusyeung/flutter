@@ -112,6 +112,33 @@ void main() {
     });
 
     test(
+      'round-trips client-level custom_value1..4 (read + written back to wire)',
+      () {
+        // Regression: toApiJson previously omitted the client-level
+        // custom_value1..4 keys, so edits were silently dropped on save (and
+        // the local optimistic copy blanked them too).
+        final api = ClientApi.fromJson({
+          'id': 'a',
+          'name': 'Acme',
+          'custom_value1': 'one',
+          'custom_value2': 'two',
+          'custom_value3': 'three',
+          'custom_value4': 'four',
+        });
+
+        final c = Client.fromApi(api);
+        expect(c.customValue1, 'one');
+        expect(c.customValue4, 'four');
+
+        final json = c.toApiJson();
+        expect(json['custom_value1'], 'one');
+        expect(json['custom_value2'], 'two');
+        expect(json['custom_value3'], 'three');
+        expect(json['custom_value4'], 'four');
+      },
+    );
+
+    test(
       'round-trips contact custom_value1..4 (defaults empty, written back)',
       () {
         final api = ClientApi.fromJson({

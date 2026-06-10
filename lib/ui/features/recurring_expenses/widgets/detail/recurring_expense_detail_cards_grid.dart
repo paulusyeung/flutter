@@ -9,6 +9,7 @@ import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/expense_category.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/recurring_expense.dart';
+import 'package:admin/data/models/domain/recurring_schedule_date.dart';
 import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
@@ -387,7 +388,7 @@ class _NotesBlock extends StatelessWidget {
   }
 }
 
-class _ScheduleCard extends StatelessWidget {
+class _ScheduleCard extends StatefulWidget {
   const _ScheduleCard({
     required this.recurringExpense,
     required this.formatter,
@@ -396,23 +397,36 @@ class _ScheduleCard extends StatelessWidget {
   final Formatter? formatter;
 
   @override
-  Widget build(BuildContext context) {
-    final e = recurringExpense;
-    final f = formatter;
-    String renderDate(Date? value) {
-      if (value == null) return '—';
-      return f == null ? value.toIso() : f.date(value.toIso());
-    }
+  State<_ScheduleCard> createState() => _ScheduleCardState();
+}
 
+class _ScheduleCardState extends State<_ScheduleCard> {
+  late final Future<List<RecurringScheduleDate>> _upcoming;
+
+  @override
+  void initState() {
+    super.initState();
+    // The server-computed upcoming send dates (`recurring_dates`) are read-only
+    // and deliberately NOT persisted to Drift, so the synced entity's
+    // `recurringDates` is always empty here. Fetch them on demand via
+    // `?show_dates=true`, mirroring the recurring-invoice Schedule tab.
+    _upcoming = context.read<Services>().recurringExpenses.api.fetchSchedule(
+      id: widget.recurringExpense.id,
+    );
+  }
+
+  String _renderDate(Date? value) {
+    if (value == null) return '—';
+    final f = widget.formatter;
+    return f == null ? value.toIso() : f.date(value.toIso());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final e = widget.recurringExpense;
     final cyclesLabel = e.remainingCycles == -1
         ? context.tr('endless')
         : '${e.remainingCycles}';
-
-    final upcoming = e.recurringDates
-        .where((r) => r.sendDate != null)
-        .take(3)
-        .map((r) => renderDate(r.sendDate))
-        .toList(growable: false);
 
     return DashboardCardShell(
       title: context.tr('schedule'),
@@ -421,14 +435,24 @@ class _ScheduleCard extends StatelessWidget {
           if (e.lastSentDate != null)
             _Row(
               label: context.tr('last_sent_date'),
-              value: Text(renderDate(e.lastSentDate)),
+              value: Text(_renderDate(e.lastSentDate)),
             ),
           _Row(label: context.tr('remaining_cycles'), value: Text(cyclesLabel)),
-          if (upcoming.isNotEmpty)
-            _Row(
-              label: context.tr('upcoming'),
-              value: Text(upcoming.join(', ')),
-            ),
+          FutureBuilder<List<RecurringScheduleDate>>(
+            future: _upcoming,
+            builder: (context, snap) {
+              final upcoming = (snap.data ?? const <RecurringScheduleDate>[])
+                  .where((r) => r.sendDate != null)
+                  .take(3)
+                  .map((r) => _renderDate(r.sendDate))
+                  .toList(growable: false);
+              if (upcoming.isEmpty) return const SizedBox.shrink();
+              return _Row(
+                label: context.tr('upcoming'),
+                value: Text(upcoming.join(', ')),
+              );
+            },
+          ),
         ],
       ),
     );

@@ -9,6 +9,7 @@ import 'package:admin/data/models/value/parsing.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/vendor_repository.dart';
+import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/vendors_api.dart';
 
 import '_base_entity_repository_contract.dart';
@@ -311,7 +312,57 @@ void main() {
       await repo.ensureLoaded(companyId: 'co', id: 'gone');
       expect(api.getCalls, 1);
     });
+
+    test(
+      'transient failure is NOT negative-cached — retried next call',
+      () async {
+        // A NetworkException (offline / 5xx / rate-limit) must leave the id
+        // eligible so the label resolves once connectivity recovers, instead of
+        // pinning the *NameLabel to a raw id for the whole session.
+        final api = _FlakyVendorsApi(
+          VendorApi(id: 'v1', name: 'Acme', updatedAt: 1700000000),
+          failFirst: true,
+        );
+        final repo = VendorRepository(db: db, api: api);
+        await repo.ensureLoaded(companyId: 'co', id: 'v1'); // transient throw
+        expect(api.getCalls, 1);
+        expect((await repo.watch(companyId: 'co', id: 'v1').first), isNull);
+        await repo.ensureLoaded(companyId: 'co', id: 'v1'); // retried, succeeds
+        expect(
+          api.getCalls,
+          2,
+          reason: 'transient failure must not negative-cache',
+        );
+        expect(
+          (await repo.watch(companyId: 'co', id: 'v1').first)?.name,
+          'Acme',
+        );
+      },
+    );
   });
+}
+
+/// Serves a single vendor but throws a *transient* `NetworkException` on the
+/// first call, succeeding thereafter — exercises the retry-after-transient
+/// path of `ensureLoadedTemplate`.
+class _FlakyVendorsApi implements VendorsApi {
+  _FlakyVendorsApi(this._vendor, {required this.failFirst});
+
+  final VendorApi _vendor;
+  final bool failFirst;
+  int getCalls = 0;
+
+  @override
+  Future<VendorItemApi> get(String id) async {
+    getCalls++;
+    if (failFirst && getCalls == 1) {
+      throw const NetworkException('connection failed');
+    }
+    return VendorItemApi(data: _vendor);
+  }
+
+  @override
+  Object? noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
 
 class _FakeVendorsApi implements VendorsApi {
@@ -331,7 +382,7 @@ class _GetVendorsApi implements VendorsApi {
   Future<VendorItemApi> get(String id) async {
     getCalls++;
     final v = _byId[id];
-    if (v == null) throw Exception('404 — vendor $id not found');
+    if (v == null) throw const NotFoundException('404 — vendor not found');
     return VendorItemApi(data: v);
   }
 

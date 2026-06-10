@@ -1,6 +1,7 @@
 import 'package:admin/data/services/upload_source.dart';
 
 import 'package:admin/data/models/api/recurring_expense_api_model.dart';
+import 'package:admin/data/models/domain/recurring_schedule_date.dart';
 import 'package:admin/data/services/base_entity_api.dart';
 
 /// Concrete API for `/api/v1/recurring_expenses`. Mirrors `ExpensesApi`,
@@ -38,6 +39,33 @@ class RecurringExpensesApi
       query: const {'show_dates': 'true'},
     );
     return parseItem(raw as Object);
+  }
+
+  /// The server-computed upcoming send dates for a saved recurring expense:
+  /// `GET /api/v1/recurring_expenses/{id}?show_dates=true`. The transformer
+  /// leaves `recurring_dates` empty unless `show_dates=true`. Read-only /
+  /// on-demand — `recurring_dates` is intentionally NOT persisted to Drift
+  /// (see `RecurringExpenseRepository`), so the detail Schedule card fetches
+  /// it here rather than reading the (always-empty) synced entity field.
+  /// Mirrors `RecurringInvoicesApi.fetchSchedule`. Expenses carry only
+  /// `send_date` (no due date). Returns `[]` for an unsaved id.
+  Future<List<RecurringScheduleDate>> fetchSchedule({
+    required String id,
+  }) async {
+    if (id.isEmpty || id.startsWith('tmp_')) return const [];
+    final raw = await client.getOneWithQuery(
+      '$basePath/$id',
+      query: const {'show_dates': 'true'},
+    );
+    if (raw is! Map) return const [];
+    final data = raw['data'];
+    if (data is! Map) return const [];
+    final dates = data['recurring_dates'];
+    if (dates is! List) return const [];
+    return dates
+        .whereType<Map<String, dynamic>>()
+        .map(RecurringScheduleDate.fromJson)
+        .toList(growable: false);
   }
 
   @override

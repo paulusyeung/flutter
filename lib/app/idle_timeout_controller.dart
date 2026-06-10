@@ -53,7 +53,15 @@ class IdleTimeoutController with WidgetsBindingObserver {
     _watchedCompanyId = id;
     _companySub?.cancel();
     _companySub = company.watchCompany(id).listen((c) {
-      _timeoutMs = c?.sessionTimeout ?? 0;
+      final next = c?.sessionTimeout ?? 0;
+      // Drift table-watches re-emit the company row on every write, including
+      // the periodic /refresh that only bumps `last_sync_at` (every 5 min —
+      // far below the 30-min minimum timeout). Re-arming on those no-op
+      // emissions would reset the inactivity clock each refresh and the
+      // timeout would never fire. Only re-arm when the configured timeout
+      // actually changes (mirrors the `id == _watchedCompanyId` dedup above).
+      if (next == _timeoutMs && _ticker != null) return;
+      _timeoutMs = next;
       _rearm();
     });
   }

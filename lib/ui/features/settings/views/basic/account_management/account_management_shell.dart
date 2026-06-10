@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/views/basic/account_management/danger_zone_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/account_management/enabled_modules_screen.dart';
@@ -60,6 +62,8 @@ class _AccountManagementShellState extends State<AccountManagementShell>
   ];
 
   late final TabController _controller;
+  late final Services _services;
+  String _scopedCompanyId = '';
 
   @override
   void initState() {
@@ -70,13 +74,47 @@ class _AccountManagementShellState extends State<AccountManagementShell>
       initialIndex: _indexForSlug(widget.initialTab),
     );
     _controller.addListener(_onTabSettled);
+    // The Overview / Security / Enabled-Modules / Integrations tabs save the
+    // WHOLE company via `services.company.updateCompany` (no SettingsDraftViewModel
+    // and so no `kickRefresh`). After a full sync the login envelope omits the
+    // SMTP/expense/task/payment-conversion columns, so the cached row holds Drift
+    // defaults; PUTting that draft would clobber the server's real values. Pull
+    // the canonical company on mount (GET /companies/{id} -> applyUpdateResponse)
+    // before the user can toggle anything, mirroring DraftStreamHost.load()'s
+    // `kickRefresh()` and system_logs_screen's refresh-on-mount.
+    _services = context.read<Services>();
+    _scopedCompanyId = _services.auth.session.value?.currentCompanyId ?? '';
+    _services.auth.session.addListener(_onSession);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshCompany());
   }
 
   @override
   void dispose() {
+    _services.auth.session.removeListener(_onSession);
     _controller.removeListener(_onTabSettled);
     _controller.dispose();
     super.dispose();
+  }
+
+  // Re-pull the canonical company when the user switches company while this
+  // shell stays mounted. The session notifier also fires on unrelated
+  // companies-table writes, so guard on the id to make those no-ops (same
+  // pattern as system_logs_screen._onSession).
+  void _onSession() {
+    if (!mounted) return;
+    final id = _services.auth.session.value?.currentCompanyId ?? '';
+    if (id == _scopedCompanyId) return;
+    _scopedCompanyId = id;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshCompany());
+  }
+
+  void _refreshCompany() {
+    if (!mounted) return;
+    final companyId = _services.auth.session.value?.currentCompanyId ?? '';
+    if (companyId.isEmpty) return;
+    // Fire-and-forget; errors are swallowed inside CompanyRepository.refresh
+    // (the tabs still render from the cached row when offline).
+    _services.company.refresh(companyId);
   }
 
   void _onTabSettled() {

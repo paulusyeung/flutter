@@ -8,6 +8,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/bank_account_api_model.dart';
 import 'package:admin/data/models/domain/bank_account.dart';
 import 'package:admin/data/repositories/bank_account_repository.dart';
+import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/bank_accounts_api.dart';
 import 'package:admin/domain/sync/mutation.dart';
 
@@ -301,7 +302,8 @@ class _GetBankAccountsApi implements BankAccountsApi {
   Future<BankAccountItemApi> get(String id) async {
     getCalls++;
     final a = _byId[id];
-    if (a == null) throw Exception('404 — bank account $id not found');
+    if (a == null)
+      throw const NotFoundException('404 — bank account not found');
     return BankAccountItemApi(data: a);
   }
 

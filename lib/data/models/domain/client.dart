@@ -253,6 +253,10 @@ extension ClientPayload on Client {
       'is_tax_exempt': isTaxExempt,
       'has_valid_vat_number': hasValidVatNumber,
       'routing_id': routingId,
+      'custom_value1': customValue1,
+      'custom_value2': customValue2,
+      'custom_value3': customValue3,
+      'custom_value4': customValue4,
       // Read-only server fields — echoed only for the local payload round-trip
       // (server `fill()` ignores non-fillable keys, same as `client_hash`).
       if (userId.isNotEmpty) 'user_id': userId,

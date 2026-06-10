@@ -284,13 +284,20 @@ class ProjectActions {
         final expenses = await services.expenses
             .watchForProject(companyId: companyId, projectId: project.id)
             .first;
-        // Load the company so a task at rate 0 inherits project.taskRate →
+        // Load the company and client so a task at rate 0 inherits the full
+        // cascade: project.taskRate → client.settings.default_task_rate →
         // company.settings.default_task_rate instead of invoicing at $0.
         final company = await services.company.get(companyId);
+        final client = project.clientId.isEmpty
+            ? null
+            : await services.clients
+                  .watchByRealId(companyId: companyId, id: project.clientId)
+                  .first;
         final lineItems = projectInvoiceLineItems(
           tasks: tasks,
           expenses: expenses,
           project: project,
+          client: client,
           company: company,
         );
         if (!context.mounted) return;
@@ -351,10 +358,19 @@ class ProjectActions {
       Notify.error(context, context.tr('multiple_client_error'));
       return;
     }
-    // Load the company once so a task at rate 0 inherits project.taskRate →
-    // company.settings.default_task_rate instead of invoicing at $0 — the same
-    // cascade the single-project `invoiceProject` path applies.
+    // Load the company and the (single) client once so a task at rate 0
+    // inherits the full cascade: project.taskRate →
+    // client.settings.default_task_rate → company.settings.default_task_rate
+    // instead of invoicing at $0 — the same cascade the single-project
+    // `invoiceProject` path applies. The single-client constraint above means
+    // one client load covers every selected project.
     final company = await services.company.get(companyId);
+    final clientId = clientIds.isEmpty ? '' : clientIds.first;
+    final client = clientId.isEmpty
+        ? null
+        : await services.clients
+              .watchByRealId(companyId: companyId, id: clientId)
+              .first;
     final lineItems = [
       for (final p in usable)
         ...projectInvoiceLineItems(
@@ -365,6 +381,7 @@ class ProjectActions {
               .watchForProject(companyId: companyId, projectId: p.id)
               .first,
           project: p,
+          client: client,
           company: company,
         ),
     ];

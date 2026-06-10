@@ -737,6 +737,11 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
       if (_fetchEpoch != epoch) return;
       loadedPages += 1;
       hasMore = more;
+      // Re-subscribe so the Drift watch widens its `LIMIT` to the new
+      // `pageSize * loadedPages` window. watchPage() captures `loadedPages`
+      // at subscription time, so without this the newly-fetched rows land in
+      // Drift but never reach the UI (the stream keeps emitting only page 1).
+      _resubscribe();
     } catch (e) {
       if (_fetchEpoch != epoch) return;
       _flashError("Couldn't load more: $e");

@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:admin/data/models/api/design_api_model.dart'
+    show DesignTemplateApi;
 import 'package:admin/data/models/domain/design.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/design_repository.dart';
@@ -236,25 +238,26 @@ class DesignEditViewModel extends GenericEditViewModel<Design> {
     final tmplSrc = designBlock is Map
         ? designBlock.cast<String, dynamic>()
         : map.cast<String, dynamic>();
-    String s(String k) => (tmplSrc[k] ?? '').toString();
     final entitiesRaw = map['entities'];
     final entities = entitiesRaw is List
         ? entitiesRaw.map((e) => e.toString()).toList()
         : entitiesRaw is String
         ? entitiesRaw.split(',').where((e) => e.isNotEmpty).toList()
         : <String>[];
+    final DesignTemplate template;
+    try {
+      // Deserialize through the API model (as the WYSIWYG VM does) so the
+      // visual-builder `blocks` + `documentSettings` survive a JSON
+      // round-trip — not just the six HTML string sections.
+      template = DesignTemplate.fromApi(DesignTemplateApi.fromJson(tmplSrc));
+    } catch (_) {
+      return 'invalid_json';
+    }
     updateDraft(
       draft.copyWith(
         name: (map['name'] ?? draft.name).toString(),
         entities: entities.isEmpty ? draft.entities : entities,
-        template: DesignTemplate(
-          body: s('body'),
-          header: s('header'),
-          footer: s('footer'),
-          includes: s('includes'),
-          product: s('product'),
-          task: s('task'),
-        ),
+        template: template,
         isCustom: true,
         isTemplate: false,
       ),

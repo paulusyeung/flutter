@@ -34,6 +34,10 @@ class _RuleCriterionSheetState extends State<_RuleCriterionSheet> {
   late String _searchKey;
   late String _operator;
   late TextEditingController _value;
+  // CREDIT rules carry the matched-entity placeholder ($invoice.* / $payment.* /
+  // $client.*) in `value`, not `search_key` — the server's matchCredit()
+  // switches on `value`. Mirrors React's RuleModal. Unused for DEBIT.
+  late String _creditValueKey;
 
   static const _debitKeys = <String>[
     kRuleSearchKeyDescription,
@@ -61,19 +65,28 @@ class _RuleCriterionSheetState extends State<_RuleCriterionSheet> {
   @override
   void initState() {
     super.initState();
-    final keys = widget.isCredit ? kRuleCreditSearchKeys : _debitKeys;
+    // search_key is ALWAYS a bank-transaction field (description / amount /
+    // participant / participant_name) for both DEBIT and CREDIT. For CREDIT the
+    // matched entity field travels in `value` as a $invoice.* / $payment.* /
+    // $client.* placeholder, so seed `_creditValueKey` from the initial value.
     _searchKey =
         widget.initial.searchKey.isNotEmpty &&
-            keys.contains(widget.initial.searchKey)
+            _debitKeys.contains(widget.initial.searchKey)
         ? widget.initial.searchKey
-        : keys.first;
-    final operators = _operatorsFor(_searchKey);
+        : _debitKeys.first;
+    _creditValueKey = kRuleCreditSearchKeys.contains(widget.initial.value)
+        ? widget.initial.value
+        : kRuleCreditSearchKeys.first;
+    final operators = _operatorsFor(_operatorKey);
     _operator =
         widget.initial.operator.isNotEmpty &&
             operators.contains(widget.initial.operator)
         ? widget.initial.operator
         : operators.first;
-    _value = TextEditingController(text: widget.initial.value);
+    // Free-text value is DEBIT-only; CREDIT uses the placeholder dropdown.
+    _value = TextEditingController(
+      text: widget.isCredit ? '' : widget.initial.value,
+    );
   }
 
   @override
@@ -85,11 +98,15 @@ class _RuleCriterionSheetState extends State<_RuleCriterionSheet> {
   List<String> _operatorsFor(String key) =>
       isNumericSearchKey(key) ? _numberOperators : _stringOperators;
 
+  /// The key whose type (string vs numeric) drives the operator set. For
+  /// CREDIT that's the matched placeholder (the server picks its comparator
+  /// from `value`); for DEBIT it's the bank-transaction field in `search_key`.
+  String get _operatorKey => widget.isCredit ? _creditValueKey : _searchKey;
+
   @override
   Widget build(BuildContext context) {
-    final keys = widget.isCredit ? kRuleCreditSearchKeys : _debitKeys;
-    final operators = _operatorsFor(_searchKey);
-    final hideValue = _operator == kRuleOperatorIsEmpty;
+    final operators = _operatorsFor(_operatorKey);
+    final hideValue = !widget.isCredit && _operator == kRuleOperatorIsEmpty;
     // Save is only meaningful when a value is present (or `is_empty` is
     // selected, which deliberately omits the value field). Without this
     // gate users can land a `description contains <empty>` criterion
@@ -97,7 +114,9 @@ class _RuleCriterionSheetState extends State<_RuleCriterionSheet> {
     final canSave =
         _searchKey.isNotEmpty &&
         _operator.isNotEmpty &&
-        (hideValue || _value.text.trim().isNotEmpty);
+        (widget.isCredit
+            ? _creditValueKey.isNotEmpty
+            : hideValue || _value.text.trim().isNotEmpty);
 
     return Padding(
       padding: EdgeInsets.only(
@@ -115,7 +134,7 @@ class _RuleCriterionSheetState extends State<_RuleCriterionSheet> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 16),
-          _buildSearchKeyField(context, keys),
+          _buildSearchKeyField(context),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _operator,
@@ -130,7 +149,9 @@ class _RuleCriterionSheetState extends State<_RuleCriterionSheet> {
             },
           ),
           const SizedBox(height: 12),
-          if (!hideValue)
+          if (widget.isCredit)
+            _buildCreditValueField(context)
+          else if (!hideValue)
             TextField(
               controller: _value,
               decoration: InputDecoration(labelText: context.tr('value')),
@@ -157,7 +178,11 @@ class _RuleCriterionSheetState extends State<_RuleCriterionSheet> {
                         RuleCriterion(
                           searchKey: _searchKey,
                           operator: _operator,
-                          value: hideValue ? '' : _value.text.trim(),
+                          value: widget.isCredit
+                              ? _creditValueKey
+                              : hideValue
+                              ? ''
+                              : _value.text.trim(),
                         ),
                       )
                     : null,
@@ -171,39 +196,46 @@ class _RuleCriterionSheetState extends State<_RuleCriterionSheet> {
     );
   }
 
-  /// CREDIT-side search keys hit 19 entries — long enough that scrolling
-  /// a vanilla dropdown is cumbersome. Use [SearchableDropdownField] to
-  /// honor the CLAUDE.md "type-to-search past ~20 options" rule.
-  Widget _buildSearchKeyField(BuildContext context, List<String> keys) {
-    if (widget.isCredit) {
-      return SearchableDropdownField<String>(
-        label: context.tr('field'),
-        items: keys,
-        initialValue: _searchKey.isEmpty ? null : _searchKey,
-        idOf: (k) => k,
-        displayString: labelForSearchKey,
-        onChanged: (v) {
-          if (v == null) return;
-          setState(() {
-            _searchKey = v;
-            final next = _operatorsFor(v);
-            if (!next.contains(_operator)) _operator = next.first;
-          });
-        },
-      );
-    }
+  /// The `search_key` field — a bank-transaction field for BOTH debit and
+  /// credit (description / amount / participant / participant_name). For
+  /// debit the operator set follows this key; for credit the operator set
+  /// follows the placeholder, so reconcile against [_operatorKey].
+  Widget _buildSearchKeyField(BuildContext context) {
     return DropdownButtonFormField<String>(
       initialValue: _searchKey,
       decoration: InputDecoration(labelText: context.tr('field')),
       items: [
-        for (final k in keys)
+        for (final k in _debitKeys)
           DropdownMenuItem(value: k, child: Text(labelForSearchKey(k))),
       ],
       onChanged: (v) {
         if (v == null) return;
         setState(() {
           _searchKey = v;
-          final next = _operatorsFor(v);
+          final next = _operatorsFor(_operatorKey);
+          if (!next.contains(_operator)) _operator = next.first;
+        });
+      },
+    );
+  }
+
+  /// CREDIT-only placeholder picker — the $invoice.* / $payment.* / $client.*
+  /// field the bank transaction is matched against. Serialized into the wire
+  /// `value`; the server's matchCredit() switches on it. 19 entries → use
+  /// [SearchableDropdownField] per the "type-to-search past ~20 options" rule.
+  Widget _buildCreditValueField(BuildContext context) {
+    return SearchableDropdownField<String>(
+      label: context.tr('value'),
+      items: kRuleCreditSearchKeys,
+      initialValue: _creditValueKey.isEmpty ? null : _creditValueKey,
+      idOf: (k) => k,
+      displayString: labelForSearchKey,
+      onChanged: (v) {
+        if (v == null) return;
+        setState(() {
+          _creditValueKey = v;
+          // Operator type follows the placeholder for credit.
+          final next = _operatorsFor(_operatorKey);
           if (!next.contains(_operator)) _operator = next.first;
         });
       },

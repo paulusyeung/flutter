@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -25,6 +27,27 @@ class AccountManagementEnabledModulesScreen extends StatefulWidget {
 class _AccountManagementEnabledModulesScreenState
     extends State<AccountManagementEnabledModulesScreen> {
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // This tab edits the WHOLE company (updateCompany PUTs the entire
+    // serialized row), but it binds to the cached Drift row instead of the
+    // VM seam. After a full sync the SMTP / expense / task-invoicing /
+    // payment-conversion columns hold table defaults (they're absent from the
+    // login envelope + _persistAndActivate insert), so a toggle PUT would
+    // clobber the user's real server values. Re-hydrate the canonical company
+    // on mount, mirroring SettingsDraftViewModel.kickRefresh (repo.refresh =>
+    // GET /companies/{id} => applyUpdateResponse). refresh() swallows its own
+    // errors, so the screen still renders from cache when offline.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final services = context.read<Services>();
+      final companyId = services.auth.session.value?.currentCompanyId;
+      if (companyId == null || companyId.isEmpty) return;
+      unawaited(services.company.refresh(companyId));
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

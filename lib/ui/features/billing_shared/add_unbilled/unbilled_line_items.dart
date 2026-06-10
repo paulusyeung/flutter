@@ -57,7 +57,14 @@ LineItem expenseToLineItem(Expense expense) {
       : (expense.number.isNotEmpty ? '#${expense.number}' : '');
   return emptyLineItem().copyWith(
     notes: notes,
-    cost: expense.amount,
+    // Foreign-currency expenses bill at the converted amount, not the raw
+    // base-currency `amount` — mirrors React `useInvoiceExpense`
+    // (foreign_amount > 0 ? foreign_amount : amount). `foreignAmount` is
+    // kept as `amount * exchangeRate` by the expense edit VM; 0 means no
+    // conversion so we fall back to the base amount.
+    cost: expense.foreignAmount > Decimal.zero
+        ? expense.foreignAmount
+        : expense.amount,
     quantity: Decimal.one,
     taxName1: expense.taxName1,
     taxRate1: expense.taxRate1,
@@ -79,6 +86,7 @@ List<LineItem> projectInvoiceLineItems({
   required List<Expense> expenses,
   DateTime? now,
   Project? project,
+  Client? client,
   Company? company,
 }) {
   return <LineItem>[
@@ -89,6 +97,12 @@ List<LineItem> projectInvoiceLineItems({
           !t.isRunning &&
           !t.isInvoiced &&
           t.billableDuration(now).inSeconds > 0)
-        taskToLineItem(t, now: now, project: project, company: company),
+        taskToLineItem(
+          t,
+          now: now,
+          project: project,
+          client: client,
+          company: company,
+        ),
   ];
 }

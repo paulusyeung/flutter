@@ -12,6 +12,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/in_date_field.dart';
 import 'package:admin/ui/core/widgets/notify_async.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Invoice detail → Payment Schedule tab. Mirrors React: the schedule is a
 /// read-only projection embedded on the invoice (`invoice.schedule[]`,
@@ -190,6 +191,22 @@ class _CreatePaymentScheduleDialogState
 
   final List<_CustomRow> _rows = [_CustomRow()];
 
+  // Decimal-separator setting drives parse of each custom installment amount so
+  // a comma-locale user typing `100,50` isn't rejected (validity) and `1.234`
+  // isn't sent wrong. `formatterIfReady` is the sync accessor the entity-edit
+  // screens use (see tax_rates_edit_screen.dart).
+  late final bool _useComma;
+
+  @override
+  void initState() {
+    super.initState();
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    _useComma =
+        services.formatterIfReady(companyId)?.settings.useCommaAsDecimalPlace ??
+        false;
+  }
+
   @override
   void dispose() {
     _count.dispose();
@@ -204,7 +221,8 @@ class _CreatePaymentScheduleDialogState
       _rows.every(
         (r) =>
             r.date != null &&
-            (Decimal.tryParse(r.amount.text.trim()) ?? Decimal.zero) >
+            (parseDecimal(r.amount.text, useCommaAsDecimalPlace: _useComma) ??
+                    Decimal.zero) >
                 Decimal.zero,
       );
 
@@ -253,7 +271,11 @@ class _CreatePaymentScheduleDialogState
               <String, dynamic>{
                 'date': Date(r.date!.year, r.date!.month, r.date!.day).toIso(),
                 'amount':
-                    (Decimal.tryParse(r.amount.text.trim()) ?? Decimal.zero)
+                    (parseDecimal(
+                              r.amount.text,
+                              useCommaAsDecimalPlace: _useComma,
+                            ) ??
+                            Decimal.zero)
                         .toDouble(),
                 'is_amount': true,
               },

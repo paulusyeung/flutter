@@ -514,13 +514,20 @@ class ReportEngine {
         return true;
       }
       if (cell is ReportDateTimeCell && cell.value != null) {
+        // Range bounds arrive as date-only ISO (the picker emits Date.toIso()),
+        // so compare on the cell's calendar day (Date-to-Date) — mirrors the
+        // date branch above and the dateTime grouping in _groupKey. Comparing
+        // the raw DateTime against a midnight-parsed end bound would drop every
+        // same-day timestamp on the end date (off-by-one excluding the end day).
+        final v = cell.value!;
+        final cellDate = Date(v.year, v.month, v.day);
         if (start.isNotEmpty) {
-          final s = DateTime.tryParse(start);
-          if (s != null && cell.value!.isBefore(s)) return false;
+          final s = Date.tryParse(start);
+          if (s != null && cellDate.compareTo(s) < 0) return false;
         }
         if (end.isNotEmpty) {
-          final e = DateTime.tryParse(end);
-          if (e != null && cell.value!.isAfter(e)) return false;
+          final e = Date.tryParse(end);
+          if (e != null && cellDate.compareTo(e) > 0) return false;
         }
         return true;
       }

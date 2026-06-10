@@ -705,7 +705,19 @@ class ApiClient {
           'Discarding stale-credential 401 (request token no longer active)',
         );
       } else {
-        await _handleUnauthorized();
+        // Fire logout detached, NOT awaited. A 401 can be raised on a request
+        // issued from inside an outbox drain (`SyncRepository.drainOnce`, whose
+        // future is registered in `_inFlight`). `onUnauthorized` -> `auth.logout`
+        // -> `onBeforeLogout` = `sync.cancel`, and `cancel()` awaits every
+        // `_inFlight` future — including the very drain blocked here. Awaiting
+        // logout would close that cycle into a permanent self-deadlock. Throwing
+        // `UnauthorizedException` immediately lets the drain unwind (its catch
+        // parks the row without sending), the `_inFlight` slot clears, and the
+        // concurrently-running `logout()` then settles `sync.cancel()` and
+        // proceeds to wipe the DB — so the logout-before-wipe ordering still
+        // holds. `_handleUnauthorized` coalesces parallel 401s and swallows its
+        // own errors, so the detached future is safe to drop.
+        unawaited(_handleUnauthorized());
       }
       throw isStaleCredential
           ? const UnauthorizedException.staleCredential()

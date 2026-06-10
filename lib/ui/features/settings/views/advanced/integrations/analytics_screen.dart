@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -35,6 +37,26 @@ class _IntegrationsAnalyticsScreenState
   Company? _company;
   bool _dirty = false;
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pull the canonical company (GET /companies/{id}) on mount so the cached
+    // Drift row holds the server's real SMTP / expense / task / payment-
+    // conversion values BEFORE a Save here PUTs the whole company. After a
+    // full sync (login / refresh / force-resync) the login envelope + insert
+    // omit those columns, leaving them at Drift table defaults; saving an
+    // analytics key would otherwise enqueue the full company body with those
+    // defaulted fields and clobber the server values. Mirrors the cascade
+    // settings pages' `unawaited(kickRefresh())` -> `repo.refresh(companyId)`
+    // (draft_stream_host.dart / settings_draft_view_model.dart). refresh()
+    // is best-effort (swallows errors), so the page still renders offline.
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId;
+    if (companyId != null && companyId.isNotEmpty) {
+      unawaited(services.company.refresh(companyId));
+    }
+  }
 
   @override
   void dispose() {

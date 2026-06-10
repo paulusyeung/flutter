@@ -116,6 +116,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             companyId: companyId,
             page: page,
             authUserId: authUserId,
+            // Load every lifecycle state so the "Show archived" toggle can
+            // surface server-archived users from Drift (an all-states set
+            // sends no `status` filter; the server returns withTrashed()).
+            // Mirrors UserRepository.refreshAll + SettingsEntityListScaffold.
+            states: EntityState.values.toSet(),
             ignoreCursor: page == 1,
           );
           if (!hasMore) break;

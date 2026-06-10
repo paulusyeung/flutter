@@ -58,12 +58,18 @@ class _EntityEditFieldState extends State<EntityEditField> {
   @override
   void didUpdateWidget(covariant EntityEditField old) {
     super.didUpdateWidget(old);
-    // Reflect external changes to `initial` without clobbering an active
-    // edit. Common path: the user types a value, the VM `notifyListeners`
-    // rebuilds us with the same `initial` we just sent it — skip the reset
-    // because text already matches. The non-match case is the "row got
-    // reassigned" path (e.g. primary swap).
-    if (widget.initial != _controller.text) {
+    // Reflect *external* changes to `initial` (the "row got reassigned" path —
+    // e.g. a primary-contact swap) without clobbering an active edit.
+    //
+    // Guard on `widget.initial != old.initial`: during normal typing the VM
+    // round-trips our value (keystroke → onChanged → parse → notifyListeners →
+    // rebuild) and hands back the *same* `initial`, so `old.initial ==
+    // widget.initial` and we skip the reseed. This is essential for `Decimal`
+    // fields seeded via `decimalInputText`: typing `12.` parses to `12` whose
+    // canonical text is `12`, so a blind reseed would erase the in-progress
+    // decimal point (and a leading `0` would clear the field). Only reseed when
+    // the bound value genuinely changed underneath us.
+    if (widget.initial != old.initial && widget.initial != _controller.text) {
       _controller.value = TextEditingValue(
         text: widget.initial,
         selection: TextSelection.collapsed(offset: widget.initial.length),

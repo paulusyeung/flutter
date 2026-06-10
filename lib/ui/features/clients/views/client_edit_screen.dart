@@ -44,6 +44,12 @@ class ClientEditScreen extends StatelessWidget {
             (existing == null
                 ? services.takeCreateDraft<Client>('/clients')
                 : null),
+        useCommaAsDecimalPlace:
+            services
+                .formatterIfReady(companyId)
+                ?.settings
+                .useCommaAsDecimalPlace ??
+            false,
         sync: services.sync,
         connectivity: services.connectivity,
       ),

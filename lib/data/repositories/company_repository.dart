@@ -349,6 +349,36 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
     );
   }
 
+  /// Enqueue a digital certificate **removal**. A plain company PUT only
+  /// carries the read-only `has_e_invoice_certificate` flag (not in the
+  /// server's `$fillable`, ignored on write); the server removes the cert
+  /// only when the request *carries* the `e_invoice_certificate` key (it
+  /// then nulls the cert + passphrase — CompanyController::update). So
+  /// removal goes through the `_action` seam (like `upload_logo`) and the
+  /// dispatcher PUTs `{e_invoice_certificate: null}`. Optimistically flips
+  /// the local flag so the upload dropzone reappears at once and survives an
+  /// app restart before the outbox drains.
+  Future<void> enqueueEInvoiceCertificateRemoval({
+    required String companyId,
+  }) async {
+    await db.transaction(() async {
+      await (db.update(
+        db.companies,
+      )..where((c) => c.id.equals(companyId))).write(
+        CompaniesCompanion(
+          hasEInvoiceCertificate: const Value(false),
+          updatedAt: Value(_nowSeconds()),
+        ),
+      );
+      await enqueueMutation(
+        companyId: companyId,
+        entityId: companyId,
+        kind: MutationKind.update,
+        payload: {'_action': 'remove_e_invoice_certificate'},
+      );
+    });
+  }
+
   /// Enqueue the PEPPOL onboarding setup. [payload] mirrors React
   /// `peppol/Onboarding.tsx`: `party_name`, `line1`, `line2`, `city`,
   /// `county`, `zip`, `country`, one of `vat_number` / `id_number`,

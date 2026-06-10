@@ -17,6 +17,13 @@ import 'package:admin/ui/core/widgets/vendor_name_label.dart';
 import 'package:admin/ui/features/recurring_expenses/widgets/recurring_expense_status_pill.dart';
 import 'package:admin/ui/features/recurring_expenses/widgets/recurring_expense_actions.dart';
 
+/// Cached locale-only fallback for the narrow-tile amount when no
+/// `FormatterScope` is in the tree. Mirrors `ExpenseListTile`.
+final NumberFormat _recurringExpenseAmountFallback =
+    NumberFormat.decimalPattern()
+      ..minimumFractionDigits = 2
+      ..maximumFractionDigits = 2;
+
 /// One row in the recurring expenses list.
 ///
 /// Per UX spec: the narrow secondary line surfaces
@@ -126,10 +133,19 @@ class _RecurringExpenseListTileState extends State<RecurringExpenseListTile> {
 
   Widget _narrow(BuildContext context, InTheme tokens) {
     final w = widget;
-    final amountFmt = NumberFormat.decimalPattern()
-      ..minimumFractionDigits = 2
-      ..maximumFractionDigits = 2;
-    final amountText = amountFmt.format(w.recurringExpense.amount.toDouble());
+    // RecurringExpense carries its own `currencyId` — format through it so
+    // narrow matches the wide table's `cellMoney`. Locale-only fallback when
+    // no FormatterScope is in the tree.
+    final formatter = FormatterScope.maybeOf(context);
+    final formatted = formatter?.money(
+      w.recurringExpense.amount,
+      currencyId: w.recurringExpense.currencyId,
+    );
+    final amountText = (formatted != null && formatted.isNotEmpty)
+        ? formatted
+        : _recurringExpenseAmountFallback.format(
+            w.recurringExpense.amount.toDouble(),
+          );
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [

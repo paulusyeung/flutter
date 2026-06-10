@@ -145,6 +145,24 @@ class CompanySyncDispatcher implements SyncDispatcher {
       );
       return;
     }
+    if (action == 'remove_e_invoice_certificate') {
+      // The server removes the certificate only when the request *carries*
+      // the `e_invoice_certificate` key (then it nulls cert + passphrase and
+      // sets enable_e_invoice — CompanyController::update). A normal company
+      // PUT never sends that key, so removal is its own PUT with an explicit
+      // null. Body is just that key — not the full company — so unrelated
+      // columns aren't clobbered.
+      final response = await api.update(
+        id: row.entityId,
+        payload: const {'e_invoice_certificate': null},
+        idempotencyKey: row.idempotencyKey,
+      );
+      await repo.applyUpdateResponse(
+        companyId: row.companyId,
+        serverResponse: response.data,
+      );
+      return;
+    }
     final response = await api.update(
       id: row.entityId,
       payload: payload,
