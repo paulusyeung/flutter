@@ -911,6 +911,19 @@ final Map<String, SettingsBinding> _bindings = <String, SettingsBinding>{
     read: (s) => s.eExpenseForwardEmail,
     write: (s, v) => s.copyWith(eExpenseForwardEmail: v),
   ),
+  // France e-reporting. `france_reporting_enabled` is a bool (encoded as
+  // 'true'/'false' per the convention at the top of this file);
+  // `france_reporting_schedule` is a passthrough string ('ten_days'/'monthly').
+  // Both must be registered — `OverridableSwitchField` looks the enabled key
+  // up in `build()`, and the schedule's override checkbox calls `setOverride`.
+  'france_reporting_enabled': (
+    read: (s) => s.franceReportingEnabled?.toString(),
+    write: (s, v) => s.copyWith(franceReportingEnabled: _parseBool(v)),
+  ),
+  'france_reporting_schedule': (
+    read: (s) => s.franceReportingSchedule,
+    write: (s, v) => s.copyWith(franceReportingSchedule: v),
+  ),
 
   // Templates & Reminders — subject + body fields per template type.
   'email_subject_invoice': (

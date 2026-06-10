@@ -120,6 +120,16 @@ const List<String> kEQuoteTypes = <String>[
 /// when the active company is in Spain.
 const String kEInvoiceCountryIdSpain = '724';
 
+/// Country id (`company.settings.country_id`) for France. The French
+/// e-reporting section on the E-Invoice page is gated to this country.
+const String kFranceCountryId = '250';
+
+/// `france_reporting_schedule` wire values. `ten_days` is the server default;
+/// `monthly` is the alternative. Single-sourced so the radio and any future
+/// reader agree on the exact strings.
+const String kFranceReportingTenDays = 'ten_days';
+const String kFranceReportingMonthly = 'monthly';
+
 /// External help URL for the e-invoicing docs. Rendered as a `LinkText` at
 /// the top of the body so users can find background on the field set without
 /// leaving the page.

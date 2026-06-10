@@ -126,7 +126,18 @@ class LoginViewModel extends ChangeNotifier {
   /// happily send the user's password to e.g. `http://attacker.local`.
   String? _checkedBaseUrl() {
     if (isHosted) return Env.hostedApiUrl;
-    final raw = urlOverride;
+    var raw = urlOverride;
+    // Let users type a bare host like `demo.invoiceninja.com`: prepend
+    // https:// when no http/https scheme is present. A schemeless string
+    // parses with an empty host and would otherwise be rejected below.
+    // Inputs that already carry a scheme are left untouched (http stays
+    // debug-only via the check further down).
+    if (raw.isNotEmpty) {
+      final lower = raw.toLowerCase();
+      if (!lower.startsWith('http://') && !lower.startsWith('https://')) {
+        raw = 'https://$raw';
+      }
+    }
     final uri = raw.isEmpty ? null : Uri.tryParse(raw);
     if (uri == null || uri.host.isEmpty || uri.userInfo.isNotEmpty) {
       _setError(key: 'invalid_url');

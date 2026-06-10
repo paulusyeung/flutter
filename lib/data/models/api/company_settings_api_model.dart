@@ -364,6 +364,8 @@ abstract class CompanySettingsApi with _$CompanySettingsApi {
     bool? skipAutomaticEmailWithPeppol,
     @JsonKey(name: 'e_invoice_forward_email') String? eInvoiceForwardEmail,
     @JsonKey(name: 'e_expense_forward_email') String? eExpenseForwardEmail,
+    @JsonKey(name: 'france_reporting_enabled') bool? franceReportingEnabled,
+    @JsonKey(name: 'france_reporting_schedule') String? franceReportingSchedule,
     @JsonKey(name: 'preference_product_notes_for_html_view')
     bool? preferenceProductNotesForHtmlView,
 
@@ -519,6 +521,7 @@ const Set<String> _settingsBoolKeys = {
   'merge_e_invoice_to_pdf',
   'skip_automatic_email_with_peppol',
   'preference_product_notes_for_html_view',
+  'france_reporting_enabled',
 };
 
 /// Walk [raw] and coerce known-numeric/bool keys whose values come in the

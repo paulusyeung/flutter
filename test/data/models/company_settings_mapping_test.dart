@@ -73,6 +73,19 @@ void main() {
       expect(encoded.containsKey('name'), isTrue);
       expect(encoded.containsKey('vat_number'), isFalse);
     });
+
+    test('round-trips france e-reporting fields', () {
+      final parsed = CompanySettingsApi.fromJson({
+        'france_reporting_enabled': true,
+        'france_reporting_schedule': 'monthly',
+      });
+      expect(parsed.franceReportingEnabled, true);
+      expect(parsed.franceReportingSchedule, 'monthly');
+
+      final reparsed = CompanySettingsApi.fromJson(parsed.toJson());
+      expect(reparsed.franceReportingEnabled, true);
+      expect(reparsed.franceReportingSchedule, 'monthly');
+    });
   });
 
   group('CompanySettingsApi.fromJsonLenient', () {
@@ -100,6 +113,7 @@ void main() {
         'send_reminders': 'false',
         'inclusive_taxes': '1',
         'auto_archive_invoice': '0',
+        'france_reporting_enabled': 1,
       });
       expect(parsed.militaryTime, true);
       expect(parsed.enableReminder1, false);
@@ -107,6 +121,7 @@ void main() {
       expect(parsed.sendReminders, false);
       expect(parsed.inclusiveTaxes, true);
       expect(parsed.autoArchiveInvoice, false);
+      expect(parsed.franceReportingEnabled, true);
     });
 
     test('drops unparseable numeric strings instead of crashing', () {

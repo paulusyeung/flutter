@@ -34,6 +34,7 @@ Plus two non-negotiables carried from admin-portal:
 | Running integration tests | `docs/integration-tests.md` |
 | Debugging a runtime error or stale outbox row | § Diagnostics log + `docs/diagnostics.md` |
 | Desktop window persistence (native runners) | `docs/desktop-window-state.md` |
+| Rotating the `is_system` API token (blocked on server) | `docs/token-rotation.md` |
 | Checking what's built vs what's left | `FEATURES.md` (kept current — see § Strict rules) |
 
 ## Strict rules

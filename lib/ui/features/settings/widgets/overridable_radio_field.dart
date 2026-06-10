@@ -25,6 +25,7 @@ class OverridableRadioField<T> extends StatelessWidget {
     required this.value,
     required this.options,
     required this.onChanged,
+    this.subtitleOf,
   });
 
   final String label;
@@ -35,6 +36,26 @@ class OverridableRadioField<T> extends StatelessWidget {
   /// `null` disables the group (mirrors the `OverridableDropdownField`
   /// contract — greys out the field and ignores taps).
   final ValueChanged<T?>? onChanged;
+
+  /// Optional secondary content rendered under an option's label (e.g. a
+  /// two-line summary). When this returns non-null for an option, that tile
+  /// switches to `isThreeLine` + non-dense to fit; otherwise the tile stays
+  /// dense and single-line, so existing callers are unaffected.
+  final Widget? Function(T value)? subtitleOf;
+
+  Widget _buildOption(({T value, String label}) option) {
+    final subtitle = subtitleOf?.call(option.value);
+    return RadioListTile<T>(
+      value: option.value,
+      title: Text(option.label),
+      subtitle: subtitle,
+      // Two-line summaries need the taller three-line tile + a top-aligned
+      // radio; the plain single-line case stays dense.
+      isThreeLine: subtitle != null,
+      contentPadding: EdgeInsets.zero,
+      dense: subtitle == null,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,15 +91,7 @@ class OverridableRadioField<T> extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  for (final o in options)
-                    RadioListTile<T>(
-                      value: o.value,
-                      title: Text(o.label),
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                    ),
-                ],
+                children: [for (final o in options) _buildOption(o)],
               ),
             ),
           ),

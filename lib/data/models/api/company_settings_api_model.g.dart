@@ -292,6 +292,8 @@ _CompanySettingsApi _$CompanySettingsApiFromJson(
       json['skip_automatic_email_with_peppol'] as bool?,
   eInvoiceForwardEmail: json['e_invoice_forward_email'] as String?,
   eExpenseForwardEmail: json['e_expense_forward_email'] as String?,
+  franceReportingEnabled: json['france_reporting_enabled'] as bool?,
+  franceReportingSchedule: json['france_reporting_schedule'] as String?,
   preferenceProductNotesForHtmlView:
       json['preference_product_notes_for_html_view'] as bool?,
   customMessageDashboard: json['custom_message_dashboard'] as String?,
@@ -567,6 +569,8 @@ Map<String, dynamic> _$CompanySettingsApiToJson(
   'skip_automatic_email_with_peppol': ?instance.skipAutomaticEmailWithPeppol,
   'e_invoice_forward_email': ?instance.eInvoiceForwardEmail,
   'e_expense_forward_email': ?instance.eExpenseForwardEmail,
+  'france_reporting_enabled': ?instance.franceReportingEnabled,
+  'france_reporting_schedule': ?instance.franceReportingSchedule,
   'preference_product_notes_for_html_view':
       ?instance.preferenceProductNotesForHtmlView,
   'custom_message_dashboard': ?instance.customMessageDashboard,

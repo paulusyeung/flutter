@@ -16,6 +16,7 @@ import 'package:admin/ui/features/settings/views/advanced/e_invoice/peppol_prefe
 import 'package:admin/ui/features/settings/views/advanced/e_invoice/tax_identifiers_card.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_dropdown_field.dart';
+import 'package:admin/ui/features/settings/widgets/overridable_radio_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_searchable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_switch_field.dart';
 import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
@@ -42,6 +43,8 @@ const kEInvoiceSearchKeys = <String>[
   'additional_tax_identifiers',
   'act_as_sender',
   'act_as_receiver',
+  'france_reporting_enabled',
+  'france_reporting_schedule',
 ];
 
 /// Body for Settings → E-Invoice. Mounted by [EInvoiceScreen] inside
@@ -181,6 +184,17 @@ class EInvoiceBody extends StatelessWidget {
             ],
           ),
 
+        // ── France e-reporting ───────────────────────────────────────
+        // French e-reporting mandate. Company-scope only, France-only, and
+        // shown whenever e-invoicing is active (toggle on OR PEPPOL) — the
+        // `|| isPeppol` mirrors the Payment Means / Tax Identifiers gates so a
+        // French PEPPOL company (where the enable toggle is hidden) still sees
+        // it.
+        if (isCompany &&
+            settings.countryId == kFranceCountryId &&
+            (enableEInvoice || isPeppol))
+          const _FranceReportingSection(),
+
         // ── Certificate card ─────────────────────────────────────────
         if (isCompany && !isPeppol && enableEInvoice && company != null)
           const CertificateCard(),
@@ -301,4 +315,150 @@ class _VerifactuInfoCard extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Settings → E-Invoice → "Reporting": the French e-reporting toggle and, when
+/// on, the transaction/payment reporting schedule + a VAT-exempt info note.
+/// The caller gates this to French companies with e-invoicing active; it's
+/// cascade-aware via `Overridable*` widgets, like the enable-e-invoice toggle
+/// above. Schedule values come from `e_invoice_constants.dart`
+/// (`ten_days` / `monthly`); a never-set schedule displays `ten_days` and the
+/// server applies the same default, so no client-side seeding is needed.
+class _FranceReportingSection extends StatelessWidget {
+  const _FranceReportingSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final host = context.watch<SettingsDraftHost>();
+    final settings = host.settings;
+    final enabled = settings.franceReportingEnabled ?? false;
+    final schedule =
+        settings.franceReportingSchedule ?? kFranceReportingTenDays;
+
+    return FormSection(
+      title: context.tr('reporting'),
+      children: [
+        OverridableSwitchField(
+          label: context.tr('france_reporting_enabled'),
+          apiKey: 'france_reporting_enabled',
+        ),
+        if (enabled) ...[
+          OverridableRadioField<String>(
+            label: context.tr('france_reporting_schedule'),
+            apiKey: 'france_reporting_schedule',
+            value: schedule,
+            options: [
+              (
+                value: kFranceReportingTenDays,
+                label: context.tr('france_reporting_ten_day'),
+              ),
+              (
+                value: kFranceReportingMonthly,
+                label: context.tr('france_reporting_monthly'),
+              ),
+            ],
+            subtitleOf: (value) => _reportingSummary(
+              context,
+              transactionValueKey: value == kFranceReportingMonthly
+                  ? 'france_reporting_transaction_monthly'
+                  : 'france_reporting_transaction_every_10_days',
+              paymentValueKey: 'france_reporting_payment_monthly',
+            ),
+            onChanged: (v) => host.updateSettings(
+              (s) => s.copyWith(franceReportingSchedule: v),
+            ),
+          ),
+          const _VatExemptInfoCard(),
+        ],
+      ],
+    );
+  }
+}
+
+/// Informational (non-selectable) note that VAT-exempt French businesses
+/// report bi-monthly. Rendered as a muted, bordered card with a leading icon
+/// so it reads as guidance and can't be mistaken for a third schedule option.
+class _VatExemptInfoCard extends StatelessWidget {
+  const _VatExemptInfoCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final theme = Theme.of(context);
+    // Spacing above is owned by FormSection._interleave (InSpacing.lg between
+    // children); no extra top padding here, or the gap reads uneven against the
+    // radio above. The card's own border provides the visual separation.
+    return Container(
+      decoration: BoxDecoration(
+        color: tokens.surfaceAlt,
+        border: Border.all(color: tokens.border),
+        borderRadius: BorderRadius.circular(InRadii.r3),
+      ),
+      padding: EdgeInsets.all(InSpacing.lg(context)),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, size: 18, color: tokens.ink2),
+          SizedBox(width: InSpacing.md(context)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  context.tr('france_reporting_vat_exempt_info_title'),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: tokens.ink,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: InSpacing.xs),
+                _reportingSummary(
+                  context,
+                  transactionValueKey:
+                      'france_reporting_transaction_bi_monthly',
+                  paymentValueKey: 'france_reporting_payment_bi_monthly',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Two muted "label: value" lines shared by the schedule radio subtitles and
+/// the VAT-exempt note. The leading label segment is emphasized so the
+/// transaction-vs-payment cadences stay scannable; lines wrap (no truncation)
+/// for longer localized strings.
+Widget _reportingSummary(
+  BuildContext context, {
+  required String transactionValueKey,
+  required String paymentValueKey,
+}) {
+  final theme = Theme.of(context);
+  final baseStyle = theme.textTheme.bodySmall?.copyWith(
+    color: theme.colorScheme.onSurfaceVariant,
+  );
+  final labelStyle = baseStyle?.copyWith(fontWeight: FontWeight.w500);
+
+  Widget line(String labelKey, String valueKey) => Text.rich(
+    TextSpan(
+      children: [
+        TextSpan(text: '${context.tr(labelKey)}: ', style: labelStyle),
+        TextSpan(text: context.tr(valueKey)),
+      ],
+    ),
+    style: baseStyle,
+  );
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      line('france_reporting_transaction_reports', transactionValueKey),
+      line('france_reporting_payment_reports', paymentValueKey),
+    ],
+  );
 }

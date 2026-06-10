@@ -1,6 +1,7 @@
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/login_response_api_model.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
+import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/auth_service.dart';
 import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/data/services/token_storage.dart';
@@ -40,6 +41,28 @@ class _FakeAuthService implements AuthService {
   Object? noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
 
+/// Records the base URL the VM resolved, then throws to stop before
+/// [AuthRepository._persistAndActivate] runs (so no full login round-trip /
+/// DB writes). Used to assert scheme normalization at the service boundary.
+class _CapturingAuthService implements AuthService {
+  String? capturedBaseUrl;
+
+  @override
+  Future<LoginResponseApi> login({
+    required String baseUrl,
+    required bool isHosted,
+    required String email,
+    required String password,
+    String? oneTimePassword,
+  }) async {
+    capturedBaseUrl = baseUrl;
+    throw const NetworkException('captured');
+  }
+
+  @override
+  Object? noSuchMethod(Invocation invocation) => throw UnimplementedError();
+}
+
 void main() {
   late AppDatabase db;
   late AuthRepository auth;
@@ -69,15 +92,6 @@ void main() {
       expect(vm.errorKey, 'invalid_url');
     });
 
-    test('rejects http:// (release builds require https)', () async {
-      // In tests kDebugMode is true, so http is accepted; this case is
-      // covered by the release-only behaviour. We assert the symmetric case
-      // — a URL with no scheme is rejected regardless.
-      vm.setUrlOverride('attacker.local');
-      expect(await vm.submit(), isFalse);
-      expect(vm.errorKey, 'invalid_url');
-    });
-
     test('rejects URL with embedded credentials', () async {
       vm.setUrlOverride('https://user:pw@host.example');
       expect(await vm.submit(), isFalse);
@@ -101,5 +115,53 @@ void main() {
       expect(await vm.recover(), isFalse);
       expect(vm.errorKey, 'invalid_url');
     });
+  });
+
+  group('self-hosted base URL normalization', () {
+    // Build a VM whose AuthRepository talks to a capturing service, so we can
+    // assert the exact base URL the VM resolved (post scheme-normalization).
+    LoginViewModel vmWith(_CapturingAuthService svc) {
+      final repo = AuthRepository(
+        db: db,
+        authService: svc,
+        tokenStorage: InMemoryTokenStorage(),
+        passwordCache: PasswordCache(),
+      );
+      return LoginViewModel(auth: repo)
+        ..setHosted(false)
+        ..setEmail('a@b.test')
+        ..setPassword('pw');
+    }
+
+    test('prepends https:// to a bare host', () async {
+      final svc = _CapturingAuthService();
+      final vm = vmWith(svc)..setUrlOverride('demo.invoiceninja.com');
+      await vm.submit();
+      expect(svc.capturedBaseUrl, 'https://demo.invoiceninja.com');
+    });
+
+    test('prepends https:// to a bare host:port', () async {
+      final svc = _CapturingAuthService();
+      final vm = vmWith(svc)..setUrlOverride('localhost:8000');
+      await vm.submit();
+      expect(svc.capturedBaseUrl, 'https://localhost:8000');
+    });
+
+    test('leaves an explicit https:// URL unchanged', () async {
+      final svc = _CapturingAuthService();
+      final vm = vmWith(svc)..setUrlOverride('https://demo.invoiceninja.com');
+      await vm.submit();
+      expect(svc.capturedBaseUrl, 'https://demo.invoiceninja.com');
+    });
+
+    test(
+      'leaves an explicit http:// URL unchanged (debug allows http)',
+      () async {
+        final svc = _CapturingAuthService();
+        final vm = vmWith(svc)..setUrlOverride('http://localhost:8000');
+        await vm.submit();
+        expect(svc.capturedBaseUrl, 'http://localhost:8000');
+      },
+    );
   });
 }

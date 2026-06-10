@@ -1276,6 +1276,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Peppol registration (EU countries) | ✅ | ❌ | ✅ | ✅ | |
 | Peppol registration (Singapore CorpPass) | ✅ | ❌ | ✅ | ✅ | |
 | Verifactu (Spain) configuration | ✅ | ❌ | ✅ | ✅ | |
+| France e-reporting (10-day / monthly schedule) | ✅ | ❌ | ✅ | | |
 | E-invoice certificate upload + passphrase | ✅ | ❌ | ✅ | ✅ | |
 | Payment means (IBAN / BIC / card) | ✅ | ❌ | ✅ | ✅ | |
 | Additional tax identifiers | ✅ | ❌ | ✅ | ✅ | |
