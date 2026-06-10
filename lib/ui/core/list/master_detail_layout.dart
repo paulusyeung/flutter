@@ -452,15 +452,22 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
           // without it, plain-Container cards inherit the fallback
           // DefaultTextStyle and paint the "missing Material" yellow
           // underlines + oversized text (which also overflows the time-log
-          // rows).
+          // rows). The SafeArea sits *inside* the Material so `bg` still
+          // paints behind the status bar while the header strip starts below
+          // it — the narrow twin of the wide branch's Positioned
+          // `top: MediaQuery.paddingOf(context).top`. Bottom stays free: the
+          // body scrolls and nothing docks at the bottom edge.
           Material(
             color: context.inTheme.bg,
-            child: _PaneRoot(
-              basePath: widget.basePath,
-              isFullScreen: true,
-              isNarrow: true,
-              navController: _navController,
-              child: widget.rightPane!,
+            child: SafeArea(
+              bottom: false,
+              child: _PaneRoot(
+                basePath: widget.basePath,
+                isFullScreen: true,
+                isNarrow: true,
+                navController: _navController,
+                child: widget.rightPane!,
+              ),
             ),
           ),
         ],

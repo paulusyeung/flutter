@@ -202,47 +202,58 @@ class _InSidebarState extends State<InSidebar> {
             final effectiveWidth = canCollapse
                 ? (collapsed ? kInSidebarCollapsedWidth : kInSidebarWidth)
                 : null;
-            final column = Column(
-              children: [
-                // Desktop hidden-title-bar caption strip — macOS today: reserves
-                // space for the floating traffic lights and drags the window.
-                // Persistent sidebar only — the mobile drawer (width == null)
-                // sits below the narrow-layout strip, so it needs none.
-                if (widget.width != null) const WindowCaptionStrip(),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-                  child: CompanySwitcherButton(
-                    session: session,
-                    onBeforeOpen: widget.onBeforeCompanyPicker,
-                    compact: collapsed,
+            // SafeArea: both hosts reach the window's top edge with no
+            // AppBar — the mobile drawer (Flutter's `Drawer` adds no inset
+            // of its own) and the iPad persistent rail (Positioned at
+            // top: 0). Top-only: the surface decoration below still paints
+            // behind the status bar; bottom is already handled by
+            // SidebarFooterActions' own SafeArea(top: false). On macOS the
+            // top inset is 0, so the caption-strip layout is unchanged.
+            final column = SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  // Desktop hidden-title-bar caption strip — macOS today:
+                  // reserves space for the floating traffic lights and drags
+                  // the window. Persistent sidebar only — the mobile drawer
+                  // (width == null) sits below the narrow-layout strip, so it
+                  // needs none.
+                  if (widget.width != null) const WindowCaptionStrip(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                    child: CompanySwitcherButton(
+                      session: session,
+                      onBeforeOpen: widget.onBeforeCompanyPicker,
+                      compact: collapsed,
+                    ),
                   ),
-                ),
-                Container(height: 1, color: tokens.border),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 14),
-                    child: StreamBuilder<SavedView?>(
-                      stream: _activeView?.stream,
-                      builder: (context, snap) => Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: _buildItems(
-                          context,
-                          services,
-                          session.currentCompanyId,
-                          compact: collapsed,
-                          activeViewId: snap.data?.id,
+                  Container(height: 1, color: tokens.border),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 14),
+                      child: StreamBuilder<SavedView?>(
+                        stream: _activeView?.stream,
+                        builder: (context, snap) => Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: _buildItems(
+                            context,
+                            services,
+                            session.currentCompanyId,
+                            compact: collapsed,
+                            activeViewId: snap.data?.id,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                Container(height: 1, color: tokens.border),
-                SidebarFooterActions(
-                  compact: collapsed,
-                  showCollapseToggle: canCollapse,
-                ),
-                TrialFooter(compact: collapsed),
-              ],
+                  Container(height: 1, color: tokens.border),
+                  SidebarFooterActions(
+                    compact: collapsed,
+                    showCollapseToggle: canCollapse,
+                  ),
+                  TrialFooter(compact: collapsed),
+                ],
+              ),
             );
             // RepaintBoundary isolates the 150 ms width-tween repaint from
             // the content area (the Stack sibling in scaffold_with_nav).

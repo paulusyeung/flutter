@@ -144,6 +144,31 @@ void main() {
   });
 
   testWidgets(
+    'narrow viewport: the full-page pane starts below the status-bar inset '
+    '(SafeArea — the back-arrow chrome must not render under the iOS status '
+    'bar)',
+    (tester) async {
+      // Simulated iPhone status bar / notch. Physical px; the harness pins
+      // devicePixelRatio to 1.0, so 47 physical == 47 logical.
+      tester.view.padding = const FakeViewPadding(top: 47);
+      addTearDown(tester.view.resetPadding);
+
+      final router = await pumpApp(tester, size: const Size(800, 900));
+
+      router.go('/products/1');
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+      // Without the narrow branch's SafeArea the header strip starts ~8px
+      // from the window top — under the status bar.
+      expect(
+        tester.getTopLeft(find.byIcon(Icons.arrow_back)).dy,
+        greaterThanOrEqualTo(47),
+      );
+    },
+  );
+
+  testWidgets(
     'narrow viewport: the full-page pane has a Material ancestor (fixes the '
     '"missing Material" yellow underlines on plain-Container cards)',
     (tester) async {
