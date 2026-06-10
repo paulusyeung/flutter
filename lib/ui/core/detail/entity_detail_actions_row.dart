@@ -3,6 +3,7 @@ import 'package:overflow_view/overflow_view.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
 
 /// One row item in an [EntityDetailActionsRow].
 ///
@@ -136,9 +137,9 @@ class EntityActionItem<A> {
 /// surfaces overflow identically. The caller owns outer sizing / alignment —
 /// this widget just lays the cluster out at its natural width.
 ///
-/// (Entity *detail* headers instead use [EntityDetailActionsRow], which
-/// surfaces only the primary Edit and tucks every other action behind a single
-/// `⋮` menu — it does not spread buttons inline.)
+/// (Entity *detail* headers use [EntityDetailActionsRow], which reuses this bar
+/// when wide — Edit forwarded as [leading] — and falls back to a compact `⋮`
+/// menu when narrow; see there.)
 class EntityOverflowActionBar<A> extends StatelessWidget {
   const EntityOverflowActionBar({super.key, required this.items, this.leading});
 
@@ -182,17 +183,27 @@ class EntityOverflowActionBar<A> extends StatelessWidget {
   }
 }
 
-/// The detail-header action cluster shared by every entity detail screen:
-/// the primary **Edit** action as a dedicated labeled button, followed by a
-/// single `⋮` overflow menu holding every *other* action. Per-entity wrappers
-/// (e.g. `VendorDetailActionsRow`) only contribute the action enum and the
-/// [EntityActionItem] list.
+/// The detail-header action cluster shared by every entity detail screen.
+/// Per-entity wrappers (e.g. `VendorDetailActionsRow`) only contribute the
+/// action enum and the [EntityActionItem] list.
 ///
-/// Layout is a plain right-aligned `Row` (not an `OverflowView`) — the Edit
-/// button never collapses and the rest always live in the menu, so the cluster
-/// reads identically at every width. Degenerate cases: a soft-deleted record
-/// (no `isPrimary` item) shows just the `⋮`; a record whose only action is Edit
-/// shows just the Edit button (the `⋮` is suppressed when it would be empty).
+/// Layout is **width-gated** on the allocated width (`Breakpoints.isWide`,
+/// measured via the [LayoutBuilder] so it reflects the title slot / pane the
+/// row was handed, not the device size):
+///
+///  * **Wide** (full-screen detail, or a slide-over pane expanded to full
+///    width) → reuses [EntityOverflowActionBar] with the primary **Edit**
+///    pinned as `leading`: as many of the remaining actions as fit spread
+///    inline, the rest collapse into a labeled "More" menu — identical to the
+///    edit-screen bar.
+///  * **Narrow** (mobile, or the half-width master-detail / slide-over pane) →
+///    the compact form: the primary **Edit** as a dedicated button followed by
+///    a single `⋮` menu holding every *other* action.
+///
+/// Degenerate cases (both widths): a soft-deleted record (no `isPrimary` item)
+/// drops the Edit button — wide spreads its lifecycle actions inline + "More",
+/// narrow shows just the `⋮`; a record whose only action is Edit shows just the
+/// Edit button (the overflow trigger is suppressed when it would be empty).
 class EntityDetailActionsRow<A> extends StatelessWidget {
   const EntityDetailActionsRow({super.key, required this.items});
 
@@ -206,32 +217,50 @@ class EntityDetailActionsRow<A> extends StatelessWidget {
     ];
     final primaryIndex = visible.indexWhere((item) => item.isPrimary);
     final primary = primaryIndex == -1 ? null : visible[primaryIndex];
-    // Everything that isn't the surfaced primary goes into the overflow menu.
-    // (When there's no primary, `primaryIndex` is -1 and every item is kept.)
-    final overflow = [
+    // Everything that isn't the surfaced primary. (When there's no primary,
+    // `primaryIndex` is -1 and every item is kept.)
+    final rest = [
       for (var i = 0; i < visible.length; i++)
         if (i != primaryIndex) visible[i],
     ];
 
-    // The AppBar's title slot passes loose constraints (minWidth: 0), so the
-    // title widget hugs its content by default. SizedBox(width: infinity)
-    // forces it to fill the slot; Align then pushes the cluster to the
-    // right edge, matching the body's right padding via the scaffold's
-    // titleSpacing: InSpacing.lg(context).
-    return SizedBox(
-      width: double.infinity,
-      child: Align(
-        alignment: Alignment.centerRight,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (primary != null) _ActionButton<A>(item: primary),
-            if (primary != null && overflow.isNotEmpty)
-              SizedBox(width: InSpacing.md(context)),
-            if (overflow.isNotEmpty) _OverflowMenuButton<A>(items: overflow),
-          ],
-        ),
-      ),
+    // The AppBar's title slot (and the embedded pane's Expanded) pass loose
+    // constraints (minWidth: 0), so the row hugs its content by default.
+    // SizedBox(width: infinity) forces it to fill the slot; Align then pushes
+    // the cluster to the right edge, matching the body's right padding via the
+    // scaffold's titleSpacing: InSpacing.lg(context). The LayoutBuilder's
+    // constraints reflect that same allocated width — wide ⇒ the spread overflow
+    // bar, narrow ⇒ the compact `⋮` (mobile + master-detail/slide-over pane).
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = Breakpoints.isWide(constraints);
+        return SizedBox(
+          width: double.infinity,
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: wide
+                // Pin Edit as `leading` (a plain enabled FilledButton — never
+                // collapses, like Save on the edit bar); the rest spread inline
+                // and overflow into "More".
+                ? EntityOverflowActionBar<A>(
+                    leading: primary == null
+                        ? null
+                        : _ActionButton<A>(item: primary),
+                    items: rest,
+                  )
+                // Compact: Edit + a single `⋮` holding every other action.
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (primary != null) _ActionButton<A>(item: primary),
+                      if (primary != null && rest.isNotEmpty)
+                        SizedBox(width: InSpacing.md(context)),
+                      if (rest.isNotEmpty) _OverflowMenuButton<A>(items: rest),
+                    ],
+                  ),
+          ),
+        );
+      },
     );
   }
 }

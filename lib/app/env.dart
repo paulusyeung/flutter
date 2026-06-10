@@ -138,4 +138,22 @@ class Env {
         return false;
     }
   }
+
+  /// True only on the touch mobile platforms (iOS/Android); never web or
+  /// desktop. Single source of truth for "is this mobile" — note web is
+  /// *excluded* (a browser has a physical keyboard), so this is not the
+  /// inverse of [isDesktop]. Web-safe (`kIsWeb` first, then `defaultTargetPlatform`).
+  static bool get isMobile {
+    if (kIsWeb) return false;
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.iOS:
+      case TargetPlatform.android:
+        return true;
+      case TargetPlatform.macOS:
+      case TargetPlatform.windows:
+      case TargetPlatform.linux:
+      case TargetPlatform.fuchsia:
+        return false;
+    }
+  }
 }

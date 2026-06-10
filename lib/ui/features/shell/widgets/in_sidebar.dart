@@ -202,14 +202,21 @@ class _InSidebarState extends State<InSidebar> {
             final effectiveWidth = canCollapse
                 ? (collapsed ? kInSidebarCollapsedWidth : kInSidebarWidth)
                 : null;
-            // SafeArea: both hosts reach the window's top edge with no
-            // AppBar — the mobile drawer (Flutter's `Drawer` adds no inset
-            // of its own) and the iPad persistent rail (Positioned at
-            // top: 0). Top-only: the surface decoration below still paints
-            // behind the status bar; bottom is already handled by
-            // SidebarFooterActions' own SafeArea(top: false). On macOS the
-            // top inset is 0, so the caption-strip layout is unchanged.
-            final column = SafeArea(
+            // SafeArea (top-only): both hosts reach the window's top edge
+            // with no AppBar — the mobile drawer (Flutter's `Drawer` adds no
+            // inset of its own) and the iPad persistent rail (Positioned at
+            // top: 0). The surface decoration below still paints behind the
+            // status bar. Horizontal insets are deliberately OFF: SafeArea
+            // applies *window-level* padding regardless of widget position,
+            // and the rail / drawer widths are pinned (232 / 64 / 280) — on
+            // iPhone landscape (~59px inset per side, and landscape widths
+            // are ≥600 so the rail shows) the defaults would crush the
+            // collapsed 64px rail to zero usable width. Bottom is already
+            // handled by SidebarFooterActions' own SafeArea(top: false). On
+            // macOS every inset is 0, so desktop layout is unchanged.
+            final content = SafeArea(
+              left: false,
+              right: false,
               bottom: false,
               child: Column(
                 children: [
@@ -278,12 +285,12 @@ class _InSidebarState extends State<InSidebar> {
                 // original fills-the-drawer behaviour untouched.
                 child: ClipRect(
                   child: effectiveWidth == null
-                      ? column
+                      ? content
                       : OverflowBox(
                           alignment: Alignment.centerLeft,
                           minWidth: effectiveWidth,
                           maxWidth: effectiveWidth,
-                          child: column,
+                          child: content,
                         ),
                 ),
               ),

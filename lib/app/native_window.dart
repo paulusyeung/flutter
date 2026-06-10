@@ -6,7 +6,9 @@ import 'package:admin/app/env.dart';
 /// Drives native desktop window actions that no longer have a title bar to back
 /// them once it's hidden: moving the window, the double-click title-bar action,
 /// and (on platforms where the app draws its own window buttons) minimize /
-/// maximize / close. Triggered from the window-caption chrome at the top of the
+/// maximize / close. Also backs the Debug Panel's screenshot tools:
+/// programmatic content resizing and hiding the native window buttons.
+/// Triggered from the window-caption chrome at the top of the
 /// shell (`WindowCaptionStrip`, plus the drawn controls on Windows/Linux).
 ///
 /// Mirrors the `NativeWindowTheme` bridge shape. Desktop-only — every method is
@@ -42,10 +44,38 @@ class NativeWindow {
   /// Close the window. Drawn-button target on Windows/Linux.
   Future<void> close() => _invoke('close');
 
-  Future<void> _invoke(String method) async {
+  /// Resize the window's content area to [width]×[height] logical points,
+  /// preserving the visual top-left corner (macOS exits fullscreen first if
+  /// needed). Returns the achieved content size in logical points so callers
+  /// can detect clamping; null when not on desktop, on a channel error, or
+  /// when this platform's runner lacks the handler.
+  Future<Size?> setContentSize(double width, double height) async {
+    if (!Env.isDesktop) return null;
+    try {
+      final res = await _channel.invokeMapMethod<String, Object?>(
+        'setContentSize',
+        {'width': width, 'height': height},
+      );
+      final w = (res?['width'] as num?)?.toDouble();
+      final h = (res?['height'] as num?)?.toDouble();
+      if (w == null || h == null) return null;
+      return Size(w, h);
+    } catch (e) {
+      debugPrint('NativeWindow.setContentSize failed: $e');
+      return null;
+    }
+  }
+
+  /// Hide or show the native window buttons (macOS traffic lights) for clean
+  /// window captures. Deliberately never persisted natively — the buttons are
+  /// visible again on every launch.
+  Future<void> setWindowButtonsHidden(bool hidden) =>
+      _invoke('setWindowButtonsHidden', {'hidden': hidden});
+
+  Future<void> _invoke(String method, [Object? arguments]) async {
     if (!Env.isDesktop) return;
     try {
-      await _channel.invokeMethod<void>(method);
+      await _channel.invokeMethod<void>(method, arguments);
     } catch (e) {
       // Missing handler (a method this platform's runner doesn't implement, or
       // older native code) is non-fatal — that control just does nothing until

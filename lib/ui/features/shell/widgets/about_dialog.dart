@@ -49,12 +49,17 @@ Future<void> showAppAboutDialog(BuildContext context) async {
               }
             }
           : null,
-      onShowKeyboardShortcuts: () {
-        Navigator.of(ctx).pop();
-        if (outerContext.mounted) {
-          showKeyboardShortcutsDialog(outerContext);
-        }
-      },
+      // Hidden on mobile (iOS/Android): there's no physical keyboard, so the
+      // shortcuts never fire and the button is dead UI. Web keeps it — a
+      // browser has a keyboard. Null → the action button isn't rendered.
+      onShowKeyboardShortcuts: Env.isMobile
+          ? null
+          : () {
+              Navigator.of(ctx).pop();
+              if (outerContext.mounted) {
+                showKeyboardShortcutsDialog(outerContext);
+              }
+            },
       onShowDebugPanel: () {
         Navigator.of(ctx).pop();
         services.debugPanelRevealed.value = true;
@@ -85,7 +90,7 @@ class _AboutDialog extends StatelessWidget {
   final ValueListenable<String?> serverVersion;
   final String? userEmail;
   final VoidCallback? onShowHealthCheck;
-  final VoidCallback onShowKeyboardShortcuts;
+  final VoidCallback? onShowKeyboardShortcuts;
   final VoidCallback onShowDebugPanel;
 
   /// Combined `v<server>-<platformLetter><clientBuild>` label (see
@@ -154,11 +159,12 @@ class _AboutDialog extends StatelessWidget {
             onPressed: onShowHealthCheck,
             child: Text(context.tr('health_check')),
           ),
-        OutlinedButton(
-          style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
-          onPressed: onShowKeyboardShortcuts,
-          child: Text(context.tr('keyboard_shortcuts')),
-        ),
+        if (onShowKeyboardShortcuts != null)
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+            onPressed: onShowKeyboardShortcuts,
+            child: Text(context.tr('keyboard_shortcuts')),
+          ),
         OutlinedButton(
           style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
           onPressed: onShowDebugPanel,

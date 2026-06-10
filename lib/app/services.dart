@@ -94,6 +94,7 @@ import 'package:admin/app/debug_capture_store.dart';
 import 'package:admin/app/diagnostics_log.dart';
 import 'package:admin/app/locale_controller.dart';
 import 'package:admin/app/recently_viewed_controller.dart';
+import 'package:admin/app/screenshot_window_controller.dart';
 import 'package:admin/app/sidebar_controller.dart';
 import 'package:admin/app/text_scale_controller.dart';
 import 'package:admin/app/theme_controller.dart';
@@ -563,6 +564,14 @@ class Services implements SidebarBadgeContext {
   /// when no list screen is mounted (e.g. Dashboard, Settings).
   final SearchFocusRegistry searchFocus = SearchFocusRegistry();
 
+  /// Debug Panel screenshot tools: window sizing to App Store / Play Store
+  /// pixel dimensions + hiding the native window buttons. Lives on `Services`
+  /// (not panel state) so the chosen size / hidden buttons survive closing
+  /// the panel for the actual capture. In-memory only — resets every launch,
+  /// and the traffic lights default back to visible on each boot.
+  final ScreenshotWindowController screenshotWindow =
+      ScreenshotWindowController();
+
   /// Debug-only Claude-readable log of uncaught errors + WARNING/SEVERE
   /// Logger records, plus on-demand outbox snapshots. `null` in release
   /// builds and in unit-test wiring; see [DiagnosticsLog] for the format.
@@ -570,15 +579,15 @@ class Services implements SidebarBadgeContext {
 
   /// In-memory capture of recent HTTP requests + errors. Off by default and
   /// reset on every app launch — used by the hidden Debug Panel surfaced via
-  /// long-press on the System Logs AppBar title. Lives in release builds so
+  /// the About dialog's "Debug Panel" button. Lives in release builds so
   /// users can self-diagnose in prod.
   final DebugCaptureStore debugCaptureStore;
 
   /// Whether the hidden Debug Panel band is currently visible at the bottom
-  /// of the authenticated app shell. Flipped on by long-press on the System
-  /// Logs AppBar title; flipped off by the Hide button in the panel toolbar.
-  /// Lives on `Services` (not local screen state) so the panel survives
-  /// navigation between routes.
+  /// of the authenticated app shell. Flipped on by the About dialog's
+  /// "Debug Panel" button; flipped off by the Hide button in the panel
+  /// toolbar. Lives on `Services` (not local screen state) so the panel
+  /// survives navigation between routes.
   final ValueNotifier<bool> debugPanelRevealed;
 
   // -- Cross-branch create seed -------------------------------------------

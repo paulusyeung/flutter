@@ -245,7 +245,10 @@ class _DetailsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isPending = vm.draft.isPending;
+    // Only an existing, server-confirmed-unverified user is "pending". A
+    // brand-new draft has emailVerifiedAt == 0 (isPending == true) but hasn't
+    // been invited yet, so the invitation banner must not show in create mode.
+    final isPending = !vm.isCreate && vm.draft.isPending;
     return SettingsFormShell(
       sections: [
         if (isPending)

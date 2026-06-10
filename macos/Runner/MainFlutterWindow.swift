@@ -75,6 +75,17 @@ class MainFlutterWindow: NSWindow {
   // it republishes on its own via MediaQuery and the KVO path stays silent.
   private var flutterHasPushed = false
 
+  // Debug Panel screenshot tools. `pendingWindowResize` parks a resize that
+  // arrived while fullscreen until the exit transition completes (called with
+  // `superseded: true` if a newer resize replaces it, so its FlutterResult is
+  // always answered). `isExitingFullScreenForResize` guards against kicking off
+  // a second `toggleFullScreen` while the first exit is still animating.
+  // `windowButtonsHidden` is in-memory only by design — never UserDefaults —
+  // so every launch starts with visible traffic lights.
+  private var pendingWindowResize: ((_ superseded: Bool) -> Void)?
+  private var isExitingFullScreenForResize = false
+  private var windowButtonsHidden = false
+
   // macOS leg of the cross-platform window-state contract (see CLAUDE.md
   // § Desktop window state). AppKit derives the NSUserDefaults frame key
   // from windowAutosaveName as "NSWindow Frame <name>".
@@ -167,6 +178,30 @@ class MainFlutterWindow: NSWindow {
           self.zoom(nil)
         }
         result(nil)
+      case "setContentSize":
+        guard let args = call.arguments as? [String: Any],
+              let width = args["width"] as? Double,
+              let height = args["height"] as? Double,
+              width > 0, height > 0
+        else {
+          result(FlutterError(
+            code: "bad_args",
+            message: "expected positive width/height doubles",
+            details: nil))
+          return
+        }
+        self.performContentResize(width: width, height: height, result: result)
+      case "setWindowButtonsHidden":
+        guard let args = call.arguments as? [String: Any],
+              let hidden = args["hidden"] as? Bool
+        else {
+          result(FlutterError(
+            code: "bad_args", message: "expected hidden bool", details: nil))
+          return
+        }
+        self.windowButtonsHidden = hidden
+        self.reapplyWindowButtonsHidden()
+        result(nil)
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -220,6 +255,75 @@ class MainFlutterWindow: NSWindow {
     // Window dragging is driven explicitly from the Flutter sidebar strip via
     // `performDrag` (background dragging wouldn't work through the FlutterView).
     self.isMovableByWindowBackground = false
+  }
+
+  // Debug Panel screenshot tools: resize the content area to logical points,
+  // preserving the visual top-left. With the hidden title bar +
+  // .fullSizeContentView the FlutterView fills the frame, so a window capture
+  // is exactly (requested points × backingScaleFactor) pixels; going through
+  // frameRect(forContentRect:) / contentRect(forFrameRect:) keeps the math
+  // right even if the chrome ever changes. Programmatic setFrame is not
+  // screen-constrained and the XIB declares no min/max content size, so
+  // phone-portrait and larger-than-screen frames apply cleanly — the achieved
+  // size is returned so Dart can surface any clamping that does occur. The
+  // frame autosave persists whatever is applied; "Restore original size" in
+  // the panel is the undo.
+  private func performContentResize(
+    width: Double, height: Double, result: @escaping FlutterResult
+  ) {
+    let apply: (_ superseded: Bool) -> Void = { [weak self] superseded in
+      guard !superseded, let self = self else {
+        result(FlutterError(
+          code: "superseded",
+          message: "window gone or a newer setContentSize replaced this call",
+          details: nil))
+        return
+      }
+      let content = NSRect(
+        origin: .zero, size: NSSize(width: width, height: height))
+      var frame = self.frame
+      let topLeftY = frame.maxY
+      frame.size = self.frameRect(forContentRect: content).size
+      frame.origin.y = topLeftY - frame.size.height
+      self.setFrame(frame, display: true)
+      // Frame changes can rebuild the titlebar button views.
+      self.reapplyWindowButtonsHidden()
+      let achieved = self.contentRect(forFrameRect: self.frame).size
+      result([
+        "width": Double(achieved.width),
+        "height": Double(achieved.height),
+      ])
+    }
+    // A newer resize supersedes one still parked behind a fullscreen exit —
+    // answer the old call so its Dart future completes (NativeWindow maps the
+    // error to a null achieved size).
+    pendingWindowResize?(true)
+    pendingWindowResize = nil
+    if styleMask.contains(.fullScreen) {
+      // Can't resize a fullscreen window: exit first; windowDidExitFullScreen
+      // runs the parked closure (and answers the FlutterResult) afterwards.
+      // The latest resize wins; only initiate the exit once — a second
+      // toggleFullScreen mid-transition could bounce the window back.
+      pendingWindowResize = apply
+      if !isExitingFullScreenForResize {
+        isExitingFullScreenForResize = true
+        toggleFullScreen(nil)
+      }
+    } else {
+      apply(false)
+    }
+  }
+
+  // The traffic lights are real AppKit views that fullscreen transitions can
+  // rebuild, so the hidden flag is reapplied after those events rather than
+  // set once.
+  private func reapplyWindowButtonsHidden() {
+    let buttons: [NSWindow.ButtonType] = [
+      .closeButton, .miniaturizeButton, .zoomButton,
+    ]
+    for type in buttons {
+      standardWindowButton(type)?.isHidden = windowButtonsHidden
+    }
   }
 
   // Native splash: cover the FlutterViewController with a themed view and the
@@ -413,8 +517,18 @@ class MainFlutterWindow: NSWindow {
 extension MainFlutterWindow: NSWindowDelegate {
   func windowDidEnterFullScreen(_ notification: Notification) {
     UserDefaults.standard.set(true, forKey: Self.fullscreenKey)
+    // Fullscreen rebuilds the titlebar buttons into the auto-hiding bar;
+    // keep them hidden there too when the screenshot flag is on.
+    reapplyWindowButtonsHidden()
   }
   func windowDidExitFullScreen(_ notification: Notification) {
     UserDefaults.standard.set(false, forKey: Self.fullscreenKey)
+    reapplyWindowButtonsHidden()
+    // Run a resize that was parked while the window was fullscreen.
+    isExitingFullScreenForResize = false
+    if let pending = pendingWindowResize {
+      pendingWindowResize = nil
+      pending(false)
+    }
   }
 }

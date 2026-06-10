@@ -34,6 +34,25 @@ List<EntityActionItem<String>> _items() => [
   ),
 ];
 
+/// A primary Edit plus enough actions that they can't all fit inline at a
+/// modest wide width — forcing the spread bar to collapse the tail into "More".
+List<EntityActionItem<String>> _manyItems() => [
+  const EntityActionItem(
+    kind: 'edit',
+    icon: MdiIcons.circleEditOutline,
+    label: 'Edit',
+    enabled: true,
+    isPrimary: true,
+  ),
+  for (var i = 0; i < 8; i++)
+    EntityActionItem(
+      kind: 'a$i',
+      icon: Icons.bolt_outlined,
+      label: 'Action number $i',
+      enabled: true,
+    ),
+];
+
 /// A soft-deleted record drops the primary Edit and keeps only lifecycle ops.
 const _noPrimary = <EntityActionItem<String>>[
   EntityActionItem(
@@ -63,62 +82,123 @@ const _editOnly = <EntityActionItem<String>>[
   ),
 ];
 
-Widget _host(Widget child) => MaterialApp(
+/// Hosts [child] at a fixed [width] so the row's `LayoutBuilder` resolves to a
+/// known branch: `< Breakpoints.wide` (600) ⇒ compact `⋮`, `≥ 600` ⇒ spread bar.
+Widget _host(Widget child, {required double width}) => MaterialApp(
   theme: buildInTheme(InTheme.light),
   localizationsDelegates: kTestLocalizationsDelegates,
   supportedLocales: kTestSupportedLocales,
-  home: Scaffold(body: Center(child: child)),
+  home: Scaffold(
+    body: Center(
+      child: SizedBox(width: width, child: child),
+    ),
+  ),
 );
 
 void main() {
-  testWidgets('surfaces the primary Edit button + a ⋮ overflow with the rest', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _host(EntityDetailActionsRow<String>(items: _items())),
-    );
-    await tester.pumpAndSettle();
+  group('narrow (compact ⋮)', () {
+    testWidgets('surfaces the primary Edit button + a ⋮ overflow with the rest', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(EntityDetailActionsRow<String>(items: _items()), width: 400),
+      );
+      await tester.pumpAndSettle();
 
-    // Edit is surfaced as its own FilledButton; the rest live behind the ⋮.
-    expect(find.widgetWithText(FilledButton, 'Edit'), findsOneWidget);
-    expect(find.byIcon(Icons.more_vert), findsOneWidget);
+      // Edit is surfaced as its own FilledButton; the rest live behind the ⋮.
+      expect(find.widgetWithText(FilledButton, 'Edit'), findsOneWidget);
+      expect(find.byIcon(Icons.more_vert), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.more_vert));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
 
-    // The overflow holds the transient-busy item — not Edit (it's the surfaced
-    // button, removed from the menu), nor the unsupported Refund.
-    expect(find.text('Busy'), findsOneWidget);
-    expect(find.widgetWithText(MenuItemButton, 'Edit'), findsNothing);
-    expect(find.text('Refund'), findsNothing);
+      // The overflow holds the transient-busy item — not Edit (it's the surfaced
+      // button, removed from the menu), nor the unsupported Refund.
+      expect(find.text('Busy'), findsOneWidget);
+      expect(find.widgetWithText(MenuItemButton, 'Edit'), findsNothing);
+      expect(find.text('Refund'), findsNothing);
+    });
+
+    testWidgets('with no primary action, shows only the ⋮ overflow', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(EntityDetailActionsRow<String>(items: _noPrimary), width: 400),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(FilledButton), findsNothing);
+      expect(find.byIcon(Icons.more_vert), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+      expect(find.text('Archive'), findsOneWidget);
+      expect(find.text('Delete'), findsOneWidget);
+    });
+
+    testWidgets('with only the primary action, shows Edit and no ⋮', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(EntityDetailActionsRow<String>(items: _editOnly), width: 400),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(FilledButton, 'Edit'), findsOneWidget);
+      expect(find.byIcon(Icons.more_vert), findsNothing);
+    });
   });
 
-  testWidgets('with no primary action, shows only the ⋮ overflow', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _host(EntityDetailActionsRow<String>(items: _noPrimary)),
-    );
-    await tester.pumpAndSettle();
+  group('wide (spread bar + "More")', () {
+    testWidgets('spreads actions inline next to Edit (no overflow menu) when '
+        'they all fit', (tester) async {
+      // Edit (primary, surfaced as leading) + Busy (the one visible "rest"
+      // item) both fit at 800, so Busy renders inline rather than behind a menu.
+      await tester.pumpWidget(
+        _host(EntityDetailActionsRow<String>(items: _items()), width: 800),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.byType(FilledButton), findsNothing);
-    expect(find.byIcon(Icons.more_vert), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Edit'), findsOneWidget);
+      expect(find.widgetWithText(OutlinedButton, 'Busy'), findsOneWidget);
+      // Neither overflow trigger: the compact ⋮ is the narrow branch, and the
+      // "More" menu only appears once something overflows.
+      expect(find.byIcon(Icons.more_vert), findsNothing);
+      expect(find.byIcon(Icons.more_horiz), findsNothing);
+    });
 
-    await tester.tap(find.byIcon(Icons.more_vert));
-    await tester.pumpAndSettle();
-    expect(find.text('Archive'), findsOneWidget);
-    expect(find.text('Delete'), findsOneWidget);
-  });
+    testWidgets('collapses the tail into a labeled "More" menu when actions '
+        'overflow; Edit stays pinned', (tester) async {
+      // 8 actions can't fit beside Edit at 650 — the tail collapses into "More".
+      await tester.pumpWidget(
+        _host(EntityDetailActionsRow<String>(items: _manyItems()), width: 650),
+      );
+      await tester.pumpAndSettle();
 
-  testWidgets('with only the primary action, shows Edit and no ⋮', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _host(EntityDetailActionsRow<String>(items: _editOnly)),
-    );
-    await tester.pumpAndSettle();
+      expect(find.widgetWithText(FilledButton, 'Edit'), findsOneWidget);
+      // Labeled "More" trigger (more_horiz), not the compact ⋮.
+      expect(find.byIcon(Icons.more_horiz), findsOneWidget);
+      expect(find.byIcon(Icons.more_vert), findsNothing);
 
-    expect(find.widgetWithText(FilledButton, 'Edit'), findsOneWidget);
-    expect(find.byIcon(Icons.more_vert), findsNothing);
+      await tester.tap(find.byIcon(Icons.more_horiz));
+      await tester.pumpAndSettle();
+      // The last action overflowed into the menu.
+      expect(find.text('Action number 7'), findsOneWidget);
+    });
+
+    testWidgets('with no primary, spreads lifecycle actions inline when wide', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(EntityDetailActionsRow<String>(items: _noPrimary), width: 800),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(FilledButton), findsNothing);
+      expect(find.widgetWithText(OutlinedButton, 'Archive'), findsOneWidget);
+      expect(find.widgetWithText(OutlinedButton, 'Delete'), findsOneWidget);
+      expect(find.byIcon(Icons.more_horiz), findsNothing);
+      expect(find.byIcon(Icons.more_vert), findsNothing);
+    });
   });
 }

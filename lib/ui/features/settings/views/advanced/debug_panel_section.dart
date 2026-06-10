@@ -6,16 +6,22 @@ import 'package:flutter/services.dart';
 
 import 'package:admin/app/debug_capture_store.dart';
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/env.dart';
+import 'package:admin/app/screenshot_window_controller.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/status_pill.dart';
+import 'package:admin/ui/features/settings/views/advanced/debug_panel_window_controls.dart';
 import 'package:admin/utils/formatting.dart';
 
-/// Hidden Debug Panel surfaced on the System Logs screen after a long-press
-/// on the AppBar title. Renders as a Chrome DevTools-style band pinned to
-/// the bottom of the viewport: a compact toolbar (toggle + clear + copy +
-/// hide) above a Material `TabBar` switching between a Network Requests
-/// list and a Recent Errors list. Reactive to [DebugCaptureStore].
+/// Hidden Debug Panel revealed from the About dialog's "Debug Panel" button.
+/// Renders as a Chrome DevTools-style band pinned to the bottom of the
+/// authenticated shell: a compact toolbar (capture toggle + screenshot tools
+/// on desktop + clear / copy / hide) above a Material `TabBar` switching
+/// between a Network Requests list and a Recent Errors list. Reactive to
+/// [DebugCaptureStore]; the desktop screenshot tools react to
+/// [ScreenshotWindowController].
 ///
 /// All data is in-memory and reset on app restart. The store applies
 /// redaction (`redact()` / `redactHeaders()`) before anything reaches this
@@ -25,10 +31,15 @@ class DebugPanelSection extends StatelessWidget {
   const DebugPanelSection({
     super.key,
     required this.store,
+    required this.windowController,
     required this.onHide,
   });
 
   final DebugCaptureStore store;
+
+  /// Screenshot tools state (window size presets + hidden traffic lights).
+  /// Lives on `Services` so it survives hiding the panel for the capture.
+  final ScreenshotWindowController windowController;
 
   /// Called when the user taps the Hide button in the toolbar. The parent
   /// flips its `_debugRevealed` back to false so the panel returns to its
@@ -43,41 +54,66 @@ class DebugPanelSection extends StatelessWidget {
         color: tokens.surface,
         border: Border(top: BorderSide(color: tokens.border)),
       ),
-      child: AnimatedBuilder(
-        animation: store,
-        builder: (context, _) {
-          final network = store.networkEntries;
-          final errors = store.diagnosticEntries;
-          return DefaultTabController(
-            length: 2,
-            child: Column(
-              children: [
-                _Toolbar(store: store, onHide: onHide),
-                Divider(height: 1, thickness: 1, color: tokens.border),
-                TabBar(
-                  tabs: [
-                    Tab(
-                      text:
-                          '${context.tr('network_requests')} (${network.length})',
-                    ),
-                    Tab(
-                      text:
-                          '${context.tr('debug_recent_errors')} (${errors.length})',
-                    ),
-                  ],
-                ),
-                Divider(height: 1, thickness: 1, color: tokens.border),
-                Expanded(
-                  child: TabBarView(
-                    physics: const NeverScrollableScrollPhysics(),
+      // One width decision shared by the toolbar layout and the TabBar so
+      // they flip to their narrow forms together.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = !Breakpoints.isWide(constraints);
+          return AnimatedBuilder(
+            animation: store,
+            builder: (context, _) {
+              final network = store.networkEntries;
+              final errors = store.diagnosticEntries;
+              return DefaultTabController(
+                length: 2,
+                // The band is the bottom-most viewport element on phones, so
+                // it owns the home-indicator inset; the surface Container
+                // above paints behind it. No-op on desktop/web.
+                child: SafeArea(
+                  top: false,
+                  child: Column(
                     children: [
-                      _NetworkTab(entries: network, enabled: store.enabled),
-                      _ErrorsTab(entries: errors, enabled: store.enabled),
+                      _Toolbar(
+                        store: store,
+                        windowController: windowController,
+                        onHide: onHide,
+                        isNarrow: isNarrow,
+                      ),
+                      Divider(height: 1, thickness: 1, color: tokens.border),
+                      TabBar(
+                        // Fixed tabs get ~160 px each on a 320 px band —
+                        // not enough for the counted labels.
+                        isScrollable: isNarrow,
+                        tabAlignment: isNarrow ? TabAlignment.start : null,
+                        tabs: [
+                          Tab(
+                            text:
+                                '${context.tr('network_requests')} (${network.length})',
+                          ),
+                          Tab(
+                            text:
+                                '${context.tr('debug_recent_errors')} (${errors.length})',
+                          ),
+                        ],
+                      ),
+                      Divider(height: 1, thickness: 1, color: tokens.border),
+                      Expanded(
+                        child: TabBarView(
+                          physics: const NeverScrollableScrollPhysics(),
+                          children: [
+                            _NetworkTab(
+                              entries: network,
+                              enabled: store.enabled,
+                            ),
+                            _ErrorsTab(entries: errors, enabled: store.enabled),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ],
-            ),
+              );
+            },
           );
         },
       ),
@@ -85,62 +121,126 @@ class DebugPanelSection extends StatelessWidget {
   }
 }
 
-/// Compact controls row at the top of the panel. All content is pushed to
-/// the right edge of the band: label + Switch + Clear / Copy / Close icon
-/// buttons. The left side is intentionally empty so the toolbar reads as a
-/// trailing action cluster.
+/// Compact controls at the top of the panel: capture label + Switch on the
+/// left, then (desktop only) the screenshot tools, then Clear / Copy / Close
+/// icon buttons on the right. On narrow bands (<600 px) it stacks into two
+/// rows — label + Switch + Close up top, the action cluster right-aligned
+/// below — so nothing overflows at phone widths.
 class _Toolbar extends StatelessWidget {
-  const _Toolbar({required this.store, required this.onHide});
+  const _Toolbar({
+    required this.store,
+    required this.windowController,
+    required this.onHide,
+    required this.isNarrow,
+  });
 
   final DebugCaptureStore store;
+  final ScreenshotWindowController windowController;
   final VoidCallback onHide;
+  final bool isNarrow;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final hasAny =
         store.networkEntries.isNotEmpty || store.diagnosticEntries.isNotEmpty;
-    return Tooltip(
+
+    // Scoped to the label + switch so it doesn't compete with the action
+    // buttons' own tooltips.
+    final captureCluster = Tooltip(
       message: context.tr('debug_capture_help'),
       waitDuration: const Duration(milliseconds: 600),
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: InSpacing.lg(context),
-          vertical: InSpacing.sm,
-        ),
-        child: Row(
-          children: [
-            Text(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text(
               context.tr('capture_network_and_errors'),
               style: TextStyle(color: tokens.ink, fontSize: 13),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               softWrap: false,
             ),
-            SizedBox(width: InSpacing.md(context)),
-            Switch(
-              value: store.enabled,
-              onChanged: store.setEnabled,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            const Spacer(),
-            IconButton(
-              icon: const Icon(Icons.clear_all),
-              tooltip: context.tr('clear_capture'),
-              onPressed: hasAny ? store.clear : null,
-            ),
-            IconButton(
-              icon: const Icon(Icons.copy_outlined),
-              tooltip: context.tr('copy_debug_capture'),
-              onPressed: hasAny ? () => _copyAll(context, store) : null,
-            ),
-            IconButton(
-              icon: const Icon(Icons.close),
-              tooltip: context.tr('hide'),
-              onPressed: onHide,
-            ),
-          ],
-        ),
+          ),
+          SizedBox(width: InSpacing.md(context)),
+          Switch(
+            value: store.enabled,
+            onChanged: store.setEnabled,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ],
+      ),
+    );
+
+    final clearButton = IconButton(
+      icon: const Icon(Icons.clear_all),
+      tooltip: context.tr('clear_capture'),
+      onPressed: hasAny ? store.clear : null,
+    );
+    final copyButton = IconButton(
+      icon: const Icon(Icons.copy_outlined),
+      tooltip: context.tr('copy_debug_capture'),
+      onPressed: hasAny ? () => _copyAll(context, store) : null,
+    );
+    final closeButton = IconButton(
+      icon: const Icon(Icons.close),
+      tooltip: context.tr('hide'),
+      onPressed: onHide,
+    );
+
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: InSpacing.lg(context),
+        vertical: InSpacing.sm,
+      ),
+      // The screenshot controls read the window controller (menu checkmark,
+      // toggle state) — rebuild them when it notifies.
+      child: ListenableBuilder(
+        listenable: windowController,
+        builder: (context, _) {
+          final screenshotControls = Env.isDesktop
+              ? <Widget>[
+                  ScreenshotSizeMenuButton(controller: windowController),
+                  WindowButtonsToggle(controller: windowController),
+                ]
+              : const <Widget>[];
+          if (!isNarrow) {
+            return Row(
+              children: [
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: captureCluster,
+                  ),
+                ),
+                ...screenshotControls,
+                clearButton,
+                copyButton,
+                closeButton,
+              ],
+            );
+          }
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: captureCluster,
+                    ),
+                  ),
+                  closeButton,
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [...screenshotControls, clearButton, copyButton],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -342,26 +442,31 @@ class _ErrorsTabState extends State<_ErrorsTab>
           ),
           child: Align(
             alignment: Alignment.centerLeft,
-            child: SegmentedButton<_LevelFilter>(
-              segments: [
-                ButtonSegment(
-                  value: _LevelFilter.all,
-                  label: Text(context.tr('all')),
-                ),
-                ButtonSegment(
-                  value: _LevelFilter.warningPlus,
-                  label: Text(context.tr('warning_plus')),
-                ),
-                ButtonSegment(
-                  value: _LevelFilter.errorPlus,
-                  label: Text(context.tr('error_plus')),
-                ),
-              ],
-              selected: {_level},
-              onSelectionChanged: widget.entries.isEmpty
-                  ? null
-                  : (s) => setState(() => _level = s.first),
-              showSelectedIcon: false,
+            // Horizontal scroll keeps the three segments usable on a 320 px
+            // band instead of overflowing.
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SegmentedButton<_LevelFilter>(
+                segments: [
+                  ButtonSegment(
+                    value: _LevelFilter.all,
+                    label: Text(context.tr('all')),
+                  ),
+                  ButtonSegment(
+                    value: _LevelFilter.warningPlus,
+                    label: Text(context.tr('warning_plus')),
+                  ),
+                  ButtonSegment(
+                    value: _LevelFilter.errorPlus,
+                    label: Text(context.tr('error_plus')),
+                  ),
+                ],
+                selected: {_level},
+                onSelectionChanged: widget.entries.isEmpty
+                    ? null
+                    : (s) => setState(() => _level = s.first),
+                showSelectedIcon: false,
+              ),
             ),
           ),
         ),

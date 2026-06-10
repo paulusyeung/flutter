@@ -102,15 +102,25 @@ class MobileDashboardBody extends StatelessWidget {
       padding: EdgeInsets.all(InSpacing.lg(context)),
       children: [
         _eyebrow(context, tokens),
-        SizedBox(height: InSpacing.sm),
+        // The empty-state "add cards" link is dropped on mobile — the app bar
+        // already has a dedicated Cards button. Only render the grid (and its
+        // leading gap) once cards exist.
         ListenableBuilder(
           listenable: vm,
-          builder: (context, _) => ConfiguredCardsGrid(
-            vm: vm,
-            formatter: formatter,
-            onManage: () => openManageDashboardCards(context, vm: vm),
-            onOpenCard: onOpenCard,
-          ),
+          builder: (context, _) => vm.dashboardCards.isEmpty
+              ? const SizedBox.shrink()
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(height: InSpacing.sm),
+                    ConfiguredCardsGrid(
+                      vm: vm,
+                      formatter: formatter,
+                      onManage: () => openManageDashboardCards(context, vm: vm),
+                      onOpenCard: onOpenCard,
+                    ),
+                  ],
+                ),
         ),
         SizedBox(height: InSpacing.lg(context)),
         sectionListenable(vm.kpiListenable, () => _heroKpi(context, tokens)),
