@@ -10,6 +10,7 @@ import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/company_settings.dart';
 import 'package:admin/data/repositories/client_repository.dart';
 import 'package:admin/data/services/api_exception.dart';
+import 'package:admin/ui/features/settings/view_models/design_update_all_mixin.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/settings_field_bindings.dart';
 
@@ -33,7 +34,8 @@ final _log = Logger('ClientSettingsDraftViewModel');
 /// bound widget always reflects the *effective* value, while
 /// [isOverridden] reads directly from `_draft` so the override checkbox
 /// state is independent of the company default.
-class ClientSettingsDraftViewModel extends SettingsDraftHost {
+class ClientSettingsDraftViewModel extends SettingsDraftHost
+    with DesignUpdateAllMixin {
   ClientSettingsDraftViewModel({
     required this.repo,
     required this.db,
@@ -227,8 +229,21 @@ class ClientSettingsDraftViewModel extends SettingsDraftHost {
     try {
       final json = _draft.toJson()..removeWhere((_, v) => v == null);
       final next = client.copyWith(settings: json.isEmpty ? null : json);
-      await repo.save(companyId: companyId, client: next);
+      // Capture "Update all records" design directives BEFORE advancing the
+      // baseline (changedDesignUpdates diffs draft vs initial). Skip an
+      // unsynced offline-create client — `/designs/set/default` 400s on a
+      // tmp_ id. `repo.save` enqueues them as setDefaultDesign rows in the
+      // same transaction as the settings update (atomic).
+      final designUpdates = clientId.startsWith('tmp_')
+          ? const <Map<String, dynamic>>[]
+          : changedDesignUpdates();
+      await repo.save(
+        companyId: companyId,
+        client: next,
+        designDefaultUpdates: designUpdates,
+      );
       _initial = _draft;
+      clearUpdateAll();
       return next;
     } on ValidationException catch (e) {
       _fieldErrors = e.fieldErrors;

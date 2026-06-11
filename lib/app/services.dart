@@ -1167,7 +1167,20 @@ class Services implements SidebarBadgeContext {
       // company here (both entity types). Fire-and-forget; the picker +
       // Settings → Tags read from the resulting `tags` Drift table. The
       // `_lastActivatedCompanyId` guard fires this once per actual change.
-      unawaited(entities.tags.refreshAll(companyId: companyId));
+      // Guard the failure: a fire-and-forget refresh that throws (offline,
+      // or the fail-fast test client) must not surface as an unhandled async
+      // error — it's retried on the next company activate.
+      unawaited(
+        entities.tags
+            .refreshAll(companyId: companyId)
+            .catchError(
+              (Object e, StackTrace s) => _servicesLog.fine(
+                'tag prefetch failed (non-fatal; retried on next activate)',
+                e,
+                s,
+              ),
+            ),
+      );
     };
     services = Services._(
       db: db,

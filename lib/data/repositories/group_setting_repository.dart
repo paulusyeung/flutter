@@ -248,9 +248,15 @@ class GroupSettingRepository
     return SaveResult(entity: stored, outboxRowId: rowId);
   }
 
+  /// [designDefaultUpdates] carries the Invoice Design "Update all records"
+  /// directives (`[{design_id, entity}, …]`) for group scope. Each is enqueued
+  /// as a `setDefaultDesign` row **inside the same transaction** as the settings
+  /// `update`, so a process kill can't persist the settings change without the
+  /// retro-apply. `settings_level` + `group_settings_id` are stamped here.
   Future<SaveResult<GroupSetting>> save({
     required String companyId,
     required GroupSetting group,
+    List<Map<String, dynamic>> designDefaultUpdates = const [],
   }) async {
     final companion = _domainToCompanion(group, companyId, isDirty: true);
     var rowId = 0;
@@ -267,6 +273,19 @@ class GroupSettingRepository
         kind: MutationKind.update,
         payload: group.toApiJson(preserveTempId: true),
       );
+      for (final u in designDefaultUpdates) {
+        await enqueueMutation(
+          companyId: companyId,
+          entityId: group.id,
+          kind: MutationKind.setDefaultDesign,
+          payload: {
+            'design_id': u['design_id'],
+            'entity': u['entity'],
+            'settings_level': 'group_settings',
+            'group_settings_id': group.id,
+          },
+        );
+      }
     });
     return SaveResult(entity: group, outboxRowId: rowId);
   }

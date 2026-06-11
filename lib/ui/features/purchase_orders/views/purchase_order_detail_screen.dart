@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/ui/core/widgets/vendor_name_label.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/purchase_order.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
@@ -64,20 +65,26 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen>
       vm: _vm,
       emptyIcon: Icons.shopping_bag_outlined,
       emptyTitle: context.tr('purchase_order_not_found'),
-      actionsForItem: (context, po) =>
-          EntityDetailActionsRow<PurchaseOrderAction>(
-            items: PurchaseOrderActions.itemsFor(
-              context,
-              po,
-              (a) => PurchaseOrderActions.dispatch(
+      actionsForItem: (context, po) => StreamBuilder<Company?>(
+        // Cheap local Drift watch — the e-PO download gate needs the
+        // company's e-invoice type (mirrors invoice_detail_screen).
+        stream: _services.company.watchCompany(_companyId),
+        builder: (context, companySnap) =>
+            EntityDetailActionsRow<PurchaseOrderAction>(
+              items: PurchaseOrderActions.itemsFor(
                 context,
-                _services,
-                _companyId,
                 po,
-                a,
+                (a) => PurchaseOrderActions.dispatch(
+                  context,
+                  _services,
+                  _companyId,
+                  po,
+                  a,
+                ),
+                eInvoiceType: companySnap.data?.settings.eInvoiceType,
               ),
             ),
-          ),
+      ),
       bodyBuilder: (context, po) => _Body(
         purchaseOrder: po,
         services: _services,

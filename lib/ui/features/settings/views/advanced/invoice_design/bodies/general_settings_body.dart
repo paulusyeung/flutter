@@ -6,8 +6,7 @@ import 'package:admin/data/models/domain/design.dart';
 import 'package:admin/data/static/google_fonts_catalog.dart';
 import 'package:admin/data/static/pdf_catalogs.dart';
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
-import 'package:admin/ui/features/settings/view_models/invoice_design_view_model.dart';
+import 'package:admin/ui/features/settings/view_models/design_update_all_mixin.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_color_field.dart';
@@ -73,12 +72,15 @@ class GeneralSettingsBody extends StatelessWidget {
   Widget _buildSections(BuildContext context, List<Design> bundled) {
     final host = context.watch<SettingsDraftHost>();
     final settings = host.settings;
+    // "Update all records" toggle state lives on the shared
+    // [DesignUpdateAllMixin] (company + client + group VMs). Its "changed"
+    // check diffs the *own* draft (`draftSettings`) — at cascade scope the
+    // merged `settings` would mask an inherited→explicit override as a phantom
+    // change and wrongly show the toggle on load. The mixin's scope-aware
+    // `designUpdateEntities` also drops `purchase_order` at client/group scope.
+    final designVm = host is DesignUpdateAllMixin ? host : null;
+    final draftDesign = host.draftSettings;
     final initial = host.initialSettings;
-    // The "Update all records" toggles are company-scope only — the
-    // `extraOutboxPayload` hook that carries them lives on the company VM,
-    // not the client-scope `ClientSettingsDraftViewModel`.
-    final invoiceVm = host is InvoiceDesignViewModel ? host : null;
-    final isCompany = context.watch<SettingsLevelController>().isCompany;
     // The page-numbering alignment dropdown renders only when page numbering is
     // enabled (see `hasPageNumbering` below). Unlike admin-portal, the
     // `embed_documents` toggle is shown unconditionally here — matching the
@@ -115,10 +117,9 @@ class GeneralSettingsBody extends StatelessWidget {
               apiKey: 'invoice_design_id',
               entity: 'invoice',
               bundled: bundled,
-              currentId: settings.invoiceDesignId,
+              currentId: draftDesign.invoiceDesignId,
               initialId: initial.invoiceDesignId,
-              vm: invoiceVm,
-              isCompany: isCompany,
+              vm: designVm,
             ),
             ..._designPickerWithUpdateAll(
               context,
@@ -126,10 +127,9 @@ class GeneralSettingsBody extends StatelessWidget {
               apiKey: 'quote_design_id',
               entity: 'quote',
               bundled: bundled,
-              currentId: settings.quoteDesignId,
+              currentId: draftDesign.quoteDesignId,
               initialId: initial.quoteDesignId,
-              vm: invoiceVm,
-              isCompany: isCompany,
+              vm: designVm,
             ),
             ..._designPickerWithUpdateAll(
               context,
@@ -137,10 +137,9 @@ class GeneralSettingsBody extends StatelessWidget {
               apiKey: 'credit_design_id',
               entity: 'credit',
               bundled: bundled,
-              currentId: settings.creditDesignId,
+              currentId: draftDesign.creditDesignId,
               initialId: initial.creditDesignId,
-              vm: invoiceVm,
-              isCompany: isCompany,
+              vm: designVm,
             ),
             ..._designPickerWithUpdateAll(
               context,
@@ -148,10 +147,9 @@ class GeneralSettingsBody extends StatelessWidget {
               apiKey: 'purchase_order_design_id',
               entity: 'purchase_order',
               bundled: bundled,
-              currentId: settings.purchaseOrderDesignId,
+              currentId: draftDesign.purchaseOrderDesignId,
               initialId: initial.purchaseOrderDesignId,
-              vm: invoiceVm,
-              isCompany: isCompany,
+              vm: designVm,
             ),
             OverridableDesignPicker(
               label: context.tr('delivery_note_design'),
@@ -299,10 +297,12 @@ class GeneralSettingsBody extends StatelessWidget {
   }
 
   /// A required document-design picker plus its conditional "Update all
-  /// records" toggle. The toggle appears only at company scope and only once
-  /// the design differs from the loaded baseline — mirrors React
-  /// (`InvoiceDesign.tsx`) and admin-portal (`invoice_design.dart`). Ticking
-  /// it makes the next save also `POST /designs/set/default` for [entity].
+  /// records" toggle. The toggle appears once the design differs from the
+  /// loaded baseline, for any scope whose [DesignUpdateAllMixin] offers the
+  /// [entity] (company: all four; client/group: invoice/quote/credit — PO
+  /// designs are company-scoped server-side). Mirrors React
+  /// (`InvoiceDesign.tsx`). Ticking it makes the next save also
+  /// `POST /designs/set/default` for [entity].
   List<Widget> _designPickerWithUpdateAll(
     BuildContext context, {
     required String labelKey,
@@ -311,8 +311,7 @@ class GeneralSettingsBody extends StatelessWidget {
     required List<Design> bundled,
     required String? currentId,
     required String? initialId,
-    required InvoiceDesignViewModel? vm,
-    required bool isCompany,
+    required DesignUpdateAllMixin? vm,
   }) {
     final changed =
         (currentId ?? '').isNotEmpty && (currentId ?? '') != (initialId ?? '');
@@ -323,7 +322,7 @@ class GeneralSettingsBody extends StatelessWidget {
         bundledDesigns: bundled,
         forEntity: entity,
       ),
-      if (vm != null && isCompany && changed)
+      if (vm != null && vm.designUpdateEntities.contains(entity) && changed)
         _UpdateAllDesignToggle(
           key: ValueKey('update_all_$entity'),
           vm: vm,
@@ -347,11 +346,11 @@ class GeneralSettingsBody extends StatelessWidget {
 }
 
 /// Inline "Update all records" checkbox shown under a changed document-design
-/// picker. Holds its checked state locally (visual) and stashes it on the VM
-/// for [InvoiceDesignViewModel.extraOutboxPayload] to read at save time —
-/// deliberately *not* via the cascade draft, so ticking it doesn't dirty the
-/// form or trigger a live-preview re-render. Re-seeds from the VM on remount
-/// so a tick survives toggling the design back and forth within a session.
+/// picker. Holds its checked state locally (visual) and stashes it on the VM's
+/// [DesignUpdateAllMixin] for the save path to read — deliberately *not* via
+/// the cascade draft, so ticking it doesn't dirty the form or trigger a
+/// live-preview re-render. Re-seeds from the VM on remount so a tick survives
+/// toggling the design back and forth within a session.
 class _UpdateAllDesignToggle extends StatefulWidget {
   const _UpdateAllDesignToggle({
     super.key,
@@ -359,7 +358,7 @@ class _UpdateAllDesignToggle extends StatefulWidget {
     required this.entity,
   });
 
-  final InvoiceDesignViewModel vm;
+  final DesignUpdateAllMixin vm;
   final String entity;
 
   @override

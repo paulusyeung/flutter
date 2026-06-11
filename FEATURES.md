@@ -411,7 +411,7 @@ the honest default.
 | Purchase order — mark sent | ✅ | ✅ | ✅ | ✅ | |
 | Purchase order — accept (vendor-portal only; no admin action) | ✅ | ❌ | — | ✅ | |
 | Purchase order — vendor portal link | ✅ | ✅ | ✅ | ✅ | |
-| Purchase order — download e-purchase-order (e-invoice) | ✅ | ❌ | ❌ | ✅ | |
+| Purchase order — download e-purchase-order (e-invoice) | ✅ | ❌ | ✅ | | |
 | Purchase order — change template / design | ✅ | ✅ | ✅ | ✅ | |
 | Purchase order — view / download PDF | ✅ | ✅ | ✅ | ✅ | |
 | Purchase order — activities | ✅ | ✅ | ✅ | ✅ | |
@@ -1041,7 +1041,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Statement Design | ✅ | ✅ | ✅ | ✅ | |
 | Payment Receipt Design | ✅ | ✅ | ✅ | ✅ | |
 | Payment Refund Design | ✅ | ✅ | ✅ | ✅ | |
-| "Update all records" on design change → POST /designs/set/default (company scope wired; client/group pending) | ✅ | ✅ | 🟡 | | |
+| "Update all records" on design change → POST /designs/set/default (all scopes: company / group / client) | ✅ | ✅ | ✅ | | |
 | Page Layout (portrait / landscape) | ✅ | ✅ | ✅ | ✅ | |
 | Page Size (A4 / Letter / etc.) | ✅ | ✅ | ✅ | ✅ | |
 | Font Size | ✅ | ✅ | ✅ | ✅ | |

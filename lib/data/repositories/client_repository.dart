@@ -362,9 +362,15 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
 
   /// Save an existing client. The local row updates instantly via the watch
   /// stream; the outbox handles the round-trip.
+  /// [designDefaultUpdates] carries the Invoice Design "Update all records"
+  /// directives (`[{design_id, entity}, …]`) for client scope. Each is enqueued
+  /// as a `setDefaultDesign` row **inside the same transaction** as the settings
+  /// `update`, so a process kill can't persist the settings change without the
+  /// retro-apply. `settings_level` + `client_id` are stamped here.
   Future<SaveResult<Client>> save({
     required String companyId,
     required Client client,
+    List<Map<String, dynamic>> designDefaultUpdates = const [],
   }) async {
     final companion = _domainToCompanion(client, companyId, isDirty: true);
     var rowId = 0;
@@ -381,6 +387,19 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
         kind: MutationKind.update,
         payload: client.toApiJson(preserveTempId: true),
       );
+      for (final u in designDefaultUpdates) {
+        await enqueueMutation(
+          companyId: companyId,
+          entityId: client.id,
+          kind: MutationKind.setDefaultDesign,
+          payload: {
+            'design_id': u['design_id'],
+            'entity': u['entity'],
+            'settings_level': 'client',
+            'client_id': client.id,
+          },
+        );
+      }
     });
     return SaveResult(entity: client, outboxRowId: rowId);
   }

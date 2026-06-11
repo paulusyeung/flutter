@@ -10,6 +10,7 @@ import 'package:admin/data/models/domain/company_settings.dart';
 import 'package:admin/data/models/domain/group_setting.dart';
 import 'package:admin/data/repositories/group_setting_repository.dart';
 import 'package:admin/data/services/api_exception.dart';
+import 'package:admin/ui/features/settings/view_models/design_update_all_mixin.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/settings_field_bindings.dart';
 
@@ -29,7 +30,8 @@ final _log = Logger('GroupSettingsDraftViewModel');
 /// * `_draft` — the sparse group overrides as a typed [CompanySettings].
 ///   Every field that's `null` here means "inherit from the company
 ///   cascade." Saving only emits the non-null entries.
-class GroupSettingsDraftViewModel extends SettingsDraftHost {
+class GroupSettingsDraftViewModel extends SettingsDraftHost
+    with DesignUpdateAllMixin {
   GroupSettingsDraftViewModel({
     required this.repo,
     required this.db,
@@ -220,8 +222,21 @@ class GroupSettingsDraftViewModel extends SettingsDraftHost {
     try {
       final json = _draft.toJson()..removeWhere((_, v) => v == null);
       final next = group.copyWith(settings: json.isEmpty ? null : json);
-      await repo.save(companyId: companyId, group: next);
+      // Capture "Update all records" design directives BEFORE advancing the
+      // baseline (changedDesignUpdates diffs draft vs initial). Skip an
+      // unsynced offline-create group. `repo.save` enqueues them as
+      // setDefaultDesign rows in the same transaction as the group update
+      // (atomic).
+      final designUpdates = groupId.startsWith('tmp_')
+          ? const <Map<String, dynamic>>[]
+          : changedDesignUpdates();
+      await repo.save(
+        companyId: companyId,
+        group: next,
+        designDefaultUpdates: designUpdates,
+      );
       _initial = _draft;
+      clearUpdateAll();
       return next;
     } on ValidationException catch (e) {
       _fieldErrors = e.fieldErrors;

@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:decimal/decimal.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
@@ -35,6 +38,7 @@ enum PurchaseOrderAction {
   viewPdf,
   downloadPdf,
   printPdf,
+  downloadEPurchaseOrder,
   sendEmail,
   scheduleEmail,
   markSent,
@@ -110,8 +114,9 @@ class PurchaseOrderActions {
   static List<EntityActionItem<PurchaseOrderAction>> itemsFor(
     BuildContext context,
     PurchaseOrder po,
-    void Function(PurchaseOrderAction) onTap,
-  ) {
+    void Function(PurchaseOrderAction) onTap, {
+    String? eInvoiceType,
+  }) {
     final canArchive = po.archivedAt == null && !po.isDeleted;
     final canRestore = po.archivedAt != null || po.isDeleted;
     final me = context.read<Services>().auth.session.value?.currentCompany;
@@ -132,6 +137,14 @@ class PurchaseOrderActions {
     // "View expense" instead.
     final hasExpense = po.expenseId.isNotEmpty;
     final portalLink = _firstPortalLink(po);
+    final invitationKey = _firstInvitationKey(po);
+    // e-PO download needs an e-invoice channel configured on the company plus
+    // a vendor-portal invitation to key the authenticated download route.
+    // Hidden (not disabled) otherwise — mirrors the invoice e-invoice gates.
+    final canDownloadEInvoice =
+        (eInvoiceType ?? '').isNotEmpty &&
+        invitationKey.isNotEmpty &&
+        !po.isDeleted;
 
     return [
       if (canEdit)
@@ -167,6 +180,14 @@ class PurchaseOrderActions {
           ),
         ],
       ),
+      if (canDownloadEInvoice)
+        EntityActionItem(
+          kind: PurchaseOrderAction.downloadEPurchaseOrder,
+          icon: Icons.code_outlined,
+          label: context.tr('download_e_purchase_order'),
+          enabled: true,
+          onTap: () => onTap(PurchaseOrderAction.downloadEPurchaseOrder),
+        ),
       EntityActionItem(
         kind: PurchaseOrderAction.sendEmail,
         icon: Icons.mail_outline,
@@ -345,6 +366,36 @@ class PurchaseOrderActions {
           Notify.error(context, context.tr('error'), error: e);
         }
 
+      case PurchaseOrderAction.downloadEPurchaseOrder:
+        if (tmpGate()) return;
+        final invitationKey = _firstInvitationKey(po);
+        if (invitationKey.isEmpty) return;
+        try {
+          final bytes = await services.purchaseOrders.api
+              .downloadEPurchaseOrder(invitationKey: invitationKey);
+          final fileName =
+              'purchase_order_${po.number.isEmpty ? po.id : po.number}.xml';
+          // Save arbitrary (non-PDF) bytes via the same FilePicker path the
+          // CSV / JSON exports use — `Printing.sharePdf` is PDF-typed. Web:
+          // the shim downloads via a Blob; native: write defensively.
+          final path = await FilePicker.saveFile(
+            fileName: fileName,
+            bytes: bytes,
+          );
+          if (path == null) return;
+          if (!kIsWeb) {
+            final file = File(path);
+            if (!await file.exists() || await file.length() == 0) {
+              await file.writeAsBytes(bytes);
+            }
+          }
+          if (!context.mounted) return;
+          Notify.success(context, context.tr('exported'));
+        } catch (e) {
+          if (!context.mounted) return;
+          Notify.error(context, context.tr('error'), error: e);
+        }
+
       case PurchaseOrderAction.sendEmail:
       case PurchaseOrderAction.scheduleEmail:
         if (tmpGate()) return;
@@ -509,6 +560,16 @@ class PurchaseOrderActions {
   static String _firstPortalLink(PurchaseOrder po) {
     for (final inv in po.invitations) {
       if (inv.link.isNotEmpty) return inv.link;
+    }
+    return '';
+  }
+
+  /// The first invitation `key` on the PO — keys the authenticated
+  /// `download_e_purchase_order` route. `''` when the PO has no invitation
+  /// (unsynced / unsent), which hides the e-PO download action.
+  static String _firstInvitationKey(PurchaseOrder po) {
+    for (final inv in po.invitations) {
+      if (inv.key.isNotEmpty) return inv.key;
     }
     return '';
   }

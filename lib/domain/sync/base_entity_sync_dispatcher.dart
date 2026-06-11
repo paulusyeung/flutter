@@ -223,6 +223,10 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
       case MutationKind.locationCreate:
       case MutationKind.locationUpdate:
       case MutationKind.locationDelete:
+      // Client + group settings — Invoice Design "update all records" retro-
+      // apply, wired via `customActions` on the Client + GroupSetting
+      // dispatchers (company scope fires it inline from CompanySyncDispatcher).
+      case MutationKind.setDefaultDesign:
       // Invoice-only — wired via `customActions` on the Invoice dispatcher.
       case MutationKind.paymentScheduleCreate:
       case MutationKind.paymentScheduleCreateCustom:

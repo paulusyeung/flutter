@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -9,6 +11,7 @@ import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/group_setting_repository.dart';
 import 'package:admin/data/services/group_settings_api.dart';
+import 'package:admin/domain/sync/mutation.dart';
 
 import '_base_entity_repository_contract.dart';
 
@@ -201,6 +204,46 @@ void main() {
         expect(groups.first.isDirty, isTrue);
       },
     );
+
+    test('save enqueues a set_default_design row at group scope — in the same '
+        'transaction as the update — carrying design + entity + '
+        'group_settings_id', () async {
+      final repo = makeRepo();
+      final g = GroupSetting.fromApi(
+        const GroupSettingApi(id: 'g_1', name: 'Premium'),
+      );
+
+      await repo.save(
+        companyId: 'co',
+        group: g,
+        designDefaultUpdates: const [
+          {'design_id': 'design_9', 'entity': 'invoice'},
+        ],
+      );
+
+      final pending = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 1 << 60,
+      );
+      expect(
+        pending.where((r) => r.mutationKind == MutationKind.update.wireName),
+        hasLength(1),
+      );
+      final designRows = pending
+          .where(
+            (r) => r.mutationKind == MutationKind.setDefaultDesign.wireName,
+          )
+          .toList();
+      expect(designRows, hasLength(1));
+      expect(designRows.single.entityType, 'group');
+      expect(designRows.single.entityId, 'g_1');
+      final payload =
+          jsonDecode(designRows.single.payload) as Map<String, dynamic>;
+      expect(payload['design_id'], 'design_9');
+      expect(payload['entity'], 'invoice');
+      expect(payload['settings_level'], 'group_settings');
+      expect(payload['group_settings_id'], 'g_1');
+    });
 
     test(
       'applyBundle upserts every row and advances the cursor to max updatedAt',

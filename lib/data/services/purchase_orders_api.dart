@@ -128,6 +128,20 @@ class PurchaseOrdersApi
     );
   }
 
+  /// Authenticated download of the generated e-purchase-order XML (UBL /
+  /// e-invoice). `GET /api/v1/purchase_order/{invitation_key}/
+  /// download_e_purchase_order` is `token_auth`-gated (NOT a public portal
+  /// route), so it rides the normal `ApiClient` headers (`X-API-Token`);
+  /// `readOnly: true` keeps it demo-safe. Mirrors how React fetches the file
+  /// as a blob rather than opening the URL — a bare browser launch sends no
+  /// token header and 403s.
+  Future<Uint8List> downloadEPurchaseOrder({required String invitationKey}) =>
+      client.getRaw(
+        '/api/v1/purchase_order/$invitationKey/download_e_purchase_order',
+        readOnly: true,
+        expectedContentType: 'application/xml',
+      );
+
   Future<PurchaseOrderApi> uploadDocument({
     required String entityId,
     required UploadSource source,

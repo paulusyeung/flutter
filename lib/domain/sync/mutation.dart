@@ -145,6 +145,14 @@ enum MutationKind {
   /// `customActions`.
   bulkUpdate,
 
+  /// `POST /api/v1/designs/set/default` — retroactively apply a document
+  /// design to existing records at company / group / client scope. Payload:
+  /// `{design_id, entity, settings_level, client_id? | group_settings_id?}`.
+  /// Enqueued one-per-changed-entity by the Invoice Design "Update all
+  /// records" toggle. Company scope fires it inline from `CompanySyncDispatcher`;
+  /// client/group route it here via `customActions`.
+  setDefaultDesign,
+
   /// `POST /quotes/{id}/approve` — manually mark a quote as approved by
   /// the client (override of the portal-driven flow). Quote-only.
   /// Payload is `{'id': id}`.
@@ -338,6 +346,7 @@ enum MutationKind {
     'update_prices' => MutationKind.updatePrices,
     'increase_prices' => MutationKind.increasePrices,
     'bulk_update' => MutationKind.bulkUpdate,
+    'set_default_design' => MutationKind.setDefaultDesign,
     'approve' => MutationKind.approve,
     'convert_to_invoice' => MutationKind.convertToInvoice,
     'convert_to_project' => MutationKind.convertToProject,
@@ -397,6 +406,7 @@ enum MutationKind {
     MutationKind.updatePrices => 'update_prices',
     MutationKind.increasePrices => 'increase_prices',
     MutationKind.bulkUpdate => 'bulk_update',
+    MutationKind.setDefaultDesign => 'set_default_design',
     MutationKind.approve => 'approve',
     MutationKind.convertToInvoice => 'convert_to_invoice',
     MutationKind.convertToProject => 'convert_to_project',

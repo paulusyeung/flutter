@@ -362,6 +362,104 @@ void main() {
     });
   });
 
+  group('setDefaultDesign (Invoice Design "Update all records")', () {
+    test(
+      'save enqueues a set_default_design row at client scope — in the same '
+      'transaction as the update — carrying design + entity + client_id',
+      () async {
+        final (:repo, :api) = makeRepo();
+        final c = Client.fromApi(apiClient('c1', name: 'Acme'));
+
+        await repo.save(
+          companyId: 'co',
+          client: c,
+          designDefaultUpdates: const [
+            {'design_id': 'design_7', 'entity': 'invoice'},
+          ],
+        );
+
+        final pending = await db.outboxDao.nextReady(
+          companyId: 'co',
+          now: 1 << 60,
+        );
+        // The settings update rides the same transaction as the retro-apply.
+        expect(
+          pending.where((r) => r.mutationKind == MutationKind.update.wireName),
+          hasLength(1),
+        );
+        final designRows = pending
+            .where(
+              (r) => r.mutationKind == MutationKind.setDefaultDesign.wireName,
+            )
+            .toList();
+        expect(designRows, hasLength(1));
+        expect(designRows.single.entityType, 'client');
+        expect(designRows.single.entityId, 'c1');
+        expect(designRows.single.idempotencyKey, isNotEmpty);
+        expect(
+          designRows.single.requiresPassword,
+          isFalse,
+          reason:
+              'set_default_design is a settings retro-apply, not destructive',
+        );
+        final payload =
+            jsonDecode(designRows.single.payload) as Map<String, dynamic>;
+        expect(payload['design_id'], 'design_7');
+        expect(payload['entity'], 'invoice');
+        expect(payload['settings_level'], 'client');
+        expect(payload['client_id'], 'c1');
+      },
+    );
+
+    test(
+      'one set_default_design row per directive (invoice + quote)',
+      () async {
+        final (:repo, :api) = makeRepo();
+        final c = Client.fromApi(apiClient('c1', name: 'Acme'));
+
+        await repo.save(
+          companyId: 'co',
+          client: c,
+          designDefaultUpdates: const [
+            {'design_id': 'd1', 'entity': 'invoice'},
+            {'design_id': 'd2', 'entity': 'quote'},
+          ],
+        );
+
+        final pending = await db.outboxDao.nextReady(
+          companyId: 'co',
+          now: 1 << 60,
+        );
+        expect(
+          pending
+              .where(
+                (r) => r.mutationKind == MutationKind.setDefaultDesign.wireName,
+              )
+              .length,
+          2,
+        );
+      },
+    );
+
+    test('no directives → save enqueues only the update row', () async {
+      final (:repo, :api) = makeRepo();
+      final c = Client.fromApi(apiClient('c1', name: 'Acme'));
+
+      await repo.save(companyId: 'co', client: c);
+
+      final pending = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 1 << 60,
+      );
+      expect(
+        pending.where(
+          (r) => r.mutationKind == MutationKind.setDefaultDesign.wireName,
+        ),
+        isEmpty,
+      );
+    });
+  });
+
   group('purge', () {
     test('enqueues a purge outbox row with requiresPassword=true so the sync '
         'engine prompts before hitting POST /clients/:id/purge', () async {

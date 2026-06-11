@@ -40,8 +40,9 @@ PurchaseOrder _po({
 void main() {
   Future<List<EntityActionItem<PurchaseOrderAction>>> resolveItems(
     WidgetTester tester,
-    PurchaseOrder po,
-  ) async {
+    PurchaseOrder po, {
+    String? eInvoiceType,
+  }) async {
     final fixture = await buildFixture(
       companies: [const FakeCompany(id: 'co1', name: 'Co')],
     );
@@ -53,7 +54,12 @@ void main() {
         fixture.services,
         Builder(
           builder: (context) {
-            items = PurchaseOrderActions.itemsFor(context, po, (_) {});
+            items = PurchaseOrderActions.itemsFor(
+              context,
+              po,
+              (_) {},
+              eInvoiceType: eInvoiceType,
+            );
             return const SizedBox();
           },
         ),
@@ -167,4 +173,35 @@ void main() {
       contains(PurchaseOrderAction.vendorPortal),
     );
   });
+
+  testWidgets(
+    'download e-purchase-order needs e-invoicing AND an invitation key',
+    (tester) async {
+      const keyed = [InvitationApi(key: 'k1', link: 'https://portal/x')];
+
+      // e-invoicing off → hidden even with a keyed invitation.
+      expect(
+        kindsOf(await resolveItems(tester, _po(invitations: keyed))),
+        isNot(contains(PurchaseOrderAction.downloadEPurchaseOrder)),
+      );
+
+      // e-invoicing on but no invitation (no key) → still hidden.
+      expect(
+        kindsOf(await resolveItems(tester, _po(), eInvoiceType: 'PEPPOL')),
+        isNot(contains(PurchaseOrderAction.downloadEPurchaseOrder)),
+      );
+
+      // e-invoicing on + a keyed invitation → shown.
+      expect(
+        kindsOf(
+          await resolveItems(
+            tester,
+            _po(invitations: keyed),
+            eInvoiceType: 'PEPPOL',
+          ),
+        ),
+        contains(PurchaseOrderAction.downloadEPurchaseOrder),
+      );
+    },
+  );
 }

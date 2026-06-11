@@ -8,6 +8,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/group_setting_api_model.dart';
 import 'package:admin/data/repositories/group_setting_repository.dart';
 import 'package:admin/data/services/group_settings_api.dart';
+import 'package:admin/domain/sync/mutation.dart';
 import 'package:admin/ui/features/settings/view_models/group_settings_draft_view_model.dart';
 
 /// Covers the group-scope cascade draft VM — the mirror of
@@ -147,5 +148,60 @@ void main() {
     expect(vm.isOverridden('vat_number'), isTrue);
     expect(vm.isDirty, isFalse);
     vm.dispose();
+  });
+
+  group('design "Update all records" (cascade save)', () {
+    Future<List<String>> designRowPayloads(GroupSettingRepository repo) async {
+      final pending = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 1 << 60,
+      );
+      return pending
+          .where(
+            (r) => r.mutationKind == MutationKind.setDefaultDesign.wireName,
+          )
+          .map((r) => r.payload)
+          .toList();
+    }
+
+    test('save enqueues a group-scope set_default_design row for a changed + '
+        'ticked design', () async {
+      final repo = makeRepo();
+      await seedCompany({'vat_number': 'CO-VAT'});
+      await seedGroup(repo);
+      final vm = makeVm(repo);
+      await vm.load();
+      await waitLoaded(vm);
+
+      vm.updateSettings((s) => s.copyWith(invoiceDesignId: 'design_X'));
+      vm.setUpdateAll('invoice', true);
+      await vm.save();
+
+      final rows = await designRowPayloads(repo);
+      expect(rows, hasLength(1));
+      final payload = jsonDecode(rows.single) as Map<String, dynamic>;
+      expect(payload['design_id'], 'design_X');
+      expect(payload['entity'], 'invoice');
+      expect(payload['settings_level'], 'group_settings');
+      expect(payload['group_settings_id'], 'g1');
+      vm.dispose();
+    });
+
+    test('purchase_order design is never retro-applied at group scope (PO '
+        'designs are company-scoped server-side)', () async {
+      final repo = makeRepo();
+      await seedCompany({'vat_number': 'CO-VAT'});
+      await seedGroup(repo);
+      final vm = makeVm(repo);
+      await vm.load();
+      await waitLoaded(vm);
+
+      vm.updateSettings((s) => s.copyWith(purchaseOrderDesignId: 'design_PO'));
+      vm.setUpdateAll('purchase_order', true);
+      await vm.save();
+
+      expect(await designRowPayloads(repo), isEmpty);
+      vm.dispose();
+    });
   });
 }

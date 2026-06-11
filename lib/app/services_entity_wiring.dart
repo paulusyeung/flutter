@@ -65,7 +65,9 @@ import 'package:admin/data/services/api_client.dart';
 import 'package:admin/data/services/bank_accounts_api.dart';
 import 'package:admin/data/services/bank_transactions_api.dart';
 import 'package:admin/data/services/base_entity_api.dart';
+import 'package:admin/app/services_design_handlers.dart';
 import 'package:admin/data/services/clients_api.dart';
+import 'package:admin/data/services/companies_api.dart';
 import 'package:admin/data/services/company_gateways_api.dart';
 import 'package:admin/data/services/designs_api.dart';
 import 'package:admin/data/services/documents_api.dart';
@@ -301,6 +303,11 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
   }
 
   // ---- Client --------------------------------------------------------------
+  // Shared across the Client + GroupSetting `setDefaultDesign` handlers (the
+  // client/group-scope "Update all records" design retro-apply). The endpoint
+  // lives on CompaniesApi but is scope-parameterised, so one stateless
+  // instance serves both dispatchers.
+  final companiesApi = CompaniesApi(ctx.apiClient);
   final clientsApi = ClientsApi(ctx.apiClient);
   final locationsApi = LocationsApi(ctx.apiClient);
   final clientRepo = ClientRepository(
@@ -367,6 +374,10 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         );
         return item?.data;
       },
+      // POST /designs/set/default settings_level=client — the client-scope
+      // "Update all records" design retro-apply (shared factory; group uses
+      // the same handler).
+      ...setDefaultDesignHandlers<ClientApi>(companiesApi),
       // Client locations — standalone /api/v1/locations resource, read-
       // embedded on the client. After the write lands, re-pull the parent
       // client and return its envelope so the dispatcher upserts it (the
@@ -806,12 +817,17 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     type: EntityType.group,
     api: groupSettingsApi,
     repo: groupSettingRepo,
-    customActions: documentMutationHandlers<GroupSettingApi>(
-      documentsApi: ctx.documentsApi,
-      upload: groupSettingsApi.uploadDocument,
-      applyChanged: groupSettingRepo.applyDocumentChanged,
-      applyDeleted: groupSettingRepo.applyDocumentDeleted,
-    ),
+    customActions: {
+      ...documentMutationHandlers<GroupSettingApi>(
+        documentsApi: ctx.documentsApi,
+        upload: groupSettingsApi.uploadDocument,
+        applyChanged: groupSettingRepo.applyDocumentChanged,
+        applyDeleted: groupSettingRepo.applyDocumentDeleted,
+      ),
+      // POST /designs/set/default settings_level=group_settings — the
+      // group-scope "Update all records" design retro-apply (shared factory).
+      ...setDefaultDesignHandlers<GroupSettingApi>(companiesApi),
+    },
   );
 
   // ---- PaymentLink (wire: `subscription`) ---------------------------------
