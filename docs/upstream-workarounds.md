@@ -1,0 +1,107 @@
+# Upstream-bug workarounds
+
+The single registry of workarounds this app carries for **open upstream bugs/limitations** — in Flutter, Dart, third-party pub packages, or platform SDKs — that we expect to **remove once the upstream ships a fix**.
+
+Keep it current (see CLAUDE.md § Strict rules): whenever you add, change, or remove such a workaround, update the matching entry here.
+
+## How to use this file
+
+Each entry tags every code change as:
+
+- **MUST-REVERT** — the actual workaround; undo it when the upstream is fixed.
+- **KEEP** — an independent improvement made along the way that is correct regardless; leave it.
+
+Each entry gives a **minimal revert** (undo just the workaround) and, where relevant, a **full revert** (exact prior state). When the changes are committed, record the **commit SHA(s)** so `git revert <sha>` is a one-shot undo — ideally commit each workaround on its own so the revert is clean.
+
+When an upstream fix ships: follow the revert, verify, then **delete the entry**.
+
+> Not here: permanent adaptations we will *not* revert (see "Considered but not tracked" below), and **server-side** changes we're waiting on our backend partner for — those live in [`BACKEND.md`](../BACKEND.md).
+
+### Entry template
+
+```
+## <short title>
+- Issue / waiting on: <link(s) + status>   • Found: <date / "pre-existing"> • Flutter: <version>
+- Symptom: <what breaks, and how it surfaces>
+- Root cause: <one line>
+- Commit ref: <sha(s), or "not yet committed">
+- Change(s):
+  - `<file>` — **MUST-REVERT** | **KEEP**: <what changed>
+- Revert: <minimal steps> (+ full-revert / ordering notes if relevant)
+- Recheck trigger: <when/how to test whether upstream is fixed>
+```
+
+---
+
+## 1. Flutter 3.44: dev-dependency plugin still emitted into GeneratedPluginRegistrant
+
+- Issue / waiting on: [flutter/flutter#186800](https://github.com/flutter/flutter/issues/186800) (open, P1), [#169336](https://github.com/flutter/flutter/issues/169336), [#175621](https://github.com/flutter/flutter/issues/175621). • Found: 2026-06-11 • Flutter: 3.44.1
+- Symptom: release build fails at `:app:compileReleaseJavaWithJavac` — `package dev.flutter.plugins.integration_test does not exist`. `flutter clean` does **not** help. Affects Android **and** iOS/macOS release builds.
+- Root cause: dev-dependency plugins are dropped from the release native classpath but still emitted into `GeneratedPluginRegistrant.java`.
+- Commit ref: _not yet committed — fill in the SHA(s) when committed._
+- Changes:
+  - `pubspec.yaml` — **MUST-REVERT**: `integration_test` moved `dev_dependencies` → `dependencies` (+ explanatory comment).
+  - `android/app/build.gradle.kts` — **KEEP**: release signing falls back to debug when `key.properties` is absent; removed the dead double-assigned `signingConfig`. (Independent hardening; enables the CI release gate.)
+  - `.github/workflows/ci.yaml` — **KEEP**: `build-android` gate now `flutter build apk --release` (was `--debug`).
+- Revert (minimal, recommended): move `integration_test` back to `dev_dependencies`, delete its comment, run `flutter pub get` (regenerates `pubspec.lock` + `.flutter-plugins-dependencies`), confirm `flutter build appbundle` succeeds.
+  - Full revert ("undo everything"): `git revert` the workaround commit(s), or also restore the original `build.gradle.kts` signing block and the `ci.yaml` `--debug` line — note that reintroduces the prior crash-when-`key.properties`-absent and the weaker debug-only gate, so **KEEP** is recommended over a full revert.
+  - **Revert ordering (important):** don't revert until dev + CI are on a Flutter version that fixed the issue. The CI `apk --release` gate fails if the bug is still present — that's the built-in safety check.
+- Recheck trigger: when the issues close — temporarily move `integration_test` back to `dev_dependencies` and run `flutter build appbundle`.
+
+## 2. isolate_manager: transitive `dart:html` blocks `flutter build web --wasm`
+
+- Issue / waiting on: `re_editor` (`^0.9.0`) to resolve a wasm-clean `isolate_manager` (≥6, on `package:web`), or `isolate_contactor` to drop `dart:html`. No single tracking bug — watch `re_editor`'s pub releases / its `isolate_manager` constraint. Context: `dart:html` is unavailable under dart2wasm ([flutter#148825](https://github.com/flutter/flutter/issues/148825), [#160318](https://github.com/flutter/flutter/issues/160318)). • Found: pre-existing
+- Symptom: `flutter build web --wasm` fails (`dart:html` not available) via `re_editor` → `isolate_manager` 4.x → `isolate_contactor`.
+- Root cause: `re_editor`'s transitive `isolate_manager` 4.x pulls `isolate_contactor`, which uses `dart:html`.
+- Change:
+  - `pubspec.yaml` `dependency_overrides:` — **MUST-REVERT**: `isolate_manager: ^6.3.2`.
+- Revert: remove the override line; `flutter pub get`; confirm `flutter build web --wasm` still compiles.
+- Recheck trigger: when a `re_editor` release pulls `isolate_manager` ≥6 transitively — drop the override and build `--wasm`.
+
+## 3. super_editor: published package lags Flutter 3.44 IME
+
+- Issue / waiting on: a pub.dev `super_editor` release that supports the Flutter 3.44 IME surface (`TextInputConnection.updateStyle`). The published package ([superlistapp](https://github.com/superlistapp/super_editor)) ships dev-only releases that lag 3.44; active dev is the [Flutter-Bounty-Hunters fork](https://github.com/Flutter-Bounty-Hunters/super_editor). Watch: [pub.dev/packages/super_editor/versions](https://pub.dev/packages/super_editor/versions). • Found: pre-existing
+- Symptom: the pub `super_editor` won't compile under Flutter 3.44 — its `TextInputConnectionDecorator` misses the `TextInputConnection.updateStyle` override.
+- Root cause: the canonical (superlistapp) package stalled pre-3.44; the 3.44 IME surface only exists on the FBH fork.
+- Change:
+  - `pubspec.yaml` `dependency_overrides:` — **MUST-REVERT**: `super_editor` git pin (FBH `stable` @ `2408aa52579a6d13479b38da980dc3093c2982a8`). Powers the rich-text editor (`super_editor` + `super_editor_markdown`; see CLAUDE.md § Rich text editing). `super_editor: any` in `dependencies` pairs with this pin.
+- Revert: remove the git override; set `super_editor:` in `dependencies` to the released pub version (currently `any`); `flutter pub get`; build + sanity-check the markdown editor (e.g. an email/invoice template override field).
+- Recheck trigger: when pub.dev `super_editor` supports Flutter 3.44 — drop the override and build.
+
+## 4. Flutter desktop integration tests: one file per `flutter test` invocation
+
+- Issue / waiting on: [flutter/flutter#135673](https://github.com/flutter/flutter/issues/135673). • Found: pre-existing
+- Symptom: `flutter test integration_test/ -d macos` (bare glob) runs only the FIRST file; later files die with "Error waiting for a debug connection" — the tool reuses a debug-connection stream that breaks on the second app launch.
+- Root cause: the desktop integration runner can't relaunch the app across multiple files in one invocation.
+- Change:
+  - `tools/run_integration_local.sh` — **MUST-REVERT**: runs one file per invocation (the upstream-recommended workaround) with a per-file timeout.
+- Revert: replace the per-file loop with the bare-glob `flutter test integration_test/ -d <device>`.
+- Recheck trigger: when #135673 closes — try the bare glob locally.
+
+## 5. Dart analyzer lags the 3.11 parser on null-aware elements
+
+- Issue / waiting on: analyzer/SDK version lag (no issue number cited in-tree). • Found: pre-existing
+- Symptom: `?'key': value` (null-aware map/collection elements) is parser-supported in Dart 3.11 but the bundled analyzer rejects it, so the `use_null_aware_elements` lint can't be satisfied.
+- Root cause: the bundled analyzer trails the language parser for this syntax.
+- Change:
+  - `analysis_options.yaml` — **MUST-REVERT**: `use_null_aware_elements: ignore` (with the "re-enable when the analyzer catches up" comment).
+- Revert: remove that `ignore` line after a Dart/analyzer bump; run `flutter analyze`.
+- Recheck trigger: after each SDK bump — drop the ignore and analyze.
+
+---
+
+## Considered but NOT tracked (permanent adaptations — do not revert)
+
+These look workaround-shaped but are correct-forever (or inherent), not "waiting on an upstream fix". Listed so they aren't re-litigated:
+
+- `lib/app/mdi_icons.dart` — Flutter 3.44 made `IconData` `final`; Material Design Icons are vendored as a TTF + plain `const IconData`. Permanent (CI guards re-adding `material_design_icons_flutter`).
+- `Material(type: MaterialType.transparency)` ink-ancestor wraps (`lib/ui/core/detail/entity_detail_tabs.dart`, `lib/ui/core/list/master_detail_layout.dart`, `lib/ui/features/settings/widgets/form_section.dart`, …) — the correct, long-standing Flutter pattern so an `InkWell` has a surface to paint ink on.
+- `lib/ui/core/utils/text_input_focus.dart` — walks the element tree because `EditableText` hosts its `focusNode` on an inner `Focus` widget; by-design Flutter behavior.
+- `lib/utils/formatting.dart` `.999999` rounding nudge — corrects inherent binary-float accumulation, not a package bug.
+- clipboard-read-hang test technique (`test/ui/core/widgets/copyable_value_test.dart`) — `Clipboard.getData()` hangs under the widget-test fake-async zone; assert the `setData` channel call instead. A technique, nothing to revert.
+- Capped transitive dependencies / `intl: any` (the comment block at the top of `pubspec.yaml`) — version ceilings imposed by upstreams (freezed/pdf/qr_flutter/in_app_purchase/SDK pins), not workarounds. The routine-bump recipe lives in `docs/setup.md` § Dependency updates.
+- CI macOS integration suite `if: false` + Metal launch forensics (`.github/workflows/ci.yaml`) — internal CI staging for the headless-GPU runner gap; the earlier Metal-toolchain / Impeller-vs-Skia hardening was already removed. Tracked in the CI comments, not here.
+
+## See also
+
+- [`BACKEND.md`](../BACKEND.md) — **server-side** changes we're waiting on our backend partner for (web CORS `Idempotency-Key`, server-side idempotency dedup, company write-envelope completion, list filter/sort gaps). A separate category from third-party upstream; don't duplicate those here.

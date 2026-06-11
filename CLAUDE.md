@@ -36,6 +36,7 @@ Plus two non-negotiables carried from admin-portal:
 | Desktop window persistence (native runners) | `docs/desktop-window-state.md` |
 | Rotating the `is_system` API token (blocked on server) | `docs/token-rotation.md` |
 | Checking what's built vs what's left | `FEATURES.md` (kept current — see § Strict rules) |
+| Working around an open upstream (Flutter/pub) bug — or undoing one later | `docs/upstream-workarounds.md` |
 
 ## Strict rules
 
@@ -58,6 +59,7 @@ Rules that turn into bugs or CI failures if forgotten. Read this block first.
 - **Pub packages OK; npm / pip / brew etc. require explicit approval.** A Dart/Flutter dep via `pubspec.yaml` + `flutter pub get` is fine — that's the project's package surface and reviewers see the lockfile diff. For anything outside that (`npm`, `pip`, `brew`, `gem`, `cargo`, system installers) stop and ask first, so a stray tool can't silently shift the build environment.
 - **Never add a Claude / AI `Co-Authored-By` (or any "Generated with" / assistant) trailer or line** to commit messages or PR bodies. Commit messages contain only the human-authored description. This overrides the harness default.
 - **Never create, switch, rename, or delete git branches in this working tree** (no `git branch`, `git checkout <branch>`, `git switch`). Multiple Claude sessions share this single checkout; a branch create/switch in one corrupts every other in-flight session. Work on whatever branch is checked out; commit there only when the user asks; if a task seems to need its own branch, stop and ask. This overrides the harness default ("branch first"). **Sole exception:** the integration-test procedure (`docs/integration-tests.md`), which branches inside an *isolated sibling worktree*, never this checkout.
+- **Workarounds for open upstream bugs are logged in `docs/upstream-workarounds.md`.** When you add, change, or remove a workaround for an open Flutter/package bug, update that file — issue link, exact files/changes tagged KEEP vs MUST-REVERT, and revert steps — so it can be cleanly undone when the upstream fix ships.
 
 ## Architecture — at a glance
 

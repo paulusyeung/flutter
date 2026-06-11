@@ -162,7 +162,10 @@ jobs:
       - name: Build web (compile gate, --wasm)
         run: flutter build web --wasm --release
 
-  # Android compile gate. `--debug` avoids needing a release signing config.
+  # Android compile gate (release). A release compile is what catches plugin /
+  # registrant classpath mismatches (e.g. flutter/flutter#186800); a --debug build
+  # never would. Signing falls back to debug when key.properties is absent (see
+  # android/app/build.gradle.kts), so no keystore secrets are needed here.
   # ubuntu-latest ships the Android SDK, so this usually works out of the box;
   # if Flutter reports a missing license, add `flutter doctor --android-licenses`
   # (or the android-actions/setup-android action) here.
@@ -185,8 +188,8 @@ jobs:
       - name: Generate code
         run: dart run build_runner build --delete-conflicting-outputs
 
-      - name: Build Android APK (compile gate)
-        run: flutter build apk --debug
+      - name: Build Android APK (compile gate, --release)
+        run: flutter build apk --release
 
   # The only macOS runner (10x billed) — reserved for the work that genuinely
   # needs macOS: the Apple builds and the macOS-desktop integration suite. Gated
