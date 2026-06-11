@@ -219,6 +219,7 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
       case MutationKind.reactivateEmail:
       // Client-only — wired via `customActions` on the Client dispatcher.
       case MutationKind.merge:
+      case MutationKind.bulkUpdate:
       case MutationKind.locationCreate:
       case MutationKind.locationUpdate:
       case MutationKind.locationDelete:

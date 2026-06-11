@@ -7,6 +7,7 @@ import 'package:admin/data/models/domain/task_status.dart';
 import 'package:admin/data/repositories/task_repository.dart';
 import 'package:admin/data/repositories/task_status_repository.dart';
 import 'package:admin/domain/entity_state.dart';
+import 'package:admin/ui/features/tasks/view_models/task_filters_mixin.dart';
 
 /// State for the Kanban board view. Subscribes to:
 ///   * Every TaskStatus row → the column set (sorted by `status_order`).
@@ -16,7 +17,7 @@ import 'package:admin/domain/entity_state.dart';
 /// `Map<String, List<Task>>` is mutated before the repo writes hit Drift,
 /// so the board re-renders instantly. The repo write's watch-stream
 /// emission then replaces the optimistic frame seamlessly.
-class KanbanViewModel extends ChangeNotifier {
+class KanbanViewModel extends ChangeNotifier with TaskFiltersMixin {
   KanbanViewModel({
     required this.repo,
     required this.statusRepo,
@@ -54,55 +55,12 @@ class KanbanViewModel extends ChangeNotifier {
   /// stream re-emission.
   Map<String, List<Task>>? _optimisticByStatus;
 
-  // ─── Client-side filters (project / client / assignee) ───
-  // Empty string = "no filter". Applied in [tasksFor] before the board
-  // groups/renders, so column card-counts reflect the filter too. While
-  // any filter is active the board is read-only for reordering
-  // (`filtersActive` gates `KanbanColumn.canEdit`) — a partial reorder
-  // would drop hidden tasks from a status's persisted order.
-  String _projectId = '';
-  String _clientId = '';
-  String _assignedUserId = '';
-
-  String get projectId => _projectId;
-  String get clientId => _clientId;
-  String get assignedUserId => _assignedUserId;
-
-  bool get filtersActive =>
-      _projectId.isNotEmpty ||
-      _clientId.isNotEmpty ||
-      _assignedUserId.isNotEmpty;
-
-  void setProjectFilter(String id) {
-    if (_projectId == id) return;
-    _projectId = id;
-    notifyListeners();
-  }
-
-  void setClientFilter(String id) {
-    if (_clientId == id) return;
-    _clientId = id;
-    notifyListeners();
-  }
-
-  void setAssigneeFilter(String id) {
-    if (_assignedUserId == id) return;
-    _assignedUserId = id;
-    notifyListeners();
-  }
-
-  void clearFilters() {
-    if (!filtersActive) return;
-    _projectId = '';
-    _clientId = '';
-    _assignedUserId = '';
-    notifyListeners();
-  }
-
-  bool _matchesFilters(Task t) =>
-      (_projectId.isEmpty || t.projectId == _projectId) &&
-      (_clientId.isEmpty || t.clientId == _clientId) &&
-      (_assignedUserId.isEmpty || t.assignedUserId == _assignedUserId);
+  // Client-side Project / Client / Assignee filters live in [TaskFiltersMixin]
+  // (shared with the calendar / daily / weekly views). Applied in [tasksFor]
+  // before the board groups/renders, so column card-counts reflect the filter
+  // too. While any filter is active the board is read-only for reordering
+  // (`filtersActive` gates `KanbanColumn.canEdit`) — a partial reorder would
+  // drop hidden tasks from a status's persisted order.
 
   bool _isResolving = true;
   bool get isResolving => _isResolving;
@@ -137,7 +95,7 @@ class KanbanViewModel extends ChangeNotifier {
         ? (optimistic[statusId] ?? const <Task>[])
         : (_tasksByStatus[statusId] ?? const <Task>[]);
     if (!filtersActive) return base;
-    return base.where(_matchesFilters).toList(growable: false);
+    return base.where(matchesFilters).toList(growable: false);
   }
 
   /// Persist a card move. The board has already computed the optimistic

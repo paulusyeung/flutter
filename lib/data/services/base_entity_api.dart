@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:admin/data/services/api_client.dart';
 import 'package:admin/domain/email_template_names.dart';
 
@@ -158,6 +160,42 @@ abstract class BaseEntityApi<TList, TItem> {
       return parseItem(<String, dynamic>{'data': data.first});
     }
     return null;
+  }
+
+  /// Synchronous merged-PDF "bulk print": `POST {basePath}/bulk`
+  /// `{action:'bulk_print', ids}`. The server renders each document, merges the
+  /// PDFs with FPDI, and streams back a single `application/pdf`. Valid for ≥1
+  /// id on invoices/quotes/credits/purchase_orders.
+  ///
+  /// `readOnly: true` skips the demo-mode short-circuit (this is a read in
+  /// effect — no server state mutates) and [ApiClient.postRaw]'s content-type
+  /// guard turns a soft `200 + JSON` error envelope into a [ServerException]
+  /// instead of handing garbage to the PDF renderer. Subject to the 60 s
+  /// request timeout, so very large selections may time out.
+  Future<Uint8List> bulkPrintPdf({required List<String> ids}) {
+    return client.postRaw(
+      '$basePath/bulk',
+      readOnly: true,
+      body: {'action': 'bulk_print', 'ids': ids},
+    );
+  }
+
+  /// Async zip-and-email "bulk download": `POST {basePath}/bulk`
+  /// `{action:'bulk_download', ids}`. The server dispatches a Zip job that
+  /// emails the user a download link and returns `{message}` — **no bytes come
+  /// back**, so this returns void (the caller toasts `exported_data`). Server
+  /// count gating: invoices/credits require >1; quotes/purchase_orders accept
+  /// ≥1. Mirrors `DocumentsApi.bulkDownload`.
+  Future<void> bulkDownloadPdf({
+    required List<String> ids,
+    required String idempotencyKey,
+  }) async {
+    await client.mutate(
+      method: 'POST',
+      path: '$basePath/bulk',
+      idempotencyKey: idempotencyKey,
+      body: {'action': 'bulk_download', 'ids': ids},
+    );
   }
 
   /// Send a billing document by email **now** via `POST /api/v1/emails` (the

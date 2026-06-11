@@ -1276,6 +1276,26 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     }
   }
 
+  /// Run a selection-level action (the `EntityListBulkAction.onSelection` path —
+  /// bulk PDF print/download, "Invoice Project(s)", "Download Documents") under
+  /// the same in-flight latch the per-id loop uses, so the multiselect-AppBar
+  /// bulk buttons disable for its duration and a second tap can't double-fire
+  /// the (potentially slow) request. Unlike [applyBulkAction] it does NOT clear
+  /// the selection — the scaffold owns that after the handler returns. The
+  /// dispose guard covers navigating handlers (e.g. "Invoice Project") that pop
+  /// the list mid-await.
+  Future<void> runSelectionAction(Future<void> Function() action) async {
+    if (_bulkInFlight) return;
+    _bulkInFlight = true;
+    notifyListeners();
+    try {
+      await action();
+    } finally {
+      _bulkInFlight = false;
+      if (!isDisposed) notifyListeners();
+    }
+  }
+
   /// Lookup a bulk action by id — convenience for entities that expose
   /// keyed actions on the screen (e.g. an `archive` button that just looks
   /// up the registered `BulkAction.id == 'archive'`).

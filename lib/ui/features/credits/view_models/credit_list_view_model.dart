@@ -147,5 +147,20 @@ class CreditListViewModel extends GenericListViewModel<Credit> {
         templateId: arg as String,
       ),
     ),
+    // Selection-level PDF actions — the list screen's onSelection does the real
+    // work (server-merged print / async zip+email download). `eligible` drives
+    // the empty-selection guard + the count handed to the handler.
+    BulkAction<Credit>(
+      id: 'download_pdf',
+      labelKey: 'download_pdf',
+      eligible: (c) => !isDeleted(c) && !c.id.startsWith('tmp_'),
+      apply: (_) async {},
+    ),
+    BulkAction<Credit>(
+      id: 'print_pdf',
+      labelKey: 'print_pdf',
+      eligible: (c) => !isDeleted(c) && !c.id.startsWith('tmp_'),
+      apply: (_) async {},
+    ),
   ];
 }

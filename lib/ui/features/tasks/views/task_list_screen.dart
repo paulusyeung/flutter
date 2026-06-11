@@ -5,6 +5,7 @@ import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/db/dao/task_dao.dart';
 import 'package:admin/data/models/domain/task.dart';
+import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
@@ -12,6 +13,9 @@ import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/tasks/view_models/task_edit_view_model.dart';
 import 'package:admin/ui/features/tasks/view_models/task_list_view_model.dart';
 import 'package:admin/ui/features/tasks/views/kanban_screen.dart';
+import 'package:admin/ui/features/tasks/views/task_calendar_screen.dart';
+import 'package:admin/ui/features/tasks/views/task_daily_screen.dart';
+import 'package:admin/ui/features/tasks/views/task_weekly_screen.dart';
 import 'package:admin/ui/features/tasks/widgets/task_actions.dart';
 import 'package:admin/ui/features/tasks/widgets/task_list_tile.dart';
 import 'package:admin/ui/features/tasks/widgets/task_token_search_field.dart';
@@ -19,8 +23,10 @@ import 'package:admin/ui/features/tasks/widgets/tasks_view_toggle.dart';
 
 /// Which body the tasks screen renders. Read from `?view=` on the URL so
 /// deep links and back/forward navigation surface in the right view from
-/// the first frame.
-enum TasksViewMode { list, kanban }
+/// the first frame. List + Kanban use `EntityListScreenScaffold` / the kanban
+/// board; daily / weekly / calendar are time-oriented views over the same
+/// task set (see their respective screens).
+enum TasksViewMode { list, daily, weekly, calendar, kanban }
 
 /// Tasks list screen. When `view == TasksViewMode.kanban` the body
 /// delegates to [KanbanScreen]; otherwise it's the standard
@@ -30,12 +36,18 @@ class TaskListScreen extends StatelessWidget {
   const TaskListScreen({
     super.key,
     this.view = TasksViewMode.list,
+    this.focusDate,
     this.clientId,
     this.projectId,
     this.embedded = false,
   });
 
   final TasksViewMode view;
+
+  /// Initial focused day/week/month for the time-oriented views, seeded from
+  /// `?date=` on the URL (e.g. a calendar day-cell tap deep-links into daily).
+  /// Null defaults each view to today. Ignored by list / kanban.
+  final Date? focusDate;
 
   /// When set, the list is filtered to one client.
   final String? clientId;
@@ -49,6 +61,15 @@ class TaskListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (view == TasksViewMode.calendar) {
+      return TaskCalendarScreen(focusDate: focusDate);
+    }
+    if (view == TasksViewMode.daily) {
+      return TaskDailyScreen(focusDate: focusDate);
+    }
+    if (view == TasksViewMode.weekly) {
+      return TaskWeeklyScreen(focusDate: focusDate);
+    }
     if (view == TasksViewMode.kanban) {
       return const KanbanScreen();
     }

@@ -112,6 +112,21 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi>
         });
   }
 
+  /// Flat, unpaginated stream of every task for a company in the given
+  /// [states]. Backs the calendar / daily / weekly views, which group by each
+  /// task's day in Dart. Unlike [watchAllByStatus] this does NOT drop invoiced
+  /// tasks — invoiced work still occupies calendar days and timesheet cells
+  /// (rendered read-only). Reuses the kanban DAO query; the `status_order`
+  /// sort is irrelevant here since the views re-sort by time-entry start.
+  Stream<List<Task>> watchAllActive({
+    required String companyId,
+    Set<EntityState> states = const {EntityState.active},
+  }) {
+    return db.taskDao
+        .watchAllForKanban(companyId: companyId, states: states)
+        .map((rows) => rows.map(_fromRow).toList(growable: false));
+  }
+
   /// The single most-recently-updated running task, or null. Backs the
   /// global running-timer pill (mounted in `AppShell`).
   Stream<Task?> watchRunning({required String companyId}) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
@@ -9,6 +10,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
+import 'package:admin/ui/features/billing_shared/actions/billing_doc_bulk_pdf.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/email/billing_doc_email_sheet.dart';
 import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
@@ -201,6 +203,52 @@ class InvoiceListScreen extends StatelessWidget {
           pluralSuccessKey: 'ran_template_invoices',
           nothingKey: 'nothing_to_update',
           prepare: showRunTemplateDialog,
+        ),
+        EntityListBulkAction(
+          actionId: 'download_pdf',
+          icon: Icons.download_outlined,
+          tooltipKey: 'download_pdf',
+          singleSuccessKey: 'download_pdf', // unused for onSelection
+          pluralSuccessKey: 'download_pdf', // unused for onSelection
+          nothingKey: 'nothing_to_download',
+          onSelection: (ctx, sel) {
+            final services = ctx.read<Services>();
+            final items = sel.cast<Invoice>();
+            return bulkDownloadBillingDocs(
+              ctx,
+              count: items.length,
+              bulkDownload: () => services.invoices.api.bulkDownloadPdf(
+                ids: [for (final i in items) i.id],
+                idempotencyKey: const Uuid().v4(),
+              ),
+              singleFetch: () => services.invoices.api.downloadPdf(
+                entityJson: items.first.toApiJson(),
+                designId: items.first.designId.isEmpty
+                    ? null
+                    : items.first.designId,
+              ),
+              singleFileName:
+                  'invoice_${items.first.number.isEmpty ? items.first.id : items.first.number}.pdf',
+            );
+          },
+        ),
+        EntityListBulkAction(
+          actionId: 'print_pdf',
+          icon: Icons.print_outlined,
+          tooltipKey: 'print_pdf',
+          singleSuccessKey: 'print_pdf', // unused for onSelection
+          pluralSuccessKey: 'print_pdf', // unused for onSelection
+          nothingKey: 'nothing_to_print',
+          onSelection: (ctx, sel) {
+            final services = ctx.read<Services>();
+            final items = sel.cast<Invoice>();
+            return bulkPrintBillingDocs(
+              ctx,
+              fetch: () => services.invoices.api.bulkPrintPdf(
+                ids: [for (final i in items) i.id],
+              ),
+            );
+          },
         ),
       ],
     );

@@ -350,6 +350,23 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         );
         return survivor;
       },
+      // POST /clients/bulk action:bulk_update — mass-update one whitelisted
+      // column across the selection (fired per-id; the repo already applied
+      // the optimistic local patch). `bulkActionOne` returns the item
+      // envelope, so unwrap `.data` for the dispatcher to upsert (clearing the
+      // optimistic `is_dirty`).
+      MutationKind.bulkUpdate: ({required row, required payload}) async {
+        final item = await clientsApi.bulkActionOne(
+          id: payload['id'] as String,
+          action: 'bulk_update',
+          idempotencyKey: row.idempotencyKey,
+          extra: {
+            'column': payload['column'] as String,
+            'new_value': payload['new_value'] as String,
+          },
+        );
+        return item?.data;
+      },
       // Client locations — standalone /api/v1/locations resource, read-
       // embedded on the client. After the write lands, re-pull the parent
       // client and return its envelope so the dispatcher upserts it (the

@@ -162,5 +162,20 @@ class PurchaseOrderListViewModel extends GenericListViewModel<PurchaseOrder> {
         templateId: arg as String,
       ),
     ),
+    // Selection-level PDF actions — the list screen's onSelection does the real
+    // work (server-merged print / async zip+email download). `eligible` drives
+    // the empty-selection guard + the count handed to the handler.
+    BulkAction<PurchaseOrder>(
+      id: 'download_pdf',
+      labelKey: 'download_pdf',
+      eligible: (po) => !isDeleted(po) && !po.id.startsWith('tmp_'),
+      apply: (_) async {},
+    ),
+    BulkAction<PurchaseOrder>(
+      id: 'print_pdf',
+      labelKey: 'print_pdf',
+      eligible: (po) => !isDeleted(po) && !po.id.startsWith('tmp_'),
+      apply: (_) async {},
+    ),
   ];
 }

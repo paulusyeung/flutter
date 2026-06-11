@@ -275,6 +275,93 @@ void main() {
     });
   });
 
+  group('bulkUpdate (mass-edit)', () {
+    test('patches a denormalized column + is_dirty locally AND enqueues a '
+        'bulk_update row carrying column + new_value', () async {
+      final (:repo, :api) = makeRepo();
+      final c = Client.fromApi(apiClient('c1', name: 'Acme'));
+
+      await repo.bulkUpdate(
+        companyId: 'co',
+        client: c,
+        column: 'industry_id',
+        newValue: '5',
+      );
+
+      final row = await db.clientDao.watchById(companyId: 'co', id: 'c1').first;
+      expect(row!.industryId, '5');
+      expect(row.isDirty, isTrue, reason: 'dirty so /refresh skips the patch');
+
+      final pending = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 1 << 60,
+      );
+      expect(pending, hasLength(1));
+      expect(pending.single.mutationKind, MutationKind.bulkUpdate.wireName);
+      expect(pending.single.entityType, 'client');
+      expect(pending.single.entityId, 'c1');
+      expect(pending.single.idempotencyKey, isNotEmpty);
+      expect(
+        pending.single.requiresPassword,
+        isFalse,
+        reason: 'bulk_update is an edit, not a destructive op',
+      );
+      final payload =
+          jsonDecode(pending.single.payload) as Map<String, dynamic>;
+      expect(payload['id'], 'c1');
+      expect(payload['column'], 'industry_id');
+      expect(payload['new_value'], '5');
+    });
+
+    test('patches public_notes — a payload-only field with no dedicated '
+        'column — so the displayed client reflects it immediately', () async {
+      final (:repo, :api) = makeRepo();
+      final c = Client.fromApi(apiClient('c1', name: 'Acme'));
+
+      await repo.bulkUpdate(
+        companyId: 'co',
+        client: c,
+        column: 'public_notes',
+        newValue: 'VIP',
+      );
+
+      final updated = await repo.watch(companyId: 'co', id: 'c1').first;
+      expect(updated!.publicNotes, 'VIP');
+      expect(updated.isDirty, isTrue);
+    });
+
+    test('does NOT dedup — two updates of different columns on one client both '
+        'stay queued (each carries its own column)', () async {
+      final (:repo, :api) = makeRepo();
+      final c = Client.fromApi(apiClient('c1', name: 'Acme'));
+
+      await repo.bulkUpdate(
+        companyId: 'co',
+        client: c,
+        column: 'industry_id',
+        newValue: '5',
+      );
+      await repo.bulkUpdate(
+        companyId: 'co',
+        client: c,
+        column: 'size_id',
+        newValue: '2',
+      );
+
+      final pending = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 1 << 60,
+      );
+      expect(
+        pending
+            .where((r) => r.mutationKind == MutationKind.bulkUpdate.wireName)
+            .length,
+        2,
+        reason: 'deduping would silently drop the first column update',
+      );
+    });
+  });
+
   group('purge', () {
     test('enqueues a purge outbox row with requiresPassword=true so the sync '
         'engine prompts before hitting POST /clients/:id/purge', () async {

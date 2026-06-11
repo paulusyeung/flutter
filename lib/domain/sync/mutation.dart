@@ -138,6 +138,13 @@ enum MutationKind {
   /// `percentage_increase`. Recurring-only; routed via `customActions`.
   increasePrices,
 
+  /// `POST /clients/bulk` with `action: bulk_update` — mass-update a single
+  /// whitelisted column (`public_notes` / `industry_id` / `size_id` /
+  /// `country_id` / `custom_value1..4`) across the selected clients. Payload
+  /// carries `id` + `column` + `new_value`. Client-only; routed via
+  /// `customActions`.
+  bulkUpdate,
+
   /// `POST /quotes/{id}/approve` — manually mark a quote as approved by
   /// the client (override of the portal-driven flow). Quote-only.
   /// Payload is `{'id': id}`.
@@ -330,6 +337,7 @@ enum MutationKind {
     'run_template' => MutationKind.runTemplate,
     'update_prices' => MutationKind.updatePrices,
     'increase_prices' => MutationKind.increasePrices,
+    'bulk_update' => MutationKind.bulkUpdate,
     'approve' => MutationKind.approve,
     'convert_to_invoice' => MutationKind.convertToInvoice,
     'convert_to_project' => MutationKind.convertToProject,
@@ -388,6 +396,7 @@ enum MutationKind {
     MutationKind.runTemplate => 'run_template',
     MutationKind.updatePrices => 'update_prices',
     MutationKind.increasePrices => 'increase_prices',
+    MutationKind.bulkUpdate => 'bulk_update',
     MutationKind.approve => 'approve',
     MutationKind.convertToInvoice => 'convert_to_invoice',
     MutationKind.convertToProject => 'convert_to_project',

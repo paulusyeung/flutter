@@ -68,3 +68,18 @@ Date startOfWeek(Date d, int firstDayOfWeek) {
 /// hardcoded `_weekEnd` in `chart_series_math.dart`.
 Date endOfWeek(Date d, int firstDayOfWeek) =>
     startOfWeek(d, firstDayOfWeek).addDays(6);
+
+/// First cell of the month grid for [month] (only its year+month matter): the
+/// start-of-week (honoring [firstDayOfWeek]) of the 1st of the month. The grid
+/// therefore begins on a weekday boundary, spilling into the previous month
+/// when the 1st isn't itself the first day of the week.
+Date startOfMonthGrid(Date month, int firstDayOfWeek) =>
+    startOfWeek(Date(month.year, month.month, 1), firstDayOfWeek);
+
+/// The 42 days (6 weeks) of [month]'s calendar grid, starting at
+/// [startOfMonthGrid]. Fixed at 6 rows so the grid height never jumps between
+/// months — 42 is the upper bound covering every month/first-day combination.
+List<Date> monthGridDays(Date month, int firstDayOfWeek) {
+  final start = startOfMonthGrid(month, firstDayOfWeek);
+  return [for (var i = 0; i < 42; i++) start.addDays(i)];
+}

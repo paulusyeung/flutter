@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:admin/data/db/app_database.dart' show OutboxRow;
 import 'package:admin/data/models/domain/vendor.dart';
+import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/models/domain/expense_category.dart';
 import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/data/models/domain/recurring_expense.dart';
@@ -220,13 +221,20 @@ final kWiredEntityModules = <EntityModuleSpec>[
     requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
     listBuilder: (context, state) {
       final clientId = state.uri.queryParameters['client_id'];
+      // `?view=` selects the body (list / daily / weekly / calendar / kanban);
+      // `?date=YYYY-MM-DD` seeds the focused day for the time-oriented views.
+      // Read here (not in the screen) so deep links open in the right view
+      // from the first frame.
+      final view = switch (state.uri.queryParameters['view']) {
+        'kanban' => TasksViewMode.kanban,
+        'daily' => TasksViewMode.daily,
+        'weekly' => TasksViewMode.weekly,
+        'calendar' => TasksViewMode.calendar,
+        _ => TasksViewMode.list,
+      };
       return TaskListScreen(
-        // `?view=kanban` switches the body to the kanban board; default is
-        // the standard list. Read here (not in the screen) so deep links
-        // open in the right view from the first frame.
-        view: state.uri.queryParameters['view'] == 'kanban'
-            ? TasksViewMode.kanban
-            : TasksViewMode.list,
+        view: view,
+        focusDate: Date.tryParse(state.uri.queryParameters['date']),
         clientId: clientId == null || clientId.isEmpty ? null : clientId,
       );
     },

@@ -385,6 +385,65 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
     return SaveResult(entity: client, outboxRowId: rowId);
   }
 
+  /// Mass-update one whitelisted column on [client] — the `bulk_update` bulk
+  /// action, fired once per selected client by the list ViewModel. Mirrors
+  /// [save]: optimistically writes the patched row to Drift (`is_dirty=true`)
+  /// so the change shows immediately (online *and* offline), then enqueues a
+  /// per-id `MutationKind.bulkUpdate` outbox row carrying `column` +
+  /// `new_value`. We patch the full domain row (not just the Drift mirror
+  /// column) because `_fromRow` reconstructs the client from the `payload`
+  /// JSON — a column-only patch would leave the displayed value stale, and
+  /// `public_notes` has no dedicated column at all.
+  ///
+  /// Unlike [save] this does NOT `dedupPendingMutations`: two bulk-updates on
+  /// the same client may target *different* columns, so every queued row must
+  /// drain. [column] is one of `Client::$bulk_update_columns` (validated
+  /// server-side); see [_applyBulkColumn].
+  Future<void> bulkUpdate({
+    required String companyId,
+    required Client client,
+    required String column,
+    required String newValue,
+  }) async {
+    final patched = _applyBulkColumn(client, column, newValue);
+    await db.transaction(() async {
+      await db.clientDao.upsert(
+        _domainToCompanion(patched, companyId, isDirty: true),
+      );
+      await enqueueMutation(
+        companyId: companyId,
+        entityId: client.id,
+        kind: MutationKind.bulkUpdate,
+        payload: {'id': client.id, 'column': column, 'new_value': newValue},
+      );
+    });
+  }
+
+  /// Apply a `bulk_update` [column] (server wire name) to [c], returning the
+  /// patched client. The eight columns mirror `Client::$bulk_update_columns`.
+  Client _applyBulkColumn(Client c, String column, String newValue) {
+    switch (column) {
+      case 'public_notes':
+        return c.copyWith(publicNotes: newValue);
+      case 'industry_id':
+        return c.copyWith(industryId: newValue);
+      case 'size_id':
+        return c.copyWith(sizeId: newValue);
+      case 'country_id':
+        return c.copyWith(countryId: newValue);
+      case 'custom_value1':
+        return c.copyWith(customValue1: newValue);
+      case 'custom_value2':
+        return c.copyWith(customValue2: newValue);
+      case 'custom_value3':
+        return c.copyWith(customValue3: newValue);
+      case 'custom_value4':
+        return c.copyWith(customValue4: newValue);
+      default:
+        throw ArgumentError('Unsupported bulk_update column: $column');
+    }
+  }
+
   /// Permanently destroy the client and every record that references it
   /// (invoices, payments, tasks, expenses, …). Irreversible. The outbox
   /// row carries `requiresPassword=true` so the sync engine prompts via

@@ -12,6 +12,7 @@ import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/clients/view_models/client_edit_view_model.dart';
 import 'package:admin/ui/features/clients/view_models/client_list_view_model.dart';
 import 'package:admin/ui/features/clients/widgets/client_actions.dart';
+import 'package:admin/ui/features/clients/widgets/client_bulk_update_dialog.dart';
 import 'package:admin/ui/features/clients/widgets/client_list_column_headers.dart';
 import 'package:admin/ui/features/clients/widgets/client_list_empty_state.dart';
 import 'package:admin/ui/features/clients/widgets/client_list_tile.dart';
@@ -141,6 +142,15 @@ class ClientListScreen extends StatelessWidget {
           singleSuccessKey: 'deleted_client',
           pluralSuccessKey: 'deleted_clients',
           nothingKey: 'nothing_to_delete',
+        ),
+        EntityListBulkAction(
+          actionId: 'bulk_update',
+          icon: Icons.edit_outlined,
+          tooltipKey: 'bulk_update',
+          singleSuccessKey: 'updated_client',
+          pluralSuccessKey: 'updated_clients',
+          nothingKey: 'nothing_to_update',
+          prepare: showClientBulkUpdateDialog,
         ),
       ],
     );

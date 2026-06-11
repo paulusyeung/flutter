@@ -549,9 +549,14 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
 
     // Selection-level action (aggregate / navigate / download): hand the whole
     // eligible selection to the screen's handler and skip the per-id loop.
+    // `runSelectionAction` raises `bulkInFlight` for the duration so the bulk
+    // buttons disable and a second tap can't re-fire a slow request (e.g. the
+    // synchronous bulk-print merge).
     if (action.onSelection != null) {
       final selected = _vm.selectedItems.where(bulk.eligible).toList();
-      await action.onSelection!(context, selected);
+      await _vm.runSelectionAction(
+        () => action.onSelection!(context, selected),
+      );
       // Exit multiselect (React parity, `setSelected([])`) and close the
       // double-tap window — the handler ran once on this selection.
       if (mounted) _vm.clearSelection();

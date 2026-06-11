@@ -183,5 +183,20 @@ class InvoiceListViewModel extends GenericListViewModel<Invoice> {
         templateId: arg as String,
       ),
     ),
+    // Selection-level PDF actions — the list screen's onSelection does the real
+    // work (server-merged print / async zip+email download). `eligible` drives
+    // the empty-selection guard + the count handed to the handler.
+    BulkAction<Invoice>(
+      id: 'download_pdf',
+      labelKey: 'download_pdf',
+      eligible: (i) => !i.isDeleted && !i.id.startsWith('tmp_'),
+      apply: (_) async {},
+    ),
+    BulkAction<Invoice>(
+      id: 'print_pdf',
+      labelKey: 'print_pdf',
+      eligible: (i) => !i.isDeleted && !i.id.startsWith('tmp_'),
+      apply: (_) async {},
+    ),
   ];
 }
