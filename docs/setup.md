@@ -19,6 +19,16 @@ git config core.hooksPath .githooks
 
 When adding back Android/Windows/Linux, regenerate with `flutter create --platforms=android,windows,linux`. Notes: Android needs `<uses-permission android:name="android.permission.INTERNET" />`; Linux requires `libsecret-1-dev` for `flutter_secure_storage`; Windows uses DPAPI per-user.
 
+## Android release build
+
+The release `.aab` is large (~119 MB) mostly because the Dart AOT `libapp.so` ships **unstripped**: its debug symbols (~120 MB across the three ABIs) land in the bundle's `BUNDLE-METADATA/`. Before "fixing" that, two facts:
+
+- **It doesn't change what users download.** Play strips `BUNDLE-METADATA/` before generating delivery APKs, and per-ABI splitting means a device pulls one ABI's `libapp.so` (~35 MB), not all three — the ~119 MB is the *upload artifact*, not the install size. R8 is not the lever: it's already on (both builds carry a `proguard.map`) and only shrinks the ~4 MB Java/Kotlin dex, never the native libs. The growth that *does* reach users vs. admin-portal is ~13 MB — the encrypted-SQLite native lib (`libsqlite3mc.so`), more compiled Dart, the `assets/i18n/*.json` (moved out of Dart code into assets), and the bundled Inter Tight / JetBrains Mono fonts. Partly offset by tree-shaking the Material Design Icons font, which v1 shipped in full (~1 MB).
+
+- **To shrink the upload artifact**, build with `flutter build appbundle --split-debug-info=build/symbols` (optionally `--obfuscate`): `libapp.so` is stripped and the Dart debug info is written to `build/symbols/` instead of the bundle — roughly 35–45 MB off the `.aab`. **Caveat — this breaks Sentry's Dart symbolication.** Sentry Dart stack traces are currently readable *only because* those symbols are baked into the binary; there is no symbol-upload pipeline (`SentryFlutter.init` is wired in `lib/main.dart`, but no `sentry_dart_plugin` / `sentry.properties` / `sentry-cli`). After splitting you must upload `build/symbols/` to Sentry (`sentry_dart_plugin`, or `sentry-cli debug-files upload`) or Dart frames arrive as raw addresses; `flutter symbolize -d build/symbols/<file>` covers manual symbolication. Native-crash symbolication (libflutter / libsentry / libsqlite3mc) is unaffected.
+
+Unless the upload-artifact size is an actual problem, leaving the build as-is is fine — the symbols cost users nothing and currently double as the de-facto Sentry symbol source.
+
 ## Dependency updates
 
 Routine bump: raise the `^` floors in `pubspec.yaml`, run `flutter pub upgrade`, regenerate codegen (`dart run build_runner build --delete-conflicting-outputs`), and — only if `drift` or `sqlite3` moved — the vendored web assets (§ Web setup notes). Gate the result with `flutter analyze` + `flutter test` + `flutter build web --wasm`.

@@ -151,6 +151,7 @@ the honest default.
 | Client — delete | ✅ | ✅ | ✅ | ✅ | |
 | Client — purge (hard delete, admin only) | ✅ | ✅ | ✅ | ✅ | |
 | Client — bulk archive / restore / delete | ✅ | ✅ | ✅ | ✅ | |
+| Client — bulk update (mass-edit fields) | ✅ | ✅ | ❌ |  | |
 | Client — import (CSV / JSON) | ✅ | 🟡 | ✅ | ✅ | |
 | Client — cross-entity "New invoice / recurring / quote / credit / payment / task / expense" | ✅ | ✅ | ✅ | ✅ | |
 | Client — view client invoices / quotes / payments / credits / recurring / projects / tasks / expenses | ✅ | ✅ | ✅ | ✅ | |
@@ -197,7 +198,7 @@ the honest default.
 | Invoice — Peppol delivery | ✅ | ❌ | ✅ | ✅ | |
 | Invoice — Verifactu (Spain) compliance | ✅ | ❌ | ✅ | ✅ | |
 | Invoice — archive / restore / delete | ✅ | ✅ | ✅ | ✅ | |
-| Invoice — bulk actions | ✅ | ✅ | ✅ | ✅ | |
+| Invoice — bulk actions | ✅ | ✅ | ✅ | ✅ | no bulk Download/Print PDF (per-doc only) |
 | Invoice — import (CSV) | ✅ | 🟡 | ✅ | ✅ | |
 | Invoice — custom fields | ✅ | ✅ | ✅ | ✅ | |
 
@@ -225,7 +226,7 @@ the honest default.
 | Quote — list bounce status badge | 🟡 | ✅ | ✅ | | |
 | Quote — documents / attachments | ✅ | ✅ | ✅ | ✅ | |
 | Quote — archive / restore / delete | ✅ | ✅ | ✅ | ✅ | |
-| Quote — bulk actions | ✅ | ✅ | ✅ | ✅ | |
+| Quote — bulk actions | ✅ | ✅ | ✅ | ✅ | no bulk Download/Print PDF (per-doc only) |
 | Quote — import (CSV) | ✅ | 🟡 | ✅ | ✅ | |
 | Quote — custom fields | ✅ | ✅ | ✅ | ✅ | |
 
@@ -254,7 +255,7 @@ the honest default.
 | Credit — e-invoice / Peppol | ✅ | ❌ | ✅ | ✅ | |
 | Credit — documents / attachments | ✅ | ✅ | ✅ | ✅ | |
 | Credit — archive / restore / delete | ✅ | ✅ | ✅ | ✅ | |
-| Credit — bulk actions | ✅ | ✅ | ✅ | ✅ | |
+| Credit — bulk actions | ✅ | ✅ | ✅ | ✅ | no bulk Download/Print PDF (per-doc only) |
 | Credit — custom fields | ✅ | ✅ | ✅ | ✅ | |
 
 ---
@@ -339,6 +340,9 @@ the honest default.
 |---|---|---|---|---|---|
 | Task — list | ✅ | ✅ | ✅ | ✅ | 🟡 |
 | Task — kanban board view | ✅ | ✅ | ✅ | ✅ | |
+| Task — daily view | ✅ | ❌ | ❌ |  | |
+| Task — weekly view | ✅ | ❌ | ❌ |  | |
+| Task — calendar view | ✅ | ❌ | ❌ |  | |
 | Task — detail | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Task — edit | ✅ | ✅ | ✅ | ✅ | |
 | Task — create | ✅ | ✅ | ✅ | ✅ | 🟡 |
