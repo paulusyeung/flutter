@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/avatar_tint.dart';
+import 'package:admin/ui/core/widgets/copyable_value.dart';
 import 'package:admin/ui/core/widgets/status_pill.dart';
 import 'package:admin/utils/formatting.dart';
 
@@ -91,10 +92,15 @@ class EntityDetailHeader extends StatelessWidget {
                     numberWidget!,
                   ] else if (number != null && number!.isNotEmpty) ...[
                     const SizedBox(width: InSpacing.sm),
-                    Text(
-                      '#${number!}',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: tokens.ink3,
+                    // Copies the bare number (no `#`); icon hugs the value.
+                    CopyableValue(
+                      value: number!,
+                      fillWidth: false,
+                      child: Text(
+                        '#${number!}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: tokens.ink3,
+                        ),
                       ),
                     ),
                   ],
@@ -153,7 +159,12 @@ class _Timestamps extends StatelessWidget {
     if (dt.millisecondsSinceEpoch == 0) return '';
     final f = formatter;
     if (f == null) return '';
-    return f.date(dt.toIso8601String().split('T').first);
+    // toLocal() first: these are server epoch timestamps (UTC-backed), and
+    // taking the ISO date of the UTC instant renders the wrong calendar day
+    // for any user whose evening/morning falls across the UTC boundary
+    // (e.g. created 23:30 UTC = next day in UTC+2 — the header said
+    // "yesterday"). No-op when the value is already local.
+    return f.date(dt.toLocal().toIso8601String().split('T').first);
   }
 }
 

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart' show Value, BooleanExpressionOperators;
 import 'package:logging/logging.dart';
 
+import 'package:admin/data/db/dao/base_entity_dao.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/billing_extra_filters.dart';
 import 'package:admin/data/db/dao/payment_dao.dart';
@@ -241,6 +242,17 @@ class PaymentRepository extends BaseEntityRepository<Payment, PaymentApi>
     required bool sendEmail,
   }) async {
     final companion = _domainToCompanion(payment, companyId, isDirty: true);
+    // Never re-send allocations on an update. The server's
+    // PaymentRepository::applyPayment re-applies every `invoices`/`credits`
+    // entry on PUT with no dedupe, so echoing an existing payment's
+    // paymentables back double-applies it against the invoice (balance and
+    // paid_to_date corrupted) — or 422s outright once the payment is fully
+    // applied. Allocating funds is its own flow ([apply], a separate
+    // `MutationKind.applyPayment` PUT). React's edit hook deletes both keys
+    // before PUT for the same reason (useSave.ts).
+    final updateJson = payment.toApiJson(preserveTempId: true)
+      ..remove('invoices')
+      ..remove('credits');
     var rowId = 0;
     await db.transaction(() async {
       await db.paymentDao.upsert(companion);
@@ -254,7 +266,7 @@ class PaymentRepository extends BaseEntityRepository<Payment, PaymentApi>
         entityId: payment.id,
         kind: MutationKind.update,
         payload: <String, dynamic>{
-          ...payment.toApiJson(preserveTempId: true),
+          ...updateJson,
           kPaymentSendEmailKey: sendEmail,
         },
       );
@@ -367,6 +379,9 @@ class PaymentRepository extends BaseEntityRepository<Payment, PaymentApi>
     required String companyId,
     required String id,
   }) => db.paymentDao.deleteById(companyId: companyId, id: id);
+
+  @override
+  BaseEntityDao<dynamic, dynamic> get localDao => db.paymentDao;
 
   @override
   Future<void> applyCreateResponse({

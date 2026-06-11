@@ -40,6 +40,7 @@ class LineItemPickerBody extends StatefulWidget {
     required this.companyId,
     required this.clientId,
     required this.showTasksAndExpenses,
+    required this.invoiceInclusive,
     required this.excludedTaskIds,
     required this.excludedExpenseIds,
     required this.formatter,
@@ -50,6 +51,11 @@ class LineItemPickerBody extends StatefulWidget {
   final String companyId;
   final String clientId;
   final bool showTasksAndExpenses;
+
+  /// The target doc's `usesInclusiveTaxes` — governs whether a picked
+  /// expense bills its gross (inclusive doc extracts the tax) or net
+  /// (exclusive doc adds it on top). See `expenseInvoiceLineItem`.
+  final bool invoiceInclusive;
   final Set<String> excludedTaskIds;
   final Set<String> excludedExpenseIds;
   final Formatter? formatter;
@@ -458,7 +464,11 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
       }
     }
     for (final e in _expenses) {
-      if (_selExpenses.contains(e.id)) out.add(expenseToLineItem(e));
+      if (_selExpenses.contains(e.id)) {
+        out.add(
+          expenseToLineItem(e, invoiceInclusive: widget.invoiceInclusive),
+        );
+      }
     }
     return out;
   }

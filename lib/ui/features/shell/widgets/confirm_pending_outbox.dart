@@ -85,17 +85,41 @@ Future<OutboxConfirmResult> confirmPendingOutboxIfAny(
     return OutboxConfirmResult.proceed;
   }
 
-  // Sync first.
-  try {
-    await services.sync.flushNow(companyId: companyId);
-  } catch (e) {
+  // Sync first. Drain in a bounded loop rather than a single pass: an
+  // offline-created parent + its dependent sync over CONSECUTIVE passes
+  // (pass 1 dispatches the parent and re-arms the dependent — see
+  // `OutboxDao.rewriteTempIdInPayloads` — pass 2 dispatches the dependent),
+  // so a single `flushNow` + count check would cancel logout on a chain
+  // that's actually healthy. Loop while the pending count keeps dropping;
+  // stop as soon as a pass makes no progress (genuinely stuck: offline
+  // backoff, conflict- or password-parked, or dead-referencing).
+  var remaining = await services.sync.pendingCountFor(companyId);
+  const maxPasses = 10; // backstop; real chains are 2-3 deep
+  for (var pass = 0; pass < maxPasses && remaining > 0; pass++) {
+    try {
+      await services.sync.flushNow(companyId: companyId);
+    } catch (e) {
+      if (context.mounted) {
+        Notify.error(context, context.tr('sync_failed'), error: e);
+      }
+      return OutboxConfirmResult.cancelled;
+    }
+    final next = await services.sync.pendingCountFor(companyId);
+    if (next == 0) return OutboxConfirmResult.proceed;
+    if (next >= remaining) break; // no progress this pass → stalled
+    remaining = next;
+  }
+  // Rows still pending after the loop couldn't be sent (offline, parked, or
+  // referencing a record that failed). Proceeding would let the post-logout
+  // Drift wipe destroy them even though the user asked to sync, so cancel:
+  // they can retry, resolve, or come back and pick "Discard". Dead rows
+  // don't count here — they're terminal and surfaced on the Outbox screen.
+  if (remaining > 0) {
     if (context.mounted) {
-      Notify.error(context, context.tr('sync_failed'), error: e);
+      Notify.error(context, context.tr('sync_failed'));
     }
     return OutboxConfirmResult.cancelled;
   }
-  // If the flush left rows behind (404s, validation errors marked dead, etc.)
-  // proceed anyway — those are now in the `dead` state and won't block.
   return OutboxConfirmResult.proceed;
 }
 

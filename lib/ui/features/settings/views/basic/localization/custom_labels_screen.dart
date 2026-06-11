@@ -466,6 +466,13 @@ SettingsBinding _bindingFor(String key) => (
     } else {
       map[key] = v;
     }
+    // Empty map → null here: this write path's v == null branch only fires
+    // from the cascade-scope override checkbox (company scope renders these
+    // rows without one), and at cascade scope the override must be REMOVED
+    // from the sparse draft — persisting `translations: {}` would
+    // permanently shadow every company custom label for that client on
+    // server-rendered PDFs/emails. Company-scope last-label removal goes
+    // through _removeLabel below, which keeps the explicit {}.
     return s.copyWith(translations: map.isEmpty ? null : map);
   },
 );
@@ -487,6 +494,13 @@ void _removeLabel(SettingsDraftHost host, String key) {
   host.updateSettings((s) {
     final map = Map<String, dynamic>.of(s.translations ?? const {});
     map.remove(key);
-    return s.copyWith(translations: map.isEmpty ? null : map);
+    // Sentinel by scope (see SettingsDraftHost.isCascadeScope): at company
+    // scope an explicit {} survives the rawSettings PUT merge (a null map is
+    // omitted by toJson and the removed label resurrects); at cascade scope
+    // an empty map must become null — `translations: {}` would permanently
+    // shadow every company custom label for that client server-side.
+    return s.copyWith(
+      translations: map.isEmpty && host.isCascadeScope ? null : map,
+    );
   });
 }

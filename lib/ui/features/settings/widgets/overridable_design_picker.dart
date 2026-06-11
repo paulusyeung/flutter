@@ -57,9 +57,26 @@ class OverridableDesignPicker extends StatelessWidget {
       items: items,
       displayString: (d) => d.name,
       idOf: (d) => d.id,
-      onChanged: (id) => host.updateSettings(
-        (s) => binding.write(s, (id == null || id.isEmpty) ? null : id),
-      ),
+      onChanged: (id) {
+        if (id == null || id.isEmpty) {
+          // Required pickers (invoice/quote/credit/PO design) have no blank
+          // option — the searchable field's always-present clear-X must not
+          // persist '' (the server would silently fall back to the
+          // hard-coded default design). Ignore it; the committed value
+          // re-renders.
+          if (!allowBlank) return;
+          // Blankable pickers: sentinel by scope (see
+          // SettingsDraftHost.isCascadeScope). Company scope writes '' so
+          // the reset survives the rawSettings PUT merge ('' is also the
+          // server default for these ids); cascade scope writes null so the
+          // override is removed rather than left as a phantom.
+          host.updateSettings(
+            (s) => binding.write(s, host.isCascadeScope ? null : ''),
+          );
+          return;
+        }
+        host.updateSettings((s) => binding.write(s, id));
+      },
     );
   }
 

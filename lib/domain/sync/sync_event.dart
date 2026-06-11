@@ -21,14 +21,35 @@ class ValidationFailedEvent extends SyncEvent {
   final String message;
 }
 
-/// 409 — server has newer data. `ConflictResolutionSheet` opens.
+/// Server rejected a queued mutation as a conflict — `ConflictResolutionSheet`
+/// opens. Two flavors, distinguished by [statusCode]:
+///   * **409** — the server has newer data (a genuine concurrent-edit
+///     conflict). The sheet offers open / discard / use-mine.
+///   * **404** — the entity was deleted server-side while we held a pending
+///     edit, so there's nothing left to update. The sheet shows a
+///     "deleted on the server" message and offers discard-locally only
+///     (re-submitting would 404 forever).
 class ConflictEvent extends SyncEvent {
   const ConflictEvent({
     required super.entityType,
     required super.entityId,
     required this.message,
+    this.statusCode,
+    this.outboxRowId,
   });
   final String message;
+
+  /// HTTP status that parked the row — 404 (deleted server-side) or 409
+  /// (stale data). Null on legacy/unknown paths (treated as 409 by the sheet).
+  final int? statusCode;
+
+  /// The parked outbox row's id, so the resolver can act on exactly that row
+  /// (e.g. drop it on a 404 discard) without re-deriving it from the entity.
+  final int? outboxRowId;
+
+  /// True when the parked mutation can never succeed by retrying the same
+  /// request — the entity is gone server-side. Drives the 404 sheet variant.
+  bool get isDeletedServerSide => statusCode == 404;
 }
 
 /// 403 password-required — `ConfirmPasswordSheet` opens.

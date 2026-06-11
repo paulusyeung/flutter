@@ -97,6 +97,7 @@ class ProjectEditViewModel extends GenericEditViewModel<Project> {
 
   void setName(String v) => updateDraft(draft.copyWith(name: v));
   void setNumber(String v) => updateDraft(draft.copyWith(number: v));
+  void setTagIds(List<String> ids) => updateDraft(draft.copyWith(tagIds: ids));
   void setClientId(String v) => updateDraft(draft.copyWith(clientId: v));
   void setAssignedUserId(String v) =>
       updateDraft(draft.copyWith(assignedUserId: v));

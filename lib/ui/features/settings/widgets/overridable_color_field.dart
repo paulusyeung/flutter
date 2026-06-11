@@ -30,8 +30,16 @@ class OverridableColorField extends StatelessWidget {
 
     final field = ColorField(
       initial: value,
-      onChanged: (v) =>
-          host.updateSettings((s) => binding.write(s, v.isEmpty ? null : v)),
+      // Clear sentinel by scope (see SettingsDraftHost.isCascadeScope):
+      // company scope writes '' so the clear survives the rawSettings PUT
+      // merge; cascade scope writes null so the override is removed rather
+      // than left as a phantom ''-override the server would strip.
+      onChanged: (v) => host.updateSettings(
+        (s) => binding.write(
+          s,
+          v.isNotEmpty ? v : (host.isCascadeScope ? null : ''),
+        ),
+      ),
     );
 
     return OverridableField.bind(

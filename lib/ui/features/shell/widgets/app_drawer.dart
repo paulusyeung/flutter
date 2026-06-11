@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/features/shell/branch_company_gate.dart';
 import 'package:admin/ui/features/shell/widgets/in_sidebar.dart';
 
 /// Mobile drawer that consolidates what desktop shows in the persistent
@@ -31,14 +32,25 @@ class AppDrawer extends StatelessWidget {
           // every context-dependent value *before* the pop. The dialog is
           // shown from the root navigator (passed via the captured navState),
           // which survives the drawer dismissal.
-          final guard = context.read<Services>().unsavedChangesGuard;
+          final services = context.read<Services>();
+          final guard = services.unsavedChangesGuard;
+          final branchGate = context.read<BranchCompanyGate>();
           final rootContext = Navigator.of(
             context,
             rootNavigator: true,
           ).context;
           Navigator.pop(context);
           if (!await guard.confirmIfDirty(rootContext)) return;
-          nav.goBranch(index, initialLocation: index == nav.currentIndex);
+          // Re-entering a branch last visited under a different company must
+          // drop its preserved stack (see [BranchCompanyGate]).
+          final staleCompanyStack = branchGate.shouldResetOnEnter(
+            index: index,
+            companyId: services.auth.session.value?.currentCompanyId ?? '',
+          );
+          nav.goBranch(
+            index,
+            initialLocation: staleCompanyStack || index == nav.currentIndex,
+          );
         },
       ),
     );

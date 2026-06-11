@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -8,9 +7,11 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/repositories/auth/auth_session.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/copyable_value.dart';
 import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/settings_actions.dart';
+import 'package:admin/ui/features/settings/views/basic/account_management/company_settings_gate.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
@@ -53,19 +54,26 @@ class _AccountManagementOverviewScreenState
             if (company == null) {
               return const Center(child: CircularProgressIndicator());
             }
-            return SettingsFormShell(
-              sections: [
-                _PlanCard(session: value),
-                if (!value.isHosted) const _SelfHostedLicenseCard(),
-                _AccountInfoCard(session: value),
-                if (value.defaultCompanyId != value.currentCompanyId)
-                  _DefaultCompanySection(
-                    busy: _settingDefault,
-                    onPressed: _onSetDefaultCompany,
-                  ),
-                _CompanyTogglesCard(company: company),
-                _DataCard(resyncing: _resyncing, onResync: _onForceResync),
-              ],
+            // Only the company-toggles card PUTs the whole company, so it
+            // alone is gated on the canonical fetch (the shell triggers it on
+            // mount); the other cards are read-only or use distinct actions.
+            return CompanySettingsGate(
+              companyId: value.currentCompanyId,
+              builder: (context, ready) => SettingsFormShell(
+                sections: [
+                  if (!ready) const CompanySettingsLockedBanner(),
+                  _PlanCard(session: value),
+                  if (!value.isHosted) const _SelfHostedLicenseCard(),
+                  _AccountInfoCard(session: value),
+                  if (value.defaultCompanyId != value.currentCompanyId)
+                    _DefaultCompanySection(
+                      busy: _settingDefault,
+                      onPressed: _onSetDefaultCompany,
+                    ),
+                  _CompanyTogglesCard(company: company, ready: ready),
+                  _DataCard(resyncing: _resyncing, onResync: _onForceResync),
+                ],
+              ),
             );
           },
         );
@@ -275,16 +283,7 @@ class _CopyableTile extends StatelessWidget {
       trailing: disabled
           ? null
           : Icon(Icons.content_copy, size: 18, color: tokens.ink3),
-      onTap: disabled
-          ? null
-          : () async {
-              final msg = context
-                  .tr('copied_to_clipboard')
-                  .replaceAll(':value', value);
-              await Clipboard.setData(ClipboardData(text: value));
-              if (!context.mounted) return;
-              Notify.success(context, msg);
-            },
+      onTap: disabled ? null : () => copyToClipboard(context, value),
     );
   }
 }
@@ -320,9 +319,13 @@ class _DefaultCompanySection extends StatelessWidget {
 }
 
 class _CompanyTogglesCard extends StatelessWidget {
-  const _CompanyTogglesCard({required this.company});
+  const _CompanyTogglesCard({required this.company, required this.ready});
 
   final Company company;
+
+  /// When false (canonical company not yet fetched — see CompanySettingsGate),
+  /// every toggle is disabled so a save can't ship cached server-only defaults.
+  final bool ready;
 
   @override
   Widget build(BuildContext context) {
@@ -334,35 +337,41 @@ class _CompanyTogglesCard extends StatelessWidget {
           titleKey: 'activate_company',
           subtitleKey: 'activate_company_help',
           value: !company.isDisabled,
-          onChanged: (v) => _save(context, company.copyWith(isDisabled: !v)),
+          onChanged: ready
+              ? (v) => _save(context, company.copyWith(isDisabled: !v))
+              : null,
         ),
         _ToggleRow(
           titleKey: 'enable_pdf_markdown',
           subtitleKey: 'enable_markdown_help',
           value: company.markdownEnabled,
-          onChanged: (v) =>
-              _save(context, company.copyWith(markdownEnabled: v)),
+          onChanged: ready
+              ? (v) => _save(context, company.copyWith(markdownEnabled: v))
+              : null,
         ),
         _ToggleRow(
           titleKey: 'enable_email_markdown',
           subtitleKey: 'enable_email_markdown_help',
           value: company.markdownEmailEnabled,
-          onChanged: (v) =>
-              _save(context, company.copyWith(markdownEmailEnabled: v)),
+          onChanged: ready
+              ? (v) => _save(context, company.copyWith(markdownEmailEnabled: v))
+              : null,
         ),
         _ToggleRow(
           titleKey: 'include_drafts',
           subtitleKey: 'include_drafts_help',
           value: company.reportIncludeDrafts,
-          onChanged: (v) =>
-              _save(context, company.copyWith(reportIncludeDrafts: v)),
+          onChanged: ready
+              ? (v) => _save(context, company.copyWith(reportIncludeDrafts: v))
+              : null,
         ),
         _ToggleRow(
           titleKey: 'include_deleted',
           subtitleKey: 'include_deleted_help',
           value: company.reportIncludeDeleted,
-          onChanged: (v) =>
-              _save(context, company.copyWith(reportIncludeDeleted: v)),
+          onChanged: ready
+              ? (v) => _save(context, company.copyWith(reportIncludeDeleted: v))
+              : null,
         ),
       ],
     );
@@ -389,7 +398,10 @@ class _ToggleRow extends StatelessWidget {
   final String titleKey;
   final String subtitleKey;
   final bool value;
-  final ValueChanged<bool> onChanged;
+
+  /// Null disables the switch (greyed out) — used while the canonical company
+  /// is still loading (see CompanySettingsGate).
+  final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) {

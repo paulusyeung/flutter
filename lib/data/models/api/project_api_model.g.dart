@@ -31,6 +31,9 @@ _ProjectApi _$ProjectApiFromJson(Map<String, dynamic> json) => _ProjectApi(
   documents: (json['documents'] as List<dynamic>?)
       ?.map((e) => DocumentApi.fromJson(e as Map<String, dynamic>))
       .toList(),
+  tags: json['tags'] == null
+      ? const <TagRefApi>[]
+      : const EmbeddedTagsConverter().fromJson(json['tags']),
 );
 
 Map<String, dynamic> _$ProjectApiToJson(_ProjectApi instance) =>
@@ -57,6 +60,7 @@ Map<String, dynamic> _$ProjectApiToJson(_ProjectApi instance) =>
       'archived_at': instance.archivedAt,
       'is_deleted': instance.isDeleted,
       'documents': instance.documents,
+      'tags': const EmbeddedTagsConverter().toJson(instance.tags),
     };
 
 _ProjectListApi _$ProjectListApiFromJson(Map<String, dynamic> json) =>

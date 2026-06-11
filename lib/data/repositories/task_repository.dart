@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart' show Value, BooleanExpressionOperators;
 import 'package:logging/logging.dart';
 
+import 'package:admin/data/db/dao/base_entity_dao.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/task_dao.dart';
 import 'package:admin/data/models/api/document_api_model.dart';
@@ -386,6 +387,9 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi>
   }) => db.taskDao.deleteById(companyId: companyId, id: id);
 
   @override
+  BaseEntityDao<dynamic, dynamic> get localDao => db.taskDao;
+
+  @override
   Future<void> applyCreateResponse({
     required String companyId,
     required String tempId,
@@ -553,6 +557,14 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi>
       documents: a.documents == null
           ? const Value.absent()
           : Value(jsonEncode(a.documents!.map((d) => d.toJson()).toList())),
+      // Network response carries tag names — denormalize for local sort.
+      tagNames: Value(
+        a.tags
+            .map((t) => t.name)
+            .where((n) => n.isNotEmpty)
+            .join(',')
+            .toLowerCase(),
+      ),
       payload: jsonEncode(a.toJson()),
     );
   }

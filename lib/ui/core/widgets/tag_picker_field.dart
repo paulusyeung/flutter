@@ -1,0 +1,319 @@
+import 'dart:math' as math;
+
+import 'package:collection/collection.dart';
+import 'package:flutter/material.dart';
+
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/data/models/domain/tag.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/tag_pill.dart';
+
+/// Multi-select tag picker — selected tags render as removable colored chips
+/// above a type-to-search field; matching tags drop down as you type. When
+/// [onCreate] is non-null (admin) and the typed name matches no existing tag,
+/// a `Create "name"` affordance appears in the dropdown. Mirrors React's
+/// `TagPillSelector`; built on `RawAutocomplete` like `SearchableDropdownField`.
+///
+/// Operates purely on tag ids: [selectedIds] in, [onChanged] out. Names +
+/// colors are resolved from [available] (the active tag cache for the entity
+/// type), so a rename reflects immediately.
+class TagPickerField extends StatefulWidget {
+  const TagPickerField({
+    super.key,
+    required this.label,
+    required this.available,
+    required this.selectedIds,
+    required this.onChanged,
+    this.onCreate,
+    this.enabled = true,
+  });
+
+  /// Resolved (already-translated) field label.
+  final String label;
+
+  /// Active tags for the relevant entity type — the selectable pool + the
+  /// source of names/colors for the selected chips.
+  final List<Tag> available;
+
+  final List<String> selectedIds;
+  final ValueChanged<List<String>> onChanged;
+
+  /// Admin-only inline create. Returns the created [Tag] (added to the
+  /// selection) or null if creation was declined/failed. Null hides the
+  /// "Create" affordance for non-admins.
+  final Future<Tag?> Function(String name)? onCreate;
+
+  final bool enabled;
+
+  @override
+  State<TagPickerField> createState() => _TagPickerFieldState();
+}
+
+class _TagPickerFieldState extends State<TagPickerField> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+  bool _creating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _addTag(String id) {
+    if (widget.selectedIds.contains(id)) return;
+    widget.onChanged([...widget.selectedIds, id]);
+  }
+
+  void _removeTag(String id) {
+    widget.onChanged(widget.selectedIds.where((e) => e != id).toList());
+  }
+
+  bool _canCreate(String query) {
+    final q = query.trim();
+    if (widget.onCreate == null || q.isEmpty || _creating) return false;
+    // Suppress create when the name already exists (case-insensitive).
+    return !widget.available.any(
+      (t) => t.name.toLowerCase() == q.toLowerCase(),
+    );
+  }
+
+  Future<void> _handleCreate(String name) async {
+    final onCreate = widget.onCreate;
+    final trimmed = name.trim();
+    if (onCreate == null || trimmed.isEmpty || _creating) return;
+    setState(() => _creating = true);
+    Tag? created;
+    try {
+      created = await onCreate(trimmed);
+    } finally {
+      if (mounted) setState(() => _creating = false);
+    }
+    if (!mounted || created == null) return;
+    _addTag(created.id);
+    _controller.clear();
+    _focusNode.requestFocus();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final theme = Theme.of(context);
+    final byId = {for (final t in widget.available) t.id: t};
+
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(InRadii.r1),
+      borderSide: BorderSide(color: tokens.border),
+    );
+
+    final chips = [
+      for (final id in widget.selectedIds)
+        TagPill(
+          name: byId[id]?.name ?? id,
+          colorHex: byId[id]?.color ?? '',
+          onRemove: widget.enabled ? () => _removeTag(id) : null,
+        ),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: InSpacing.xs),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.label,
+            style: theme.textTheme.bodySmall?.copyWith(color: tokens.ink2),
+          ),
+          if (chips.isNotEmpty) ...[
+            const SizedBox(height: InSpacing.sm),
+            Wrap(
+              spacing: InSpacing.sm,
+              runSpacing: InSpacing.sm,
+              children: chips,
+            ),
+          ],
+          const SizedBox(height: InSpacing.sm),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final fieldWidth = constraints.maxWidth.isFinite
+                  ? constraints.maxWidth
+                  : 360.0;
+              final popoverWidth = math.min(fieldWidth, 360.0);
+              return RawAutocomplete<Tag>(
+                textEditingController: _controller,
+                focusNode: _focusNode,
+                displayStringForOption: (t) => t.name,
+                optionsBuilder: (value) {
+                  if (!widget.enabled) return const Iterable<Tag>.empty();
+                  final q = value.text.trim().toLowerCase();
+                  final selected = widget.selectedIds.toSet();
+                  final pool = widget.available.where(
+                    (t) => !selected.contains(t.id),
+                  );
+                  if (q.isEmpty) return pool.take(20);
+                  return pool
+                      .where((t) => t.name.toLowerCase().contains(q))
+                      .take(50);
+                },
+                onSelected: (tag) {
+                  _addTag(tag.id);
+                  _controller.clear();
+                },
+                fieldViewBuilder:
+                    (context, textController, focusNode, onFieldSubmitted) {
+                      return Material(
+                        type: MaterialType.transparency,
+                        child: TextField(
+                          controller: textController,
+                          focusNode: focusNode,
+                          enabled: widget.enabled,
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) {
+                            final q = textController.text.trim();
+                            if (q.isEmpty) return;
+                            final exact = widget.available.firstWhereOrNull(
+                              (t) => t.name.toLowerCase() == q.toLowerCase(),
+                            );
+                            if (exact != null) {
+                              _addTag(exact.id);
+                              textController.clear();
+                              return;
+                            }
+                            if (_canCreate(q)) {
+                              _handleCreate(q);
+                              return;
+                            }
+                            onFieldSubmitted();
+                          },
+                          decoration: InputDecoration(
+                            hintText: context.tr('add_tag'),
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: InSpacing.md(context),
+                              vertical: 12,
+                            ),
+                            border: border,
+                            enabledBorder: border,
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(InRadii.r1),
+                              borderSide: BorderSide(
+                                color: tokens.accent,
+                                width: 1.5,
+                              ),
+                            ),
+                            prefixIcon: Icon(
+                              Icons.local_offer_outlined,
+                              size: 16,
+                              color: tokens.ink3,
+                            ),
+                          ),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: tokens.ink,
+                          ),
+                        ),
+                      );
+                    },
+                optionsViewBuilder: (context, onSelected, options) {
+                  final query = _controller.text.trim();
+                  final showCreate = _canCreate(query);
+                  return Align(
+                    alignment: Alignment.topLeft,
+                    child: Material(
+                      elevation: 4,
+                      borderRadius: BorderRadius.circular(InRadii.r2),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxHeight: 280,
+                          maxWidth: popoverWidth,
+                        ),
+                        child: ListView(
+                          shrinkWrap: true,
+                          padding: EdgeInsets.zero,
+                          children: [
+                            for (final tag in options)
+                              InkWell(
+                                onTap: () => onSelected(tag),
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: InSpacing.md(context),
+                                    vertical: InSpacing.sm,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 10,
+                                        height: 10,
+                                        decoration: BoxDecoration(
+                                          color: parseTagColor(
+                                            tag.color,
+                                            fallback: tokens.ink3,
+                                          ),
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: InSpacing.sm),
+                                      Expanded(
+                                        child: Text(
+                                          tag.name,
+                                          style: theme.textTheme.bodyMedium
+                                              ?.copyWith(color: tokens.ink),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            if (showCreate) ...[
+                              if (options.isNotEmpty)
+                                Divider(height: 1, color: tokens.border),
+                              InkWell(
+                                onTap: () => _handleCreate(query),
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: InSpacing.md(context),
+                                    vertical: InSpacing.sm,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.add,
+                                        size: 16,
+                                        color: tokens.accent,
+                                      ),
+                                      const SizedBox(width: InSpacing.sm),
+                                      Expanded(
+                                        child: Text(
+                                          context
+                                              .tr('create_tag_named')
+                                              .replaceFirst(':name', query),
+                                          style: theme.textTheme.bodyMedium
+                                              ?.copyWith(color: tokens.accent),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}

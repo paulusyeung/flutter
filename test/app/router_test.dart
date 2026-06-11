@@ -135,6 +135,59 @@ void main() {
       );
     });
 
+    // Settings-hosted entities are in `uiRoutePaths` too: their edit/detail
+    // screens bind the active company once at mount, so a stale
+    // `/settings/<entity>/<id>` surviving a company switch would keep
+    // showing — and saving to — the previous company's record.
+    const settingsRoots = [
+      '/settings/company_gateways',
+      '/settings/bank_accounts',
+      '/settings/bank_accounts/transaction_rules',
+    ];
+
+    test('strips /settings/<entity>/<id>/edit back to the entity list', () {
+      expect(
+        companySafeLocation(
+          '/settings/company_gateways/gw1/edit',
+          settingsRoots,
+        ),
+        '/settings/company_gateways',
+      );
+    });
+
+    test('passes /settings/<entity>/new through unchanged', () {
+      expect(
+        companySafeLocation('/settings/company_gateways/new', settingsRoots),
+        '/settings/company_gateways/new',
+      );
+    });
+
+    test('nested entity root: its own list passes through unchanged', () {
+      // `/settings/bank_accounts/transaction_rules` nests under
+      // `/settings/bank_accounts` — the longer root must win, or the rules
+      // list itself would be mis-stripped to the bank accounts list.
+      expect(
+        companySafeLocation(
+          '/settings/bank_accounts/transaction_rules',
+          settingsRoots,
+        ),
+        '/settings/bank_accounts/transaction_rules',
+      );
+    });
+
+    test(
+      'nested entity root: ids strip to the nested list, not the parent',
+      () {
+        expect(
+          companySafeLocation(
+            '/settings/bank_accounts/transaction_rules/tr1/edit',
+            settingsRoots,
+          ),
+          '/settings/bank_accounts/transaction_rules',
+        );
+      },
+    );
+
     test('preserves query string on safe routes', () {
       expect(
         companySafeLocation('/clients?filter=active', _testRoots),

@@ -37,6 +37,9 @@ abstract class Task with _$Task {
     required DateTime? archivedAt,
     required bool isDeleted,
     @Default(<Document>[]) List<Document> documents,
+    // Attached tag ids (hashed). Names/colors are resolved from the tag
+    // cache for rendering; `toApiJson` sends the full set (server `sync()`s).
+    @Default(<String>[]) List<String> tagIds,
     @Default(false) bool isDirty,
   }) = _Task;
 
@@ -61,6 +64,10 @@ abstract class Task with _$Task {
     archivedAt: epochSecondsToUtcOrNull(a.archivedAt),
     isDeleted: a.isDeleted,
     documents: mapDocuments(a.documents),
+    tagIds: [
+      for (final t in a.tags)
+        if (t.id.isNotEmpty) t.id,
+    ],
   );
 }
 
@@ -131,6 +138,9 @@ extension TaskPayload on Task {
       'custom_value2': customValue2,
       'custom_value3': customValue3,
       'custom_value4': customValue4,
+      // Full-set replace: server `sync()`s the attached tags to exactly this
+      // id set (empty clears). Bare ids — the server normalizes them.
+      'tags': tagIds,
     };
   }
 }

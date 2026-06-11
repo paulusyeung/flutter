@@ -499,6 +499,29 @@ void main() {
       expect(row.industryId, '11');
     });
 
+    test('a successful refresh releases the Account-Management control gate '
+        '(canonicalFetched) for that company (Finding 40)', () async {
+      const companyId = 'co';
+      await seedCompany(companyId);
+      final response = CompanyItemApi(
+        data: CompanyApi(id: companyId, name: 'Acme', updatedAt: 1900000000),
+      );
+      final repo = CompanyRepository(
+        db: db,
+        api: _StubCompaniesApi(response),
+        uuid: const Uuid(),
+      );
+
+      expect(repo.isCanonicalFetched(companyId), isFalse);
+      var notified = false;
+      repo.canonicalFetched.addListener(() => notified = true);
+
+      await repo.refresh(companyId);
+
+      expect(repo.isCanonicalFetched(companyId), isTrue);
+      expect(notified, isTrue, reason: 'gating widgets rebuild on the change');
+    });
+
     test(
       'swallows errors so the page can still render the cached row',
       () async {
@@ -511,6 +534,13 @@ void main() {
         );
 
         await repo.refresh(companyId); // must not throw
+        expect(
+          repo.isCanonicalFetched(companyId),
+          isFalse,
+          reason:
+              'a failed/offline fetch must NOT release the control gate — '
+              'saving would clobber server-only fields with cached defaults',
+        );
       },
     );
 

@@ -285,7 +285,11 @@ class _NotifyCard extends StatelessWidget {
 /// Kept intentionally dumb — exhaustive type matching is out of scope; the
 /// goal is just to drop `Exception: `, `_Exception: `, and the type-name
 /// prefixes that Flutter's builtin exceptions print, then trim.
-@visibleForTesting
+///
+/// Also the public seam for error surfaces that render a message string
+/// directly instead of going through [Notify.error]'s `error:` parameter
+/// (list-load errors, the PDF pane) — those must never show a raw
+/// `FooException: …` toString to the user.
 String formatNotifyError(Object error) => _formatError(error);
 
 String _formatError(Object error) {

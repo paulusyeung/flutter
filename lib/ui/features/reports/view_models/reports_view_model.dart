@@ -227,6 +227,8 @@ class ReportsViewModel extends ChangeNotifier {
           changed = (_payload.vendors ?? '') != defaultStr('vendors');
         case ReportFilterField.projectsMulti:
           changed = (_payload.projects ?? '') != defaultStr('projects');
+        case ReportFilterField.tagsMulti:
+          changed = (_payload.tags ?? '') != defaultStr('tag_ids');
         case ReportFilterField.categoriesMulti:
           changed = (_payload.categories ?? '') != defaultStr('categories');
         case ReportFilterField.activityType:

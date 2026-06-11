@@ -13,6 +13,8 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/custom_field_detail_rows.dart';
 import 'package:admin/ui/core/detail/entity_link_card.dart';
 import 'package:admin/ui/core/widgets/centered_form_column.dart';
+import 'package:admin/ui/core/widgets/copyable_value.dart';
+import 'package:admin/ui/core/widgets/entity_tags_view.dart';
 import 'package:admin/ui/features/tasks/widgets/running_duration_label.dart';
 import 'package:admin/utils/formatting.dart';
 
@@ -194,13 +196,25 @@ class _Card extends StatelessWidget {
 }
 
 class _Row extends StatelessWidget {
-  const _Row({required this.label, required this.value});
+  const _Row({required this.label, required this.value, this.copyValue});
   final String label;
   final Widget value;
+
+  /// When non-empty, the value gets a copy affordance (hover icon on
+  /// desktop/web, tap-to-copy on mobile) that copies this string.
+  final String? copyValue;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    Widget styled = DefaultTextStyle.merge(
+      child: value,
+      style: TextStyle(fontSize: 13, color: tokens.ink),
+    );
+    final copy = copyValue;
+    if (copy != null && copy.isNotEmpty) {
+      styled = CopyableValue(value: copy, child: styled);
+    }
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -214,12 +228,7 @@ class _Row extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(
-            child: DefaultTextStyle.merge(
-              child: value,
-              style: TextStyle(fontSize: 13, color: tokens.ink),
-            ),
-          ),
+          Expanded(child: styled),
         ],
       ),
     );
@@ -237,16 +246,26 @@ class _DetailsCard extends StatelessWidget {
       child: Column(
         children: [
           if (task.number.isNotEmpty)
-            _Row(label: context.tr('number'), value: Text(task.number)),
+            _Row(
+              label: context.tr('number'),
+              value: Text(task.number),
+              copyValue: task.number,
+            ),
           if (task.description.isNotEmpty)
             _Row(
               label: context.tr('description'),
               value: Text(task.description),
+              copyValue: task.description,
             ),
           if (task.isInvoiced)
             _Row(
               label: context.tr('invoice'),
               value: Text(context.tr('invoiced')),
+            ),
+          if (task.tagIds.isNotEmpty)
+            _Row(
+              label: context.tr('tags'),
+              value: EntityTagsView(entityType: 'task', tagIds: task.tagIds),
             ),
         ],
       ),

@@ -327,6 +327,7 @@ the honest default.
 | Project — documents / attachments | ✅ | ✅ | ✅ | ✅ | |
 | Project — activities | ✅ | ✅ | ✅ | ✅ | |
 | Project — custom fields | ✅ | ✅ | ✅ | ✅ | |
+| Project — tags (attach via picker, list `tag_ids` filter + column, local sort) | ✅ | — | ✅ | | |
 | Project — archive / restore / delete / purge | ✅ | ✅ | ✅ | ✅ | |
 | Project — bulk actions | ✅ | ✅ | ✅ | ✅ | |
 
@@ -357,6 +358,7 @@ the honest default.
 | Task — documents / attachments | ✅ | ✅ | ✅ | ✅ | |
 | Task — activities | ✅ | ✅ | ✅ | ✅ | |
 | Task — custom fields | ✅ | ✅ | ✅ | ✅ | |
+| Task — tags (attach via picker, list `tag_ids` filter + column, local sort) | ✅ | — | ✅ | | |
 | Task — archive / restore / delete / purge | ✅ | ✅ | ✅ | ✅ | |
 | Task — bulk actions | ✅ | ✅ | ✅ | ✅ | |
 | Task — import (CSV) | ✅ | 🟡 | ✅ | ✅ | |
@@ -547,6 +549,7 @@ the honest default.
 | Report — product | ✅ | ✅ | ✅ | ✅ | |
 | Report — product sales | ✅ | ✅ | ✅ | ✅ | |
 | Report — task | ✅ | ✅ | ✅ | ✅ | |
+| Report — tag filter (task + project reports → `tag_ids`) | ✅ | — | ✅ | | |
 | Report — vendor | ✅ | ✅ | ✅ | ✅ | |
 | Report — purchase order | ✅ | ✅ | ✅ | ✅ | |
 | Report — purchase order item | ✅ | 🟡 | ✅ | ✅ | |
@@ -838,6 +841,7 @@ Field-level breakdown of every option under each settings panel. Source of truth
 | Task Round To Nearest (preset seconds / custom) | ✅ | ✅ | ✅ | ✅ | |
 | Round To Seconds (when "Custom" selected) | ✅ | ✅ | ✅ | ✅ | |
 | Configure Statuses (link) | ✅ | ✅ | ✅ | ✅ | |
+| Manage Tags (Settings → Tags; list / create / edit / recolor / archive, task + project toggle, admin-gated) | ✅ | — | ✅ | | |
 | Show Tasks Table | ✅ | ✅ | ✅ | ✅ | |
 | Invoice Task Datelog | ✅ | ✅ | ✅ | ✅ | |
 | Invoice Task Timelog | ✅ | ✅ | ✅ | ✅ | |

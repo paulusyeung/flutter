@@ -11,6 +11,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/detail/custom_field_detail_rows.dart';
 import 'package:admin/ui/core/widgets/centered_form_column.dart';
+import 'package:admin/ui/core/widgets/copyable_value.dart';
 import 'package:admin/ui/core/widgets/detail_info_row.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
@@ -182,6 +183,7 @@ class VendorDetailDetailsCard extends StatelessWidget {
             DetailInfoRow(
               label: context.tr('classification'),
               value: context.tr(vendor.classification),
+              copyable: false,
             ),
           if (vendor.routingId.isNotEmpty)
             DetailInfoRow(
@@ -189,15 +191,28 @@ class VendorDetailDetailsCard extends StatelessWidget {
               value: vendor.routingId,
             ),
           if (vendor.isTaxExempt)
-            DetailInfoRow(label: context.tr('tax_exempt'), value: yes),
+            DetailInfoRow(
+              label: context.tr('tax_exempt'),
+              value: yes,
+              copyable: false,
+            ),
           if (currencyName.isNotEmpty)
-            DetailInfoRow(label: context.tr('currency'), value: currencyName),
+            DetailInfoRow(
+              label: context.tr('currency'),
+              value: currencyName,
+              copyable: false,
+            ),
           if (languageName.isNotEmpty)
-            DetailInfoRow(label: context.tr('language'), value: languageName),
+            DetailInfoRow(
+              label: context.tr('language'),
+              value: languageName,
+              copyable: false,
+            ),
           if (lastLoginText.isNotEmpty)
             DetailInfoRow(
               label: context.tr('last_login'),
               value: lastLoginText,
+              copyable: false,
             ),
           for (final r in customRows)
             DetailInfoRow(label: r.label, value: r.value),
@@ -235,7 +250,11 @@ class VendorDetailAddressCard extends StatelessWidget {
       if (cityStateZip.isNotEmpty)
         DetailInfoRow(label: context.tr('city'), value: cityStateZip),
       if (country.isNotEmpty)
-        DetailInfoRow(label: context.tr('country'), value: country),
+        DetailInfoRow(
+          label: context.tr('country'),
+          value: country,
+          copyable: false,
+        ),
     ];
     if (rows.whereType<Widget>().isEmpty) return const SizedBox.shrink();
     return DashboardCardShell(
@@ -277,15 +296,21 @@ class _ContactRow extends StatelessWidget {
     final theme = Theme.of(context);
     final tokens = context.inTheme;
     final name = ('${contact.firstName} ${contact.lastName}').trim();
-    final title = name.isNotEmpty
+    final hasName = name.isNotEmpty;
+    // When there's no name the email becomes the title; only then is the email
+    // not repeated as a secondary line.
+    final title = hasName
         ? name
         : (contact.email.isNotEmpty
               ? contact.email
               : context.tr('no_name_fallback'));
-    final subtitle = [
-      if (contact.email.isNotEmpty && contact.email != title) contact.email,
-      if (contact.phone.isNotEmpty) contact.phone,
-    ].join(' · ');
+    final titleStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: tokens.ink,
+      fontWeight: FontWeight.w500,
+    );
+    final subStyle = theme.textTheme.bodySmall?.copyWith(color: tokens.ink3);
+    // The email shows as a secondary line only when a name occupies the title.
+    final secondaryEmail = hasName ? contact.email : '';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: InSpacing.sm),
@@ -297,20 +322,26 @@ class _ContactRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  title,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: tokens.ink,
-                    fontWeight: FontWeight.w500,
+                // Title is copyable only when it's the email (no name).
+                if (hasName || contact.email.isEmpty)
+                  Text(title, style: titleStyle)
+                else
+                  CopyableValue(
+                    value: contact.email,
+                    child: Text(title, style: titleStyle),
                   ),
-                ),
-                if (subtitle.isNotEmpty) ...[
+                if (secondaryEmail.isNotEmpty) ...[
                   const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: tokens.ink3,
-                    ),
+                  CopyableValue(
+                    value: secondaryEmail,
+                    child: Text(secondaryEmail, style: subStyle),
+                  ),
+                ],
+                if (contact.phone.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  CopyableValue(
+                    value: contact.phone,
+                    child: Text(contact.phone, style: subStyle),
                   ),
                 ],
               ],

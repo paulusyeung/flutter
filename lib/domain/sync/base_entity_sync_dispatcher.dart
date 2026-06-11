@@ -51,6 +51,12 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
   }) => repo.deleteLocalById(companyId: companyId, id: id);
 
   @override
+  Future<void> clearLocalDirty({
+    required String companyId,
+    required String id,
+  }) => repo.clearLocalDirty(companyId: companyId, id: id);
+
+  @override
   Future<void> dispatch({
     required OutboxRow row,
     required MutationKind kind,

@@ -565,7 +565,15 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
                   // the storyboard → Flutter handoff has a gentle exit instead
                   // of a hard cut. Passthrough on every other platform.
                   child: NativeSplash.wrap(
-                    child: child ?? const SizedBox.shrink(),
+                    // Root capture boundary for the Debug Panel's screenshot
+                    // button: snapshotting this yields the full window at exactly
+                    // `physicalSize`. Inside `NativeSplash.wrap` so the iOS splash
+                    // overlay is excluded; below the textScaler MediaQuery so the
+                    // shot reflects the user's text scale.
+                    child: RepaintBoundary(
+                      key: widget.services.screenshotWindow.boundaryKey,
+                      child: child ?? const SizedBox.shrink(),
+                    ),
                   ),
                 ),
               );

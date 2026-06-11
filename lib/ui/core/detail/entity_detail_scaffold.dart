@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/env.dart';
 import 'package:admin/ui/core/detail/detail_scroll_scope.dart';
 import 'package:admin/ui/core/detail/generic_detail_view_model.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
@@ -182,7 +183,16 @@ class _EntityDetailScaffoldState<T> extends State<EntityDetailScaffold<T>> {
     // SingleChildScrollView's `DetailScrollScope.maybeOf` resolves.
     return DetailScrollScope(
       controller: _outerScroll,
-      child: Builder(builder: (context) => widget.bodyBuilder(context, item)),
+      child: Builder(
+        builder: (context) {
+          final body = widget.bodyBuilder(context, item);
+          // Desktop/web a11y + keyboard path: make the body's text selectable
+          // so keyboard and screen-reader users can select and Cmd/Ctrl+C (the
+          // hover copy icon is mouse-only). Skipped on touch, where the value's
+          // own tap-to-copy is the path and selection handles would fight it.
+          return Env.isMobile ? body : SelectionArea(child: body);
+        },
+      ),
     );
   }
 }

@@ -21,6 +21,10 @@ class TaskFieldIds {
   static const String taskStatusId = 'task_status_id';
   static const String statusOrder = 'status_order';
   static const String updatedAt = 'updated_at';
+
+  /// Local approximation of the server's `task_tag_ids|asc` sort — orders by
+  /// the denormalized, comma-joined tag names (`tasks.tag_names`).
+  static const String tagIds = 'task_tag_ids';
 }
 
 @DriftAccessor(tables: [Tasks])
@@ -134,6 +138,8 @@ class TaskDao extends BaseEntityDao<$TasksTable, TaskRow> with _$TaskDaoMixin {
         return t.taskStatusId;
       case TaskFieldIds.statusOrder:
         return t.statusOrder;
+      case TaskFieldIds.tagIds:
+        return t.tagNames;
       case TaskFieldIds.updatedAt:
         return t.updatedAt;
       default:

@@ -128,6 +128,7 @@ class _CreditEditLayoutState extends State<CreditEditLayout>
       companyId: vm.companyId,
       clientId: vm.draft.clientId,
       showTasksAndExpenses: true,
+      invoiceInclusive: vm.draft.usesInclusiveTaxes,
       currentLineItems: vm.draft.lineItems,
       currentProjectId: vm.draft.projectId,
       currentClientId: vm.draft.clientId,
@@ -616,6 +617,7 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
               controller: _ctl,
               children: [
                 MarkdownNotesField(
+                  registerBeforeSaveHook: vm.addBeforeSaveHook,
                   label: context.tr('terms'),
                   showLabel: false,
                   expand: true,
@@ -631,6 +633,7 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
                   ),
                 ),
                 MarkdownNotesField(
+                  registerBeforeSaveHook: vm.addBeforeSaveHook,
                   label: context.tr('footer'),
                   showLabel: false,
                   expand: true,
@@ -646,6 +649,7 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
                   ),
                 ),
                 MarkdownNotesField(
+                  registerBeforeSaveHook: vm.addBeforeSaveHook,
                   label: context.tr('public_notes'),
                   showLabel: false,
                   expand: true,
@@ -653,6 +657,7 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
                   onChanged: vm.setPublicNotes,
                 ),
                 MarkdownNotesField(
+                  registerBeforeSaveHook: vm.addBeforeSaveHook,
                   label: context.tr('private_notes'),
                   showLabel: false,
                   expand: true,
@@ -1166,18 +1171,21 @@ class _NotesTab extends StatelessWidget {
         padding: EdgeInsets.all(InSpacing.lg(context)),
         children: [
           MarkdownNotesField(
+            registerBeforeSaveHook: vm.addBeforeSaveHook,
             label: context.tr('public_notes'),
             value: vm.draft.publicNotes,
             onChanged: vm.setPublicNotes,
           ),
           SizedBox(height: InSpacing.lg(context)),
           MarkdownNotesField(
+            registerBeforeSaveHook: vm.addBeforeSaveHook,
             label: context.tr('private_notes'),
             value: vm.draft.privateNotes,
             onChanged: vm.setPrivateNotes,
           ),
           SizedBox(height: InSpacing.lg(context)),
           MarkdownNotesField(
+            registerBeforeSaveHook: vm.addBeforeSaveHook,
             label: context.tr('terms'),
             value: vm.draft.terms,
             onChanged: vm.setTerms,
@@ -1192,6 +1200,7 @@ class _NotesTab extends StatelessWidget {
           ),
           SizedBox(height: InSpacing.lg(context)),
           MarkdownNotesField(
+            registerBeforeSaveHook: vm.addBeforeSaveHook,
             label: context.tr('footer'),
             value: vm.draft.footer,
             onChanged: vm.setFooter,

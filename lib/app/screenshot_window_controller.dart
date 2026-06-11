@@ -1,6 +1,4 @@
-import 'dart:ui' show Size;
-
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 import 'package:admin/app/native_window.dart';
 
@@ -143,12 +141,30 @@ class ScreenshotWindowController extends ChangeNotifier {
   ({int width, int height})? _appliedSizePx;
   Size? _originalLogicalSize;
   bool _windowButtonsHidden = false;
+  bool _capturing = false;
+
+  /// Wraps the app's root `child` in `main.dart`; the Debug Panel's camera button
+  /// snapshots this boundary to a PNG. One key, reachable from both `main.dart`
+  /// (via `Services`) and the panel (via the injected `windowController`).
+  final GlobalKey boundaryKey = GlobalKey();
 
   /// The last applied target in physical px (preset or custom); null until a
   /// size is applied and again after [restoreOriginalSize].
   ({int width, int height})? get appliedSizePx => _appliedSizePx;
 
   bool get windowButtonsHidden => _windowButtonsHidden;
+
+  /// True only while a screenshot is being taken: the Debug Panel goes `Offstage`
+  /// so it isn't in the shot and the window content is captured at full size.
+  /// Transient and distinct from `debugPanelRevealed` (the user's open/closed
+  /// state) — always starts false on a fresh controller.
+  bool get capturing => _capturing;
+
+  void setCapturing(bool value) {
+    if (_capturing == value) return;
+    _capturing = value;
+    notifyListeners();
+  }
 
   bool get canRestoreOriginalSize => _appliedSizePx != null;
 

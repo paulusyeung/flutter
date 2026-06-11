@@ -206,6 +206,75 @@ void main() {
     });
   });
 
+  group('optimistic archive/restore/delete local state (Finding 27)', () {
+    // Seed a clean, active local row (is_dirty=false) the way a sync pull does.
+    Future<void> seedActive(ClientRepository repo, String id) => repo
+        .applyUpdateResponse(companyId: 'co', serverResponse: apiClient(id));
+
+    test('archive flips archived_at + is_dirty locally AND enqueues — so '
+        'offline the row leaves the active list immediately', () async {
+      final (:repo, :api) = makeRepo();
+      await seedActive(repo, 'c1');
+
+      await repo.archive(companyId: 'co', id: 'c1');
+
+      final row = await db.clientDao.watchById(companyId: 'co', id: 'c1').first;
+      expect(row!.archivedAt, isNotNull);
+      expect(row.archivedAt, greaterThan(0));
+      expect(row.isDeleted, isFalse);
+      expect(row.isDirty, isTrue, reason: 'dirty so /refresh skips the flip');
+      final pending = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 1 << 60,
+      );
+      expect(pending.single.mutationKind, MutationKind.archive.wireName);
+    });
+
+    test(
+      'delete soft-flags is_deleted + is_dirty locally AND enqueues',
+      () async {
+        final (:repo, :api) = makeRepo();
+        await seedActive(repo, 'c1');
+
+        await repo.delete(companyId: 'co', id: 'c1');
+
+        final row = await db.clientDao
+            .watchById(companyId: 'co', id: 'c1')
+            .first;
+        expect(row!.isDeleted, isTrue);
+        expect(row.isDirty, isTrue);
+        final pending = await db.outboxDao.nextReady(
+          companyId: 'co',
+          now: 1 << 60,
+        );
+        expect(pending.single.mutationKind, MutationKind.delete.wireName);
+      },
+    );
+
+    test('restore clears archived_at AND is_deleted (inverse of both) + '
+        'is_dirty', () async {
+      final (:repo, :api) = makeRepo();
+      await seedActive(repo, 'c1');
+      await repo.archive(companyId: 'co', id: 'c1'); // archived + dirty first
+
+      await repo.restore(companyId: 'co', id: 'c1');
+
+      final row = await db.clientDao.watchById(companyId: 'co', id: 'c1').first;
+      expect(row!.archivedAt, isNull);
+      expect(row.isDeleted, isFalse);
+      expect(row.isDirty, isTrue);
+      final pending = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 1 << 60,
+      );
+      expect(
+        pending.last.mutationKind,
+        MutationKind.restore.wireName,
+        reason: 'archive then restore both enqueue; restore is last (FIFO)',
+      );
+    });
+  });
+
   group('purge', () {
     test('enqueues a purge outbox row with requiresPassword=true so the sync '
         'engine prompts before hitting POST /clients/:id/purge', () async {
@@ -588,7 +657,30 @@ void main() {
         final hasMore2 = await repo.ensurePageLoaded(companyId: 'co', page: 2);
         expect(hasMore2, isFalse, reason: 'partial page means end of list');
 
-        // Subsequent calls send the cursor.
+        // Page >= 2 is a continuation of the offset sweep — the cursor's
+        // `updated_at >=` filter must NOT narrow it (the server applies it
+        // as a WHERE on top of offset paging, so a filtered page 2 mostly
+        // re-returns page 1's rows → near-empty → pagination, search, and
+        // full resync silently cap at one page).
+        expect(
+          api.calls.last.sinceId,
+          isNull,
+          reason: 'page >= 2 must not send the delta cursor',
+        );
+        final cursor2 = await db.syncStateDao.read(
+          companyId: 'co',
+          entityType: 'client',
+        );
+        expect(
+          cursor2.id,
+          'c49',
+          reason:
+              'a page >= 2 fetch must not move the watermark '
+              '(deeper pages carry older rows under id DESC)',
+        );
+
+        // A fresh page-1 fetch IS the delta probe — it sends the cursor.
+        await repo.ensurePageLoaded(companyId: 'co', page: 1);
         expect(api.calls.last.sinceId, isNotNull);
       },
     );

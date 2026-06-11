@@ -6,6 +6,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/custom_field_detail_rows.dart';
+import 'package:admin/ui/core/widgets/copyable_value.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/utils/formatting.dart';
 
@@ -103,9 +104,12 @@ class _Row extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              value,
-              style: TextStyle(fontSize: 13, color: tokens.ink),
+            child: CopyableValue(
+              value: value,
+              child: Text(
+                value,
+                style: TextStyle(fontSize: 13, color: tokens.ink),
+              ),
             ),
           ),
         ],

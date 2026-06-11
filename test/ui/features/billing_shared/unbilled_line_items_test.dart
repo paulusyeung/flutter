@@ -39,6 +39,7 @@ Expense _expense({
   Object taxRate1 = '0',
   String invoiceId = '',
   bool shouldBeInvoiced = false,
+  bool usesInclusiveTaxes = false,
 }) => Expense.fromApi(
   ExpenseApi(
     id: id,
@@ -49,6 +50,7 @@ Expense _expense({
     taxRate1: taxRate1,
     invoiceId: invoiceId,
     shouldBeInvoiced: shouldBeInvoiced,
+    usesInclusiveTaxes: usesInclusiveTaxes,
   ),
 );
 
@@ -111,6 +113,7 @@ void main() {
           taxName1: 'VAT',
           taxRate1: '20',
         ),
+        invoiceInclusive: false,
       );
       expect(li.cost, Decimal.parse('420.50'));
       expect(li.quantity, Decimal.one);
@@ -122,9 +125,44 @@ void main() {
       expect(li.typeId, LineItemType.standard);
     });
 
+    test('inclusive-tax expense bills NET onto an exclusive doc and GROSS '
+        'onto an inclusive doc (line total lands on the gross either way)', () {
+      // 120.00 receipt containing 20% VAT: net 100, gross 120.
+      final inclusiveExpense = _expense(
+        amount: '120',
+        taxName1: 'VAT',
+        taxRate1: '20',
+        usesInclusiveTaxes: true,
+      );
+      final ontoExclusive = expenseToLineItem(
+        inclusiveExpense,
+        invoiceInclusive: false,
+      );
+      expect(
+        ontoExclusive.cost,
+        Decimal.parse('100'),
+        reason:
+            'the exclusive doc adds 20% back on top → total 120, '
+            'not 120 + 20% = 144 (the pre-fix overbilling)',
+      );
+      expect(ontoExclusive.taxRate1, Decimal.parse('20'));
+
+      final ontoInclusive = expenseToLineItem(
+        inclusiveExpense,
+        invoiceInclusive: true,
+      );
+      expect(ontoInclusive.cost, Decimal.parse('120'));
+    });
+
     test('notes fall back to #number then empty', () {
-      expect(expenseToLineItem(_expense(number: '99')).notes, '#99');
-      expect(expenseToLineItem(_expense()).notes, '');
+      expect(
+        expenseToLineItem(
+          _expense(number: '99'),
+          invoiceInclusive: false,
+        ).notes,
+        '#99',
+      );
+      expect(expenseToLineItem(_expense(), invoiceInclusive: false).notes, '');
     });
   });
 
@@ -153,6 +191,7 @@ void main() {
           _task(id: 't_zero', rate: '100'), // no logged time
           _task(id: 'tmp_t', rate: '100', timeLog: _stopped1h), // unsynced
         ],
+        invoiceInclusive: false,
         expenses: [
           _expense(
             id: 'e_ok',
@@ -186,6 +225,7 @@ void main() {
           _task(id: 't_run', timeLog: _running),
           _task(id: 't_zero'),
         ],
+        invoiceInclusive: false,
         expenses: [_expense(id: 'e_nb')],
       );
       expect(items, isEmpty);
@@ -197,6 +237,7 @@ void main() {
       final viaProject = projectInvoiceLineItems(
         tasks: [_task(id: 't1', rate: '0', timeLog: _stopped1h)],
         expenses: const [],
+        invoiceInclusive: false,
         project: _project(taskRate: '90'),
         company: _company(defaultTaskRate: 75),
       );
@@ -206,6 +247,7 @@ void main() {
       final viaCompany = projectInvoiceLineItems(
         tasks: [_task(id: 't1', rate: '0', timeLog: _stopped1h)],
         expenses: const [],
+        invoiceInclusive: false,
         project: _project(taskRate: '0'),
         company: _company(defaultTaskRate: 75),
       );
@@ -217,6 +259,7 @@ void main() {
       final noCascade = projectInvoiceLineItems(
         tasks: [_task(id: 't1', rate: '0', timeLog: _stopped1h)],
         expenses: const [],
+        invoiceInclusive: false,
       );
       expect(noCascade.single.cost, Decimal.zero);
     });

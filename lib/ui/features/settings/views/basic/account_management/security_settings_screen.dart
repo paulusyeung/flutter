@@ -7,8 +7,10 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/settings/views/basic/account_management/company_settings_gate.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
+import 'package:admin/ui/features/shell/widgets/confirm_pending_outbox.dart';
 
 /// Timeout options in milliseconds. Mirrors admin-portal `account_management.dart`.
 /// Sorted by ascending duration; `0` = never, sentinel.
@@ -85,6 +87,23 @@ class _AccountManagementSecuritySettingsScreenState
     final messenger = ScaffoldMessenger.maybeOf(context);
     final successMsg = context.tr('ended_all_sessions');
     final errorMsg = context.tr('error_refresh_page');
+    // endAllSessions() rotates every token server-side BEFORE the local
+    // logout wipes Drift — once that POST lands, pending outbox rows can
+    // never be synced. Quiesce unsaved edits and the outbox first, mirroring
+    // SettingsActions.signOut and the company picker (CLAUDE.md: logout with
+    // pending rows must prompt, never silently drop user data).
+    if (!await services.unsavedChangesGuard.confirmIfDirty(context)) {
+      return;
+    }
+    if (!mounted) return;
+    final companyId = services.auth.session.value?.currentCompanyId;
+    if (companyId != null && companyId.isNotEmpty) {
+      final outbox = await confirmPendingOutboxIfAny(
+        context,
+        companyId: companyId,
+      );
+      if (outbox == OutboxConfirmResult.cancelled || !mounted) return;
+    }
     setState(() => _endingSessions = true);
     try {
       // Matches React: POST /api/v1/logout with no password gate. The server
@@ -113,75 +132,105 @@ class _AccountManagementSecuritySettingsScreenState
     if (companyId == null || companyId.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
-    return StreamBuilder<Company?>(
-      stream: services.company.watchCompany(companyId),
-      builder: (context, snapshot) {
-        final company = snapshot.data;
-        if (company == null) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final opts = _timeoutOptions(context);
-        final passwordTimeoutValue = _snapToOption(
-          company.defaultPasswordTimeout,
-          opts,
-        );
-        final sessionTimeoutValue = _snapToOption(company.sessionTimeout, opts);
-
-        Future<void> applyAndSave(Company draft) async {
-          try {
-            await services.company.updateCompany(draft: draft);
-          } catch (e) {
-            if (!context.mounted) return;
-            Notify.error(context, context.tr('error_refresh_page'), error: e);
+    return CompanySettingsGate(
+      companyId: companyId,
+      builder: (context, ready) => StreamBuilder<Company?>(
+        stream: services.company.watchCompany(companyId),
+        builder: (context, snapshot) {
+          final company = snapshot.data;
+          if (company == null) {
+            return const Center(child: CircularProgressIndicator());
           }
-        }
+          return _buildForm(context, services, company, ready);
+        },
+      ),
+    );
+  }
 
-        return SettingsFormShell(
-          sections: [
-            FormSection(
-              title: context.tr('security_settings'),
+  Widget _buildForm(
+    BuildContext context,
+    Services services,
+    Company company,
+    bool ready,
+  ) {
+    final opts = _timeoutOptions(context);
+    final passwordTimeoutValue = _snapToOption(
+      company.defaultPasswordTimeout,
+      opts,
+    );
+    final sessionTimeoutValue = _snapToOption(company.sessionTimeout, opts);
+
+    Future<void> applyAndSave(Company draft) async {
+      try {
+        await services.company.updateCompany(draft: draft);
+      } catch (e) {
+        if (!context.mounted) return;
+        Notify.error(context, context.tr('error_refresh_page'), error: e);
+      }
+    }
+
+    return SettingsFormShell(
+      sections: [
+        // Gated until the canonical company is fetched (see
+        // CompanySettingsGate): these controls PUT the whole company, so
+        // saving before the server-only columns are backfilled would
+        // clobber them.
+        if (!ready) const CompanySettingsLockedBanner(),
+        FormSection(
+          title: context.tr('security_settings'),
+          children: [
+            DropdownButtonFormField<int>(
+              initialValue: passwordTimeoutValue,
+              decoration: InputDecoration(
+                labelText: context.tr('password_timeout'),
+                border: const OutlineInputBorder(),
+              ),
+              items: [
+                for (final o in opts)
+                  DropdownMenuItem<int>(value: o.ms, child: Text(o.label)),
+              ],
+              onChanged: ready
+                  ? (v) {
+                      if (v == null) return;
+                      applyAndSave(company.copyWith(defaultPasswordTimeout: v));
+                    }
+                  : null,
+            ),
+            DropdownButtonFormField<int>(
+              initialValue: sessionTimeoutValue,
+              decoration: InputDecoration(
+                labelText: context.tr('web_session_timeout'),
+                border: const OutlineInputBorder(),
+              ),
+              items: [
+                for (final o in opts)
+                  DropdownMenuItem<int>(value: o.ms, child: Text(o.label)),
+              ],
+              onChanged: ready
+                  ? (v) {
+                      if (v == null) return;
+                      applyAndSave(company.copyWith(sessionTimeout: v));
+                    }
+                  : null,
+            ),
+            // Two-choice field → radio group (CLAUDE.md § Forms), so both
+            // options stay visible instead of hiding one behind a tap.
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                DropdownButtonFormField<int>(
-                  initialValue: passwordTimeoutValue,
-                  decoration: InputDecoration(
-                    labelText: context.tr('password_timeout'),
-                    border: const OutlineInputBorder(),
-                  ),
-                  items: [
-                    for (final o in opts)
-                      DropdownMenuItem<int>(value: o.ms, child: Text(o.label)),
-                  ],
-                  onChanged: (v) {
-                    if (v == null) return;
-                    applyAndSave(company.copyWith(defaultPasswordTimeout: v));
-                  },
+                SizedBox(height: InSpacing.sm),
+                Text(
+                  context.tr('require_password_with_social_login'),
+                  style: TextStyle(color: context.inTheme.ink2),
                 ),
-                DropdownButtonFormField<int>(
-                  initialValue: sessionTimeoutValue,
-                  decoration: InputDecoration(
-                    labelText: context.tr('web_session_timeout'),
-                    border: const OutlineInputBorder(),
-                  ),
-                  items: [
-                    for (final o in opts)
-                      DropdownMenuItem<int>(value: o.ms, child: Text(o.label)),
-                  ],
-                  onChanged: (v) {
-                    if (v == null) return;
-                    applyAndSave(company.copyWith(sessionTimeout: v));
-                  },
-                ),
-                // Two-choice field → radio group (CLAUDE.md § Forms), so both
-                // options stay visible instead of hiding one behind a tap.
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: InSpacing.sm),
-                    Text(
-                      context.tr('require_password_with_social_login'),
-                      style: TextStyle(color: context.inTheme.ink2),
-                    ),
-                    RadioGroup<bool>(
+                // RadioGroup.onChanged is non-nullable (can't disable via
+                // null like the dropdowns), so gate it with IgnorePointer +
+                // Opacity until the canonical company is fetched.
+                IgnorePointer(
+                  ignoring: !ready,
+                  child: Opacity(
+                    opacity: ready ? 1 : 0.5,
+                    child: RadioGroup<bool>(
                       groupValue: company.oauthPasswordRequired,
                       onChanged: (v) {
                         if (v == null) return;
@@ -206,37 +255,37 @@ class _AccountManagementSecuritySettingsScreenState
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ],
-            ),
-            FormSection(
-              title: context.tr('end_all_sessions'),
-              children: [
-                Text(
-                  context.tr('end_all_sessions_help'),
-                  style: TextStyle(color: context.inTheme.ink2),
-                ),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: OutlinedButton.icon(
-                    icon: Icon(Icons.logout, color: context.inTheme.overdue),
-                    label: Text(
-                      context.tr('end_all_sessions'),
-                      style: TextStyle(color: context.inTheme.overdue),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(160, 44),
-                      side: BorderSide(color: context.inTheme.overdue),
-                    ),
-                    onPressed: _endingSessions ? null : _onEndAllSessions,
                   ),
                 ),
               ],
             ),
           ],
-        );
-      },
+        ),
+        FormSection(
+          title: context.tr('end_all_sessions'),
+          children: [
+            Text(
+              context.tr('end_all_sessions_help'),
+              style: TextStyle(color: context.inTheme.ink2),
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                icon: Icon(Icons.logout, color: context.inTheme.overdue),
+                label: Text(
+                  context.tr('end_all_sessions'),
+                  style: TextStyle(color: context.inTheme.overdue),
+                ),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(160, 44),
+                  side: BorderSide(color: context.inTheme.overdue),
+                ),
+                onPressed: _endingSessions ? null : _onEndAllSessions,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

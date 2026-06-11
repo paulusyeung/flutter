@@ -1,7 +1,13 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 import 'package:admin/app/debug_capture_store.dart';
@@ -49,73 +55,84 @@ class DebugPanelSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    // The narrow (mobile) shell hosts this band in a bare Column with no
+    // Scaffold above it, so there's no ambient Material ancestor — yet the
+    // toolbar Switch / IconButtons / TextField / TabBar all require one. Supply
+    // it here so the panel is self-contained (harmless on the wide layout,
+    // which already nests it in a Scaffold). The Material paints the surface;
+    // the Container keeps the 1px top border.
     return Container(
       decoration: BoxDecoration(
-        color: tokens.surface,
         border: Border(top: BorderSide(color: tokens.border)),
       ),
-      // One width decision shared by the toolbar layout and the TabBar so
-      // they flip to their narrow forms together.
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isNarrow = !Breakpoints.isWide(constraints);
-          return AnimatedBuilder(
-            animation: store,
-            builder: (context, _) {
-              final network = store.networkEntries;
-              final errors = store.diagnosticEntries;
-              return DefaultTabController(
-                length: 2,
-                // The band is the bottom-most viewport element on phones, so
-                // it owns the home-indicator inset; the surface Container
-                // above paints behind it. No-op on desktop/web.
-                child: SafeArea(
-                  top: false,
-                  child: Column(
-                    children: [
-                      _Toolbar(
-                        store: store,
-                        windowController: windowController,
-                        onHide: onHide,
-                        isNarrow: isNarrow,
-                      ),
-                      Divider(height: 1, thickness: 1, color: tokens.border),
-                      TabBar(
-                        // Fixed tabs get ~160 px each on a 320 px band —
-                        // not enough for the counted labels.
-                        isScrollable: isNarrow,
-                        tabAlignment: isNarrow ? TabAlignment.start : null,
-                        tabs: [
-                          Tab(
-                            text:
-                                '${context.tr('network_requests')} (${network.length})',
-                          ),
-                          Tab(
-                            text:
-                                '${context.tr('debug_recent_errors')} (${errors.length})',
-                          ),
-                        ],
-                      ),
-                      Divider(height: 1, thickness: 1, color: tokens.border),
-                      Expanded(
-                        child: TabBarView(
-                          physics: const NeverScrollableScrollPhysics(),
-                          children: [
-                            _NetworkTab(
-                              entries: network,
-                              enabled: store.enabled,
+      child: Material(
+        color: tokens.surface,
+        // One width decision shared by the toolbar layout and the TabBar so
+        // they flip to their narrow forms together.
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isNarrow = !Breakpoints.isWide(constraints);
+            return AnimatedBuilder(
+              animation: store,
+              builder: (context, _) {
+                final network = store.networkEntries;
+                final errors = store.diagnosticEntries;
+                return DefaultTabController(
+                  length: 2,
+                  // The band is the bottom-most viewport element on phones, so
+                  // it owns the home-indicator inset; the surface Material
+                  // behind it paints into that gap. No-op on desktop/web.
+                  child: SafeArea(
+                    top: false,
+                    child: Column(
+                      children: [
+                        _Toolbar(
+                          store: store,
+                          windowController: windowController,
+                          onHide: onHide,
+                          isNarrow: isNarrow,
+                        ),
+                        Divider(height: 1, thickness: 1, color: tokens.border),
+                        TabBar(
+                          // Fixed tabs get ~160 px each on a 320 px band —
+                          // not enough for the counted labels.
+                          isScrollable: isNarrow,
+                          tabAlignment: isNarrow ? TabAlignment.start : null,
+                          tabs: [
+                            Tab(
+                              text:
+                                  '${context.tr('network_requests')} (${network.length})',
                             ),
-                            _ErrorsTab(entries: errors, enabled: store.enabled),
+                            Tab(
+                              text:
+                                  '${context.tr('debug_recent_errors')} (${errors.length})',
+                            ),
                           ],
                         ),
-                      ),
-                    ],
+                        Divider(height: 1, thickness: 1, color: tokens.border),
+                        Expanded(
+                          child: TabBarView(
+                            physics: const NeverScrollableScrollPhysics(),
+                            children: [
+                              _NetworkTab(
+                                entries: network,
+                                enabled: store.enabled,
+                              ),
+                              _ErrorsTab(
+                                entries: errors,
+                                enabled: store.enabled,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
-          );
-        },
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
@@ -187,6 +204,11 @@ class _Toolbar extends StatelessWidget {
       tooltip: context.tr('hide'),
       onPressed: onHide,
     );
+    final cameraButton = IconButton(
+      icon: const Icon(Icons.photo_camera),
+      tooltip: context.tr('take_screenshot'),
+      onPressed: () => _captureAndSave(context, windowController),
+    );
 
     return Padding(
       padding: EdgeInsets.symmetric(
@@ -214,6 +236,7 @@ class _Toolbar extends StatelessWidget {
                   ),
                 ),
                 ...screenshotControls,
+                cameraButton,
                 clearButton,
                 copyButton,
                 closeButton,
@@ -236,7 +259,12 @@ class _Toolbar extends StatelessWidget {
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
-                children: [...screenshotControls, clearButton, copyButton],
+                children: [
+                  ...screenshotControls,
+                  cameraButton,
+                  clearButton,
+                  copyButton,
+                ],
               ),
             ],
           );
@@ -288,6 +316,90 @@ Future<void> _copyAll(BuildContext context, DebugCaptureStore store) async {
   await Clipboard.setData(ClipboardData(text: buf.toString()));
   if (!context.mounted) return;
   Notify.success(context, context.tr('copied_to_clipboard'));
+}
+
+/// Capture the whole app window to a PNG and save it via the native save dialog.
+///
+/// Flips the controller's `capturing` flag so the panel goes Offstage (see
+/// `_DebugPanelBand`) — out of the shot and out of the layout, so the content is
+/// captured at full window size — then snapshots the root `RepaintBoundary` from
+/// `main.dart` and restores the panel before the (blocking) save dialog opens.
+Future<void> _captureAndSave(
+  BuildContext context,
+  ScreenshotWindowController controller,
+) async {
+  // A double-tap can fire a second capture in the gap before the panel goes
+  // Offstage; guard synchronously on the flag `setCapturing(true)` sets below.
+  if (controller.capturing) return;
+
+  // Grab everything context-bound before the first await; nothing reads the
+  // BuildContext afterward, so the result toast goes through `messenger`.
+  final messenger = ScaffoldMessenger.of(context);
+  final dpr = View.of(context).devicePixelRatio;
+  final savedMsg = context.tr('exported');
+  final errorMsg = context.tr('an_error_occurred');
+
+  Uint8List? bytes;
+  int? width;
+  int? height;
+  try {
+    controller.setCapturing(true);
+    // Wait for the Offstage relayout to build, paint, and rasterize before
+    // snapshotting the boundary's current layer (a lone endOfFrame can race the
+    // just-made change).
+    final binding = WidgetsBinding.instance;
+    binding.scheduleFrame();
+    final painted = Completer<void>();
+    binding.addPostFrameCallback((_) => painted.complete());
+    await painted.future;
+    await binding.endOfFrame;
+
+    final boundary =
+        controller.boundaryKey.currentContext?.findRenderObject()
+            as RenderRepaintBoundary?;
+    if (boundary != null) {
+      final image = await boundary.toImage(pixelRatio: dpr);
+      try {
+        width = image.width;
+        height = image.height;
+        final data = await image.toByteData(format: ui.ImageByteFormat.png);
+        bytes = data?.buffer.asUint8List();
+      } finally {
+        image.dispose();
+      }
+    }
+  } catch (_) {
+    // Capture failed (e.g. a transient raster error) — fall through to the error
+    // toast below with `bytes` still null.
+  } finally {
+    controller.setCapturing(false);
+  }
+
+  if (bytes == null) {
+    messenger.showSnackBar(SnackBar(content: Text(errorMsg)));
+    return;
+  }
+
+  // Same save-to-disk path as the report / design-JSON exports: desktop returns a
+  // path to write defensively; web downloads via `bytes` and skips the `File`
+  // write (which would throw `UnsupportedError`). Tag with the actual captured
+  // pixel size (not the requested preset, which differs when the window clamped).
+  final sizeTag = (width != null && height != null) ? '-${width}x$height' : '';
+  final name =
+      'invoice-ninja$sizeTag-${DateTime.now().millisecondsSinceEpoch}.png';
+  try {
+    final path = await FilePicker.saveFile(fileName: name, bytes: bytes);
+    if (path == null) return; // user cancelled the dialog
+    if (!kIsWeb) {
+      final file = File(path);
+      if (!await file.exists() || await file.length() == 0) {
+        await file.writeAsBytes(bytes);
+      }
+    }
+    messenger.showSnackBar(SnackBar(content: Text(savedMsg)));
+  } catch (_) {
+    messenger.showSnackBar(SnackBar(content: Text(errorMsg)));
+  }
 }
 
 class _NetworkTab extends StatefulWidget {

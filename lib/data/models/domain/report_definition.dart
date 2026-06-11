@@ -11,6 +11,7 @@ enum ReportFilterField {
   clientSingle, // single-client picker (product_sales)
   vendorsMulti,
   projectsMulti,
+  tagsMulti, // multi-select of tags (task / project reports → tag_ids)
   categoriesMulti,
   activityType,
   productKey,

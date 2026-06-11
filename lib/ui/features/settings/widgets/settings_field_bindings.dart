@@ -913,7 +913,7 @@ final Map<String, SettingsBinding> _bindings = <String, SettingsBinding>{
   ),
   // France e-reporting. `france_reporting_enabled` is a bool (encoded as
   // 'true'/'false' per the convention at the top of this file);
-  // `france_reporting_schedule` is a passthrough string ('ten_days'/'monthly').
+  // `france_reporting_schedule` is a passthrough string ('ten_day'/'monthly').
   // Both must be registered — `OverridableSwitchField` looks the enabled key
   // up in `build()`, and the schedule's override checkbox calls `setOverride`.
   'france_reporting_enabled': (

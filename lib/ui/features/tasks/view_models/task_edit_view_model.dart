@@ -83,6 +83,7 @@ class TaskEditViewModel extends GenericEditViewModel<Task> {
   void setStatusId(String v) => updateDraft(draft.copyWith(statusId: v));
   void setAssignedUserId(String v) =>
       updateDraft(draft.copyWith(assignedUserId: v));
+  void setTagIds(List<String> ids) => updateDraft(draft.copyWith(tagIds: ids));
 
   /// Pick a project (or clear with null). Mirrors React's `TaskDetails`
   /// bidirectional pick: setting a project also sets the clientId from the
@@ -125,7 +126,7 @@ class TaskEditViewModel extends GenericEditViewModel<Task> {
   bool get hasStoppedEntries =>
       draft.timeLog.any((e) => !e.isRunning && e.start != null);
 
-  /// Append a new entry. Defaults to seeding 30 minutes before now → now,
+  /// Add a new entry. Defaults to seeding 30 minutes before now → now,
   /// matching the "I worked on this for the last half hour" case.
   void addEntry({
     DateTime? start,
@@ -134,8 +135,24 @@ class TaskEditViewModel extends GenericEditViewModel<Task> {
     bool billable = true,
   }) {
     final n = now();
-    final defaultedStart = start ?? n.subtract(const Duration(minutes: 30));
-    final defaultedStop = stop ?? n;
+    final running = hasRunningEntry ? draft.timeLog.last : null;
+    var defaultedStop = stop ?? n;
+    var defaultedStart =
+        start ?? defaultedStop.subtract(const Duration(minutes: 30));
+    // A *defaulted* seed must not overlap the running entry — the server's
+    // checkTimeLog rejects overlapping rows, wedging the save. Snap the
+    // default block to end where the timer began ("I worked on this right
+    // before starting the timer"). Explicit caller-supplied times are
+    // respected as-is.
+    final runningStart = running?.start;
+    if (stop == null &&
+        runningStart != null &&
+        defaultedStop.isAfter(runningStart)) {
+      defaultedStop = runningStart;
+      if (start == null) {
+        defaultedStart = defaultedStop.subtract(const Duration(minutes: 30));
+      }
+    }
     final entry = _clamp(
       TimeEntry(
         start: defaultedStart,
@@ -144,7 +161,19 @@ class TaskEditViewModel extends GenericEditViewModel<Task> {
         billable: billable,
       ),
     );
-    updateDraft(draft.copyWith(timeLog: <TimeEntry>[...draft.timeLog, entry]));
+    // Keep a running entry LAST: every running-state check in the stack is
+    // `.last`-based (hasRunningEntry, stopTimer, Task.isRunning, the repo's
+    // startTimer/stopRunningTimer, the global timer pill), and the server
+    // keeps the log sorted by start. Appending a stopped manual entry after
+    // the running one buried it — the Stop button vanished, the timer became
+    // unstoppable from every surface, and its duration accrued unbounded.
+    final entries = <TimeEntry>[...draft.timeLog];
+    if (running != null) {
+      entries.insert(entries.length - 1, entry);
+    } else {
+      entries.add(entry);
+    }
+    updateDraft(draft.copyWith(timeLog: entries));
   }
 
   /// Clamp an inverted entry (stop before start) to zero length — matches

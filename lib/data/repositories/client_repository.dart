@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart' show Value, BooleanExpressionOperators;
 import 'package:logging/logging.dart';
 
+import 'package:admin/data/db/dao/base_entity_dao.dart';
 import 'package:admin/domain/columns/client_columns.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
@@ -542,6 +543,9 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
     required String companyId,
     required String id,
   }) => db.clientDao.deleteById(companyId: companyId, id: id);
+
+  @override
+  BaseEntityDao<dynamic, dynamic> get localDao => db.clientDao;
 
   @override
   Future<void> applyCreateResponse({

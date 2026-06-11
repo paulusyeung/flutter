@@ -36,6 +36,11 @@ class ErrorView extends StatelessWidget {
               const SizedBox(height: 24),
               FilledButton.tonal(
                 onPressed: onRetry,
+                // Centered call-to-action: cap the width — the theme's
+                // `Size.fromHeight(44)` default means infinite min width,
+                // which renders as an edge-to-edge bar here (CLAUDE.md
+                // § Design system).
+                style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
                 child: Text(context.tr('retry')),
               ),
             ],

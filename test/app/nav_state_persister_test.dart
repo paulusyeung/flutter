@@ -114,11 +114,14 @@ void main() {
 
       // The full-screen pane choice is deliberately not remembered: a cold
       // launch always resolves the per-screen default (sidebar preview).
-      router.go('/invoices/new?view=full&client_id=abc');
+      // A non-create route on purpose: `/x/new` routes are filtered out
+      // entirely (never persisted), so the old `/invoices/new?...` input
+      // asserted a route the persister now deliberately drops.
+      router.go('/invoices/abc123/edit?view=full&client_id=abc');
       await Future<void>.delayed(const Duration(milliseconds: 25));
       expect(
         (await db.navStateDao.current())?.currentRoute,
-        '/invoices/new?client_id=abc',
+        '/invoices/abc123/edit?client_id=abc',
       );
     },
   );

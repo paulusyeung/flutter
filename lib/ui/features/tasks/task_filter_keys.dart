@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/company_custom_fields.dart';
 import 'package:admin/data/repositories/project_repository.dart';
+import 'package:admin/data/repositories/tag_repository.dart';
 import 'package:admin/data/repositories/task_status_repository.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
@@ -13,6 +14,7 @@ import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_keys_common.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
 import 'package:admin/ui/core/list/search/membership_filter_key.dart';
+import 'package:admin/ui/core/list/search/tag_filter_key.dart';
 
 /// Tasks expose state (active/archived/deleted) as their built-in
 /// filter dimension plus per-project and per-status filters resolved
@@ -20,12 +22,14 @@ import 'package:admin/ui/core/list/search/membership_filter_key.dart';
 List<FilterKey> buildTaskFilterKeys({
   required ProjectRepository projects,
   required TaskStatusRepository statuses,
+  required TagRepository tags,
   required String companyId,
   Company? company,
 }) => <FilterKey>[
   const IsFilterKey(),
   ProjectFilterKey(projects: projects, companyId: companyId),
   StatusFilterKey(statuses: statuses, companyId: companyId),
+  TagFilterKey(tags: tags, companyId: companyId, entityType: 'task'),
   for (var i = 1; i <= 4; i++)
     CustomFieldFilterKey(
       columnIndex: i,
@@ -160,9 +164,8 @@ class ProjectFilterKey extends MembershipFilterKey {
   }
 
   /// Release the names-cache subscription when the filter key is replaced
-  /// (e.g. on company switch). `FilterKey` doesn't have a lifecycle hook
-  /// today, so the subscription effectively lives until GC. Acceptable
-  /// for v1 — the next instance subscribes against the new tenant's data.
+  /// (e.g. on company switch) or its hosting field unmounts.
+  @override
   void dispose() {
     _namesSub?.cancel();
     _namesSub = null;

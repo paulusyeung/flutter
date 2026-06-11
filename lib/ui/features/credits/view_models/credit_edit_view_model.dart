@@ -154,6 +154,17 @@ class CreditEditViewModel extends GenericBillingDocEditViewModel<Credit> {
     customTaxes4: d.customTaxes4,
   );
 
+  @override
+  Credit copyWithStampedTotals(
+    Credit draft, {
+    required Decimal amount,
+    required Decimal taxAmount,
+  }) => draft.copyWith(
+    amount: amount,
+    balance: amount - draft.paidToDate,
+    taxAmount: taxAmount,
+  );
+
   // ── Setters ────────────────────────────────────────────────────────
 
   void setClientId(String v) => updateDraft(draft.copyWith(clientId: v));

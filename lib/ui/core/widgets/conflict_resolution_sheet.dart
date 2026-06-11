@@ -26,30 +26,48 @@ enum ConflictResolution {
   none,
 }
 
-/// Modal sheet shown when [SyncRepository] emits a [ConflictEvent] (HTTP
-/// 409). Offers three resolution paths plus dismiss. The sheet doesn't
-/// touch the outbox or the database — the caller wires the choice to
-/// `repo.save(...)`/`discardPendingFor(...)`/`context.go(...)`.
+/// Modal sheet shown when [SyncRepository] emits a [ConflictEvent]. Two
+/// variants, keyed on [ConflictEvent.isDeletedServerSide]:
+///   * **409 (stale data)** — open / discard / use-mine.
+///   * **404 (deleted server-side)** — a "record deleted on the server"
+///     message + discard-locally + keep-for-later. There is no "use my
+///     changes": re-sending the update would 404 forever (the record is gone).
+///
+/// The sheet doesn't touch the outbox or the database — the caller wires the
+/// choice to `repo.save(...)` / `discardPendingFor(...)` / `context.go(...)`.
 Future<ConflictResolution> showConflictResolutionSheet(
   BuildContext context, {
   required ConflictEvent event,
 }) async {
+  final deleted = event.isDeletedServerSide;
   final result = await showDialog<ConflictResolution>(
     context: context,
     barrierDismissible: true,
     builder: (ctx) {
       final tokens = ctx.inTheme;
       return AlertDialog(
-        title: Text(ctx.tr('conflict_detected_title')),
+        title: Text(
+          ctx.tr(
+            deleted
+                ? 'record_deleted_on_server_title'
+                : 'conflict_detected_title',
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              ctx.tr('conflict_detected_message'),
+              ctx.tr(
+                deleted
+                    ? 'record_deleted_on_server_message'
+                    : 'conflict_detected_message',
+              ),
               style: TextStyle(color: tokens.ink2),
             ),
-            if (event.message.isNotEmpty) ...[
+            // The raw 404 body ("not found") adds nothing for the deleted
+            // case; only surface the server message for a genuine 409.
+            if (!deleted && event.message.isNotEmpty) ...[
               const SizedBox(height: InSpacing.sm),
               Text(
                 event.message,
@@ -58,25 +76,47 @@ Future<ConflictResolution> showConflictResolutionSheet(
             ],
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () =>
-                Navigator.of(ctx).pop(ConflictResolution.openEntity),
-            child: Text(ctx.tr('open_entity')),
-          ),
-          OutlinedButton(
-            style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
-            onPressed: () =>
-                Navigator.of(ctx).pop(ConflictResolution.discardMine),
-            child: Text(ctx.tr('discard_my_changes')),
-          ),
-          FilledButton(
-            autofocus: true,
-            style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
-            onPressed: () => Navigator.of(ctx).pop(ConflictResolution.useMine),
-            child: Text(ctx.tr('use_my_changes')),
-          ),
-        ],
+        actions: deleted
+            ? [
+                TextButton(
+                  onPressed: () =>
+                      Navigator.of(ctx).pop(ConflictResolution.none),
+                  child: Text(ctx.tr('keep_for_later')),
+                ),
+                FilledButton(
+                  autofocus: true,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(64, 44),
+                  ),
+                  onPressed: () =>
+                      Navigator.of(ctx).pop(ConflictResolution.discardMine),
+                  child: Text(ctx.tr('discard_my_changes')),
+                ),
+              ]
+            : [
+                TextButton(
+                  onPressed: () =>
+                      Navigator.of(ctx).pop(ConflictResolution.openEntity),
+                  child: Text(ctx.tr('open_entity')),
+                ),
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(64, 40),
+                  ),
+                  onPressed: () =>
+                      Navigator.of(ctx).pop(ConflictResolution.discardMine),
+                  child: Text(ctx.tr('discard_my_changes')),
+                ),
+                FilledButton(
+                  autofocus: true,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(64, 44),
+                  ),
+                  onPressed: () =>
+                      Navigator.of(ctx).pop(ConflictResolution.useMine),
+                  child: Text(ctx.tr('use_my_changes')),
+                ),
+              ],
       );
     },
   );

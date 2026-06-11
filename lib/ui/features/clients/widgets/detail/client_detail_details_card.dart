@@ -81,17 +81,27 @@ class ClientDetailDetailsCard extends StatelessWidget {
         DetailInfoRow(
           label: context.tr('classification'),
           value: context.tr(client.classification),
+          copyable: false,
         ),
       if (client.currencyId.isNotEmpty)
-        DetailInfoRow(label: context.tr('currency'), value: currencyName()),
+        DetailInfoRow(
+          label: context.tr('currency'),
+          value: currencyName(),
+          copyable: false,
+        ),
       if (client.languageId.isNotEmpty)
-        DetailInfoRow(label: context.tr('language'), value: languageName()),
+        DetailInfoRow(
+          label: context.tr('language'),
+          value: languageName(),
+          copyable: false,
+        ),
       if (client.routingId.isNotEmpty)
         DetailInfoRow(label: context.tr('routing_id'), value: client.routingId),
       if (client.isTaxExempt)
         DetailInfoRow(
           label: context.tr('tax_exempt'),
           value: context.tr('yes'),
+          copyable: false,
         ),
     ];
     // Custom fields need the company config (via Services). Only reach for it

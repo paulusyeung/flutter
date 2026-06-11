@@ -49,7 +49,11 @@ class ClientDetailShippingAddressCard extends StatelessWidget {
       if (cityStateZip.isNotEmpty)
         DetailInfoRow(label: context.tr('city'), value: cityStateZip),
       if (country.isNotEmpty)
-        DetailInfoRow(label: context.tr('country'), value: country),
+        DetailInfoRow(
+          label: context.tr('country'),
+          value: country,
+          copyable: false,
+        ),
     ];
     if (rows.whereType<Widget>().isEmpty) return const SizedBox.shrink();
     return DashboardCardShell(

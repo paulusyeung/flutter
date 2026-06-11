@@ -313,7 +313,7 @@ class RecurringInvoiceActions {
           }
         } catch (e) {
           if (!context.mounted) return;
-          Notify.error(context, '$e');
+          Notify.error(context, context.tr('error'), error: e);
         }
 
       case RecurringInvoiceAction.sendEmail:

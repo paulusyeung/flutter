@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart' show Value, BooleanExpressionOperators;
 import 'package:logging/logging.dart';
 
+import 'package:admin/data/db/dao/base_entity_dao.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/billing_extra_filters.dart';
 import 'package:admin/data/db/dao/expense_dao.dart';
@@ -350,6 +351,9 @@ class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi>
     required String companyId,
     required String id,
   }) => db.expenseDao.deleteById(companyId: companyId, id: id);
+
+  @override
+  BaseEntityDao<dynamic, dynamic> get localDao => db.expenseDao;
 
   @override
   Future<void> applyCreateResponse({

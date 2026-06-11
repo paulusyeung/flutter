@@ -13,6 +13,7 @@ import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/list/deep_link_filter_intent.dart';
+import 'package:admin/ui/core/widgets/notify.dart' show formatNotifyError;
 
 final _log = Logger('GenericListViewModel');
 
@@ -931,7 +932,7 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
       hasMore = more;
     } catch (e) {
       if (_fetchEpoch != epoch) return;
-      initialError = e.toString();
+      initialError = formatNotifyError(e);
     } finally {
       if (_fetchEpoch == epoch) {
         isLoadingPage = false;
@@ -964,9 +965,11 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
       hasMore = more;
     } catch (e) {
       if (_fetchEpoch != epoch) return;
-      // Store the raw error message; the UI prepends a localized
-      // "Failed to load:" prefix when rendering.
-      initialError = e.toString();
+      // Store the error MESSAGE (exception-type prefix stripped); the UI
+      // prepends a localized "Failed to load:" prefix when rendering — a
+      // bare toString() leaked "NetworkException: ClientException with
+      // SocketException: …" into the full-pane error on every entity list.
+      initialError = formatNotifyError(e);
     } finally {
       if (_fetchEpoch == epoch) {
         isLoadingPage = false;
@@ -985,7 +988,7 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     _watchSub = transformPage(watchPage()).listen(
       _onItems,
       onError: (Object e) {
-        initialError = e.toString();
+        initialError = formatNotifyError(e);
         notifyListeners();
       },
     );

@@ -45,6 +45,14 @@ class Tasks extends Table
   BoolColumn get isRunning =>
       boolean().named('is_running').withDefault(const Constant(false))();
 
+  /// Denormalized, lowercased, comma-joined attached tag names — populated on
+  /// network ingest (the response carries names) so the list can sort by tags
+  /// locally. A deliberate approximation of the server's `task_tag_ids|asc`
+  /// (GROUP_CONCAT) sort; may briefly lag a tag rename until the task
+  /// re-syncs.
+  TextColumn get tagNames =>
+      text().named('tag_names').withDefault(const Constant(''))();
+
   @override
   Set<Column> get primaryKey => {id};
 

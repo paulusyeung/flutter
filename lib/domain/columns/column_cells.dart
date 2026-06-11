@@ -142,13 +142,25 @@ Widget cellMoney(
   );
 }
 
-/// Date cell, formatted with the active locale's medium date pattern
-/// (`Jan 5, 2026`). Caller decides whether to render the result of
-/// `cellEmpty()` for a null/missing date.
+/// Date cell. Honors the company `date_format_id` via the ambient
+/// [FormatterScope] (same seam [cellMoney] uses) — rendering `DateFormat`
+/// directly here ignored the user's configured format on every list table
+/// while detail/edit screens honored it. Falls back to the locale's medium
+/// pattern (`Jan 5, 2026`) when no formatter is in scope. Caller decides
+/// whether to render `cellEmpty()` for a null/missing date.
 Widget cellDate(DateTime value, BuildContext context) {
+  final local = value.toLocal();
+  final formatted = FormatterScope.maybeOf(context)?.date(
+    '${local.year.toString().padLeft(4, '0')}-'
+    '${local.month.toString().padLeft(2, '0')}-'
+    '${local.day.toString().padLeft(2, '0')}',
+  );
+  if (formatted != null && formatted.isNotEmpty) {
+    return CellText(value: formatted);
+  }
   final localeKey = Localizations.localeOf(context).toString();
-  final formatter = _dateFormatCache[localeKey] ??= DateFormat.yMMMd(localeKey);
-  return CellText(value: formatter.format(value.toLocal()));
+  final fallback = _dateFormatCache[localeKey] ??= DateFormat.yMMMd(localeKey);
+  return CellText(value: fallback.format(local));
 }
 
 /// Canonical string for a money cell, used by `valueBuilder` to drive the

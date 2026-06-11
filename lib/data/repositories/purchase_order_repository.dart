@@ -5,6 +5,7 @@ import 'package:drift/drift.dart' show Value, BooleanExpressionOperators;
 import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/db/dao/base_entity_dao.dart';
 import 'package:admin/data/db/dao/purchase_order_dao.dart';
 import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/api/purchase_order_api_model.dart';
@@ -35,6 +36,9 @@ class PurchaseOrderRepository
 
   @override
   String get entityTypeName => 'purchase_order';
+
+  @override
+  BaseEntityDao<dynamic, dynamic> get localDao => db.purchaseOrderDao;
 
   @override
   bool requiresPasswordFor(MutationKind kind) =>
@@ -102,7 +106,19 @@ class PurchaseOrderRepository
     Map<String, Set<String>> extraFilters = const {},
     bool ignoreCursor = false,
   }) async {
-    final cursor = ignoreCursor
+    // A vendor-scoped fetch (a vendor's Purchase Orders tab) is a filtered
+    // view, not a canonical sync — it must neither read nor advance the
+    // shared cursor (same contract as `ensurePageLoadedTemplate`).
+    final hasVendorScope = extraFilters.containsKey('vendor_id');
+    // The shared `(companyId, entityType)` cursor is a page-1, UNSCOPED
+    // delta probe only — same two gates as `ensurePageLoadedTemplate`:
+    // a parent-scoped fetch (embedded detail tab) must neither read nor
+    // advance it, and a page >= 2 fetch must not read it (the
+    // `updated_at >=` filter re-returns page 1's rows, capping pagination /
+    // search / full resync at one page) nor advance it (deeper pages carry
+    // older rows under `id DESC` — last-write-wins would walk the
+    // watermark backwards).
+    final cursor = (ignoreCursor || hasVendorScope || page > 1)
         ? null
         : await db.syncStateDao.read(
             companyId: companyId,
@@ -129,12 +145,15 @@ class PurchaseOrderRepository
       companyId: companyId,
       byId: {for (final a in apiRows) a.id: _apiToCompanion(a, companyId)},
     );
-    if (result.cursorUpdatedAt != null && result.cursorId != null) {
+    if (!hasVendorScope &&
+        page == 1 &&
+        result.cursorUpdatedAt != null &&
+        result.cursorId != null) {
       await advanceCursor(
         companyId: companyId,
         updatedAt: result.cursorUpdatedAt!,
         id: result.cursorId!,
-        wasFullSync: ignoreCursor && page == 1,
+        wasFullSync: ignoreCursor,
       );
     }
     return apiRows.length >= pageSize;

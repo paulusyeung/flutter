@@ -8,6 +8,7 @@ import 'package:admin/data/models/domain/expense.dart';
 import 'package:admin/data/models/domain/group_setting.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/task.dart';
+import 'package:admin/domain/expense_invoice_line_item.dart';
 import 'package:admin/domain/tasks/task_rate.dart';
 
 /// Pure task/expense → [LineItem] conversion for the "Add unbilled items"
@@ -51,29 +52,22 @@ LineItem taskToLineItem(
   );
 }
 
-LineItem expenseToLineItem(Expense expense) {
+LineItem expenseToLineItem(Expense expense, {required bool invoiceInclusive}) {
   final notes = expense.publicNotes.trim().isNotEmpty
       ? expense.publicNotes.trim()
       : (expense.number.isNotEmpty ? '#${expense.number}' : '');
-  return emptyLineItem().copyWith(
-    notes: notes,
-    // Foreign-currency expenses bill at the converted amount, not the raw
-    // base-currency `amount` — mirrors React `useInvoiceExpense`
-    // (foreign_amount > 0 ? foreign_amount : amount). `foreignAmount` is
-    // kept as `amount * exchangeRate` by the expense edit VM; 0 means no
-    // conversion so we fall back to the base amount.
-    cost: expense.foreignAmount > Decimal.zero
-        ? expense.foreignAmount
-        : expense.amount,
-    quantity: Decimal.one,
-    taxName1: expense.taxName1,
-    taxRate1: expense.taxRate1,
-    taxName2: expense.taxName2,
-    taxRate2: expense.taxRate2,
-    taxName3: expense.taxName3,
-    taxRate3: expense.taxRate3,
-    expenseId: expense.id,
-  );
+  // Delegate the money math to the canonical converter so the billed cost
+  // honors the TARGET DOC's inclusive/exclusive tax mode (gross when the
+  // doc extracts tax from the line, net when it adds tax on top) plus the
+  // currency conversion and by-amount-tax rules. Billing the raw amount
+  // with the raw rates overbilled an inclusive-tax expense by its full VAT
+  // on an exclusive invoice (and underbilled the reverse) — diverging from
+  // the Expense "Add to invoice" action, which already used the canonical
+  // path.
+  return expenseInvoiceLineItem(
+    expense,
+    invoiceInclusive: invoiceInclusive,
+  ).copyWith(notes: notes);
 }
 
 /// Line items for the "Invoice Project" action: pending (uninvoiced, billable)
@@ -84,6 +78,7 @@ LineItem expenseToLineItem(Expense expense) {
 List<LineItem> projectInvoiceLineItems({
   required List<Task> tasks,
   required List<Expense> expenses,
+  required bool invoiceInclusive,
   DateTime? now,
   Project? project,
   Client? client,
@@ -91,7 +86,8 @@ List<LineItem> projectInvoiceLineItems({
 }) {
   return <LineItem>[
     for (final e in expenses)
-      if (!e.id.startsWith('tmp_') && e.isPending) expenseToLineItem(e),
+      if (!e.id.startsWith('tmp_') && e.isPending)
+        expenseToLineItem(e, invoiceInclusive: invoiceInclusive),
     for (final t in tasks)
       if (!t.id.startsWith('tmp_') &&
           !t.isRunning &&

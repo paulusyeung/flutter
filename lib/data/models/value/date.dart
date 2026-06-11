@@ -49,12 +49,29 @@ class Date implements Comparable<Date> {
   /// user's wall-clock interpretation of the date.
   DateTime toDateTime() => DateTime(year, month, day);
 
-  /// Whole calendar days from [other] to this date (`this - other`), mirroring
-  /// `DateTime.difference(...).inDays`. Positive when this date is later than
-  /// [other] — e.g. `Date.today().differenceInDays(dueDate)` is how many days
-  /// an invoice is overdue.
-  int differenceInDays(Date other) =>
-      toDateTime().difference(other.toDateTime()).inDays;
+  /// This date shifted by [days] calendar days (negative shifts backwards).
+  /// Computed in UTC date-space: `local midnight + N×24h` drifts an hour
+  /// across a DST transition and lands on the wrong calendar day — UTC days
+  /// are always exactly 24h.
+  Date addDays(int days) {
+    final t = DateTime.utc(year, month, day).add(Duration(days: days));
+    return Date(t.year, t.month, t.day);
+  }
+
+  /// Whole calendar days from [other] to this date (`this - other`).
+  /// Positive when this date is later than [other] — e.g.
+  /// `Date.today().differenceInDays(dueDate)` is how many days an invoice
+  /// is overdue.
+  ///
+  /// Computed in UTC date-space: local midnights differ by N×24h − 1h
+  /// across a spring-forward transition, and `Duration.inDays` truncates
+  /// that to N−1 — overdue badges read one day short for ~a month after
+  /// every DST changeover. UTC days are always exactly 24h.
+  int differenceInDays(Date other) => DateTime.utc(
+    year,
+    month,
+    day,
+  ).difference(DateTime.utc(other.year, other.month, other.day)).inDays;
 
   @override
   String toString() => toIso();

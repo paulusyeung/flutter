@@ -49,12 +49,30 @@ class _UnsavedChangesScopeState extends State<UnsavedChangesScope> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _dispose ??= context.read<Services>().unsavedChangesGuard.register(
-      isDirty: widget.isDirty,
-      source: widget.source,
-      onDiscard: widget.onDiscard,
-    );
+    _dispose ??= _register();
   }
+
+  @override
+  void didUpdateWidget(UnsavedChangesScope oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // The host swapped the backing VM in place (e.g.
+    // `SettingsCompanyScopedHost` rebuilding its ViewModel on a company
+    // switch — no key in that chain, so this State is reused). Without
+    // re-registering, the guard stays bound to the DISPOSED old VM, whose
+    // captured `isDirty` reads frozen-clean state: every post-swap edit
+    // then discards on navigation without the "unsaved changes" prompt.
+    if (!identical(oldWidget.source, widget.source)) {
+      _dispose?.call();
+      _dispose = _register();
+    }
+  }
+
+  VoidCallback _register() =>
+      context.read<Services>().unsavedChangesGuard.register(
+        isDirty: widget.isDirty,
+        source: widget.source,
+        onDiscard: widget.onDiscard,
+      );
 
   @override
   void dispose() {

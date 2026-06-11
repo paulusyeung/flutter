@@ -68,7 +68,10 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
   /// create mode `_original` stays null (and `isCreate` must keep reflecting
   /// that), and in edit mode `_original` is never rebased, so neither side
   /// of [isDirty] would otherwise clear on save. Any later edit re-arms it
-  /// via [updateDraft]; [reset] clears it too.
+  /// via [updateDraft]. [reset] (the discard path) also latches it true, so a
+  /// discarded create-mode draft reports clean instead of falling back to
+  /// [draftIsNonEmpty] — otherwise the chained discard guards (sidebar →
+  /// branch switch → route `onExit`) each see it as still-dirty and re-prompt.
   bool _savedClean = false;
 
   /// True when the user has actually changed something. The discard prompt
@@ -239,10 +242,13 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
 
   /// Restore the draft to the loaded original (or [emptyDraft] in create
   /// mode) and clear all errors. Called by the unsaved-changes guard after
-  /// the user picks Discard.
+  /// the user picks Discard. Marks the VM clean (`_savedClean = true`) so a
+  /// just-discarded draft reports `isDirty == false` in every mode — the next
+  /// real edit re-arms it via [updateDraft]. Without this the chained discard
+  /// guards re-prompt on a create-mode form whose [draftIsNonEmpty] stays true.
   void reset({required T emptyDraft}) {
     _draft = _original ?? emptyDraft;
-    _savedClean = false;
+    _savedClean = true;
     _submitError = null;
     _fieldErrors = const {};
     _localValidationOnly = false;

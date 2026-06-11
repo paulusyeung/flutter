@@ -7,6 +7,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/settings/views/basic/account_management/company_settings_gate.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
@@ -120,85 +121,97 @@ class _IntegrationsAnalyticsScreenState
   Widget build(BuildContext context) {
     final services = context.read<Services>();
     final companyId = services.auth.session.value?.currentCompanyId;
-    final canSave = _dirty && !_saving;
-
     return SettingsScreenScaffold(
       titleKey: 'analytics',
       body: (companyId == null || companyId.isEmpty)
           ? const Center(child: CircularProgressIndicator())
-          : StreamBuilder<Company?>(
-              stream: services.company.watchCompany(companyId),
-              builder: (context, snapshot) {
-                final company = snapshot.data;
-                if (company == null) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                _syncFromCompany(company);
+          : CompanySettingsGate(
+              companyId: companyId,
+              builder: (context, ready) {
+                // Save PUTs the whole company, so saving (and typing) is gated
+                // until the canonical row is fetched (the mount refresh above /
+                // CompanySettingsGate) — otherwise cached server-only defaults
+                // would clobber the server's real values.
+                final canSave = _dirty && !_saving && ready;
+                return StreamBuilder<Company?>(
+                  stream: services.company.watchCompany(companyId),
+                  builder: (context, snapshot) {
+                    final company = snapshot.data;
+                    if (company == null) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    _syncFromCompany(company);
 
-                return SettingsFormShell(
-                  sections: [
-                    FormSection(
-                      title: context.tr('analytics'),
-                      children: [
-                        TextField(
-                          controller: _gaCtrl,
-                          onChanged: (_) => _markDirty(),
-                          decoration: InputDecoration(
-                            labelText: context.tr(
-                              'google_analytics_tracking_id',
-                            ),
-                            border: const OutlineInputBorder(),
-                          ),
-                          keyboardType: TextInputType.text,
-                          textInputAction: TextInputAction.next,
-                        ),
-                        TextField(
-                          controller: _matomoIdCtrl,
-                          onChanged: (_) => _markDirty(),
-                          decoration: InputDecoration(
-                            labelText: context.tr('matomo_id'),
-                            border: const OutlineInputBorder(),
-                          ),
-                          keyboardType: TextInputType.text,
-                          textInputAction: TextInputAction.next,
-                        ),
-                        TextField(
-                          controller: _matomoUrlCtrl,
-                          onChanged: (_) => _markDirty(),
-                          decoration: InputDecoration(
-                            labelText: context.tr('matomo_url'),
-                            border: const OutlineInputBorder(),
-                          ),
-                          keyboardType: TextInputType.url,
-                          textInputAction: TextInputAction.done,
-                          onSubmitted: (_) {
-                            if (canSave) _save();
-                          },
-                        ),
-                        // Inline Save, hidden when the draft matches the
-                        // persisted values.
-                        if (_dirty || _saving)
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: FilledButton.tonal(
-                              style: FilledButton.styleFrom(
-                                minimumSize: const Size(120, 44),
+                    return SettingsFormShell(
+                      sections: [
+                        if (!ready) const CompanySettingsLockedBanner(),
+                        FormSection(
+                          title: context.tr('analytics'),
+                          children: [
+                            TextField(
+                              controller: _gaCtrl,
+                              enabled: ready,
+                              onChanged: (_) => _markDirty(),
+                              decoration: InputDecoration(
+                                labelText: context.tr(
+                                  'google_analytics_tracking_id',
+                                ),
+                                border: const OutlineInputBorder(),
                               ),
-                              onPressed: canSave ? _save : null,
-                              child: _saving
-                                  ? const SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : Text(context.tr('save')),
+                              keyboardType: TextInputType.text,
+                              textInputAction: TextInputAction.next,
                             ),
-                          ),
+                            TextField(
+                              controller: _matomoIdCtrl,
+                              enabled: ready,
+                              onChanged: (_) => _markDirty(),
+                              decoration: InputDecoration(
+                                labelText: context.tr('matomo_id'),
+                                border: const OutlineInputBorder(),
+                              ),
+                              keyboardType: TextInputType.text,
+                              textInputAction: TextInputAction.next,
+                            ),
+                            TextField(
+                              controller: _matomoUrlCtrl,
+                              enabled: ready,
+                              onChanged: (_) => _markDirty(),
+                              decoration: InputDecoration(
+                                labelText: context.tr('matomo_url'),
+                                border: const OutlineInputBorder(),
+                              ),
+                              keyboardType: TextInputType.url,
+                              textInputAction: TextInputAction.done,
+                              onSubmitted: (_) {
+                                if (canSave) _save();
+                              },
+                            ),
+                            // Inline Save, hidden when the draft matches the
+                            // persisted values.
+                            if (_dirty || _saving)
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: FilledButton.tonal(
+                                  style: FilledButton.styleFrom(
+                                    minimumSize: const Size(120, 44),
+                                  ),
+                                  onPressed: canSave ? _save : null,
+                                  child: _saving
+                                      ? const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : Text(context.tr('save')),
+                                ),
+                              ),
+                          ],
+                        ),
                       ],
-                    ),
-                  ],
+                    );
+                  },
                 );
               },
             ),

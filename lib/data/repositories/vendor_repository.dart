@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart' show Value, BooleanExpressionOperators;
 import 'package:logging/logging.dart';
 
+import 'package:admin/data/db/dao/base_entity_dao.dart';
 import 'package:admin/domain/columns/vendor_columns.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
@@ -339,6 +340,9 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi>
     required String companyId,
     required String id,
   }) => db.vendorDao.deleteById(companyId: companyId, id: id);
+
+  @override
+  BaseEntityDao<dynamic, dynamic> get localDao => db.vendorDao;
 
   @override
   Future<void> applyCreateResponse({

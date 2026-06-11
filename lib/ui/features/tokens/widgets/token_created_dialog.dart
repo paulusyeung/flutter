@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/copyable_value.dart';
 
 /// One-time display of a freshly-minted API token's raw bearer secret.
 /// The server only returns this value once (on the create response). After
@@ -45,9 +45,7 @@ class TokenCreatedDialog extends StatelessWidget {
       ),
       actions: [
         OutlinedButton(
-          onPressed: () async {
-            await Clipboard.setData(ClipboardData(text: secret));
-          },
+          onPressed: () => copyToClipboard(context, secret),
           style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
           child: Text(context.tr('copy_token')),
         ),

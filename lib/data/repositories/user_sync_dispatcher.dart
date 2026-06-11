@@ -52,6 +52,12 @@ class UserSyncDispatcher implements SyncDispatcher {
   }) async {}
 
   @override
+  Future<void> clearLocalDirty({
+    required String companyId,
+    required String id,
+  }) => repo.clearLocalDirty(companyId: companyId, id: id);
+
+  @override
   Future<void> dispatch({
     required OutboxRow row,
     required MutationKind kind,
@@ -236,6 +242,15 @@ class CompositeUserDispatcher implements SyncDispatcher {
   }) async {
     await userSettings.deleteLocalRecord(companyId: companyId, id: id);
     await user.deleteLocalRecord(companyId: companyId, id: id);
+  }
+
+  @override
+  Future<void> clearLocalDirty({
+    required String companyId,
+    required String id,
+  }) async {
+    await userSettings.clearLocalDirty(companyId: companyId, id: id);
+    await user.clearLocalDirty(companyId: companyId, id: id);
   }
 
   @override

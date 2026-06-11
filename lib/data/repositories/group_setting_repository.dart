@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart' show Value, BooleanExpressionOperators;
 import 'package:logging/logging.dart';
 
+import 'package:admin/data/db/dao/base_entity_dao.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/group_setting_dao.dart';
 import 'package:admin/data/models/api/document_api_model.dart';
@@ -133,7 +134,14 @@ class GroupSettingRepository
     Set<EntityState> states = const {EntityState.active},
     bool ignoreCursor = false,
   }) async {
-    final cursor = ignoreCursor
+    // The keyset cursor is a page-1, unscoped delta probe only — same gate
+    // as the other hand-rolled repos and the base template. The server
+    // applies it as an `updated_at >=` WHERE filter on top of offset paging,
+    // so reading it on page >= 2 re-returns page 1's rows (capping
+    // pagination / search / full resync at one page). (Groups are also a
+    // bundled entity, so the practical blast radius is small — but keep the
+    // gate consistent with the siblings.)
+    final cursor = (ignoreCursor || page > 1)
         ? null
         : await db.syncStateDao.read(
             companyId: companyId,
@@ -166,12 +174,17 @@ class GroupSettingRepository
       byId: {for (final a in apiRows) a.id: _apiToCompanion(a, companyId)},
     );
 
-    if (result.cursorUpdatedAt != null && result.cursorId != null) {
+    // Advance only on page 1 (deeper pages carry older rows under id DESC,
+    // and the cursor write is last-write-wins — advancing on page >= 2 would
+    // walk the watermark backward). Matches the other hand-rolled repos.
+    if (page == 1 &&
+        result.cursorUpdatedAt != null &&
+        result.cursorId != null) {
       await advanceCursor(
         companyId: companyId,
         updatedAt: result.cursorUpdatedAt!,
         id: result.cursorId!,
-        wasFullSync: ignoreCursor && page == 1,
+        wasFullSync: ignoreCursor,
       );
     }
     return apiRows.length >= pageSize;
@@ -317,6 +330,9 @@ class GroupSettingRepository
     required String companyId,
     required String id,
   }) => db.groupSettingDao.deleteById(companyId: companyId, id: id);
+
+  @override
+  BaseEntityDao<dynamic, dynamic> get localDao => db.groupSettingDao;
 
   @override
   Future<void> applyCreateResponse({

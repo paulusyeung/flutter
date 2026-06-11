@@ -16170,6 +16170,18 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _tagNamesMeta = const VerificationMeta(
+    'tagNames',
+  );
+  @override
+  late final GeneratedColumn<String> tagNames = GeneratedColumn<String>(
+    'tag_names',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -16195,6 +16207,7 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
     taskStatusId,
     statusOrder,
     isRunning,
+    tagNames,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -16372,6 +16385,12 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
         isRunning.isAcceptableOrUnknown(data['is_running']!, _isRunningMeta),
       );
     }
+    if (data.containsKey('tag_names')) {
+      context.handle(
+        _tagNamesMeta,
+        tagNames.isAcceptableOrUnknown(data['tag_names']!, _tagNamesMeta),
+      );
+    }
     return context;
   }
 
@@ -16473,6 +16492,10 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_running'],
       )!,
+      tagNames: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tag_names'],
+      )!,
     );
   }
 
@@ -16506,6 +16529,13 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
   final String taskStatusId;
   final int statusOrder;
   final bool isRunning;
+
+  /// Denormalized, lowercased, comma-joined attached tag names — populated on
+  /// network ingest (the response carries names) so the list can sort by tags
+  /// locally. A deliberate approximation of the server's `task_tag_ids|asc`
+  /// (GROUP_CONCAT) sort; may briefly lag a tag rename until the task
+  /// re-syncs.
+  final String tagNames;
   const TaskRow({
     required this.id,
     required this.companyId,
@@ -16530,6 +16560,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     required this.taskStatusId,
     required this.statusOrder,
     required this.isRunning,
+    required this.tagNames,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -16563,6 +16594,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     map['task_status_id'] = Variable<String>(taskStatusId);
     map['status_order'] = Variable<int>(statusOrder);
     map['is_running'] = Variable<bool>(isRunning);
+    map['tag_names'] = Variable<String>(tagNames);
     return map;
   }
 
@@ -16597,6 +16629,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       taskStatusId: Value(taskStatusId),
       statusOrder: Value(statusOrder),
       isRunning: Value(isRunning),
+      tagNames: Value(tagNames),
     );
   }
 
@@ -16629,6 +16662,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       taskStatusId: serializer.fromJson<String>(json['taskStatusId']),
       statusOrder: serializer.fromJson<int>(json['statusOrder']),
       isRunning: serializer.fromJson<bool>(json['isRunning']),
+      tagNames: serializer.fromJson<String>(json['tagNames']),
     );
   }
   @override
@@ -16658,6 +16692,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       'taskStatusId': serializer.toJson<String>(taskStatusId),
       'statusOrder': serializer.toJson<int>(statusOrder),
       'isRunning': serializer.toJson<bool>(isRunning),
+      'tagNames': serializer.toJson<String>(tagNames),
     };
   }
 
@@ -16685,6 +16720,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     String? taskStatusId,
     int? statusOrder,
     bool? isRunning,
+    String? tagNames,
   }) => TaskRow(
     id: id ?? this.id,
     companyId: companyId ?? this.companyId,
@@ -16709,6 +16745,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     taskStatusId: taskStatusId ?? this.taskStatusId,
     statusOrder: statusOrder ?? this.statusOrder,
     isRunning: isRunning ?? this.isRunning,
+    tagNames: tagNames ?? this.tagNames,
   );
   TaskRow copyWithCompanion(TasksCompanion data) {
     return TaskRow(
@@ -16753,6 +16790,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           ? data.statusOrder.value
           : this.statusOrder,
       isRunning: data.isRunning.present ? data.isRunning.value : this.isRunning,
+      tagNames: data.tagNames.present ? data.tagNames.value : this.tagNames,
     );
   }
 
@@ -16781,7 +16819,8 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           ..write('invoiceId: $invoiceId, ')
           ..write('taskStatusId: $taskStatusId, ')
           ..write('statusOrder: $statusOrder, ')
-          ..write('isRunning: $isRunning')
+          ..write('isRunning: $isRunning, ')
+          ..write('tagNames: $tagNames')
           ..write(')'))
         .toString();
   }
@@ -16811,6 +16850,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     taskStatusId,
     statusOrder,
     isRunning,
+    tagNames,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -16838,7 +16878,8 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           other.invoiceId == this.invoiceId &&
           other.taskStatusId == this.taskStatusId &&
           other.statusOrder == this.statusOrder &&
-          other.isRunning == this.isRunning);
+          other.isRunning == this.isRunning &&
+          other.tagNames == this.tagNames);
 }
 
 class TasksCompanion extends UpdateCompanion<TaskRow> {
@@ -16865,6 +16906,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
   final Value<String> taskStatusId;
   final Value<int> statusOrder;
   final Value<bool> isRunning;
+  final Value<String> tagNames;
   final Value<int> rowid;
   const TasksCompanion({
     this.id = const Value.absent(),
@@ -16890,6 +16932,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     this.taskStatusId = const Value.absent(),
     this.statusOrder = const Value.absent(),
     this.isRunning = const Value.absent(),
+    this.tagNames = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TasksCompanion.insert({
@@ -16916,6 +16959,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     this.taskStatusId = const Value.absent(),
     this.statusOrder = const Value.absent(),
     this.isRunning = const Value.absent(),
+    this.tagNames = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        companyId = Value(companyId),
@@ -16945,6 +16989,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     Expression<String>? taskStatusId,
     Expression<int>? statusOrder,
     Expression<bool>? isRunning,
+    Expression<String>? tagNames,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -16971,6 +17016,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
       if (taskStatusId != null) 'task_status_id': taskStatusId,
       if (statusOrder != null) 'status_order': statusOrder,
       if (isRunning != null) 'is_running': isRunning,
+      if (tagNames != null) 'tag_names': tagNames,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -16999,6 +17045,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     Value<String>? taskStatusId,
     Value<int>? statusOrder,
     Value<bool>? isRunning,
+    Value<String>? tagNames,
     Value<int>? rowid,
   }) {
     return TasksCompanion(
@@ -17025,6 +17072,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
       taskStatusId: taskStatusId ?? this.taskStatusId,
       statusOrder: statusOrder ?? this.statusOrder,
       isRunning: isRunning ?? this.isRunning,
+      tagNames: tagNames ?? this.tagNames,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -17101,6 +17149,9 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     if (isRunning.present) {
       map['is_running'] = Variable<bool>(isRunning.value);
     }
+    if (tagNames.present) {
+      map['tag_names'] = Variable<String>(tagNames.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -17133,6 +17184,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
           ..write('taskStatusId: $taskStatusId, ')
           ..write('statusOrder: $statusOrder, ')
           ..write('isRunning: $isRunning, ')
+          ..write('tagNames: $tagNames, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -17840,6 +17892,703 @@ class TaskStatusesCompanion extends UpdateCompanion<TaskStatusRow> {
   }
 }
 
+class $TagsTable extends Tags with TableInfo<$TagsTable, TagRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TagsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _companyIdMeta = const VerificationMeta(
+    'companyId',
+  );
+  @override
+  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
+    'company_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tempIdMeta = const VerificationMeta('tempId');
+  @override
+  late final GeneratedColumn<String> tempId = GeneratedColumn<String>(
+    'temp_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _entityTypeMeta = const VerificationMeta(
+    'entityType',
+  );
+  @override
+  late final GeneratedColumn<String> entityType = GeneratedColumn<String>(
+    'entity_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<String> color = GeneratedColumn<String>(
+    'color',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<int> archivedAt = GeneratedColumn<int>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isDirtyMeta = const VerificationMeta(
+    'isDirty',
+  );
+  @override
+  late final GeneratedColumn<bool> isDirty = GeneratedColumn<bool>(
+    'is_dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    companyId,
+    tempId,
+    entityType,
+    name,
+    color,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    isDirty,
+    isDeleted,
+    payload,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'tags';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TagRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('company_id')) {
+      context.handle(
+        _companyIdMeta,
+        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_companyIdMeta);
+    }
+    if (data.containsKey('temp_id')) {
+      context.handle(
+        _tempIdMeta,
+        tempId.isAcceptableOrUnknown(data['temp_id']!, _tempIdMeta),
+      );
+    }
+    if (data.containsKey('entity_type')) {
+      context.handle(
+        _entityTypeMeta,
+        entityType.isAcceptableOrUnknown(data['entity_type']!, _entityTypeMeta),
+      );
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+        _archivedAtMeta,
+        archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
+      );
+    }
+    if (data.containsKey('is_dirty')) {
+      context.handle(
+        _isDirtyMeta,
+        isDirty.isAcceptableOrUnknown(data['is_dirty']!, _isDirtyMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TagRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TagRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      companyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_id'],
+      )!,
+      tempId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}temp_id'],
+      ),
+      entityType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entity_type'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}color'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      archivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}archived_at'],
+      ),
+      isDirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_dirty'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+    );
+  }
+
+  @override
+  $TagsTable createAlias(String alias) {
+    return $TagsTable(attachedDatabase, alias);
+  }
+}
+
+class TagRow extends DataClass implements Insertable<TagRow> {
+  final String id;
+  final String companyId;
+  final String? tempId;
+  final String entityType;
+  final String name;
+  final String color;
+  final int updatedAt;
+  final int createdAt;
+  final int? archivedAt;
+  final bool isDirty;
+  final bool isDeleted;
+  final String payload;
+  const TagRow({
+    required this.id,
+    required this.companyId,
+    this.tempId,
+    required this.entityType,
+    required this.name,
+    required this.color,
+    required this.updatedAt,
+    required this.createdAt,
+    this.archivedAt,
+    required this.isDirty,
+    required this.isDeleted,
+    required this.payload,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['company_id'] = Variable<String>(companyId);
+    if (!nullToAbsent || tempId != null) {
+      map['temp_id'] = Variable<String>(tempId);
+    }
+    map['entity_type'] = Variable<String>(entityType);
+    map['name'] = Variable<String>(name);
+    map['color'] = Variable<String>(color);
+    map['updated_at'] = Variable<int>(updatedAt);
+    map['created_at'] = Variable<int>(createdAt);
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<int>(archivedAt);
+    }
+    map['is_dirty'] = Variable<bool>(isDirty);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['payload'] = Variable<String>(payload);
+    return map;
+  }
+
+  TagsCompanion toCompanion(bool nullToAbsent) {
+    return TagsCompanion(
+      id: Value(id),
+      companyId: Value(companyId),
+      tempId: tempId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tempId),
+      entityType: Value(entityType),
+      name: Value(name),
+      color: Value(color),
+      updatedAt: Value(updatedAt),
+      createdAt: Value(createdAt),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
+      isDirty: Value(isDirty),
+      isDeleted: Value(isDeleted),
+      payload: Value(payload),
+    );
+  }
+
+  factory TagRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TagRow(
+      id: serializer.fromJson<String>(json['id']),
+      companyId: serializer.fromJson<String>(json['companyId']),
+      tempId: serializer.fromJson<String?>(json['tempId']),
+      entityType: serializer.fromJson<String>(json['entityType']),
+      name: serializer.fromJson<String>(json['name']),
+      color: serializer.fromJson<String>(json['color']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      archivedAt: serializer.fromJson<int?>(json['archivedAt']),
+      isDirty: serializer.fromJson<bool>(json['isDirty']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      payload: serializer.fromJson<String>(json['payload']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'companyId': serializer.toJson<String>(companyId),
+      'tempId': serializer.toJson<String?>(tempId),
+      'entityType': serializer.toJson<String>(entityType),
+      'name': serializer.toJson<String>(name),
+      'color': serializer.toJson<String>(color),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'archivedAt': serializer.toJson<int?>(archivedAt),
+      'isDirty': serializer.toJson<bool>(isDirty),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'payload': serializer.toJson<String>(payload),
+    };
+  }
+
+  TagRow copyWith({
+    String? id,
+    String? companyId,
+    Value<String?> tempId = const Value.absent(),
+    String? entityType,
+    String? name,
+    String? color,
+    int? updatedAt,
+    int? createdAt,
+    Value<int?> archivedAt = const Value.absent(),
+    bool? isDirty,
+    bool? isDeleted,
+    String? payload,
+  }) => TagRow(
+    id: id ?? this.id,
+    companyId: companyId ?? this.companyId,
+    tempId: tempId.present ? tempId.value : this.tempId,
+    entityType: entityType ?? this.entityType,
+    name: name ?? this.name,
+    color: color ?? this.color,
+    updatedAt: updatedAt ?? this.updatedAt,
+    createdAt: createdAt ?? this.createdAt,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+    isDirty: isDirty ?? this.isDirty,
+    isDeleted: isDeleted ?? this.isDeleted,
+    payload: payload ?? this.payload,
+  );
+  TagRow copyWithCompanion(TagsCompanion data) {
+    return TagRow(
+      id: data.id.present ? data.id.value : this.id,
+      companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      tempId: data.tempId.present ? data.tempId.value : this.tempId,
+      entityType: data.entityType.present
+          ? data.entityType.value
+          : this.entityType,
+      name: data.name.present ? data.name.value : this.name,
+      color: data.color.present ? data.color.value : this.color,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
+      isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      payload: data.payload.present ? data.payload.value : this.payload,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TagRow(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('entityType: $entityType, ')
+          ..write('name: $name, ')
+          ..write('color: $color, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('payload: $payload')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    companyId,
+    tempId,
+    entityType,
+    name,
+    color,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    isDirty,
+    isDeleted,
+    payload,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TagRow &&
+          other.id == this.id &&
+          other.companyId == this.companyId &&
+          other.tempId == this.tempId &&
+          other.entityType == this.entityType &&
+          other.name == this.name &&
+          other.color == this.color &&
+          other.updatedAt == this.updatedAt &&
+          other.createdAt == this.createdAt &&
+          other.archivedAt == this.archivedAt &&
+          other.isDirty == this.isDirty &&
+          other.isDeleted == this.isDeleted &&
+          other.payload == this.payload);
+}
+
+class TagsCompanion extends UpdateCompanion<TagRow> {
+  final Value<String> id;
+  final Value<String> companyId;
+  final Value<String?> tempId;
+  final Value<String> entityType;
+  final Value<String> name;
+  final Value<String> color;
+  final Value<int> updatedAt;
+  final Value<int> createdAt;
+  final Value<int?> archivedAt;
+  final Value<bool> isDirty;
+  final Value<bool> isDeleted;
+  final Value<String> payload;
+  final Value<int> rowid;
+  const TagsCompanion({
+    this.id = const Value.absent(),
+    this.companyId = const Value.absent(),
+    this.tempId = const Value.absent(),
+    this.entityType = const Value.absent(),
+    this.name = const Value.absent(),
+    this.color = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TagsCompanion.insert({
+    required String id,
+    required String companyId,
+    this.tempId = const Value.absent(),
+    this.entityType = const Value.absent(),
+    this.name = const Value.absent(),
+    this.color = const Value.absent(),
+    required int updatedAt,
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    required String payload,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       companyId = Value(companyId),
+       updatedAt = Value(updatedAt),
+       payload = Value(payload);
+  static Insertable<TagRow> custom({
+    Expression<String>? id,
+    Expression<String>? companyId,
+    Expression<String>? tempId,
+    Expression<String>? entityType,
+    Expression<String>? name,
+    Expression<String>? color,
+    Expression<int>? updatedAt,
+    Expression<int>? createdAt,
+    Expression<int>? archivedAt,
+    Expression<bool>? isDirty,
+    Expression<bool>? isDeleted,
+    Expression<String>? payload,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (companyId != null) 'company_id': companyId,
+      if (tempId != null) 'temp_id': tempId,
+      if (entityType != null) 'entity_type': entityType,
+      if (name != null) 'name': name,
+      if (color != null) 'color': color,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (archivedAt != null) 'archived_at': archivedAt,
+      if (isDirty != null) 'is_dirty': isDirty,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (payload != null) 'payload': payload,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TagsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? companyId,
+    Value<String?>? tempId,
+    Value<String>? entityType,
+    Value<String>? name,
+    Value<String>? color,
+    Value<int>? updatedAt,
+    Value<int>? createdAt,
+    Value<int?>? archivedAt,
+    Value<bool>? isDirty,
+    Value<bool>? isDeleted,
+    Value<String>? payload,
+    Value<int>? rowid,
+  }) {
+    return TagsCompanion(
+      id: id ?? this.id,
+      companyId: companyId ?? this.companyId,
+      tempId: tempId ?? this.tempId,
+      entityType: entityType ?? this.entityType,
+      name: name ?? this.name,
+      color: color ?? this.color,
+      updatedAt: updatedAt ?? this.updatedAt,
+      createdAt: createdAt ?? this.createdAt,
+      archivedAt: archivedAt ?? this.archivedAt,
+      isDirty: isDirty ?? this.isDirty,
+      isDeleted: isDeleted ?? this.isDeleted,
+      payload: payload ?? this.payload,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (companyId.present) {
+      map['company_id'] = Variable<String>(companyId.value);
+    }
+    if (tempId.present) {
+      map['temp_id'] = Variable<String>(tempId.value);
+    }
+    if (entityType.present) {
+      map['entity_type'] = Variable<String>(entityType.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<String>(color.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<int>(archivedAt.value);
+    }
+    if (isDirty.present) {
+      map['is_dirty'] = Variable<bool>(isDirty.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TagsCompanion(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('entityType: $entityType, ')
+          ..write('name: $name, ')
+          ..write('color: $color, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('payload: $payload, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $ProjectsTable extends Projects
     with TableInfo<$ProjectsTable, ProjectRow> {
   @override
@@ -18111,6 +18860,18 @@ class $ProjectsTable extends Projects
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _tagNamesMeta = const VerificationMeta(
+    'tagNames',
+  );
+  @override
+  late final GeneratedColumn<String> tagNames = GeneratedColumn<String>(
+    'tag_names',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -18136,6 +18897,7 @@ class $ProjectsTable extends Projects
     budgetedHours,
     currentHours,
     color,
+    tagNames,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -18313,6 +19075,12 @@ class $ProjectsTable extends Projects
         color.isAcceptableOrUnknown(data['color']!, _colorMeta),
       );
     }
+    if (data.containsKey('tag_names')) {
+      context.handle(
+        _tagNamesMeta,
+        tagNames.isAcceptableOrUnknown(data['tag_names']!, _tagNamesMeta),
+      );
+    }
     return context;
   }
 
@@ -18414,6 +19182,10 @@ class $ProjectsTable extends Projects
         DriftSqlType.string,
         data['${effectivePrefix}color'],
       )!,
+      tagNames: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tag_names'],
+      )!,
     );
   }
 
@@ -18447,6 +19219,10 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
   final double budgetedHours;
   final double currentHours;
   final String color;
+
+  /// Denormalized, lowercased, comma-joined attached tag names — for local
+  /// sort by tags. See `Tasks.tagNames`.
+  final String tagNames;
   const ProjectRow({
     required this.id,
     required this.companyId,
@@ -18471,6 +19247,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     required this.budgetedHours,
     required this.currentHours,
     required this.color,
+    required this.tagNames,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -18504,6 +19281,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     map['budgeted_hours'] = Variable<double>(budgetedHours);
     map['current_hours'] = Variable<double>(currentHours);
     map['color'] = Variable<String>(color);
+    map['tag_names'] = Variable<String>(tagNames);
     return map;
   }
 
@@ -18538,6 +19316,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
       budgetedHours: Value(budgetedHours),
       currentHours: Value(currentHours),
       color: Value(color),
+      tagNames: Value(tagNames),
     );
   }
 
@@ -18570,6 +19349,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
       budgetedHours: serializer.fromJson<double>(json['budgetedHours']),
       currentHours: serializer.fromJson<double>(json['currentHours']),
       color: serializer.fromJson<String>(json['color']),
+      tagNames: serializer.fromJson<String>(json['tagNames']),
     );
   }
   @override
@@ -18599,6 +19379,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
       'budgetedHours': serializer.toJson<double>(budgetedHours),
       'currentHours': serializer.toJson<double>(currentHours),
       'color': serializer.toJson<String>(color),
+      'tagNames': serializer.toJson<String>(tagNames),
     };
   }
 
@@ -18626,6 +19407,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     double? budgetedHours,
     double? currentHours,
     String? color,
+    String? tagNames,
   }) => ProjectRow(
     id: id ?? this.id,
     companyId: companyId ?? this.companyId,
@@ -18650,6 +19432,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     budgetedHours: budgetedHours ?? this.budgetedHours,
     currentHours: currentHours ?? this.currentHours,
     color: color ?? this.color,
+    tagNames: tagNames ?? this.tagNames,
   );
   ProjectRow copyWithCompanion(ProjectsCompanion data) {
     return ProjectRow(
@@ -18692,6 +19475,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
           ? data.currentHours.value
           : this.currentHours,
       color: data.color.present ? data.color.value : this.color,
+      tagNames: data.tagNames.present ? data.tagNames.value : this.tagNames,
     );
   }
 
@@ -18720,7 +19504,8 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
           ..write('taskRate: $taskRate, ')
           ..write('budgetedHours: $budgetedHours, ')
           ..write('currentHours: $currentHours, ')
-          ..write('color: $color')
+          ..write('color: $color, ')
+          ..write('tagNames: $tagNames')
           ..write(')'))
         .toString();
   }
@@ -18750,6 +19535,7 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     budgetedHours,
     currentHours,
     color,
+    tagNames,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -18777,7 +19563,8 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
           other.taskRate == this.taskRate &&
           other.budgetedHours == this.budgetedHours &&
           other.currentHours == this.currentHours &&
-          other.color == this.color);
+          other.color == this.color &&
+          other.tagNames == this.tagNames);
 }
 
 class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
@@ -18804,6 +19591,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
   final Value<double> budgetedHours;
   final Value<double> currentHours;
   final Value<String> color;
+  final Value<String> tagNames;
   final Value<int> rowid;
   const ProjectsCompanion({
     this.id = const Value.absent(),
@@ -18829,6 +19617,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     this.budgetedHours = const Value.absent(),
     this.currentHours = const Value.absent(),
     this.color = const Value.absent(),
+    this.tagNames = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProjectsCompanion.insert({
@@ -18855,6 +19644,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     this.budgetedHours = const Value.absent(),
     this.currentHours = const Value.absent(),
     this.color = const Value.absent(),
+    this.tagNames = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        companyId = Value(companyId),
@@ -18884,6 +19674,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     Expression<double>? budgetedHours,
     Expression<double>? currentHours,
     Expression<String>? color,
+    Expression<String>? tagNames,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -18910,6 +19701,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
       if (budgetedHours != null) 'budgeted_hours': budgetedHours,
       if (currentHours != null) 'current_hours': currentHours,
       if (color != null) 'color': color,
+      if (tagNames != null) 'tag_names': tagNames,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -18938,6 +19730,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     Value<double>? budgetedHours,
     Value<double>? currentHours,
     Value<String>? color,
+    Value<String>? tagNames,
     Value<int>? rowid,
   }) {
     return ProjectsCompanion(
@@ -18964,6 +19757,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
       budgetedHours: budgetedHours ?? this.budgetedHours,
       currentHours: currentHours ?? this.currentHours,
       color: color ?? this.color,
+      tagNames: tagNames ?? this.tagNames,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -19040,6 +19834,9 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     if (color.present) {
       map['color'] = Variable<String>(color.value);
     }
+    if (tagNames.present) {
+      map['tag_names'] = Variable<String>(tagNames.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -19072,6 +19869,7 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
           ..write('budgetedHours: $budgetedHours, ')
           ..write('currentHours: $currentHours, ')
           ..write('color: $color, ')
+          ..write('tagNames: $tagNames, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -43440,6 +44238,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $GroupSettingsTable groupSettings = $GroupSettingsTable(this);
   late final $TasksTable tasks = $TasksTable(this);
   late final $TaskStatusesTable taskStatuses = $TaskStatusesTable(this);
+  late final $TagsTable tags = $TagsTable(this);
   late final $ProjectsTable projects = $ProjectsTable(this);
   late final $CompanyGatewaysTable companyGateways = $CompanyGatewaysTable(
     this,
@@ -43497,6 +44296,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final TaskDao taskDao = TaskDao(this as AppDatabase);
   late final TaskStatusDao taskStatusDao = TaskStatusDao(this as AppDatabase);
+  late final TagDao tagDao = TagDao(this as AppDatabase);
   late final ProjectDao projectDao = ProjectDao(this as AppDatabase);
   late final PaymentTermDao paymentTermDao = PaymentTermDao(
     this as AppDatabase,
@@ -43560,6 +44360,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     groupSettings,
     tasks,
     taskStatuses,
+    tags,
     projects,
     companyGateways,
     paymentTerms,
@@ -50638,6 +51439,7 @@ typedef $$TasksTableCreateCompanionBuilder =
       Value<String> taskStatusId,
       Value<int> statusOrder,
       Value<bool> isRunning,
+      Value<String> tagNames,
       Value<int> rowid,
     });
 typedef $$TasksTableUpdateCompanionBuilder =
@@ -50665,6 +51467,7 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<String> taskStatusId,
       Value<int> statusOrder,
       Value<bool> isRunning,
+      Value<String> tagNames,
       Value<int> rowid,
     });
 
@@ -50788,6 +51591,11 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
 
   ColumnFilters<bool> get isRunning => $composableBuilder(
     column: $table.isRunning,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tagNames => $composableBuilder(
+    column: $table.tagNames,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -50915,6 +51723,11 @@ class $$TasksTableOrderingComposer
     column: $table.isRunning,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get tagNames => $composableBuilder(
+    column: $table.tagNames,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TasksTableAnnotationComposer
@@ -51012,6 +51825,9 @@ class $$TasksTableAnnotationComposer
 
   GeneratedColumn<bool> get isRunning =>
       $composableBuilder(column: $table.isRunning, builder: (column) => column);
+
+  GeneratedColumn<String> get tagNames =>
+      $composableBuilder(column: $table.tagNames, builder: (column) => column);
 }
 
 class $$TasksTableTableManager
@@ -51065,6 +51881,7 @@ class $$TasksTableTableManager
                 Value<String> taskStatusId = const Value.absent(),
                 Value<int> statusOrder = const Value.absent(),
                 Value<bool> isRunning = const Value.absent(),
+                Value<String> tagNames = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TasksCompanion(
                 id: id,
@@ -51090,6 +51907,7 @@ class $$TasksTableTableManager
                 taskStatusId: taskStatusId,
                 statusOrder: statusOrder,
                 isRunning: isRunning,
+                tagNames: tagNames,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -51117,6 +51935,7 @@ class $$TasksTableTableManager
                 Value<String> taskStatusId = const Value.absent(),
                 Value<int> statusOrder = const Value.absent(),
                 Value<bool> isRunning = const Value.absent(),
+                Value<String> tagNames = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TasksCompanion.insert(
                 id: id,
@@ -51142,6 +51961,7 @@ class $$TasksTableTableManager
                 taskStatusId: taskStatusId,
                 statusOrder: statusOrder,
                 isRunning: isRunning,
+                tagNames: tagNames,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -51503,6 +52323,335 @@ typedef $$TaskStatusesTableProcessedTableManager =
       TaskStatusRow,
       PrefetchHooks Function()
     >;
+typedef $$TagsTableCreateCompanionBuilder =
+    TagsCompanion Function({
+      required String id,
+      required String companyId,
+      Value<String?> tempId,
+      Value<String> entityType,
+      Value<String> name,
+      Value<String> color,
+      required int updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      required String payload,
+      Value<int> rowid,
+    });
+typedef $$TagsTableUpdateCompanionBuilder =
+    TagsCompanion Function({
+      Value<String> id,
+      Value<String> companyId,
+      Value<String?> tempId,
+      Value<String> entityType,
+      Value<String> name,
+      Value<String> color,
+      Value<int> updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      Value<String> payload,
+      Value<int> rowid,
+    });
+
+class $$TagsTableFilterComposer extends Composer<_$AppDatabase, $TagsTable> {
+  $$TagsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TagsTableOrderingComposer extends Composer<_$AppDatabase, $TagsTable> {
+  $$TagsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TagsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TagsTable> {
+  $$TagsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get companyId =>
+      $composableBuilder(column: $table.companyId, builder: (column) => column);
+
+  GeneratedColumn<String> get tempId =>
+      $composableBuilder(column: $table.tempId, builder: (column) => column);
+
+  GeneratedColumn<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isDirty =>
+      $composableBuilder(column: $table.isDirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+}
+
+class $$TagsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TagsTable,
+          TagRow,
+          $$TagsTableFilterComposer,
+          $$TagsTableOrderingComposer,
+          $$TagsTableAnnotationComposer,
+          $$TagsTableCreateCompanionBuilder,
+          $$TagsTableUpdateCompanionBuilder,
+          (TagRow, BaseReferences<_$AppDatabase, $TagsTable, TagRow>),
+          TagRow,
+          PrefetchHooks Function()
+        > {
+  $$TagsTableTableManager(_$AppDatabase db, $TagsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TagsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TagsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TagsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> companyId = const Value.absent(),
+                Value<String?> tempId = const Value.absent(),
+                Value<String> entityType = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> color = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TagsCompanion(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                entityType: entityType,
+                name: name,
+                color: color,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                payload: payload,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String companyId,
+                Value<String?> tempId = const Value.absent(),
+                Value<String> entityType = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> color = const Value.absent(),
+                required int updatedAt,
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                required String payload,
+                Value<int> rowid = const Value.absent(),
+              }) => TagsCompanion.insert(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                entityType: entityType,
+                name: name,
+                color: color,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                payload: payload,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TagsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TagsTable,
+      TagRow,
+      $$TagsTableFilterComposer,
+      $$TagsTableOrderingComposer,
+      $$TagsTableAnnotationComposer,
+      $$TagsTableCreateCompanionBuilder,
+      $$TagsTableUpdateCompanionBuilder,
+      (TagRow, BaseReferences<_$AppDatabase, $TagsTable, TagRow>),
+      TagRow,
+      PrefetchHooks Function()
+    >;
 typedef $$ProjectsTableCreateCompanionBuilder =
     ProjectsCompanion Function({
       required String id,
@@ -51528,6 +52677,7 @@ typedef $$ProjectsTableCreateCompanionBuilder =
       Value<double> budgetedHours,
       Value<double> currentHours,
       Value<String> color,
+      Value<String> tagNames,
       Value<int> rowid,
     });
 typedef $$ProjectsTableUpdateCompanionBuilder =
@@ -51555,6 +52705,7 @@ typedef $$ProjectsTableUpdateCompanionBuilder =
       Value<double> budgetedHours,
       Value<double> currentHours,
       Value<String> color,
+      Value<String> tagNames,
       Value<int> rowid,
     });
 
@@ -51679,6 +52830,11 @@ class $$ProjectsTableFilterComposer
 
   ColumnFilters<String> get color => $composableBuilder(
     column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tagNames => $composableBuilder(
+    column: $table.tagNames,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -51806,6 +52962,11 @@ class $$ProjectsTableOrderingComposer
     column: $table.color,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get tagNames => $composableBuilder(
+    column: $table.tagNames,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ProjectsTableAnnotationComposer
@@ -51901,6 +53062,9 @@ class $$ProjectsTableAnnotationComposer
 
   GeneratedColumn<String> get color =>
       $composableBuilder(column: $table.color, builder: (column) => column);
+
+  GeneratedColumn<String> get tagNames =>
+      $composableBuilder(column: $table.tagNames, builder: (column) => column);
 }
 
 class $$ProjectsTableTableManager
@@ -51957,6 +53121,7 @@ class $$ProjectsTableTableManager
                 Value<double> budgetedHours = const Value.absent(),
                 Value<double> currentHours = const Value.absent(),
                 Value<String> color = const Value.absent(),
+                Value<String> tagNames = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProjectsCompanion(
                 id: id,
@@ -51982,6 +53147,7 @@ class $$ProjectsTableTableManager
                 budgetedHours: budgetedHours,
                 currentHours: currentHours,
                 color: color,
+                tagNames: tagNames,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -52009,6 +53175,7 @@ class $$ProjectsTableTableManager
                 Value<double> budgetedHours = const Value.absent(),
                 Value<double> currentHours = const Value.absent(),
                 Value<String> color = const Value.absent(),
+                Value<String> tagNames = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProjectsCompanion.insert(
                 id: id,
@@ -52034,6 +53201,7 @@ class $$ProjectsTableTableManager
                 budgetedHours: budgetedHours,
                 currentHours: currentHours,
                 color: color,
+                tagNames: tagNames,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -63142,6 +64310,7 @@ class $AppDatabaseManager {
       $$TasksTableTableManager(_db, _db.tasks);
   $$TaskStatusesTableTableManager get taskStatuses =>
       $$TaskStatusesTableTableManager(_db, _db.taskStatuses);
+  $$TagsTableTableManager get tags => $$TagsTableTableManager(_db, _db.tags);
   $$ProjectsTableTableManager get projects =>
       $$ProjectsTableTableManager(_db, _db.projects);
   $$CompanyGatewaysTableTableManager get companyGateways =>

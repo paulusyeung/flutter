@@ -57,6 +57,12 @@ class _ProgrammableDispatcher implements SyncDispatcher {
     required String companyId,
     required String id,
   }) async {}
+
+  @override
+  Future<void> clearLocalDirty({
+    required String companyId,
+    required String id,
+  }) async {}
 }
 
 /// Dispatcher that forwards `deleteLocalRecord` to a repo, the way
@@ -77,6 +83,12 @@ class _RepoDeleteDispatcher implements SyncDispatcher {
     required String companyId,
     required String id,
   }) => repo.deleteLocalById(companyId: companyId, id: id);
+
+  @override
+  Future<void> clearLocalDirty({
+    required String companyId,
+    required String id,
+  }) => repo.clearLocalDirty(companyId: companyId, id: id);
 }
 
 EntityRegistry _registryWith(SyncDispatcher dispatcher) => EntityRegistry({
@@ -235,7 +247,45 @@ void main() {
         reason: 'auto-retry must not hit the same 409 over and over',
       );
       expect(events.single, isA<ConflictEvent>());
+      expect((events.single as ConflictEvent).statusCode, 409);
+      expect((events.single as ConflictEvent).isDeletedServerSide, isFalse);
     });
+
+    test(
+      '404 (deleted server-side) parks the row + emits a 404-flavored '
+      'ConflictEvent carrying the row id, so the sheet offers discard-locally '
+      '(NotFoundException is a ConflictException subtype — caught first)',
+      () async {
+        final disp = _ProgrammableDispatcher()
+          ..queueThrow(const NotFoundException('not found'));
+        final engine = makeEngine(disp, nowMs: 1000);
+        final events = <SyncEvent>[];
+        engine.events.listen(events.add);
+        final id = await enqueueClient(entityId: 'c1');
+
+        await engine.drainOnce(companyId: 'co');
+        await Future<void>.delayed(Duration.zero);
+
+        final row = await (db.select(
+          db.outbox,
+        )..where((o) => o.id.equals(id))).getSingle();
+        expect(row.state, 'pending');
+        expect(
+          row.lastStatusCode,
+          404,
+          reason: '404 tagged distinctly from 409',
+        );
+        expect(
+          row.nextAttemptAt - 1000,
+          greaterThan(const Duration(days: 30).inMilliseconds),
+          reason: 'parked — re-sending an update to a gone entity 404s forever',
+        );
+        final event = events.single as ConflictEvent;
+        expect(event.statusCode, 404);
+        expect(event.isDeletedServerSide, isTrue);
+        expect(event.outboxRowId, id);
+      },
+    );
 
     test(
       'PasswordRequired keeps row + emits event so UI prompts the user',
@@ -425,6 +475,229 @@ void main() {
         expect(row.state, 'dead');
       },
     );
+  });
+
+  group('tmp_ dependency guard', () {
+    // Ids minted by mintTempId() are tmp_<uuid-v4>; the guard matches that
+    // exact shape.
+    const tmpA = 'tmp_00000000-0000-4000-8000-00000000000a';
+    const tmpB = 'tmp_00000000-0000-4000-8000-00000000000b';
+
+    test('an update aimed at a tmp_ id whose create failed is skipped, '
+        'not dispatched with the unresolved id', () async {
+      final dispatcher = _ProgrammableDispatcher();
+      final engine = makeEngine(dispatcher);
+      // The create fails server-side (5xx → backoff, stays pending) …
+      await enqueueClient(
+        entityId: tmpA,
+        kind: MutationKind.create,
+        idempotencyKey: 'k1',
+      );
+      dispatcher.queueThrow(ServerException(500, 'boom'));
+      // … so the queued follow-up edit still carries the tmp_ id.
+      final updateId = await enqueueClient(
+        entityId: tmpA,
+        idempotencyKey: 'k2',
+      );
+
+      await engine.drainOnce(companyId: 'co');
+
+      expect(
+        dispatcher.dispatches,
+        1,
+        reason:
+            'only the create may be attempted; dispatching the update '
+            'would PUT /clients/tmp_… → 404 → bogus year-long conflict',
+      );
+      final row = await (db.select(
+        db.outbox,
+      )..where((o) => o.id.equals(updateId))).getSingle();
+      expect(row.state, 'pending');
+      expect(row.attempts, 0, reason: 'a skip is not a failed attempt');
+    });
+
+    test(
+      'a create referencing another entity\'s unresolved tmp_ id is skipped, '
+      'while a create carrying only its own tmp_ id dispatches',
+      () async {
+        final dispatcher = _ProgrammableDispatcher();
+        final engine = makeEngine(dispatcher);
+        // Cross-entity ref: e.g. an invoice created offline against an
+        // offline-created client. (Modeled as a client row here — the guard
+        // only inspects the payload.)
+        final crossRefId = await db.outboxDao.enqueue(
+          OutboxCompanion.insert(
+            companyId: 'co',
+            entityType: 'client',
+            entityId: tmpB,
+            mutationKind: MutationKind.create.wireName,
+            payload: jsonEncode({'id': tmpB, 'client_id': tmpA}),
+            idempotencyKey: 'k3',
+            nextAttemptAt: 0,
+            createdAt: 0,
+          ),
+        );
+        // Own-id-only create: must NOT be blocked by its own tmp_ id.
+        await enqueueClient(
+          entityId: tmpA,
+          kind: MutationKind.create,
+          idempotencyKey: 'k4',
+        );
+        dispatcher.queueSuccess();
+
+        await engine.drainOnce(companyId: 'co');
+
+        expect(
+          dispatcher.dispatches,
+          1,
+          reason: 'the own-id create dispatches; the cross-ref create waits',
+        );
+        expect(dispatcher.lastRow?.entityId, tmpA);
+        final crossRef = await (db.select(
+          db.outbox,
+        )..where((o) => o.id.equals(crossRefId))).getSingle();
+        expect(crossRef.state, 'pending');
+        expect(crossRef.attempts, 0);
+      },
+    );
+
+    test('rewriteTempIdInPayloads heals dead rows too, so Retry can succeed '
+        'after the parent create finally lands', () async {
+      final deadId = await db.outboxDao.enqueue(
+        OutboxCompanion.insert(
+          companyId: 'co',
+          entityType: 'client',
+          entityId: 'real_1',
+          mutationKind: MutationKind.update.wireName,
+          payload: jsonEncode({'id': 'real_1', 'client_id': tmpA}),
+          idempotencyKey: 'k5',
+          nextAttemptAt: 0,
+          createdAt: 0,
+        ),
+      );
+      await db.outboxDao.markDead(id: deadId, error: '422', statusCode: 422);
+
+      await db.outboxDao.rewriteTempIdInPayloads(
+        companyId: 'co',
+        entityType: 'client',
+        tempId: tmpA,
+        realId: 'real_A',
+      );
+
+      final row = await (db.select(
+        db.outbox,
+      )..where((o) => o.id.equals(deadId))).getSingle();
+      expect(row.payload, contains('real_A'));
+      expect(row.payload, isNot(contains(tmpA)));
+    });
+
+    test(
+      'rewriteTempIdInPayloads re-arms a deferred PENDING dependent '
+      '(nextAttemptAt→0, error cleared) but leaves DEAD rows scheduled as-is',
+      () async {
+        // A pending dependent the drain deferred +60s with an error set.
+        final pendingId = await db.outboxDao.enqueue(
+          OutboxCompanion.insert(
+            companyId: 'co',
+            entityType: 'client',
+            entityId: 'real_p',
+            mutationKind: MutationKind.update.wireName,
+            payload: jsonEncode({'id': 'real_p', 'client_id': tmpA}),
+            idempotencyKey: 'kp',
+            nextAttemptAt: 999999,
+            createdAt: 0,
+            attempts: const Value(2),
+            lastError: const Value('waiting'),
+          ),
+        );
+        final deadId = await db.outboxDao.enqueue(
+          OutboxCompanion.insert(
+            companyId: 'co',
+            entityType: 'client',
+            entityId: 'real_d',
+            mutationKind: MutationKind.update.wireName,
+            payload: jsonEncode({'id': 'real_d', 'client_id': tmpA}),
+            idempotencyKey: 'kd',
+            nextAttemptAt: 888888,
+            createdAt: 0,
+          ),
+        );
+        await db.outboxDao.markDead(id: deadId, error: '422', statusCode: 422);
+
+        await db.outboxDao.rewriteTempIdInPayloads(
+          companyId: 'co',
+          entityType: 'client',
+          tempId: tmpA,
+          realId: 'real_A',
+        );
+
+        final pending = await (db.select(
+          db.outbox,
+        )..where((o) => o.id.equals(pendingId))).getSingle();
+        expect(pending.payload, contains('real_A'));
+        expect(pending.nextAttemptAt, 0, reason: 'healed → immediately due');
+        expect(pending.lastError, isNull);
+        expect(pending.attempts, 2, reason: 'retry budget preserved');
+
+        final dead = await (db.select(
+          db.outbox,
+        )..where((o) => o.id.equals(deadId))).getSingle();
+        expect(dead.payload, contains('real_A'), reason: 'payload still heals');
+        expect(dead.state, 'dead', reason: 'dead stays dead');
+        expect(
+          dead.nextAttemptAt,
+          888888,
+          reason: 'dead row scheduling untouched',
+        );
+      },
+    );
+
+    test('a failed tmp_ create (422) marks its dependents dead too, so they '
+        'stop deferring forever and pendingCountFor can reach zero', () async {
+      final events = <SyncEvent>[];
+      final dispatcher = _ProgrammableDispatcher();
+      final engine = makeEngine(dispatcher);
+      engine.events.listen(events.add);
+      // Parent create fails validation.
+      await enqueueClient(
+        entityId: tmpA,
+        kind: MutationKind.create,
+        idempotencyKey: 'kc',
+      );
+      dispatcher.queueThrow(const ValidationException('bad', {}));
+      // Dependent create referencing the parent's tmp id.
+      final depId = await db.outboxDao.enqueue(
+        OutboxCompanion.insert(
+          companyId: 'co',
+          entityType: 'client',
+          entityId: tmpB,
+          mutationKind: MutationKind.create.wireName,
+          payload: jsonEncode({'id': tmpB, 'client_id': tmpA}),
+          idempotencyKey: 'kdep',
+          nextAttemptAt: 0,
+          createdAt: 0,
+        ),
+      );
+
+      await engine.drainOnce(companyId: 'co');
+
+      final dep = await (db.select(
+        db.outbox,
+      )..where((o) => o.id.equals(depId))).getSingle();
+      expect(
+        dep.state,
+        'dead',
+        reason:
+            'dependent of a dead tmp_ create is marked dead, not '
+            'deferred forever',
+      );
+      expect(await db.outboxDao.pendingCountForCompany('co'), 0);
+      expect(
+        events.whereType<DeadEvent>().any((e) => e.entityId == tmpB),
+        isTrue,
+        reason: 'the cascade-killed dependent surfaces a DeadEvent',
+      );
+    });
   });
 
   group('auto-drain on enqueue', () {
@@ -740,6 +1013,101 @@ void main() {
         reason: 'dead rows are not "pending" — discardPendingFor skips them',
       );
     });
+
+    test(
+      'discarding a ghost create cascades through a 3-level offline '
+      'subtree: ghost dependents deleted, non-ghost dependents marked dead',
+      () async {
+        final repo = _TestRepo(db: db);
+        final events = <SyncEvent>[];
+        final engine = engineWith(repo);
+        engine.events.listen(events.add);
+        // client tmp_A (ghost) ← invoice tmp_B (ghost, refs A) ← payment tmp_C
+        // (ghost, refs B); plus a non-ghost update to real client c9 that also
+        // references tmp_A.
+        final clientId = await enqueueClient(
+          entityId: 'tmp_A',
+          kind: MutationKind.create,
+        );
+        final invoiceId = await db.outboxDao.enqueue(
+          OutboxCompanion.insert(
+            companyId: 'co',
+            entityType: 'client', // entity type is irrelevant to the guard
+            entityId: 'tmp_B',
+            mutationKind: MutationKind.create.wireName,
+            payload: jsonEncode({'id': 'tmp_B', 'client_id': 'tmp_A'}),
+            idempotencyKey: 'kB',
+            nextAttemptAt: 0,
+            createdAt: 0,
+          ),
+        );
+        final paymentId = await db.outboxDao.enqueue(
+          OutboxCompanion.insert(
+            companyId: 'co',
+            entityType: 'client',
+            entityId: 'tmp_C',
+            mutationKind: MutationKind.create.wireName,
+            payload: jsonEncode({'id': 'tmp_C', 'invoice_id': 'tmp_B'}),
+            idempotencyKey: 'kC',
+            nextAttemptAt: 0,
+            createdAt: 0,
+          ),
+        );
+        final realUpdateId = await db.outboxDao.enqueue(
+          OutboxCompanion.insert(
+            companyId: 'co',
+            entityType: 'client',
+            entityId: 'c9',
+            mutationKind: MutationKind.update.wireName,
+            payload: jsonEncode({'id': 'c9', 'client_id': 'tmp_A'}),
+            idempotencyKey: 'k9',
+            nextAttemptAt: 0,
+            createdAt: 0,
+          ),
+        );
+
+        final removed = await engine.discardOutboxRow(clientId);
+
+        expect(removed, isTrue);
+        // Ghost subtree removed wholesale (local record + outbox rows).
+        expect(
+          repo.localDeletes,
+          containsAll([('co', 'tmp_A'), ('co', 'tmp_B'), ('co', 'tmp_C')]),
+        );
+        expect(await rawRow(invoiceId), isNull);
+        expect(await rawRow(paymentId), isNull);
+        // Non-ghost dependent kept as a dead row the user can resolve.
+        final realUpdate = await rawRow(realUpdateId);
+        expect(realUpdate?.state, 'dead');
+        // Nothing left pending → "Sync first" can settle.
+        expect(await db.outboxDao.pendingCountForCompany('co'), 0);
+      },
+    );
+
+    test('non-ghost discard clears the local record is_dirty only when no '
+        'other active outbox row remains for that entity', () async {
+      final repo = _TestRepo(db: db);
+      final engine = engineWith(repo);
+      // Two pending updates to the SAME real entity c1.
+      final firstId = await enqueueClient(entityId: 'c1', idempotencyKey: 'k1');
+      await enqueueClient(entityId: 'c1', idempotencyKey: 'k2');
+
+      // Discarding the first leaves a second pending row → must NOT clear.
+      await engine.discardOutboxRow(firstId);
+      expect(
+        repo.dirtyCleared,
+        isEmpty,
+        reason: 'another queued edit still protects the entity',
+      );
+
+      // Discard the remaining one → now no active row → clear is_dirty.
+      final second = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 1 << 60,
+      );
+      await engine.discardOutboxRow(second.single.id);
+      expect(repo.dirtyCleared, [('co', 'c1')]);
+    });
   });
 
   group('awaitRow (synchronous-when-online seam)', () {
@@ -956,6 +1324,12 @@ class _GatedDispatcher implements SyncDispatcher {
     required String companyId,
     required String id,
   }) async {}
+
+  @override
+  Future<void> clearLocalDirty({
+    required String companyId,
+    required String id,
+  }) async {}
 }
 
 /// Minimal concrete repository for `BaseEntityRepository` tests — the real
@@ -974,12 +1348,25 @@ class _TestRepo extends BaseEntityRepository<Object, Object> {
   /// non-ghost path did not).
   final List<(String, String)> localDeletes = [];
 
+  /// Captured `(companyId, id)` pairs for every `clearLocalDirty` call so the
+  /// Issue-4 reconciliation tests can assert the non-ghost discard cleared
+  /// the local record's dirty flag (only when no other active row remained).
+  final List<(String, String)> dirtyCleared = [];
+
   @override
   Future<void> deleteLocalById({
     required String companyId,
     required String id,
   }) async {
     localDeletes.add((companyId, id));
+  }
+
+  @override
+  Future<void> clearLocalDirty({
+    required String companyId,
+    required String id,
+  }) async {
+    dirtyCleared.add((companyId, id));
   }
 
   @override

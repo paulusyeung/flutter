@@ -40,6 +40,11 @@ class Projects extends Table
   TextColumn get color =>
       text().named('color').withDefault(const Constant(''))();
 
+  /// Denormalized, lowercased, comma-joined attached tag names — for local
+  /// sort by tags. See `Tasks.tagNames`.
+  TextColumn get tagNames =>
+      text().named('tag_names').withDefault(const Constant(''))();
+
   @override
   Set<Column> get primaryKey => {id};
 

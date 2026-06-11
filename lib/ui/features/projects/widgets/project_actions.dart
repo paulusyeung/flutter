@@ -296,6 +296,11 @@ class ProjectActions {
         final lineItems = projectInvoiceLineItems(
           tasks: tasks,
           expenses: expenses,
+          // Matches the seeded draft below: `emptyInvoice()` is
+          // exclusive-tax, so expense costs are billed net (tax added on
+          // top by the calculator) — the line total still lands on each
+          // expense's gross.
+          invoiceInclusive: false,
           project: project,
           client: client,
           company: company,
@@ -380,6 +385,8 @@ class ProjectActions {
           expenses: await services.expenses
               .watchForProject(companyId: companyId, projectId: p.id)
               .first,
+          // Matches the seeded draft below (`emptyInvoice()` = exclusive).
+          invoiceInclusive: false,
           project: p,
           client: client,
           company: company,

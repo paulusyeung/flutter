@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:admin/data/models/api/document_api_model.dart';
+import 'package:admin/data/models/api/tag_api_model.dart';
 
 part 'task_api_model.freezed.dart';
 part 'task_api_model.g.dart';
@@ -38,6 +39,13 @@ abstract class TaskApi with _$TaskApi {
     // Nullable so JSON-omitted (→ null) is distinguishable from
     // JSON-present-and-empty (→ const []). Same convention as `ExpenseApi`.
     List<DocumentApi>? documents,
+    // Server sends `[{id, name, color}]`; our payload round-trip sends bare
+    // ids. The tolerant converter handles both. Names carried only for the
+    // `tag_names` sort column — the domain keeps just the ids.
+    @JsonKey(name: 'tags')
+    @EmbeddedTagsConverter()
+    @Default(<TagRefApi>[])
+    List<TagRefApi> tags,
   }) = _TaskApi;
 
   factory TaskApi.fromJson(Map<String, dynamic> json) =>

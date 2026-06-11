@@ -39,6 +39,12 @@ class _Vm extends GenericBillingDocEditViewModel<_Doc> {
   @override
   _Doc copyWithEInvoice(_Doc d, Map<String, dynamic>? e) => d;
   @override
+  _Doc copyWithStampedTotals(
+    _Doc d, {
+    required Decimal amount,
+    required Decimal taxAmount,
+  }) => d;
+  @override
   BillingTotalsInput totalsInputOf(_Doc d) => BillingTotalsInput(
     lineItems: const [],
     discount: Decimal.zero,

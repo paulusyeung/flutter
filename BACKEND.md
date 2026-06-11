@@ -11,6 +11,11 @@ per-endpoint tables and curls below are the supporting evidence. A separate
 section lists symptoms that were *client* bugs (already fixed and shipped in
 the Flutter app) so they are explicitly **out of scope** here.
 
+**Also in this file (non-filter backend asks, appended at the bottom):**
+- Web platform CORS — `Idempotency-Key` not allow-listed (**R**, blocks web writes).
+- Server-side `Idempotency-Key` dedupe — not implemented (**R**, retry-safety / duplicate creates).
+- Company write — partial login envelope + full-replace PUT force a client fetch-gate (**O**).
+
 **Provenance**
 - **2026-05-15** — empirical curl probe vs `demo.invoiceninja.com`.
 - **2026-05-17** — source-read of `app/Filters/*`; reclassified rows.
@@ -638,3 +643,97 @@ Until this ships, web is **read + login only**; outbox drains will fail at
 the network layer (surfaced as transient sync errors). Client code needs
 no change — `Idempotency-Key` stays sent unconditionally; it is correct
 and required for retry safety on every platform.
+
+## Server-side `Idempotency-Key` dedupe — not implemented — **R (retry-safety gap)**
+
+The client sends `Idempotency-Key: <uuid>` on every outbox mutation, stable
+across retries (generated once at outbox-row creation — CLAUDE.md § Sync).
+The intent is exactly-once semantics: a request that times out *after* the
+server committed (or whose response is lost) is retried with the same key,
+and the server should return the original result instead of re-executing.
+
+**Verified gap** (deep-review 2026-06-10, `~/Code/invoiceninja-fork`): no
+code path reads the `Idempotency-Key` header — `grep -ri "idempotency"
+app/` returns nothing. Every retry re-executes the handler, so:
+
+- `POST /api/v1/clients` (etc.) retried after a timeout-after-commit
+  **creates a duplicate entity**;
+- non-idempotent actions (`/payments/refund`, `bulk` actions, `/email`)
+  can double-fire.
+
+The client cannot fully compensate: it retries on
+timeouts/5xx/connection-reset precisely because it cannot know whether the
+first attempt committed.
+
+**Required change** — middleware (or base-request hook) that, for mutating
+verbs, caches `(token, Idempotency-Key) → response` for ~24h and replays
+the cached response on a key hit. Laravel packages exist
+(`square1-io/laravel-idempotency`-style) or it's ~50 lines with the cache
+facade.
+
+**Acceptance** — send the same `POST /api/v1/clients` twice with one
+`Idempotency-Key`: exactly one client row exists; both responses carry the
+same entity id.
+
+Until this ships, a retried create after a lost response duplicates the
+entity. Client mitigation already in place: stable keys per row (so the fix
+is purely server-side) and single-flight drains minimizing concurrent
+retries.
+
+## Company write: partial envelope + full-replace PUT force a fetch-gate — **O (would simplify the client)**
+
+**Provenance** — 2026-06-11, pre-beta deep-review finding #40 + source-read
+of `lib/data/models/api/login_response_api_model.dart` (`CompanyEnvelopeApi`)
+vs `company_api_model.dart` (`CompanyApi`), and `company_sync_dispatcher.dart`.
+
+The Account-Management screens (Enabled Modules / Security / Overview /
+Analytics) edit **top-level company columns** and save the **whole company**
+via `PUT /api/v1/companies/{id}` (`draft.toApiJson()`). Two server behaviors
+combine into a data-loss footgun the client now has to work around:
+
+1. **The `/login` + `/refresh` company envelope omits ~29 server-only
+   columns** that the full `GET /api/v1/companies/{id}` returns: the SMTP
+   block (`smtp_host`/`smtp_port`/`smtp_encryption`/…), the expense block
+   (`mark_expenses_*`/`convert_expense_currency`/`expense_mailbox*`/…), the
+   task-invoicing block (`auto_start_tasks`/`invoice_task_*`/…), and
+   `enable_applying_payments` / `convert_payment_currency`. Verified: all four
+   probe fields (`smtp_host`, `enable_applying_payments`,
+   `convert_expense_currency`, `auto_start_tasks`) are present in `CompanyApi`
+   and **absent** from `CompanyEnvelopeApi`. So after login the cached company
+   row carries Drift **table defaults** for those columns until a separate
+   `GET` backfills them.
+2. **`PUT /companies/{id}` full-replaces top-level columns from the body** —
+   it does not merge-patch. Evidence: removing an e-invoice certificate needs
+   its own PUT carrying an explicit `{"e_invoice_certificate": null}` because
+   "a plain company PUT never sends that key" (`company_sync_dispatcher.dart`
+   :156-165) — an omitted key is not cleared, and a *defaulted* key
+   overwrites the server's real value.
+
+Together: a user who opens an Account-Management tab and toggles one switch
+before a canonical `GET` has landed (or while offline, where it never lands)
+PUTs the whole cached row — shipping the **defaulted** SMTP / expense / task /
+payment-conversion columns and silently wiping the server's real settings.
+
+**Client mitigation already shipped (so this is O, not R):** the v2 client
+gates those four screens' controls behind a successful canonical
+`GET /companies/{id}` this session (`CompanyRepository.canonicalFetched` +
+`CompanySettingsGate`) — controls stay disabled until the real values are in
+hand, and disabled offline. Correct, but it makes those settings
+**uneditable offline** and adds a fetch-latency gate.
+
+**Optional backend changes that would let the client drop the gate** (either
+suffices):
+- **(a) Complete the envelope** — include the omitted top-level columns in
+  the `/login` + `/refresh` company payload (`first_load` already enriches
+  the envelope with reference data; extend it to the full company column
+  set). Then the cached row is always safe to PUT.
+- **(b) Support a partial/merge update** — honor a field-subset body on
+  `PUT /companies/{id}` (or a `PATCH`) that updates only the keys present and
+  leaves omitted columns untouched. Then the client can send a one-field diff
+  regardless of what else is cached.
+
+**Acceptance** — (a) a fresh `/login?include_static=true&first_load=true`
+returns `smtp_host` / `enable_applying_payments` / `auto_start_tasks` /
+`convert_expense_currency` in each company; **or** (b) `PUT /companies/{id}`
+with a body of `{"enabled_modules": <n>}` leaves `smtp_host` unchanged on the
+server. Either unblocks removing the client-side fetch-gate.

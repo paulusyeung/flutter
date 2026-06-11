@@ -3,9 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:admin/app/debug_capture_store.dart';
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/screenshot_window_controller.dart';
+import 'package:admin/app/theme.dart';
 import 'package:admin/ui/features/settings/views/advanced/debug_panel_section.dart';
 
+import '../../../_localization_helper.dart';
 import '../../../_responsive_helper.dart';
 
 void main() {
@@ -62,6 +65,7 @@ void main() {
     }
     expect(find.byIcon(Icons.aspect_ratio), findsOneWidget);
     expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.photo_camera), findsOneWidget);
   }, variant: onMacOS);
 
   testWidgets('no overflow across widths on mobile, controls hidden', (
@@ -74,7 +78,46 @@ void main() {
     }
     expect(find.byIcon(Icons.aspect_ratio), findsNothing);
     expect(find.byIcon(Icons.visibility_outlined), findsNothing);
+    // The capture button is all-platforms, unlike the desktop-only size tools.
+    expect(find.byIcon(Icons.photo_camera), findsOneWidget);
   }, variant: onAndroid);
+
+  testWidgets(
+    'renders without a Scaffold/Material ancestor (mobile shell)',
+    (tester) async {
+      // The narrow shell hosts the band in a bare Column with no Scaffold above
+      // it, so the panel must supply its own Material. Regression for the
+      // "No Material widget found" crash on phones — built directly here because
+      // the shared `pumpAt` harness wraps everything in a Scaffold and so masks
+      // the bug.
+      await tester.binding.setSurfaceSize(const Size(390, 720));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildInTheme(InTheme.light),
+          localizationsDelegates: kTestLocalizationsDelegates,
+          supportedLocales: kTestSupportedLocales,
+          home: Center(
+            child: SizedBox(
+              width: 390,
+              height: 480,
+              child: DebugPanelSection(
+                store: DebugCaptureStore(),
+                windowController: ScreenshotWindowController(),
+                onHide: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(Switch), findsOneWidget);
+    },
+    variant: onAndroid,
+  );
 
   testWidgets('toolbar stacks into two rows when narrow', (tester) async {
     final controller = ScreenshotWindowController();

@@ -73,6 +73,7 @@ class ReportPayload {
     this.vendors,
     this.categories,
     this.projects,
+    this.tags,
     this.status,
     this.activityTypeId,
     this.productKey,
@@ -103,6 +104,9 @@ class ReportPayload {
   final String? vendors;
   final String? categories;
   final String? projects;
+
+  /// CSV of tag ids (task / project reports → `tag_ids`).
+  final String? tags;
   final String? status;
 
   final String? activityTypeId;
@@ -133,6 +137,7 @@ class ReportPayload {
     String? Function()? vendors,
     String? Function()? categories,
     String? Function()? projects,
+    String? Function()? tags,
     String? Function()? status,
     String? Function()? activityTypeId,
     String? Function()? productKey,
@@ -155,6 +160,7 @@ class ReportPayload {
       vendors: vendors == null ? this.vendors : vendors(),
       categories: categories == null ? this.categories : categories(),
       projects: projects == null ? this.projects : projects(),
+      tags: tags == null ? this.tags : tags(),
       status: status == null ? this.status : status(),
       activityTypeId: activityTypeId == null
           ? this.activityTypeId
@@ -196,6 +202,7 @@ class ReportPayload {
       if (categories != null && categories!.isNotEmpty)
         'categories': categories,
       if (projects != null && projects!.isNotEmpty) 'projects': projects,
+      if (tags != null && tags!.isNotEmpty) 'tag_ids': tags,
       if (status != null && status!.isNotEmpty) 'status': status,
       if (activityTypeId != null && activityTypeId!.isNotEmpty)
         'activity_type_id': activityTypeId,

@@ -120,12 +120,15 @@ List<Date> _buildBoundaries(
 }
 
 List<Date> _dailyBoundaries(Date start, Date end) {
+  // Date-space stepping (Date.addDays), not local-midnight + 24h: across a
+  // DST transition the DateTime cursor drifted to 23:00/01:00, exited the
+  // loop one day early, and silently dropped the range's final bucket (and
+  // its revenue) from the chart.
   final out = <Date>[];
-  var cursor = start.toDateTime();
-  final last = end.toDateTime();
-  while (!cursor.isAfter(last)) {
-    out.add(Date(cursor.year, cursor.month, cursor.day));
-    cursor = cursor.add(const Duration(days: 1));
+  var cursor = start;
+  while (cursor.compareTo(end) <= 0) {
+    out.add(cursor);
+    cursor = cursor.addDays(1);
   }
   return out;
 }
@@ -134,19 +137,17 @@ List<Date> _dailyBoundaries(Date start, Date end) {
 /// `endOf('week')`, stepping a week at a time; clamp/append so the final
 /// boundary lands on `end`. The week-end honors [firstDayOfWeek].
 List<Date> _weeklyBoundaries(Date start, Date end, int firstDayOfWeek) {
+  // Date-space stepping — see _dailyBoundaries.
   final out = <Date>[];
-  var cursor = start.toDateTime();
-  final last = end.toDateTime();
+  var cursor = start;
   var first = true;
-  while (!cursor.isAfter(last)) {
+  while (cursor.compareTo(end) <= 0) {
     if (first) {
       out.add(start);
       first = false;
     }
-    out.add(
-      endOfWeek(Date(cursor.year, cursor.month, cursor.day), firstDayOfWeek),
-    );
-    cursor = cursor.add(const Duration(days: 7));
+    out.add(endOfWeek(cursor, firstDayOfWeek));
+    cursor = cursor.addDays(7);
   }
   if (out.isEmpty) return out;
   if (out.last.compareTo(end) > 0) {

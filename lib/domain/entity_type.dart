@@ -18,6 +18,7 @@ enum EntityType {
   project,
   task,
   taskStatus,
+  tag,
 
   // Vendors + expenses
   vendor,

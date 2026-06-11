@@ -53,8 +53,8 @@ class EInvoiceFieldsTab<T> extends StatelessWidget {
   final Widget? leading;
 
   /// React serializes the recurring-invoice period as a single
-  /// pipe-delimited string here rather than the two flat keys
-  /// invoices/credits use.
+  /// pipe-delimited string here rather than the nested StartDate/EndDate
+  /// pair invoices/credits use.
   static const _recurringPeriodPath = <Object>[
     'Invoice',
     'InvoicePeriod',
@@ -62,8 +62,44 @@ class EInvoiceFieldsTab<T> extends StatelessWidget {
     'Description',
   ];
 
+  /// The UBL paths the server actually consumes — the `$invoice_period` and
+  /// `$actual_delivery_date` PDF variables read
+  /// `e_invoice.Invoice.InvoicePeriod.0.StartDate/EndDate` and
+  /// `e_invoice.Invoice.Delivery.0.ActualDeliveryDate` (HtmlEngine.php; the
+  /// engine is shared, so the `Invoice` root applies to credits too), the
+  /// PEPPOL XML builder reads the same period path, and React's invoice
+  /// EInvoice tab writes these exact keys. The flat keys this tab used to
+  /// write (`invoice_period_start` / `invoice_period_end` /
+  /// `actual_delivery_date`) have **no server consumer** — they're kept
+  /// below strictly as read fallbacks so values saved by older builds still
+  /// display, and are cleared on the next write.
+  static const _periodStartPath = <Object>[
+    'Invoice',
+    'InvoicePeriod',
+    0,
+    'StartDate',
+  ];
+  static const _periodEndPath = <Object>[
+    'Invoice',
+    'InvoicePeriod',
+    0,
+    'EndDate',
+  ];
+  static const _deliveryPath = <Object>[
+    'Invoice',
+    'Delivery',
+    0,
+    'ActualDeliveryDate',
+  ];
+
   Date? _readFlatDate(String key) {
     final raw = vm.eInvoiceOf(vm.draft)?[key];
+    if (raw is String) return Date.tryParse(raw);
+    return null;
+  }
+
+  Date? _readPathDate(List<Object> path) {
+    final raw = vm.readEInvoicePath(vm.draft, path);
     if (raw is String) return Date.tryParse(raw);
     return null;
   }
@@ -83,6 +119,10 @@ class EInvoiceFieldsTab<T> extends StatelessWidget {
       // Partial entry (only one date so far) is buffered in the flat keys —
       // and so are legacy records saved before this reconcile. Fall through.
     }
+    final start = _readPathDate(_periodStartPath);
+    final end = _readPathDate(_periodEndPath);
+    if (start != null || end != null) return (start: start, end: end);
+    // Legacy fallback: flat keys written by older builds of this app.
     return (
       start: _readFlatDate('invoice_period_start'),
       end: _readFlatDate('invoice_period_end'),
@@ -109,8 +149,11 @@ class EInvoiceFieldsTab<T> extends StatelessWidget {
       }
       return;
     }
-    vm.setEInvoiceField('invoice_period_start', start?.toIso());
-    vm.setEInvoiceField('invoice_period_end', end?.toIso());
+    vm.setEInvoicePath(_periodStartPath, start?.toIso());
+    vm.setEInvoicePath(_periodEndPath, end?.toIso());
+    // Migrate away from the dead flat keys older builds wrote.
+    vm.setEInvoiceField('invoice_period_start', null);
+    vm.setEInvoiceField('invoice_period_end', null);
   }
 
   @override
@@ -197,12 +240,19 @@ class EInvoiceFieldsTab<T> extends StatelessWidget {
         ),
         SizedBox(height: InSpacing.md(context)),
         InDateField(
-          value: _readFlatDate('actual_delivery_date')?.toDateTime(),
+          value:
+              (_readPathDate(_deliveryPath) ??
+                      _readFlatDate('actual_delivery_date'))
+                  ?.toDateTime(),
           formatter: formatter,
-          onChanged: (d) => vm.setEInvoiceField(
-            'actual_delivery_date',
-            d == null ? null : Date(d.year, d.month, d.day).toIso(),
-          ),
+          onChanged: (d) {
+            vm.setEInvoicePath(
+              _deliveryPath,
+              d == null ? null : Date(d.year, d.month, d.day).toIso(),
+            );
+            // Migrate away from the dead flat key older builds wrote.
+            vm.setEInvoiceField('actual_delivery_date', null);
+          },
           labelText: context.tr('actual_delivery_date'),
           clearable: true,
         ),

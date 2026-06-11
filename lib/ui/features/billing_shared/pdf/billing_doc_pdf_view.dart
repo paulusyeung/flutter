@@ -8,6 +8,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
+import 'package:admin/ui/core/widgets/notify.dart' show formatNotifyError;
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/utils/pdf_bytes_guard.dart';
 
@@ -143,7 +144,15 @@ class _BillingDocPdfViewState extends State<BillingDocPdfView> {
       return const Center(child: CircularProgressIndicator());
     }
     if (bytes == null && err != null) {
-      return ErrorView(message: '$err', onRetry: _load);
+      // Localized framing + exception-type-stripped detail — a raw
+      // toString() filled the content pane with Dart class names and OS
+      // socket errors on the day-one "open invoice offline" flow.
+      return ErrorView(
+        message: context.tr('failed_to_load_with_error', {
+          'error': formatNotifyError(err),
+        }),
+        onRetry: _load,
+      );
     }
     if (bytes == null) {
       return EmptyState(
@@ -162,7 +171,7 @@ class _BillingDocPdfViewState extends State<BillingDocPdfView> {
     final fileName =
         '${widget.entity.wireName}_${widget.entityNumber.isEmpty ? 'preview' : widget.entityNumber}.pdf';
     final scrim = Theme.of(context).colorScheme.scrim.withValues(alpha: 0.4);
-    return Stack(
+    final preview = Stack(
       children: [
         Positioned.fill(
           child: PdfPreview(
@@ -195,6 +204,10 @@ class _BillingDocPdfViewState extends State<BillingDocPdfView> {
           ),
       ],
     );
+    // Disable text selection over the PDF: an ancestor SelectionArea (entity
+    // detail bodies) would otherwise capture the PdfPreview's drag-to-pan /
+    // scroll gestures. No-op where there's no SelectionArea (edit layouts).
+    return SelectionContainer.disabled(child: preview);
   }
 }
 

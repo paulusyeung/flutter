@@ -20,7 +20,14 @@ class EmailSettingsViewModel extends SettingsDraftViewModel {
   /// Snapshot the user's checkbox state. Cleared on each save (success or
   /// failure) so a follow-up save without a fresh tick defaults to `false`.
   void setSyncSendTimeFlag(bool value) {
+    if (_pendingSyncSendTime == value) return;
     _pendingSyncSendTime = value;
+    // The CheckboxListTile renders `pendingSyncSendTime` and rebuilds only
+    // on VM notify — without this the box never visibly ticked, every
+    // retry-tap passed `true` again, and the flag stayed silently latched
+    // (triggering the server-side bulk send-time update on the next save
+    // while the UI showed it unchecked).
+    notifyListeners();
   }
 
   /// True when the inline "Sync to existing entities" checkbox is currently

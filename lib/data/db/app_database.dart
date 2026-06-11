@@ -32,6 +32,7 @@ import 'package:admin/data/db/dao/schedule_dao.dart';
 import 'package:admin/data/db/dao/statics_dao.dart';
 import 'package:admin/data/db/dao/sync_state_dao.dart';
 import 'package:admin/data/db/dao/system_log_dao.dart';
+import 'package:admin/data/db/dao/tag_dao.dart';
 import 'package:admin/data/db/dao/task_dao.dart';
 import 'package:admin/data/db/dao/task_status_dao.dart';
 import 'package:admin/data/db/dao/tax_rate_dao.dart';
@@ -73,6 +74,7 @@ import 'package:admin/data/db/tables/schedules_table.dart';
 import 'package:admin/data/db/tables/statics_table.dart';
 import 'package:admin/data/db/tables/sync_state_table.dart';
 import 'package:admin/data/db/tables/system_logs_table.dart';
+import 'package:admin/data/db/tables/tags_table.dart';
 import 'package:admin/data/db/tables/task_statuses_table.dart';
 import 'package:admin/data/db/tables/tasks_table.dart';
 import 'package:admin/data/db/tables/tax_rates_table.dart';
@@ -107,6 +109,7 @@ final _log = Logger('AppDatabase');
     GroupSettings,
     Tasks,
     TaskStatuses,
+    Tags,
     Projects,
     CompanyGateways,
     PaymentTerms,
@@ -149,6 +152,7 @@ final _log = Logger('AppDatabase');
     GroupSettingDao,
     TaskDao,
     TaskStatusDao,
+    TagDao,
     ProjectDao,
     PaymentTermDao,
     TaxRateDao,

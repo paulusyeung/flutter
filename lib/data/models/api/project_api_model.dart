@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:admin/data/models/api/document_api_model.dart';
+import 'package:admin/data/models/api/tag_api_model.dart';
 
 part 'project_api_model.freezed.dart';
 part 'project_api_model.g.dart';
@@ -39,6 +40,11 @@ abstract class ProjectApi with _$ProjectApi {
     // JSON-present-and-empty (→ `const []`). Same convention as
     // `ClientApi.documents` / `ProductApi.documents`.
     List<DocumentApi>? documents,
+    // See `TaskApi.tags` — tolerant of `[{id,name,color}]` and bare ids.
+    @JsonKey(name: 'tags')
+    @EmbeddedTagsConverter()
+    @Default(<TagRefApi>[])
+    List<TagRefApi> tags,
   }) = _ProjectApi;
 
   factory ProjectApi.fromJson(Map<String, dynamic> json) =>

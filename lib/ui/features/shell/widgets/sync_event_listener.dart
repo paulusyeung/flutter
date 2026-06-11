@@ -231,10 +231,30 @@ class _SyncEventListenerState extends State<SyncEventListener> {
           }
         case ConflictResolution.discardMine:
           if (companyId == null) return;
-          // Drop every non-dead outbox row for the company — coarse, but
-          // matches what the user just asked for ("discard mine"). M2 may
-          // narrow to discarding only the conflicted row's mutations.
-          await services.sync.discardPendingFor(companyId);
+          // Scoped to the conflicted record: the parked row plus any queued
+          // follow-up mutations for the same entity. The user asked to
+          // discard *this record's* changes — dropping the company-wide
+          // queue here destroyed unrelated offline work (and ghost-deleted
+          // unrelated offline creates).
+          final handlers = services.entityRegistry[event.entityType];
+          if (handlers != null) {
+            await services.sync.discardPendingForEntity(
+              companyId: companyId,
+              entityType: handlers.wireName,
+              entityId: event.entityId,
+            );
+            // 404: the record is gone server-side, so its now-orphaned local
+            // row should disappear too — `discardPendingForEntity` only drops
+            // the outbox row(s) and clears the dirty flag (right for a 409,
+            // where the next pull reconciles), but here there's nothing left
+            // on the server to pull, so the stale local copy would linger.
+            if (event.isDeletedServerSide) {
+              await handlers.dispatcher.deleteLocalRecord(
+                companyId: companyId,
+                id: event.entityId,
+              );
+            }
+          }
         case ConflictResolution.useMine:
           // Re-enqueue happens implicitly: a subsequent `repo.save(...)`
           // from the detail screen will write a fresh outbox row. We

@@ -38,6 +38,8 @@ abstract class Project with _$Project {
     required DateTime? archivedAt,
     required bool isDeleted,
     @Default(<Document>[]) List<Document> documents,
+    // Attached tag ids (hashed); names/colors resolved from the tag cache.
+    @Default(<String>[]) List<String> tagIds,
     @Default(false) bool isDirty,
   }) = _Project;
 
@@ -64,6 +66,10 @@ abstract class Project with _$Project {
     archivedAt: epochSecondsToUtcOrNull(a.archivedAt),
     isDeleted: a.isDeleted,
     documents: mapDocuments(a.documents),
+    tagIds: [
+      for (final t in a.tags)
+        if (t.id.isNotEmpty) t.id,
+    ],
   );
 }
 
@@ -89,6 +95,8 @@ extension ProjectPayload on Project {
       'custom_value3': customValue3,
       'custom_value4': customValue4,
       'color': color,
+      // Full-set replace (see `Task.toApiJson`).
+      'tags': tagIds,
     };
   }
 }

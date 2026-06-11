@@ -829,6 +829,20 @@ class _FilterControl extends StatelessWidget {
           stream: services.projects.watchActiveNames(companyId: companyId),
           onChanged: (csv) => vm.setPayload(p.copyWith(projects: () => csv)),
         );
+      case ReportFilterField.tagsMulti:
+        // Only the task + project reports expose this field; scope the tag
+        // pool to the matching entity type.
+        final tagEntityType = vm.reportIdentifier == 'task'
+            ? 'task'
+            : 'project';
+        return _MultiEntityField(
+          label: context.tr('tags'),
+          csv: p.tags,
+          stream: services.tags
+              .watchAll(companyId: companyId, entityType: tagEntityType)
+              .map((list) => [for (final t in list) (id: t.id, name: t.name)]),
+          onChanged: (csv) => vm.setPayload(p.copyWith(tags: () => csv)),
+        );
       case ReportFilterField.categoriesMulti:
         return _MultiEntityField(
           label: context.tr('expense_categories'),

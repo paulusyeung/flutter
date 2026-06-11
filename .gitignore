@@ -56,5 +56,13 @@ dev.json
 claude-diagnostics.log
 claude-diagnostics.log.*
 
+# SQLite/Drift database files should never live in the working tree — the real DB lives in
+# getApplicationSupportDirectory() (native), IndexedDB (web), or memory (tests). A stray
+# database.db can appear if drift tooling/codegen is run from the repo root.
+*.db
+*.db-shm
+*.db-wal
+*.db.broken.*
+
 key.properties
 key.jks

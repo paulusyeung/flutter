@@ -183,6 +183,17 @@ class InvoiceEditViewModel extends GenericBillingDocEditViewModel<Invoice> {
     customTaxes4: d.customTaxes4,
   );
 
+  @override
+  Invoice copyWithStampedTotals(
+    Invoice draft, {
+    required Decimal amount,
+    required Decimal taxAmount,
+  }) => draft.copyWith(
+    amount: amount,
+    balance: amount - draft.paidToDate,
+    taxAmount: taxAmount,
+  );
+
   // ── Identity / dates ───────────────────────────────────────────────
 
   void setClientId(String v) => updateDraft(draft.copyWith(clientId: v));

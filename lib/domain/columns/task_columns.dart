@@ -3,6 +3,7 @@ import 'package:admin/data/db/dao/task_dao.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/ui/core/widgets/entity_tags_view.dart';
 import 'package:admin/ui/features/projects/widgets/project_name_label.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
 import 'package:admin/ui/features/tasks/widgets/task_status_pill.dart';
@@ -97,6 +98,19 @@ final List<TaskColumn> kAllTaskColumns = <TaskColumn>[
     width: 120,
     cellBuilder: (t, ctx) => cellDate(t.updatedAt, ctx),
     valueBuilder: (t) => t.updatedAt.toIso8601String(),
+  ),
+  // Default-off (not in kDefaultTaskColumns) — opt-in via the column picker.
+  // Header sort orders by the denormalized `tag_names` column.
+  TaskColumn(
+    id: TaskFieldIds.tagIds,
+    labelKey: 'tags',
+    width: 200,
+    cellBuilder: (t, _) => t.tagIds.isEmpty
+        ? cellEmpty()
+        : EntityTagsView(entityType: 'task', tagIds: t.tagIds),
+    // No copy value — names aren't resolvable synchronously here, and copying
+    // raw hashed ids isn't useful. '' suppresses the hover-copy affordance.
+    valueBuilder: (t) => '',
   ),
 ];
 

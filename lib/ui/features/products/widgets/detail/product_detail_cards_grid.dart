@@ -206,6 +206,7 @@ class _InventoryCard extends StatelessWidget {
           DetailInfoRow(
             label: context.tr('stock_notifications'),
             value: context.tr(product.stockNotification ? 'yes' : 'no'),
+            copyable: false,
           ),
           if (product.stockNotificationThreshold != Decimal.zero)
             DetailInfoRow(
@@ -239,6 +240,7 @@ class _TaxesCard extends StatelessWidget {
         DetailInfoRow(
           label: context.tr('tax_category'),
           value: key == null ? product.taxId : context.tr(key),
+          copyable: false,
         ),
       );
     }
@@ -250,6 +252,7 @@ class _TaxesCard extends StatelessWidget {
         DetailInfoRow(
           label: '${context.tr('tax')} 1',
           value: _formatTaxRow(context, product.taxName1, product.taxRate1),
+          copyable: false,
         ),
       );
     }
@@ -261,6 +264,7 @@ class _TaxesCard extends StatelessWidget {
         DetailInfoRow(
           label: '${context.tr('tax')} 2',
           value: _formatTaxRow(context, product.taxName2, product.taxRate2),
+          copyable: false,
         ),
       );
     }
@@ -272,6 +276,7 @@ class _TaxesCard extends StatelessWidget {
         DetailInfoRow(
           label: '${context.tr('tax')} 3',
           value: _formatTaxRow(context, product.taxName3, product.taxRate3),
+          copyable: false,
         ),
       );
     }

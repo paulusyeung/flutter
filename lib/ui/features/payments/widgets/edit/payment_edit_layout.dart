@@ -663,9 +663,15 @@ class _AmountFieldState extends State<_AmountField> {
 
   @override
   Widget build(BuildContext context) {
+    // The server ignores `amount` on PUT /payments/{id} (it is derived from
+    // the payment's applications); React greys the field out on edit for the
+    // same reason. Leaving it editable let users "change" the amount, get a
+    // success toast, and watch the value snap back on the next sync.
+    final locked = !widget.vm.isCreate;
     return TextFormField(
       controller: _controller,
       focusNode: _focusNode,
+      enabled: !locked,
       decoration: InputDecoration(labelText: context.tr('amount')),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       onChanged: widget.vm.setAmount,

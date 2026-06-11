@@ -101,6 +101,26 @@ void main() {
       expect(vm.fieldErrors, isEmpty);
       expect(vm.submitError, isNull);
     });
+
+    test(
+      'reset() leaves a create-mode draft clean (no repeat discard prompts)',
+      () {
+        // _FakeEditVM is create mode (no `original`) and uses the base
+        // `draftIsNonEmpty() == true`, so a typed draft reads dirty.
+        final vm = _FakeEditVM(initialDraft: 'typed');
+        expect(vm.isDirty, isTrue); // user made a change
+
+        vm.reset(emptyDraft: 'fresh'); // discard
+
+        expect(
+          vm.isDirty,
+          isFalse,
+          reason:
+              'a discarded draft must report clean so chained discard '
+              'guards (sidebar → branch switch → route onExit) do not re-prompt',
+        );
+      },
+    );
   });
 
   group('GenericEditViewModel.validate hook', () {

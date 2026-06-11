@@ -161,6 +161,13 @@ class _TimeEntryEditorSheetState extends State<TimeEntryEditorSheet> {
   void _onStartDate(DateTime? picked) {
     if (picked == null) return;
     setState(() {
+      // Mirror the desktop table's `_DateCell._commit`: moving the entry to
+      // another day shifts the stop by the same delta so the duration is
+      // preserved. Leaving the stop anchored silently inflated the entry by
+      // whole days (date moved backward) or had `_clamp` collapse it to
+      // zero (date moved past the old stop) — while the stale duration text
+      // masked either.
+      final delta = _stop.difference(_start);
       _start = DateTime(
         picked.year,
         picked.month,
@@ -168,6 +175,10 @@ class _TimeEntryEditorSheetState extends State<TimeEntryEditorSheet> {
         _start.hour,
         _start.minute,
       );
+      if (!_isRunning) {
+        _stop = _start.add(delta);
+        _duration.text = formatDuration(delta, compactDays: true);
+      }
     });
   }
 
@@ -181,6 +192,15 @@ class _TimeEntryEditorSheetState extends State<TimeEntryEditorSheet> {
         picked.hour,
         picked.minute,
       );
+      // Desktop parity: a start-time change keeps the stop anchored (the
+      // duration absorbs it) — but the duration text must follow, or the
+      // sheet shows the pre-edit value until some other field is touched.
+      if (!_isRunning) {
+        _duration.text = formatDuration(
+          _stop.difference(_start),
+          compactDays: true,
+        );
+      }
     });
   }
 

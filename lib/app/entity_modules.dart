@@ -294,6 +294,20 @@ final kWiredEntityModules = <EntityModuleSpec>[
     sidebarOrder: 220,
     requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
   ),
+  // DI: wire<TagItemApi, TagApi>(...) in lib/app/services_entity_wiring.dart.
+  // Not bundled / not sidebar-listed; loaded via TagRepository.refreshAll.
+  EntityModuleSpec(
+    type: EntityType.tag,
+    wireName: 'tag',
+    apiPath: '/api/v1/tags',
+    routePath: '/settings/tags',
+    icon: Icons.local_offer,
+    outlinedIcon: Icons.local_offer_outlined,
+    labelKey: 'tags',
+    sidebarSection: SidebarSection.none,
+    sidebarOrder: 225,
+    requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
+  ),
   // DI: wireEntity<PaymentTermItemApi, PaymentTermApi>(...) in lib/app/services.dart.
   EntityModuleSpec(
     type: EntityType.paymentTerm,
@@ -1012,6 +1026,12 @@ class DisabledEntityDispatcher implements SyncDispatcher {
   // exist. See SyncDispatcher.deleteLocalRecord.
   @override
   Future<void> deleteLocalRecord({
+    required String companyId,
+    required String id,
+  }) async {}
+
+  @override
+  Future<void> clearLocalDirty({
     required String companyId,
     required String id,
   }) async {}

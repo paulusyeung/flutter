@@ -615,7 +615,7 @@ class _ChartPart extends StatelessWidget {
     // window the chart would otherwise be 500+ px tall and push the tabs
     // below the fold. Above ~768 px the height saturates at 320 px.
     final height = (maxWidth / 2.4).clamp(220.0, 320.0);
-    return Column(
+    final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _ChartLegend(
@@ -737,6 +737,9 @@ class _ChartPart extends StatelessWidget {
         ),
       ],
     );
+    // Opt the chart out of an ancestor SelectionArea (detail body) so its
+    // drag-to-inspect tooltips aren't captured by text selection.
+    return SelectionContainer.disabled(child: body);
   }
 }
 

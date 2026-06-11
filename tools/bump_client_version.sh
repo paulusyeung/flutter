@@ -10,8 +10,12 @@ set -euo pipefail
 # trailing build digit in the About dialog's combined version string
 # (v<server>-<platform><build>). Bump it on every release.
 #
-# Does NOT touch pubspec.yaml's version (a separate placeholder) or
-# kMinServerVersion (bumped only when depending on a server change).
+# Also bumps pubspec.yaml's version: keeps MAJOR.MINOR.PATCH in sync with
+# kClientVersion and increments the build number (+N) by one, so the native
+# build version (CFBundleVersion / versionCode, derived from pubspec) advances
+# on every release.
+#
+# Does NOT touch kMinServerVersion (bumped only when depending on a server change).
 #
 # Usage:
 #   tools/bump_client_version.sh <version>     # e.g. 5.1.1
@@ -53,5 +57,35 @@ if [[ "$updated" != "$new_version" ]]; then
   exit 1
 fi
 
+# --- pubspec.yaml: keep MAJOR.MINOR.PATCH in sync, increment the build (+N) ---
+pubspec="pubspec.yaml"
+
+pubspec_line="$(sed -n 's/^version:[[:space:]]*\(.*\)$/\1/p' "$pubspec")"
+if [[ -z "$pubspec_line" ]]; then
+  echo "!! could not find a top-level 'version:' in $pubspec" >&2
+  exit 1
+fi
+
+pubspec_build="${pubspec_line#*+}"           # 4   (or whole string if no +BUILD)
+if [[ "$pubspec_build" == "$pubspec_line" ]]; then
+  pubspec_build=0                            # no +BUILD present -> start from 0
+fi
+if [[ ! "$pubspec_build" =~ ^[0-9]+$ ]]; then
+  echo "!! unexpected build '$pubspec_build' in $pubspec (want MAJOR.MINOR.PATCH+BUILD)" >&2
+  exit 1
+fi
+
+new_build=$(( pubspec_build + 1 ))
+new_pubspec="${new_version}+${new_build}"
+
+perl -i -pe "s/^version:.*/version: ${new_pubspec}/" "$pubspec"
+
+pubspec_updated="$(sed -n 's/^version:[[:space:]]*\(.*\)$/\1/p' "$pubspec")"
+if [[ "$pubspec_updated" != "$new_pubspec" ]]; then
+  echo "!! pubspec update failed — $pubspec still reads '$pubspec_updated'" >&2
+  exit 1
+fi
+
 echo "==> kClientVersion: $current -> $new_version"
+echo "==> pubspec version: $pubspec_line -> $new_pubspec"
 echo "    next: flutter analyze $file && flutter test test/app/version_test.dart"

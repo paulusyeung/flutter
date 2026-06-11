@@ -266,11 +266,15 @@ class EntityRegistry {
 
   /// Top-level route paths for entities that have a list screen. Used by
   /// `companySafeLocation` to strip stale entity IDs after a company
-  /// switch.
+  /// switch / restore. Includes settings-hosted entities
+  /// (`SidebarSection.none` — gateways, tax rates, tokens, …): their
+  /// edit/detail screens bind the active company once at mount, so a stale
+  /// `/settings/<entity>/<id>/edit` surviving a company switch would keep
+  /// showing — and saving to — the previous company's record under the new
+  /// company's chrome.
   Iterable<String> get uiRoutePaths sync* {
     for (final h in _byType.values) {
       if (h.disabled || h.routePath.isEmpty) continue;
-      if (h.sidebarSection == SidebarSection.none) continue;
       yield h.routePath;
     }
   }

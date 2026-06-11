@@ -43,6 +43,7 @@ import 'package:admin/data/repositories/system_log_repository.dart';
 import 'package:admin/data/repositories/payment_link_repository.dart';
 import 'package:admin/data/repositories/sync_repository.dart';
 import 'package:admin/data/services/refresh_scheduler.dart';
+import 'package:admin/data/repositories/tag_repository.dart';
 import 'package:admin/data/repositories/task_repository.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/repositories/design_repository.dart';
@@ -199,6 +200,7 @@ class Services implements SidebarBadgeContext {
     required this.products,
     required this.tasks,
     required this.taskStatuses,
+    required this.tags,
     required this.projects,
     required this.vendors,
     required this.expenses,
@@ -283,6 +285,11 @@ class Services implements SidebarBadgeContext {
   /// User-defined task statuses (the kanban columns). Edited under
   /// Settings → Advanced → Task Statuses.
   final TaskStatusRepository taskStatuses;
+
+  /// User-defined tags (name + color), scoped per entity type (task/project).
+  /// Fetched on company-activate via [TagRepository.refreshAll]; managed under
+  /// Settings → Tags; attached to tasks/projects via the tag picker.
+  final TagRepository tags;
 
   /// Projects — the umbrella entity that groups a client's tasks. Owns
   /// `task_rate` / `budgeted_hours` and is the parent of every task picked
@@ -1156,6 +1163,11 @@ class Services implements SidebarBadgeContext {
       // future resolves. Memoized + non-blocking; the company row and statics
       // are already loaded by the time this hook fires.
       unawaited(services.formatterFor(companyId));
+      // Tags aren't bundled into the login envelope, so refresh them per
+      // company here (both entity types). Fire-and-forget; the picker +
+      // Settings → Tags read from the resulting `tags` Drift table. The
+      // `_lastActivatedCompanyId` guard fires this once per actual change.
+      unawaited(entities.tags.refreshAll(companyId: companyId));
     };
     services = Services._(
       db: db,
@@ -1164,6 +1176,7 @@ class Services implements SidebarBadgeContext {
       products: entities.products,
       tasks: entities.tasks,
       taskStatuses: entities.taskStatuses,
+      tags: entities.tags,
       projects: entities.projects,
       vendors: entities.vendors,
       expenses: entities.expenses,

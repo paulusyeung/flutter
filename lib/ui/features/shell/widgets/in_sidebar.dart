@@ -225,7 +225,8 @@ class _InSidebarState extends State<InSidebar> {
                   // the window. Persistent sidebar only — the mobile drawer
                   // (width == null) sits below the narrow-layout strip, so it
                   // needs none.
-                  if (widget.width != null) const WindowCaptionStrip(),
+                  if (widget.width != null)
+                    WindowCaptionStrip(controller: services.screenshotWindow),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
                     child: CompanySwitcherButton(

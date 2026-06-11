@@ -18,6 +18,7 @@ import 'package:admin/ui/core/utils/text_input_focus.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/offline_banner.dart';
 import 'package:admin/ui/features/settings/views/advanced/debug_panel_section.dart';
+import 'package:admin/ui/features/shell/branch_company_gate.dart';
 import 'package:admin/ui/features/shell/widgets/in_sidebar.dart';
 import 'package:admin/ui/features/shell/widgets/command_palette.dart';
 import 'package:admin/ui/features/shell/widgets/keyboard_shortcuts_dialog.dart';
@@ -66,6 +67,24 @@ class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
   // 1.5 s to complete the sequence before it resets silently.
   Timer? _leaderTimer;
   static const Duration _kLeaderTimeout = Duration(milliseconds: 1500);
+
+  /// Shared with `AppDrawer` via Provider — resets a branch's preserved
+  /// stack when it is re-entered under a different company (see
+  /// [BranchCompanyGate]).
+  final BranchCompanyGate _branchGate = BranchCompanyGate();
+
+  @override
+  void initState() {
+    super.initState();
+    // Stamp every branch with the mount-time company so branches first
+    // entered outside _goBranch (the boot branch, cross-branch go()) still
+    // reset correctly on their first re-entry after a company switch.
+    _branchGate.seedAll(
+      branchCount: kBranchOrder.length,
+      companyId:
+          context.read<Services>().auth.session.value?.currentCompanyId ?? '',
+    );
+  }
 
   late final int? _dashboardIndex = _indexOfFixed(FixedBranchKind.dashboard);
   late final int? _settingsIndex = _indexOfFixed(FixedBranchKind.settings);
@@ -135,9 +154,16 @@ class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
     final guard = services.unsavedChangesGuard;
     if (!await guard.confirmIfDirty(context)) return;
     if (!context.mounted) return;
+    // Re-entering a branch last visited under a different company must drop
+    // its preserved stack (see [BranchCompanyGate]).
+    final staleCompanyStack = _branchGate.shouldResetOnEnter(
+      index: index,
+      companyId: services.auth.session.value?.currentCompanyId ?? '',
+    );
     widget.navigationShell.goBranch(
       index,
-      initialLocation: index == widget.navigationShell.currentIndex,
+      initialLocation:
+          staleCompanyStack || index == widget.navigationShell.currentIndex,
     );
   }
 
@@ -317,11 +343,18 @@ class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
         child: Focus(
           autofocus: true,
           onKeyEvent: _handleLeaderKey,
-          child: Provider<StatefulNavigationShell>.value(
+          child: MultiProvider(
             // Expose the shell so descendants (notably `AppDrawer` on each
             // top-level mobile screen) can call `goBranch` without
-            // re-receiving it through a constructor chain.
-            value: widget.navigationShell,
+            // re-receiving it through a constructor chain — plus the shared
+            // [BranchCompanyGate] so every branch-switch site applies the
+            // same stale-company stack reset.
+            providers: [
+              Provider<StatefulNavigationShell>.value(
+                value: widget.navigationShell,
+              ),
+              Provider<BranchCompanyGate>.value(value: _branchGate),
+            ],
             child: SyncEventListener(
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -419,12 +452,13 @@ class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
                   // The banner stacks above the per-screen Scaffold here;
                   // `OfflineBanner` handles its own top inset when shown so
                   // it doesn't disappear behind the status bar / notch.
+                  final services = context.read<Services>();
                   return Column(
                     children: [
                       // Desktop hidden-title-bar caption strip — macOS today. No
                       // sidebar in the narrow layout, so this top strip keeps the
                       // window controls from overlapping each screen's AppBar.
-                      const WindowCaptionStrip(),
+                      WindowCaptionStrip(controller: services.screenshotWindow),
                       const OfflineBanner(),
                       Expanded(
                         child: Stack(
@@ -510,12 +544,23 @@ class _DebugPanelBand extends StatelessWidget {
         // on phones, so the clamped height stays all content.
         final h = MediaQuery.of(context).size.height;
         final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
-        return SizedBox(
-          height: (h * 0.45).clamp(320.0, 480.0) + bottomInset,
-          child: DebugPanelSection(
-            store: services.debugCaptureStore,
-            windowController: services.screenshotWindow,
-            onHide: () => services.debugPanelRevealed.value = false,
+        return ListenableBuilder(
+          listenable: services.screenshotWindow,
+          child: SizedBox(
+            height: (h * 0.45).clamp(320.0, 480.0) + bottomInset,
+            child: DebugPanelSection(
+              store: services.debugCaptureStore,
+              windowController: services.screenshotWindow,
+              onHide: () => services.debugPanelRevealed.value = false,
+            ),
+          ),
+          // While a screenshot is being taken the band goes Offstage: it leaves
+          // the layout (so the content above fills the window) and isn't painted
+          // (so it's excluded from the capture), but stays mounted — the panel
+          // keeps its tab / filter / scroll state across the shot.
+          builder: (context, child) => Offstage(
+            offstage: services.screenshotWindow.capturing,
+            child: child,
           ),
         );
       },

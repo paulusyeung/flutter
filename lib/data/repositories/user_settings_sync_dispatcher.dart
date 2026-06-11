@@ -23,6 +23,15 @@ class UserSettingsSyncDispatcher implements SyncDispatcher {
     required String id,
   }) async {}
 
+  // user_settings is a single-row settings table with no `is_dirty` column;
+  // its dirtiness is tracked by the outbox row's presence, not a flag, so
+  // there is nothing to clear on discard.
+  @override
+  Future<void> clearLocalDirty({
+    required String companyId,
+    required String id,
+  }) async {}
+
   @override
   Future<void> dispatch({
     required OutboxRow row,

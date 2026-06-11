@@ -8,6 +8,7 @@ import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/settings/views/basic/account_management/company_settings_gate.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
@@ -56,33 +57,40 @@ class _AccountManagementEnabledModulesScreenState
     if (companyId == null || companyId.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
-    return StreamBuilder<Company?>(
-      stream: services.company.watchCompany(companyId),
-      builder: (context, snapshot) {
-        final company = snapshot.data;
-        if (company == null) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        return SettingsFormShell(
-          sections: [
-            FormSection(
-              title: context.tr('enabled_modules'),
-              spacing: 0,
-              children: [
-                for (final module in kEnabledModulesOrder)
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(context.tr(module.labelKey)),
-                    value: isModuleEnabled(company.enabledModules, module),
-                    onChanged: _saving
-                        ? null
-                        : (_) => _onToggle(company, module),
-                  ),
-              ],
-            ),
-          ],
-        );
-      },
+    return CompanySettingsGate(
+      companyId: companyId,
+      builder: (context, ready) => StreamBuilder<Company?>(
+        stream: services.company.watchCompany(companyId),
+        builder: (context, snapshot) {
+          final company = snapshot.data;
+          if (company == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return SettingsFormShell(
+            sections: [
+              if (!ready) const CompanySettingsLockedBanner(),
+              FormSection(
+                title: context.tr('enabled_modules'),
+                spacing: 0,
+                children: [
+                  for (final module in kEnabledModulesOrder)
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(context.tr(module.labelKey)),
+                      value: isModuleEnabled(company.enabledModules, module),
+                      // Gated on `ready`: the canonical company must be fetched
+                      // before a toggle PUTs the whole row (else cached
+                      // server-only defaults clobber the server).
+                      onChanged: (!ready || _saving)
+                          ? null
+                          : (_) => _onToggle(company, module),
+                    ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 

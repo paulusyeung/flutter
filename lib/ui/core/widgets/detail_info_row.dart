@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/ui/core/widgets/copyable_value.dart';
 import 'package:admin/ui/core/widgets/link_text.dart';
 
 /// One row inside an entity detail card: a small ink3 label in a fixed-width
@@ -17,6 +18,8 @@ class DetailInfoRow extends StatelessWidget {
     this.monospace = false,
     this.valueColor,
     this.onTap,
+    this.copyable = true,
+    this.copyText,
   });
 
   final String label;
@@ -32,6 +35,16 @@ class DetailInfoRow extends StatelessWidget {
   /// hover underline) that invokes [onTap].
   final VoidCallback? onTap;
 
+  /// Whether the value gets a copy affordance (hover icon on desktop/web,
+  /// tap-to-copy on mobile). On by default; set false for values that aren't
+  /// worth copying — resolved enum/display names ("US Dollar", "Yes"),
+  /// composites, or formatted dates.
+  final bool copyable;
+
+  /// The exact string copied when [copyable]. Defaults to [value]; override
+  /// when the displayed text differs from what's useful to copy.
+  final String? copyText;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -42,7 +55,7 @@ class DetailInfoRow extends StatelessWidget {
       fontWeight: FontWeight.w500,
       fontFeatures: monospace ? const [FontFeature.tabularFigures()] : null,
     );
-    final Widget valueWidget = onTap == null
+    final Widget display = onTap == null
         ? Text(value, style: valueStyle)
         : LinkText(
             label: value,
@@ -50,6 +63,17 @@ class DetailInfoRow extends StatelessWidget {
             color: tokens.accent,
             onTap: onTap,
           );
+    // Copy affordance: hover icon (desktop/web) or tap-to-copy (mobile). A row
+    // with its own onTap (e.g. a website launch) keeps tap for that action and
+    // exposes copy via the hover icon / a mobile long-press instead.
+    final Widget valueWidget = copyable && value.isNotEmpty
+        ? CopyableValue(
+            value: copyText ?? value,
+            enableTapToCopy: onTap == null,
+            enableLongPressToCopy: onTap != null,
+            child: display,
+          )
+        : display;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(

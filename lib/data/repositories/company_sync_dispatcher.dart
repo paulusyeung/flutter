@@ -55,6 +55,14 @@ class CompanySyncDispatcher implements SyncDispatcher {
     required String id,
   }) async {}
 
+  // Company is a single-row, settings-only entity with no offline
+  // create/discard flow → nothing to reconcile.
+  @override
+  Future<void> clearLocalDirty({
+    required String companyId,
+    required String id,
+  }) async {}
+
   @override
   Future<void> dispatch({
     required OutboxRow row,

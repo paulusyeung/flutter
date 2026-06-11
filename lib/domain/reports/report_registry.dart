@@ -276,6 +276,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.status,
       ReportFilterField.clientSingle,
       ReportFilterField.projectsMulti,
+      ReportFilterField.tagsMulti,
       ReportFilterField.includeDeleted,
     ],
     defaultFilterValues: {'date_range': 'all'},
@@ -303,6 +304,7 @@ const kReportDefinitions = <ReportDefinition>[
     filterFields: [
       ReportFilterField.dateRange,
       ReportFilterField.clientsMulti,
+      ReportFilterField.tagsMulti,
       ReportFilterField.includeDeleted,
     ],
     defaultFilterValues: {'date_range': 'all'},

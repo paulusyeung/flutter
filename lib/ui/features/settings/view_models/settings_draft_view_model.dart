@@ -45,6 +45,17 @@ abstract class SettingsDraftHost extends ChangeNotifier {
 
   Company? get draft => null;
 
+  /// True at the cascade (client / group) scopes, false at company scope.
+  /// Clear-writes pick their sentinel by this: at company scope an explicit
+  /// '' / 0 / {} survives the `{...rawSettings, ...}` PUT merge (a typed
+  /// null is omitted by toJson and resurrects from the raw snapshot); at
+  /// cascade scope the right clear is a typed null — it removes the
+  /// override from the sparse draft locally, and the client/group save
+  /// strips nulls. Writing '' at cascade scope instead creates a phantom
+  /// local override the server's blank-stripping saver ignores — the app
+  /// and server-rendered PDFs would disagree.
+  bool get isCascadeScope => draft == null;
+
   /// The company this settings draft belongs to. At company scope this is the
   /// [draft]; at client scope [draft] is null, so cascade pages that need
   /// company-level fields (e.g. Tax Settings reading the company's tax-rate

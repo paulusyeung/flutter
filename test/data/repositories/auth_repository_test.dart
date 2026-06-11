@@ -886,6 +886,79 @@ void main() {
       },
     );
 
+    test('a company switch while /refresh is in flight is not reverted by the '
+        'commit', () async {
+      final twoCompanies = _envelope(
+        companies: [
+          (
+            id: 'co_a',
+            name: 'Acme',
+            token: 'tok_a',
+            isAdmin: false,
+            isOwner: false,
+          ),
+          (
+            id: 'co_b',
+            name: 'Beta',
+            token: 'tok_b',
+            isAdmin: false,
+            isOwner: false,
+          ),
+        ],
+      );
+      authService.queueLogin(twoCompanies);
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a',
+        password: 'b',
+      );
+      expect(repo.session.value?.currentCompanyId, 'co_a');
+
+      // Park /refresh mid-flight so we can interleave a company switch —
+      // the cold-start heal and the 5-min scheduler pump both leave this
+      // window open while the picker is already interactive.
+      final refreshEntered = Completer<void>();
+      final releaseRefresh = Completer<void>();
+      repo.apiClient = gatedClient(
+        MockClient((req) async {
+          if (req.url.path == '/api/v1/refresh') {
+            if (!refreshEntered.isCompleted) refreshEntered.complete();
+            await releaseRefresh.future;
+            return http.Response(jsonEncode(twoCompanies.toJson()), 200);
+          }
+          return http.Response('not found', 404);
+        }),
+      );
+
+      final refreshFuture = repo.refresh(fullSync: true);
+      await refreshEntered.future.timeout(const Duration(seconds: 2));
+
+      await repo.switchCompany('co_b');
+      expect(repo.session.value?.currentCompanyId, 'co_b');
+
+      // Let the stale refresh commit — it must keep the live selection.
+      releaseRefresh.complete();
+      await refreshFuture;
+      await pumpEventQueue();
+
+      expect(
+        repo.session.value?.currentCompanyId,
+        'co_b',
+        reason: 'the refresh commit must not bounce the user back to co_a',
+      );
+      expect(
+        repo.credentials.value?.token,
+        'tok_b',
+        reason: 'credentials must stay on the switched company token',
+      );
+      expect(
+        await storage.read('invoiceninja.current_company.v1'),
+        'co_b',
+        reason: 'the stale snapshot id must not be persisted for restore',
+      );
+    });
+
     test(
       'a re-login after logout is not clobbered by the stale refresh',
       () async {

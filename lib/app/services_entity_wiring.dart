@@ -22,6 +22,7 @@ import 'package:admin/data/models/api/project_api_model.dart';
 import 'package:admin/data/models/api/recurring_expense_api_model.dart';
 import 'package:admin/data/models/api/schedule_api_model.dart';
 import 'package:admin/data/models/api/subscription_api_model.dart';
+import 'package:admin/data/models/api/tag_api_model.dart';
 import 'package:admin/data/models/api/task_api_model.dart';
 import 'package:admin/data/models/api/task_status_api_model.dart';
 import 'package:admin/data/models/api/tax_rate_api_model.dart';
@@ -51,6 +52,7 @@ import 'package:admin/data/repositories/payment_link_repository.dart';
 import 'package:admin/data/repositories/recurring_expense_repository.dart';
 import 'package:admin/data/repositories/schedule_repository.dart';
 import 'package:admin/data/repositories/settings_repository.dart';
+import 'package:admin/data/repositories/tag_repository.dart';
 import 'package:admin/data/repositories/task_repository.dart';
 import 'package:admin/data/repositories/task_status_repository.dart';
 import 'package:admin/data/repositories/tax_rate_repository.dart';
@@ -84,6 +86,7 @@ import 'package:admin/data/services/projects_api.dart';
 import 'package:admin/data/services/recurring_expenses_api.dart';
 import 'package:admin/data/services/schedules_api.dart';
 import 'package:admin/data/services/subscriptions_api.dart';
+import 'package:admin/data/services/tags_api.dart';
 import 'package:admin/data/services/task_statuses_api.dart';
 import 'package:admin/data/services/tasks_api.dart';
 import 'package:admin/data/services/tax_rates_api.dart';
@@ -155,6 +158,8 @@ class WiredEntities {
     required this.taxRates,
     required this.taskStatusesApi,
     required this.taskStatuses,
+    required this.tagsApi,
+    required this.tags,
     required this.designsApi,
     required this.designs,
     required this.groupSettingsApi,
@@ -214,6 +219,8 @@ class WiredEntities {
   final TaxRateRepository taxRates;
   final TaskStatusesApi taskStatusesApi;
   final TaskStatusRepository taskStatuses;
+  final TagsApi tagsApi;
+  final TagRepository tags;
   final DesignsApi designsApi;
   final DesignRepository designs;
   final GroupSettingsApi groupSettingsApi;
@@ -739,6 +746,19 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
       },
     },
   );
+
+  // ---- Tag -----------------------------------------------------------------
+  // NOT bundled and NOT generically paginated — `TagRepository.refreshAll`
+  // fetches both entity types via `/api/v1/tags?entity_type=...` on company
+  // activate. Wired here only so create/update/delete/archive/restore from the
+  // tag picker + Settings → Tags drain through the standard outbox.
+  final tagsApi = TagsApi(ctx.apiClient);
+  final tagRepo = TagRepository(
+    db: ctx.db,
+    api: tagsApi,
+    onEnqueued: ctx.kickDrain,
+  );
+  wire<TagItemApi, TagApi>(type: EntityType.tag, api: tagsApi, repo: tagRepo);
 
   // ---- Design --------------------------------------------------------------
   // Bundled via `/refresh?first_load=true` (data[N].company.designs) — the
@@ -1785,6 +1805,8 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     taxRates: taxRateRepo,
     taskStatusesApi: taskStatusesApi,
     taskStatuses: taskStatusRepo,
+    tagsApi: tagsApi,
+    tags: tagRepo,
     designsApi: designsApi,
     designs: designRepo,
     groupSettingsApi: groupSettingsApi,

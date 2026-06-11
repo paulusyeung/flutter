@@ -322,7 +322,7 @@ class _VerifactuInfoCard extends StatelessWidget {
 /// The caller gates this to French companies with e-invoicing active; it's
 /// cascade-aware via `Overridable*` widgets, like the enable-e-invoice toggle
 /// above. Schedule values come from `e_invoice_constants.dart`
-/// (`ten_days` / `monthly`); a never-set schedule displays `ten_days` and the
+/// (`ten_day` / `monthly`); a never-set schedule displays `ten_day` and the
 /// server applies the same default, so no client-side seeding is needed.
 class _FranceReportingSection extends StatelessWidget {
   const _FranceReportingSection();
@@ -332,8 +332,7 @@ class _FranceReportingSection extends StatelessWidget {
     final host = context.watch<SettingsDraftHost>();
     final settings = host.settings;
     final enabled = settings.franceReportingEnabled ?? false;
-    final schedule =
-        settings.franceReportingSchedule ?? kFranceReportingTenDays;
+    final schedule = settings.franceReportingSchedule ?? kFranceReportingTenDay;
 
     return FormSection(
       title: context.tr('reporting'),
@@ -349,7 +348,7 @@ class _FranceReportingSection extends StatelessWidget {
             value: schedule,
             options: [
               (
-                value: kFranceReportingTenDays,
+                value: kFranceReportingTenDay,
                 label: context.tr('france_reporting_ten_day'),
               ),
               (

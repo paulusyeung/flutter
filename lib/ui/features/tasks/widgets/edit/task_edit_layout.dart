@@ -12,6 +12,7 @@ import 'package:admin/data/models/domain/task_status.dart';
 import 'package:admin/data/models/domain/user.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
+import 'package:admin/ui/core/widgets/entity_tags_field.dart';
 import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/tasks/view_models/task_edit_view_model.dart';
@@ -281,6 +282,13 @@ class _IdentitySection extends StatelessWidget {
                 onFieldSubmitted: submit,
               );
             },
+          ),
+          SizedBox(height: InSpacing.md(context)),
+          EntityTagsField(
+            entityType: 'task',
+            selectedIds: vm.draft.tagIds,
+            onChanged: vm.setTagIds,
+            enabled: !locked,
           ),
         ],
       ),

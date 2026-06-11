@@ -4,6 +4,7 @@ import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
+import 'package:admin/ui/core/widgets/entity_tags_view.dart';
 
 typedef ProjectColumn = ColumnDefinition<Project>;
 
@@ -101,6 +102,18 @@ final List<ProjectColumn> kAllProjectColumns = <ProjectColumn>[
     width: 120,
     cellBuilder: (p, ctx) => cellDate(p.updatedAt, ctx),
     valueBuilder: (p) => p.updatedAt.toIso8601String(),
+  ),
+  // Default-off — opt-in via the column picker. Header sort orders by the
+  // denormalized `tag_names` column.
+  ProjectColumn(
+    id: ProjectFieldIds.tagIds,
+    labelKey: 'tags',
+    width: 200,
+    cellBuilder: (p, _) => p.tagIds.isEmpty
+        ? cellEmpty()
+        : EntityTagsView(entityType: 'project', tagIds: p.tagIds),
+    // No copy value — see the Tasks tags column.
+    valueBuilder: (p) => '',
   ),
 ];
 

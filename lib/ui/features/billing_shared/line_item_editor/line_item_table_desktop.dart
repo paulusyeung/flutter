@@ -1326,13 +1326,21 @@ class _ProductCellState extends State<_ProductCell> {
   int _lastOptionsCount = 0;
   bool _searching = false;
   bool _searchFailed = false;
+  // Debounces the background catalog refresh fired from the local-first
+  // (instant) path — without it a fast typist would hit the network once per
+  // keystroke (the old 200 ms sleep that used to coalesce them is gone there).
+  Timer? _bgRefreshTimer;
   final ScrollController _optionsScrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    // Warm the local cache so the first keystroke's snapshot is already
-    // populated. Best-effort — failures fall back to whatever is cached.
+    // Warm the local cache so the dropdown resolves instantly from local rows.
+    // The dropdown opens on focus/tap (RawAutocomplete reruns `optionsBuilder`
+    // on the cursor-selection change, and on a fresh cell `_lastFieldText` is
+    // null so the empty-query build runs) as well as on the first keystroke —
+    // this warm makes both paths return without a network round-trip.
+    // Best-effort: failures fall back to whatever is cached.
     unawaited(
       context
           .read<Services>()
@@ -1344,8 +1352,50 @@ class _ProductCellState extends State<_ProductCell> {
 
   @override
   void dispose() {
+    _bgRefreshTimer?.cancel();
     _optionsScrollController.dispose();
     super.dispose();
+  }
+
+  /// One-shot snapshot of the local rows for [query], assembled into options.
+  /// Shared by the instant (local-first) path and the post-fetch re-read.
+  Future<List<_ProductOption>> _localProducts(
+    Services services,
+    String query,
+  ) async {
+    final rows = await services.products
+        .watchPage(
+          companyId: widget.companyId,
+          search: query.isEmpty ? null : query,
+          loadedPages: 1,
+        )
+        .first;
+    final options = <_ProductOption>[
+      for (final p in rows.take(20)) _ProductExisting(p),
+    ];
+    if (query.isNotEmpty &&
+        !rows.any((p) => p.productKey.toLowerCase() == query.toLowerCase())) {
+      options.add(_ProductCreate(query));
+    }
+    return options;
+  }
+
+  /// Best-effort server refresh fired from the instant path so a large
+  /// catalog's extra matches land in Drift for the next keystroke. Debounced
+  /// and never awaited — it must not gate the dropdown.
+  void _scheduleBackgroundRefresh(Services services, String query) {
+    _bgRefreshTimer?.cancel();
+    _bgRefreshTimer = Timer(const Duration(milliseconds: 280), () {
+      unawaited(
+        services.products
+            .ensurePageLoaded(
+              companyId: widget.companyId,
+              page: 1,
+              search: query.isEmpty ? null : query,
+            )
+            .catchError((_) => false),
+      );
+    });
   }
 
   /// Keep the keyboard-highlighted option visible as the user arrows past the
@@ -1418,24 +1468,59 @@ class _ProductCellState extends State<_ProductCell> {
       // A synchronous builder can't work here because results arrive after the
       // keystroke — so a stale list would stick (e.g. clearing the field would
       // keep showing the previous search's narrow results).
+      //
+      // Local-first: the warmed Drift cache renders the dropdown instantly; the
+      // network is only blocked on when the cache has nothing for the query.
+      // Tradeoff: when the cache holds *some* matches but the server has *more*
+      // for a typed query, the extras surface on the next keystroke (after the
+      // debounced background refresh upserts them) — there's no supported way
+      // to re-run this builder for unchanged text.
       optionsBuilder: (TextEditingValue value) async {
         // Capture before any await — the only BuildContext read in this async
         // builder. `Services` is a long-lived singleton, so this is stable.
         final services = context.read<Services>();
         final query = value.text.trim();
-        // Debounce + supersede: a newer keystroke bumps `_searchSeq`, so this
-        // in-flight build bails out. A bailed-out return is harmless —
-        // RawAutocomplete discards it via its own call-id check.
+        // Supersede: a newer keystroke bumps `_searchSeq`, so this in-flight
+        // build bails out. A bailed-out return is harmless — RawAutocomplete
+        // discards it via its own call-id check.
         final seq = ++_searchSeq;
-        await Future<void>.delayed(const Duration(milliseconds: 200));
+
+        // Instant snapshot from the warmed cache — no debounce, no network on
+        // the critical path. This is what makes the dropdown appear instantly
+        // on focus/tap (RawAutocomplete reruns this on the cursor-selection
+        // change) and on each keystroke.
+        List<_ProductOption> local;
+        try {
+          local = await _localProducts(services, query);
+        } catch (_) {
+          local = const <_ProductOption>[];
+        }
         if (!mounted || seq != _searchSeq) return const <_ProductOption>[];
+
+        // Route on a real product match, not `local.isNotEmpty`: a non-empty
+        // query with zero matches yields only a `_ProductCreate` row — that
+        // must still hit the server in case the catalog has the product.
+        if (local.any((o) => o is _ProductExisting)) {
+          if (_searching || _searchFailed) {
+            setState(() {
+              _searching = false;
+              _searchFailed = false;
+            });
+          }
+          _scheduleBackgroundRefresh(services, query);
+          _lastOptionsCount = local.length;
+          return local;
+        }
+
+        // Nothing cached for this query: fetch from the server (with a spinner)
+        // so the full catalog is searched. Debounce so fast typing through a
+        // miss doesn't fire a request per keystroke.
         setState(() {
           _searching = true;
           _searchFailed = false;
         });
-        // Best-effort server fetch so search covers the full catalog, not just
-        // whatever is already cached. Offline/error falls through to the local
-        // snapshot below.
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        if (!mounted || seq != _searchSeq) return const <_ProductOption>[];
         try {
           await services.products.ensurePageLoaded(
             companyId: widget.companyId,
@@ -1446,17 +1531,11 @@ class _ProductCellState extends State<_ProductCell> {
           // ignore — fall back to the local snapshot
         }
         if (!mounted || seq != _searchSeq) return const <_ProductOption>[];
-        final List<Product> rows;
+        final List<_ProductOption> afterFetch;
         try {
-          // One-shot snapshot of the local rows for THIS query, read after the
-          // fetch has upserted (a builder returns once — no live subscription).
-          rows = await services.products
-              .watchPage(
-                companyId: widget.companyId,
-                search: query.isEmpty ? null : query,
-                loadedPages: 1,
-              )
-              .first;
+          // Re-read the local rows after the fetch has upserted (a builder
+          // returns once — no live subscription).
+          afterFetch = await _localProducts(services, query);
         } catch (_) {
           if (mounted && seq == _searchSeq) {
             setState(() {
@@ -1471,17 +1550,8 @@ class _ProductCellState extends State<_ProductCell> {
           _searching = false;
           _searchFailed = false;
         });
-        final options = <_ProductOption>[
-          for (final p in rows.take(20)) _ProductExisting(p),
-        ];
-        if (query.isNotEmpty &&
-            !rows.any(
-              (p) => p.productKey.toLowerCase() == query.toLowerCase(),
-            )) {
-          options.add(_ProductCreate(query));
-        }
-        _lastOptionsCount = options.length;
-        return options;
+        _lastOptionsCount = afterFetch.length;
+        return afterFetch;
       },
       onSelected: (opt) {
         if (opt is _ProductExisting) {

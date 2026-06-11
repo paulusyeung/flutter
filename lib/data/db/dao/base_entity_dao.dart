@@ -151,4 +151,81 @@ abstract class BaseEntityDao<TableT extends Table, RowT>
         ))
         .go();
   }
+
+  /// Clear the `is_dirty` flag on one row without otherwise touching it.
+  /// Used when a pending offline edit is DISCARDED (the outbox row dropped):
+  /// the now-abandoned optimistic values must no longer be protected from
+  /// the next server refresh (`upsertAllPreservingDirty` skips dirty rows),
+  /// or the discarded edit would linger on screen forever. A partial update
+  /// via [RawValuesInsertable] so the generic base doesn't need the concrete
+  /// row companion.
+  Future<void> clearDirtyById({required String companyId, required String id}) {
+    return (update(table)..where(
+          (_) => companyIdColumn.equals(companyId) & idColumn.equals(id),
+        ))
+        .write(
+          RawValuesInsertable<RowT>({
+            isDirtyColumn.name: const Constant(false),
+          }),
+        );
+  }
+
+  /// Optimistically flag a row archived (`archived_at = atEpochSeconds`,
+  /// `is_dirty = true`) without the concrete row companion — the offline
+  /// `archive` action calls this so the row visibly leaves the active list
+  /// immediately, before the server round-trip. `is_dirty=true` protects the
+  /// optimistic flip from a `/refresh` (`upsertAllPreservingDirty` skips dirty
+  /// rows) until the sync response reconciles it. Mirrors [clearDirtyById];
+  /// `archived_at` is the shared `_entity_table_mixin` column name.
+  Future<void> setArchived({
+    required String companyId,
+    required String id,
+    required int atEpochSeconds,
+  }) {
+    return (update(table)..where(
+          (_) => companyIdColumn.equals(companyId) & idColumn.equals(id),
+        ))
+        .write(
+          RawValuesInsertable<RowT>({
+            'archived_at': Constant(atEpochSeconds),
+            isDirtyColumn.name: const Constant(true),
+          }),
+        );
+  }
+
+  /// Optimistically restore a row to the active state (`archived_at = NULL`,
+  /// `is_deleted = false`, `is_dirty = true`) — the offline `restore` action,
+  /// which is the inverse of *both* archive and delete (it surfaces on
+  /// archived and deleted rows), so it clears both flags. See [setArchived].
+  Future<void> markRestored({required String companyId, required String id}) {
+    return (update(table)..where(
+          (_) => companyIdColumn.equals(companyId) & idColumn.equals(id),
+        ))
+        .write(
+          RawValuesInsertable<RowT>({
+            'archived_at': const Constant<int>(null),
+            isDeletedColumn.name: const Constant(false),
+            isDirtyColumn.name: const Constant(true),
+          }),
+        );
+  }
+
+  /// Optimistically flag a row deleted (`is_deleted = true`, `is_dirty = true`)
+  /// — the offline `delete` action. Invoice Ninja delete is a soft-delete, so
+  /// the row stays and just drops out of the active list via the [EntityState]
+  /// filter. See [setArchived]; `purge` (hard delete) is not covered here.
+  Future<void> markDeletedDirty({
+    required String companyId,
+    required String id,
+  }) {
+    return (update(table)..where(
+          (_) => companyIdColumn.equals(companyId) & idColumn.equals(id),
+        ))
+        .write(
+          RawValuesInsertable<RowT>({
+            isDeletedColumn.name: const Constant(true),
+            isDirtyColumn.name: const Constant(true),
+          }),
+        );
+  }
 }

@@ -142,6 +142,13 @@ class PurchaseOrderEditViewModel
     customTaxes4: d.customTaxes4,
   );
 
+  @override
+  PurchaseOrder copyWithStampedTotals(
+    PurchaseOrder draft, {
+    required Decimal amount,
+    required Decimal taxAmount,
+  }) => draft.copyWith(amount: amount, balance: amount, taxAmount: taxAmount);
+
   // ── Setters ────────────────────────────────────────────────────────
 
   void setClientId(String v) => updateDraft(draft.copyWith(clientId: v));

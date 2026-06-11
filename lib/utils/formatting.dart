@@ -376,12 +376,25 @@ DateTime? _tryDateShortcut(
   DateTime? now,
 }) {
   final today = _stripTime(now ?? DateTime.now());
+  // Calendar-day offsets must be computed in date-space, not by adding
+  // 24h multiples to a LOCAL midnight: across a fall-back DST transition
+  // `local midnight + N×24h` lands at 23:00 of day N−1, so `+30` /
+  // `tomorrow` resolved (and silently persisted) a date one day short.
+  // UTC days are always exactly 24h; only the y/m/d of the result is used.
+  DateTime addDays(int days) {
+    final t = DateTime.utc(
+      today.year,
+      today.month,
+      today.day,
+    ).add(Duration(days: days));
+    return DateTime(t.year, t.month, t.day);
+  }
 
   // Keywords
   final lower = input.toLowerCase();
   if (lower == 'today' || lower == 'now') return today;
-  if (lower == 'tomorrow') return today.add(const Duration(days: 1));
-  if (lower == 'yesterday') return today.subtract(const Duration(days: 1));
+  if (lower == 'tomorrow') return addDays(1);
+  if (lower == 'yesterday') return addDays(-1);
 
   // Signed integer offset — `+1`, `-7`, `+0`. Caps at ±9999 days.
   if (input.startsWith('+') || input.startsWith('-')) {
@@ -389,7 +402,7 @@ DateTime? _tryDateShortcut(
     final n = int.tryParse(digits);
     if (n != null && n >= 0 && n <= 9999) {
       final sign = input.startsWith('-') ? -1 : 1;
-      return today.add(Duration(days: sign * n));
+      return addDays(sign * n);
     }
     return null;
   }

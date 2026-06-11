@@ -252,6 +252,12 @@ class EntityEditScaffold<T> extends StatelessWidget {
           if (didPop) return;
           final shouldPop = await _confirmDiscard(context);
           if (!shouldPop) return;
+          // Leave the VM clean before popping: `context.pop()` re-enters the
+          // route's `onExit` discard guard, which would otherwise see this
+          // editor still-dirty and prompt a second time (the system-back /
+          // Android twin of the chained-guard bug). Mirrors what
+          // `_closePaneAnimated`'s up-front `confirmIfDirty` relies on.
+          if (vm.isDirty) resetToEmpty();
           if (!context.mounted) return;
           context.pop();
         },

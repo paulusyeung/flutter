@@ -38,6 +38,13 @@ abstract class FilterKey {
   /// queries.
   Iterable<String> get aliases => const [];
 
+  /// Release any held resources (Drift watch subscriptions on the
+  /// membership keys). The hosting search field calls this whenever it
+  /// replaces or unmounts a key list — without it, keys rebuilt per list
+  /// rebuild leaked one live stream query each (drift's stream-query store
+  /// roots the subscription, so GC never collects them). No-op by default.
+  void dispose() {}
+
   /// Coarse value type — drives the chip rendering and the default [icon].
   /// v1 uses [FilterValueType.enumeration] for status and
   /// [FilterValueType.string] for everything else.

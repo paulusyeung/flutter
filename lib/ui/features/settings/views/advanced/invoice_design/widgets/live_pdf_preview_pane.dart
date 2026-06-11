@@ -68,15 +68,33 @@ class _LivePdfPreviewPaneState extends State<LivePdfPreviewPane> {
   @override
   void initState() {
     super.initState();
-    // Attach the host listener exactly once. Doing this in
-    // `didChangeDependencies` would re-attach on every InheritedWidget
-    // notification (e.g. SettingsLevelController flips) and the host's
-    // fan-out would multiply renders.
     _host = context.read<SettingsDraftHost>();
     _host.addListener(_onHostChanged);
     _entityType = _initialEntityType();
     // First-paint render: schedule post-frame so `setState` inside
     // `_renderNow` doesn't fire before the first build commits.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _renderNow();
+    });
+  }
+
+  /// Follow a host *replacement* — `SettingsCompanyScopedHost` disposes the
+  /// ViewModel and provides a fresh one in place on a company switch, with
+  /// no key on this subtree. Without re-binding, every render would keep
+  /// posting the disposed previous company's settings blob (wrong
+  /// logo/colors/layout) and never update again. Called from [build] (the
+  /// swap reaches this widget as a parent-driven rebuild; `read` registers
+  /// no dependency, so `didChangeDependencies` never fires for it). The
+  /// `identical` guard keeps ordinary rebuilds cheap and ensures the
+  /// listener is never double-attached.
+  void _rebindHostIfReplaced() {
+    final next = context.read<SettingsDraftHost>();
+    if (identical(next, _host)) return;
+    _host.removeListener(_onHostChanged);
+    _host = next;
+    _host.addListener(_onHostChanged);
+    // Build is in progress — `_renderNow` setStates, so defer one frame.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _renderNow();
@@ -165,6 +183,7 @@ class _LivePdfPreviewPaneState extends State<LivePdfPreviewPane> {
 
   @override
   Widget build(BuildContext context) {
+    _rebindHostIfReplaced();
     final options = _entityOptions();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

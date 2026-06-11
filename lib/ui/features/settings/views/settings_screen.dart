@@ -164,11 +164,18 @@ class _SettingsListSidebarState extends State<SettingsListSidebar> {
     final modules = session?.currentCompany?.enabledModules ?? 0;
     final me = session?.currentCompany;
     final isAdminOrOwner = me?.isAdmin == true || me?.isOwner == true;
+    final settingsLevel = context.read<SettingsLevelController>();
+    final isCascade = settingsLevel.isClient || settingsLevel.isGroup;
     // Filter at query time — not by trimming the catalog — so a module-gated
     // (or admin-only) section never surfaces as a dead link, while
     // `kSettingsSearchCatalog` stays complete (search_catalog_consistency_test
-    // enforces parity).
+    // enforces parity). The cascade gate mirrors `_buildList`'s `inScope`:
+    // at client/group scope, a company-only page reached through search
+    // renders under the "editing client X" banner with checked override
+    // boxes wired to the COMPANY draft — the user's "per-client override"
+    // edit would silently change the company-wide default.
     final hits = searchSettings(_controller.text, l10n)
+        .where((h) => !isCascade || h.section.clientEditable)
         .where((h) => h.section.isVisibleFor(modules))
         .where((h) => !h.section.adminOnly || isAdminOrOwner)
         .toList();

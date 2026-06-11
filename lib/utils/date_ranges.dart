@@ -55,17 +55,16 @@ Date endOfFiscalYear(Date today, int firstMonthOfYear) {
 Date startOfWeek(Date d, int firstDayOfWeek) {
   final fd = normalizeFirstDayOfWeek(firstDayOfWeek);
   // DateTime.weekday: Mon=1..Sun=7 → Sunday-based index Sun=0..Sat=6.
-  final sundayBased = d.toDateTime().weekday % 7;
+  // UTC anchor + Date.addDays: the weekday of a pure date is
+  // timezone-independent, and local-midnight − N×24h drifts across DST
+  // transitions (shifting the transition week's edges by a day).
+  final sundayBased = DateTime.utc(d.year, d.month, d.day).weekday % 7;
   final diff = (sundayBased - fd + 7) % 7;
-  final start = d.toDateTime().subtract(Duration(days: diff));
-  return Date(start.year, start.month, start.day);
+  return d.addDays(-diff);
 }
 
 /// Last day of the week containing [d] (start of week + 6 days). With
 /// `firstDayOfWeek == 0` this is the Saturday — identical to the previous
 /// hardcoded `_weekEnd` in `chart_series_math.dart`.
-Date endOfWeek(Date d, int firstDayOfWeek) {
-  final start = startOfWeek(d, firstDayOfWeek).toDateTime();
-  final end = start.add(const Duration(days: 6));
-  return Date(end.year, end.month, end.day);
-}
+Date endOfWeek(Date d, int firstDayOfWeek) =>
+    startOfWeek(d, firstDayOfWeek).addDays(6);

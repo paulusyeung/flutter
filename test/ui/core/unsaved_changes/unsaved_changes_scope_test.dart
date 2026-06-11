@@ -66,4 +66,51 @@ void main() {
       expect(guard.hasUnsaved, isFalse);
     },
   );
+
+  testWidgets(
+    'UnsavedChangesScope re-registers when its source is swapped in place',
+    (tester) async {
+      final guard = UnsavedChangesGuard();
+      final services = _FakeServices(guard);
+      final src1 = _DirtyNotifier();
+      final src2 = _DirtyNotifier();
+
+      Widget host(_DirtyNotifier src) => MaterialApp(
+        home: Provider<Services>.value(
+          value: services,
+          child: UnsavedChangesScope(
+            isDirty: () => src.isDirty,
+            source: src,
+            onDiscard: src.reset,
+            child: const Scaffold(body: Text('mounted')),
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(host(src1));
+      expect(guard.registeredCount, 1);
+
+      // Swap the backing source in place (same element position, no key) —
+      // mirrors `SettingsCompanyScopedHost` rebuilding its ViewModel on a
+      // company switch. The guard must follow the new source instead of
+      // staying frozen on the old (disposed) one.
+      await tester.pumpWidget(host(src2));
+      expect(guard.registeredCount, 1);
+
+      src2.markDirty();
+      expect(
+        guard.hasUnsaved,
+        isTrue,
+        reason: 'edits on the swapped-in source must be guarded',
+      );
+
+      src2.reset();
+      src1.markDirty();
+      expect(
+        guard.hasUnsaved,
+        isFalse,
+        reason: 'the swapped-out source must no longer be consulted',
+      );
+    },
+  );
 }

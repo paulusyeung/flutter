@@ -10,6 +10,8 @@ import 'package:admin/data/models/api/login_response_api_model.dart';
 import 'package:admin/data/models/api/user_api_model.dart';
 import 'package:admin/data/repositories/auth/auth_helpers.dart';
 import 'package:admin/data/repositories/auth/auth_session.dart';
+import 'package:admin/data/repositories/user_settings_repository.dart'
+    show kUserSettingsWireName;
 import 'package:admin/data/services/api_client.dart';
 import 'package:admin/data/services/api_credentials.dart';
 import 'package:admin/data/services/auth_service.dart';
@@ -533,6 +535,9 @@ class AuthRepository {
       isFullSync: isFullSync,
       syncWatermarkMs: reqStartMs,
       expectedGeneration: generation,
+      // Live id at request time — lets the commit detect (and yield to) a
+      // company switch that lands while this refresh is in flight.
+      activeCompanyIdAtRequest: s.currentCompanyId,
     );
   }
 
@@ -696,6 +701,39 @@ class AuthRepository {
         /* fall through to defaults */
       }
     }
+    // Recover the auth user's identity from Drift so an OFFLINE restart
+    // still has userId/userEmail/names — without this they stayed '' until
+    // the unawaited network heal landed, so Settings → User Details refused
+    // to load ("Missing session — please sign in again", which an offline
+    // user cannot do) and the topbar identity rendered blank. The
+    // `user_settings` row (written per company on every login/refresh)
+    // carries the auth user's id; the matching `users` row has the profile.
+    final restoredCompanyId = currentId.isNotEmpty
+        ? currentId
+        : companies.first.id;
+    var userId = '';
+    var userEmail = '';
+    var userFirstName = '';
+    var userLastName = '';
+    var userPhone = '';
+    try {
+      final settingsRow = await _db.userSettingsDao.get(restoredCompanyId);
+      if (settingsRow != null && settingsRow.userId.isNotEmpty) {
+        userId = settingsRow.userId;
+        final userRow = await _db.userDao.getByCompanyAndId(
+          companyId: restoredCompanyId,
+          id: userId,
+        );
+        if (userRow != null) {
+          userEmail = userRow.email;
+          userFirstName = userRow.firstName;
+          userLastName = userRow.lastName;
+          userPhone = userRow.phone;
+        }
+      }
+    } catch (e, st) {
+      _log.warning('restore(): could not recover auth user from Drift', e, st);
+    }
     final session = AuthSession(
       baseUrl: baseUrl,
       isHosted: isHosted,
@@ -710,6 +748,11 @@ class AuthRepository {
       defaultCompanyId: account.defaultCompanyId ?? '',
       hostedClientCount: hostedClientCount,
       hostedCompanyCount: hostedCompanyCount,
+      userId: userId,
+      userEmail: userEmail,
+      userFirstName: userFirstName,
+      userLastName: userLastName,
+      userPhone: userPhone,
       companies: companies
           .map((c) {
             Map<String, dynamic> settings = const {};
@@ -742,7 +785,7 @@ class AuthRepository {
             );
           })
           .toList(growable: false),
-      currentCompanyId: currentId.isNotEmpty ? currentId : (companies.first.id),
+      currentCompanyId: restoredCompanyId,
       biometricEnabled: biometricEnabled,
       eInvoicingToken: eInvoicingToken,
       reportErrors: reportErrors,
@@ -844,6 +887,14 @@ class AuthRepository {
     // a logged-out session. Null on the login/OAuth/signup/token paths, which
     // create a session from scratch and must always commit.
     int? expectedGeneration,
+    // Also set by [_refreshSession]: the *live* active company id at the
+    // moment the request went out. When the live id has moved away from this
+    // snapshot by commit time, a `switchCompany` raced the refresh — the
+    // commit then keeps the user's new selection instead of silently bouncing
+    // them back (and persisting the stale id for the next restart). Distinct
+    // from [preserveActiveCompanyId], which is a deliberate caller override
+    // (e.g. addCompany teleporting into the freshly created company).
+    String? activeCompanyIdAtRequest,
   }) async {
     if (response.data.isEmpty) {
       throw StateError('Login response had no companies');
@@ -880,7 +931,9 @@ class AuthRepository {
     // Prefer the caller-supplied active company (used by refresh-on-create
     // so the user doesn't get silently teleported back to the account's
     // default company) when its token is still in the new response.
-    final String currentId;
+    // Non-final: the switch-raced-the-refresh override at the final commit
+    // guard below may re-point it at the live selection.
+    String currentId;
     if (preserveActiveCompanyId != null &&
         preserveActiveCompanyId.isNotEmpty &&
         tokens.containsKey(preserveActiveCompanyId)) {
@@ -1050,6 +1103,17 @@ class AuthRepository {
       // the rest under `extra_json` so the PUT we'll later send preserves
       // every field the new app doesn't yet model.
       for (final uc in response.data) {
+        // Don't clobber a pending local edit: a `user_settings` PUT parked
+        // in the outbox (offline, 412 password gate) still owns this row —
+        // overwriting it with server data visually reverts the edit while
+        // the mutation is still queued. This table has no `is_dirty`
+        // column, so the queued outbox row IS the dirty marker. Mirrors
+        // `upsertAllPreservingDirty`'s contract for entity tables.
+        final pendingSettingsEdit = await _db.outboxDao.hasActiveRowsFor(
+          companyId: uc.company.id,
+          entityType: kUserSettingsWireName,
+        );
+        if (pendingSettingsEdit) continue;
         final settings = uc.settings;
         final tableColumns = settings['table_columns'];
         final extra = Map<String, dynamic>.from(settings)
@@ -1078,6 +1142,18 @@ class AuthRepository {
       // PUT path round-trips.
       for (final uc in response.data) {
         if (uc.user.id.isEmpty) continue;
+        // Don't clobber a pending local profile edit. A dirty row's
+        // PUT /users/{id} routinely parks in the outbox behind the 412
+        // password sheet; until it drains, every refresh tick would
+        // visually revert User Details to stale server values while the
+        // edit is still queued (and re-typing it would enqueue a
+        // duplicate). The row heals to server truth once the mutation
+        // syncs. Mirrors `upsertAllPreservingDirty`.
+        final existingUser = await _db.userDao.getByCompanyAndId(
+          companyId: uc.company.id,
+          id: uc.user.id,
+        );
+        if (existingUser?.isDirty == true) continue;
         final userPayload = <String, dynamic>{
           'id': uc.user.id,
           'first_name': uc.user.firstName,
@@ -1172,6 +1248,30 @@ class AuthRepository {
     if (expectedGeneration != null &&
         expectedGeneration != _sessionGeneration) {
       return;
+    }
+    // A `switchCompany` landed while this refresh was in flight (network
+    // round-trip or the Drift/bundle persist above): the resolution chain
+    // ran against the pre-request snapshot, so committing its id would
+    // silently bounce the user back to the previous company — sidebar and
+    // lists flip, the old company's activation sweep re-runs, and the stale
+    // id is persisted so even a restart restores the wrong company. Keep the
+    // user's live selection instead whenever it moved away from the
+    // at-request snapshot and the merged token map still covers it. (A
+    // deliberate caller override — addCompany's teleport into the freshly
+    // created company — leaves the live id equal to the snapshot, so it is
+    // unaffected.)
+    final liveCompanyId = _session.value?.currentCompanyId;
+    if (activeCompanyIdAtRequest != null &&
+        liveCompanyId != null &&
+        liveCompanyId.isNotEmpty &&
+        liveCompanyId != activeCompanyIdAtRequest &&
+        liveCompanyId != currentId &&
+        tokens.containsKey(liveCompanyId)) {
+      _log.info(
+        'company switch raced /refresh; keeping live $liveCompanyId '
+        'over snapshot $currentId',
+      );
+      currentId = liveCompanyId;
     }
     await _secure.write(kAuthTokensKey, jsonEncode(tokens));
     await _secure.write(kAuthBaseUrlKey, baseUrl);

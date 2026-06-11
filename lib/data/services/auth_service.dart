@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -18,6 +19,27 @@ class AuthService {
 
   final http.Client _http;
 
+  /// One transport seam for every auth POST. A connection failure (no
+  /// network, DNS lookup on a typo'd self-hosted URL, refused socket) throws
+  /// `http.ClientException` — and a stalled request `TimeoutException` —
+  /// neither of which is an [ApiException], so without this mapping they
+  /// escape every `on …Exception` catch in the login / signup / recover
+  /// ViewModels and the user gets a spinner that just stops with no error
+  /// at all. Mirrors `ApiClient`'s identical mapping for post-login calls.
+  Future<http.Response> _post(
+    Uri url, {
+    required Map<String, String> headers,
+    Object? body,
+  }) async {
+    try {
+      return await _http.post(url, headers: headers, body: body);
+    } on TimeoutException catch (e) {
+      throw NetworkException(e.message ?? 'Request timed out');
+    } on http.ClientException catch (e) {
+      throw NetworkException(e.message);
+    }
+  }
+
   /// POST `/api/v1/login`. The request body matches the existing app:
   ///   { email, password, one_time_password? }
   ///
@@ -30,7 +52,7 @@ class AuthService {
     required String password,
     String? oneTimePassword,
   }) async {
-    final response = await _http.post(
+    final response = await _post(
       Uri.parse(baseUrl).resolve('/api/v1/login'),
       headers: _headers(isHosted: isHosted, contentTypeJson: true),
       body: jsonEncode({
@@ -55,7 +77,7 @@ class AuthService {
     required bool isHosted,
     required String token,
   }) async {
-    final response = await _http.post(
+    final response = await _post(
       Uri.parse(
         baseUrl,
       ).resolve('/api/v1/refresh?first_load=true&include_static=true'),
@@ -85,7 +107,7 @@ class AuthService {
     String? accessToken,
     String? email,
   }) async {
-    final response = await _http.post(
+    final response = await _post(
       Uri.parse(baseUrl).resolve('/api/v1/oauth_login'),
       headers: _headers(isHosted: isHosted, contentTypeJson: true),
       body: jsonEncode({
@@ -119,7 +141,7 @@ class AuthService {
     required String password,
     String referralCode = '',
   }) async {
-    final response = await _http.post(
+    final response = await _post(
       Uri.parse(baseUrl).resolve('/api/v1/signup?rc=$referralCode'),
       headers: _headers(isHosted: isHosted, contentTypeJson: true),
       body: jsonEncode({
@@ -143,7 +165,7 @@ class AuthService {
     required bool isHosted,
     required String email,
   }) async {
-    final response = await _http.post(
+    final response = await _post(
       Uri.parse(baseUrl).resolve('/api/v1/reset_password'),
       headers: _headers(isHosted: isHosted, contentTypeJson: true),
       body: jsonEncode({'email': email}),

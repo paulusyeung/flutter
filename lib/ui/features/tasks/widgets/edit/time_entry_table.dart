@@ -91,6 +91,19 @@ class _TimeEntryTableState extends State<TimeEntryTable> {
     final shouldAutoFocus = _autofocusNextBuild;
     _autofocusNextBuild = false;
 
+    // Display index of the entry a fresh add should focus. Normally the
+    // last timeLog entry (display i == 0 in reversed order) — but when a
+    // timer is running, `addEntry` deliberately inserts the new manual row
+    // BEFORE the trailing running entry (the `.last`-based running checks
+    // require the running entry to stay last), so the newest row sits at
+    // display i == 1. Targeting i == 0 there would autofocus the RUNNING
+    // entry's start cell, and a user typing immediately would silently
+    // rewrite the running timer's start time.
+    final focusDisplayIndex =
+        (entries.isNotEmpty && entries.first.isRunning && entries.length > 1)
+        ? 1
+        : 0;
+
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -101,11 +114,35 @@ class _TimeEntryTableState extends State<TimeEntryTable> {
         // placeholder string.
         for (var i = 0; i < entries.length; i++)
           _EntryBlock(
-            // Key by the entry's stable position in the (non-reversed)
-            // timeLog — unique per row (so equal start timestamps can't
-            // collide) and stable under append so existing rows keep their
-            // cell state + focus.
-            key: ValueKey('entry-${widget.vm.draft.timeLog.length - 1 - i}'),
+            // The running entry (always timeLog.last) gets a STABLE key so a
+            // manual entry inserted before it (see `addEntry`) doesn't bump
+            // the running row onto a new positional key — which made the new
+            // row REUSE an existing element (so its `autofocus` never fired)
+            // and needlessly remounted the running row's live ticker. With a
+            // stable running key, the new manual row gets a genuinely fresh
+            // positional key → remounts → `autofocus` lands on it; on a
+            // timer start/resume the new running row is the only fresh mount
+            // and isn't the autofocus target, so nothing is focused (right —
+            // a running "now" start cell isn't meant to be typed into).
+            // Non-running rows keep their `timeLog`-index positional key
+            // (stable under insert-before-running).
+            // Running entries are keyed by their running-sequence rank, not
+            // a constant: normally there's exactly one (the VM's timer
+            // methods keep at most one running entry, always last) so this
+            // is a stable `running-entry-0` — stable across the
+            // insert-before-running case so the new manual row still gets a
+            // fresh positional key and remounts for `autofocus`. But the
+            // draft is seeded from `Task.timeLog` (server data) which the
+            // app never validates, so a task with TWO open (`stop==null`)
+            // entries — legacy / imported / other-client data — would
+            // otherwise collide on one constant key and crash the table with
+            // a duplicate-key error. Ranking keeps them unique.
+            key: entries[i].isRunning
+                ? ValueKey(
+                    'running-entry-'
+                    '${entries.take(i).where((e) => e.isRunning).length}',
+                  )
+                : ValueKey('entry-${widget.vm.draft.timeLog.length - 1 - i}'),
             vm: widget.vm,
             entry: entries[i],
             actualIndex: widget.vm.draft.timeLog.length - 1 - i,
@@ -113,9 +150,9 @@ class _TimeEntryTableState extends State<TimeEntryTable> {
             formatter: widget.formatter,
             allowBillable: widget.allowBillable,
             showDescription: widget.showDescription,
-            // Focus the newest entry's start cell on append. `i == 0` is
-            // the newest in the reversed display order.
-            autofocusStart: i == 0 && shouldAutoFocus,
+            // Focus the newest entry's start cell on append (see
+            // focusDisplayIndex above for the running-timer case).
+            autofocusStart: i == focusDisplayIndex && shouldAutoFocus,
           ),
         if (!widget.locked) ...[
           Divider(height: 1, color: tokens.border),

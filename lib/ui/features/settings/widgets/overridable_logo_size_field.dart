@@ -72,7 +72,13 @@ class _OverridableLogoSizeFieldState extends State<OverridableLogoSizeField> {
     final raw = binding.read(host.settings);
     final numeric = (overrideNumeric ?? _controller.text).trim();
     final unit = overrideUnit ?? _unitPart(raw);
-    final value = numeric.isEmpty ? null : '$numeric$unit';
+    // Clear sentinel by scope (see SettingsDraftHost.isCascadeScope):
+    // company scope writes '' (survives the rawSettings PUT merge; also the
+    // server default for company_logo_size = "auto"); cascade scope writes
+    // null so the override is removed rather than left as a phantom.
+    final value = numeric.isEmpty
+        ? (host.isCascadeScope ? null : '')
+        : '$numeric$unit';
     host.updateSettings((s) => binding.write(s, value));
   }
 

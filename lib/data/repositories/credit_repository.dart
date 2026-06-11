@@ -5,6 +5,7 @@ import 'package:drift/drift.dart' show Value, BooleanExpressionOperators;
 import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/db/dao/base_entity_dao.dart';
 import 'package:admin/data/db/dao/billing_extra_filters.dart';
 import 'package:admin/data/db/dao/credit_dao.dart';
 import 'package:admin/data/models/api/credit_api_model.dart';
@@ -35,6 +36,9 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
 
   @override
   String get entityTypeName => 'credit';
+
+  @override
+  BaseEntityDao<dynamic, dynamic> get localDao => db.creditDao;
 
   @override
   bool requiresPasswordFor(MutationKind kind) =>
@@ -111,18 +115,26 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
     Map<String, Set<String>> extraFilters = const {},
     bool ignoreCursor = false,
   }) async {
-    final cursor = ignoreCursor
-        ? null
-        : await db.syncStateDao.read(
-            companyId: companyId,
-            entityType: entityTypeName,
-          );
     final resolvedExtra = resolveRelativeFilterTokens(extraFilters);
     // Hide rows of soft-deleted clients (React parity) unless the fetch is
     // already scoped to a specific client (then the detail tab needs them).
     final hasClientScope =
         resolvedExtra.containsKey('client_id') ||
         resolvedExtra.containsKey('client_ids');
+    // The shared `(companyId, entityType)` cursor is a page-1, UNSCOPED
+    // delta probe only — same two gates as `ensurePageLoadedTemplate`:
+    // a parent-scoped fetch (embedded detail tab) must neither read nor
+    // advance it, and a page >= 2 fetch must not read it (the
+    // `updated_at >=` filter re-returns page 1's rows, capping pagination /
+    // search / full resync at one page) nor advance it (deeper pages carry
+    // older rows under `id DESC` — last-write-wins would walk the
+    // watermark backwards).
+    final cursor = (ignoreCursor || hasClientScope || page > 1)
+        ? null
+        : await db.syncStateDao.read(
+            companyId: companyId,
+            entityType: entityTypeName,
+          );
     final filters = <String, String>{
       ...stateQueryParams(states),
       'include': 'documents',
@@ -145,12 +157,15 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
       companyId: companyId,
       byId: {for (final a in apiRows) a.id: _apiToCompanion(a, companyId)},
     );
-    if (result.cursorUpdatedAt != null && result.cursorId != null) {
+    if (!hasClientScope &&
+        page == 1 &&
+        result.cursorUpdatedAt != null &&
+        result.cursorId != null) {
       await advanceCursor(
         companyId: companyId,
         updatedAt: result.cursorUpdatedAt!,
         id: result.cursorId!,
-        wasFullSync: ignoreCursor && page == 1,
+        wasFullSync: ignoreCursor,
       );
     }
     return apiRows.length >= pageSize;

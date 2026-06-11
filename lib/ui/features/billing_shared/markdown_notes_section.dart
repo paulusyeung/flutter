@@ -19,6 +19,7 @@ class MarkdownNotesField extends StatefulWidget {
     required this.onChanged,
     this.onSaveAsDefault,
     this.externalValueKey,
+    this.registerBeforeSaveHook,
     this.showLabel = true,
     this.height = 180,
     this.expand = false,
@@ -50,6 +51,14 @@ class MarkdownNotesField extends StatefulWidget {
   /// the server and the editor is already mounted).
   final Object? externalValueKey;
 
+  /// Optional `vm.addBeforeSaveHook`-shaped registrar (returns the
+  /// unregister callback). When provided, the field registers a synchronous
+  /// editor flush so Save / ⌘S captures text still sitting inside the
+  /// editor's 300 ms debounce — without it, the last words typed before an
+  /// immediate save silently missed the payload while the toast said
+  /// "Saved" (and the post-save pop discarded the late emit).
+  final VoidCallback Function(VoidCallback hook)? registerBeforeSaveHook;
+
   /// Editor body height. Ignored when [expand] is true.
   final double height;
 
@@ -65,6 +74,24 @@ class MarkdownNotesField extends StatefulWidget {
 
 class _MarkdownNotesFieldState extends State<MarkdownNotesField> {
   final _controller = MarkdownFieldController();
+  VoidCallback? _unregisterBeforeSave;
+
+  @override
+  void initState() {
+    super.initState();
+    // `flush()` emits the pending debounced value through `onChanged`
+    // (same side effect _handleSaveAsDefault documents), landing it in the
+    // host draft synchronously before the VM serializes the save payload.
+    _unregisterBeforeSave = widget.registerBeforeSaveHook?.call(
+      () => _controller.flush(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _unregisterBeforeSave?.call();
+    super.dispose();
+  }
 
   void _handleSaveAsDefault() {
     // Flush the editor so the just-typed value is captured even if the

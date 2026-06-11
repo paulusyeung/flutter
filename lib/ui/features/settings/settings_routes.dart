@@ -41,6 +41,8 @@ import 'package:admin/ui/features/settings/views/advanced/group_settings_edit_sc
 import 'package:admin/ui/features/settings/views/advanced/group_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/payment_terms_edit_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/payment_terms_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/tags_edit_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/tags_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/task_statuses_edit_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/task_statuses_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/tax_rates_edit_screen.dart';
@@ -429,6 +431,24 @@ final List<RouteBase> settingsRoutes = [
         path: ':id',
         builder: (_, state) =>
             TaskStatusesEditScreen(existingId: state.pathParameters['id']),
+      ),
+    ],
+  ),
+  _settingsRoute(
+    path: 'tags',
+    builder: (_, _) => const TagsScreen(),
+    routes: [
+      // `?entityType=task|project` carries the active toggle into create.
+      _settingsRoute(
+        path: 'new',
+        builder: (_, state) => TagsEditScreen(
+          entityType: state.uri.queryParameters['entityType'] ?? 'task',
+        ),
+      ),
+      _settingsRoute(
+        path: ':id',
+        builder: (_, state) =>
+            TagsEditScreen(existingId: state.pathParameters['id']),
       ),
     ],
   ),

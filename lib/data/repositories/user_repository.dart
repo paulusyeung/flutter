@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart' show Value;
 import 'package:logging/logging.dart';
 
+import 'package:admin/data/db/dao/base_entity_dao.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/user_api_model.dart';
 import 'package:admin/data/models/domain/user.dart';
@@ -354,6 +355,9 @@ class UserRepository extends BaseEntityRepository<User, UserApi> {
     required String companyId,
     required String id,
   }) => db.userDao.deleteById(companyId: companyId, id: id);
+
+  @override
+  BaseEntityDao<dynamic, dynamic> get localDao => db.userDao;
 
   @override
   Future<void> applyCreateResponse({

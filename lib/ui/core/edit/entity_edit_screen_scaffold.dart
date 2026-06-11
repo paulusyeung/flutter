@@ -6,8 +6,10 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/edit/entity_edit_scaffold.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
+import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/save_failed_banner.dart';
 
 /// Outer scaffold for every entity edit / create screen.
@@ -153,6 +155,7 @@ class _EntityEditScreenScaffoldState<T, VM extends GenericEditViewModel<T>>
   VM? _vm;
   bool _ready = false;
   bool _bootstrapped = false;
+  bool _notFound = false;
   late final String _companyId;
 
   // Bootstrap runs in didChangeDependencies (not initState) so the
@@ -188,6 +191,19 @@ class _EntityEditScreenScaffoldState<T, VM extends GenericEditViewModel<T>>
       existingId,
     );
     if (!mounted) return;
+    if (existing == null) {
+      // The URL names a row that isn't in local Drift (restored deep link
+      // after a DB reset, stale link, row deleted elsewhere). Building the
+      // VM with null would silently open CREATE mode — a blank "New …" form
+      // at an /edit URL whose save mints a duplicate record instead of
+      // updating the one the user meant. Mirror SettingsEntityEditScaffold:
+      // show not-found.
+      setState(() {
+        _notFound = true;
+        _ready = true;
+      });
+      return;
+    }
     final vm = widget.buildVm(context, services, companyId, existing);
     setState(() {
       _vm = vm;
@@ -275,6 +291,17 @@ class _EntityEditScreenScaffoldState<T, VM extends GenericEditViewModel<T>>
 
   @override
   Widget build(BuildContext context) {
+    if (_notFound) {
+      final body = EmptyState(
+        icon: Icons.search_off_outlined,
+        title: context.tr('not_found'),
+      );
+      if (widget.embedded) return body;
+      return Scaffold(
+        appBar: AppBar(title: Text(widget.titleWhileLoading(context))),
+        body: body,
+      );
+    }
     if (!_ready || _vm == null) {
       // Embedded mode skips the Scaffold even on the loading state so
       // the parent shell's chrome doesn't briefly disappear before the

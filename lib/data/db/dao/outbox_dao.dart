@@ -199,6 +199,61 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
   /// `in_flight`) — same predicate as [deletePendingForCompany], but
   /// returns the rows so a caller can apply per-row discard logic. Used by
   /// `SyncRepository.discardPendingFor`.
+  /// True when any non-terminal (`pending` or `in_flight`) row exists for
+  /// [companyId] + [entityType]. `in_flight` matters: a refresh that lands
+  /// while the row's HTTP attempt is mid-send must still treat the local
+  /// edit as in charge — the attempt may fail and re-park as pending.
+  Future<bool> hasActiveRowsFor({
+    required String companyId,
+    required String entityType,
+  }) async {
+    final q = select(outbox)
+      ..where(
+        (o) =>
+            o.companyId.equals(companyId) &
+            o.entityType.equals(entityType) &
+            (o.state.equals('pending') | o.state.equals('in_flight')),
+      )
+      ..limit(1);
+    return (await q.getSingleOrNull()) != null;
+  }
+
+  /// Like [hasActiveRowsFor] but scoped to a single [entityId]. The discard
+  /// reconciliation uses it to decide whether clearing a local record's
+  /// `is_dirty` is safe — only when NO other pending/in_flight outbox row
+  /// for that exact record remains (else clearing would un-protect a still-
+  /// queued edit from the next server refresh).
+  Future<bool> hasActiveRowsForEntity({
+    required String companyId,
+    required String entityType,
+    required String entityId,
+  }) async {
+    final q = select(outbox)
+      ..where(
+        (o) =>
+            o.companyId.equals(companyId) &
+            o.entityType.equals(entityType) &
+            o.entityId.equals(entityId) &
+            (o.state.equals('pending') | o.state.equals('in_flight')),
+      )
+      ..limit(1);
+    return (await q.getSingleOrNull()) != null;
+  }
+
+  /// Pending rows whose payload embeds [needle] — the ghost-discard path
+  /// uses this to find dependents that reference a discarded tmp_ entity.
+  Future<List<OutboxRow>> pendingRowsReferencing({
+    required String companyId,
+    required String needle,
+  }) =>
+      (select(outbox)..where(
+            (o) =>
+                o.companyId.equals(companyId) &
+                o.state.equals('pending') &
+                o.payload.contains(needle),
+          ))
+          .get();
+
   Future<List<OutboxRow>> pendingRowsForCompany(String companyId) =>
       (select(outbox)..where(
             (o) => o.companyId.equals(companyId) & o.state.equals('pending'),
@@ -377,9 +432,16 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
     return q.get();
   }
 
-  /// Rewrite tmp ids inside payloads of pending rows once a `create` lands and
-  /// produces a real id. The repository / sync engine calls this in the same
-  /// transaction as inserting into `id_remap`.
+  /// Rewrite tmp ids inside payloads of pending AND dead rows once a
+  /// `create` lands and produces a real id. The repository / sync engine
+  /// calls this in the same transaction as inserting into `id_remap`.
+  ///
+  /// Dead rows are included so a dependent mutation that died while the
+  /// parent create was still unsynced (e.g. an invoice create whose
+  /// `client_id: tmp_x` 422'd) heals once the parent finally lands —
+  /// otherwise the Outbox screen's Retry re-sends the stale tmp_ id and
+  /// fails identically forever. `in_flight` rows stay untouched: their
+  /// network attempt may be landing concurrently (TOCTOU).
   Future<void> rewriteTempIdInPayloads({
     required String companyId,
     required String entityType,
@@ -390,17 +452,32 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
         await (select(outbox)..where(
               (o) =>
                   o.companyId.equals(companyId) &
-                  o.state.equals('pending') &
+                  (o.state.equals('pending') | o.state.equals('dead')) &
                   (o.payload.contains(tempId) | o.entityId.equals(tempId)),
             ))
             .get();
     for (final row in rows) {
       final newPayload = row.payload.replaceAll(tempId, realId);
       final newEntityId = row.entityId == tempId ? realId : row.entityId;
+      // A PENDING row that was deferred by the drain's tmp_-dependency guard
+      // (nextAttemptAt parked +60s, lastError set) is now healed — make it
+      // immediately eligible so the very next `nextReady` picks it up,
+      // instead of waiting out the stale defer. Without this, a "Sync first"
+      // logout drains the parent, heals the dependent, but the dependent
+      // stays parked and `pendingCountFor` still counts it → logout cancels
+      // on a chain that's actually fine. `attempts` is deliberately NOT
+      // reset (a row failing for a real reason must still exhaust its retry
+      // budget). DEAD rows keep their state and scheduling untouched — a
+      // dead dependent heals its payload for a manual Retry but must stay
+      // dead (see the dead-row test in outbox_dao_test).
+      final reArm = row.state == 'pending';
       await (update(outbox)..where((o) => o.id.equals(row.id))).write(
         OutboxCompanion(
           payload: Value(newPayload),
           entityId: Value(newEntityId),
+          nextAttemptAt: reArm ? const Value(0) : const Value.absent(),
+          lastError: reArm ? const Value(null) : const Value.absent(),
+          lastStatusCode: reArm ? const Value(null) : const Value.absent(),
         ),
       );
     }

@@ -1,3 +1,5 @@
+import 'package:decimal/decimal.dart';
+
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/billing/invitation.dart';
 import 'package:admin/data/models/domain/billing/line_item.dart';
@@ -37,7 +39,14 @@ abstract class GenericBillingDocEditViewModel<T>
     super.companyId,
     super.useCommaAsDecimalPlace,
     this.currencyPrecision = 2,
-  });
+  }) {
+    // Stamp the computed totals onto the draft right before every save so the
+    // optimistic Drift write reflects the edit immediately — otherwise the
+    // list tile + detail KPI strip (which read the stored `amount`/`balance`)
+    // show the pre-edit total offline while the Overview tab recomputes live,
+    // and the two disagree until the server response lands.
+    addBeforeSaveHook(stampTotalsForSave);
+  }
 
   /// Decimal precision for currency rounding (typically 2; some currencies
   /// use 0 — e.g. JPY). Drives `computeTotals`'s rounding scale.
@@ -79,6 +88,17 @@ abstract class GenericBillingDocEditViewModel<T>
   /// `notifyListeners()` — keep it cheap.
   BillingTotalsInput totalsInputOf(T draft);
 
+  /// Return a new draft with the computed [amount] / [taxAmount] stamped on,
+  /// plus the entity's balance. Invoice / Credit set `balance = amount −
+  /// paidToDate`; Quote / PurchaseOrder / RecurringInvoice (never partially
+  /// paid) set `balance = amount`. Used by [stampTotalsForSave] so an offline
+  /// edit's stored totals match `computeTotals` immediately.
+  T copyWithStampedTotals(
+    T draft, {
+    required Decimal amount,
+    required Decimal taxAmount,
+  });
+
   // ── Shared behaviors ───────────────────────────────────────────────
 
   // Memoized totals. `TotalsWidget` reads `vm.totals` on every form
@@ -90,6 +110,13 @@ abstract class GenericBillingDocEditViewModel<T>
   BillingTotalsResult? _cachedTotalsResult;
   int? _cachedPrecision;
 
+  /// The precision last passed to [totalsAt] by the edit screen's totals
+  /// widget — i.e. the live client-currency precision the user actually sees.
+  /// Captured so [stampTotalsForSave] rounds the stored total the same way,
+  /// instead of the construction-time [currencyPrecision] (which can be stale
+  /// after a mid-edit client change). Null until the totals widget builds.
+  int? _lastDisplayPrecision;
+
   /// Live totals at the active currency's [precision]. The edit screens
   /// resolve precision from the selected client's currency (the per-client →
   /// company cascade via `Formatter.precisionFor`) and pass it here, so the
@@ -97,6 +124,19 @@ abstract class GenericBillingDocEditViewModel<T>
   /// BHD/KWD (3-decimal) invoice no longer previews at a hardcoded 2 dp.
   /// Recomputed only when the input OR the precision changes.
   BillingTotalsResult totalsAt(int precision) {
+    _lastDisplayPrecision = precision;
+    return _computeTotals(precision);
+  }
+
+  /// Totals at the construction-time fallback precision ([currencyPrecision],
+  /// default 2). Prefer [totalsAt] with the client-currency precision on
+  /// screens that render money; this is the currency-agnostic fallback used
+  /// by non-display callers (e.g. partial-amount validation). Deliberately
+  /// does **not** update [_lastDisplayPrecision] — only the display path
+  /// (totalsAt) should drive the pre-save stamp's precision.
+  BillingTotalsResult get totals => _computeTotals(currencyPrecision);
+
+  BillingTotalsResult _computeTotals(int precision) {
     final input = totalsInputOf(draft);
     final cached = _cachedTotalsResult;
     if (cached != null &&
@@ -111,11 +151,19 @@ abstract class GenericBillingDocEditViewModel<T>
     return result;
   }
 
-  /// Totals at the construction-time fallback precision ([currencyPrecision],
-  /// default 2). Prefer [totalsAt] with the client-currency precision on
-  /// screens that render money; this is the currency-agnostic fallback used
-  /// by non-display callers (e.g. partial-amount validation).
-  BillingTotalsResult get totals => totalsAt(currencyPrecision);
+  /// Pre-save hook (registered in the constructor): stamp `computeTotals`'
+  /// output onto the draft so the optimistic local write — and the list tile
+  /// + detail KPI strip that read the stored `amount`/`balance` — reflect the
+  /// edit immediately. Rounds at the live display precision (falling back to
+  /// [currencyPrecision]). The outbox payload carries the same draft; the
+  /// server recomputes totals authoritatively on sync, so any client/server
+  /// rounding nuance is transient.
+  void stampTotalsForSave() {
+    final t = _computeTotals(_lastDisplayPrecision ?? currencyPrecision);
+    updateDraft(
+      copyWithStampedTotals(draft, amount: t.total, taxAmount: t.taxAmount),
+    );
+  }
 
   /// Replace the entire line-items list. Wraps in `List.unmodifiable` so
   /// downstream consumers can't mutate the draft's array out from under

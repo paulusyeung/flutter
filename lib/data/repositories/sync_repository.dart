@@ -118,6 +118,11 @@ class SyncRepository {
   /// pending mutation that's still using the soon-to-be-revoked credentials.
   Future<void> cancel() async {
     _cancelRequested = true;
+    // Drop queued trailing re-drains: logout relies on cancel() meaning "no
+    // drain is running once this returns" before it wipes Drift — a
+    // re-drain auto-kicked from a completing pass would start a NEW pass
+    // behind logout's back and race the wipe with stale-credential writes.
+    _redrainRequested.clear();
     // Snapshot before awaiting — entries clean themselves up via the
     // `whenComplete` hook in [drainOnce], which would mutate the map
     // while we iterate.
@@ -164,6 +169,24 @@ class SyncRepository {
             null;
     if (!isGhostCreate) {
       await db.outboxDao.deleteRow(id);
+      // Reconcile the local record: the entity exists server-side, but its
+      // Drift row still carries the now-abandoned optimistic edit with
+      // is_dirty=true, which every refresh skips (upsertAllPreservingDirty)
+      // — so without this the discarded edit lingers on screen forever.
+      // Clear the dirty flag (the next refresh then overwrites with server
+      // truth) ONLY when no other queued row for this exact record remains,
+      // so we don't un-protect a still-pending edit.
+      final stillActive = await db.outboxDao.hasActiveRowsForEntity(
+        companyId: row.companyId,
+        entityType: row.entityType,
+        entityId: row.entityId,
+      );
+      if (!stillActive) {
+        await registry
+            .byWireName(row.entityType)
+            ?.dispatcher
+            .clearLocalDirty(companyId: row.companyId, id: row.entityId);
+      }
       return false;
     }
     // Never synced: drop the ghost local row, then every outbox row for
@@ -178,7 +201,89 @@ class SyncRepository {
       entityType: row.entityType,
       entityId: row.entityId,
     );
+    // Rows that REFERENCE the ghost in their payload (e.g. an invoice
+    // created offline against this unsynced client) can never succeed —
+    // there is no parent left to mint a real id, so the drain's
+    // tmp_-dependency guard would defer them forever (also blocking the
+    // logout/switch "Sync first" pending check). Recursively resolve the
+    // whole offline subtree.
+    await _failTmpDependents(row.companyId, row.entityId, discard: true);
     return true;
+  }
+
+  /// Resolve outbox rows that reference an unsynced (`tmp_`) entity that has
+  /// just become terminal — discarded or dead — so a dependent's tmp ref
+  /// can't strand it forever (the drain's tmp_-dependency guard would defer
+  /// such a row every 60s indefinitely, and it would keep `pendingCountFor`
+  /// above zero so "Sync first" on logout/switch could never settle).
+  ///
+  /// [discard] true = the parent was a never-synced ghost the user discarded.
+  /// A dependent that is ITSELF a ghost create can never sync either, so it's
+  /// removed wholesale (local record + all its outbox rows) and we recurse
+  /// into ITS tmp id (catching e.g. a payment created against an offline
+  /// invoice created against the discarded client). A non-ghost dependent
+  /// (an update/action on a real entity that merely referenced the tmp) is
+  /// marked dead.
+  ///
+  /// [discard] false = the parent's CREATE died (422). Dependents are marked
+  /// dead (kept, not deleted) — the user may fix + retry the parent, and
+  /// `rewriteTempIdInPayloads` (which covers dead rows) then heals their refs
+  /// for a manual Retry. Recursion marks deeper levels dead too.
+  ///
+  /// Terminates: every branch removes the row from the `pending` set
+  /// (`markDead` flips state, ghost-delete removes it) and
+  /// `pendingRowsReferencing` is pending-only, so the still-pending set
+  /// strictly shrinks each step (also breaks any hypothetical reference
+  /// cycle).
+  Future<void> _failTmpDependents(
+    String companyId,
+    String parentTmpId, {
+    required bool discard,
+  }) async {
+    if (!parentTmpId.startsWith('tmp_')) return;
+    final deps = await db.outboxDao.pendingRowsReferencing(
+      companyId: companyId,
+      needle: parentTmpId,
+    );
+    for (final dep in deps) {
+      final isGhostDep =
+          MutationKind.tryParse(dep.mutationKind) == MutationKind.create &&
+          dep.entityId.startsWith('tmp_') &&
+          await db.idRemapDao.resolve(
+                entityType: dep.entityType,
+                tempId: dep.entityId,
+              ) ==
+              null;
+      if (discard && isGhostDep) {
+        await registry
+            .byWireName(dep.entityType)
+            ?.dispatcher
+            .deleteLocalRecord(companyId: companyId, id: dep.entityId);
+        await db.outboxDao.deleteAllForEntity(
+          companyId: companyId,
+          entityType: dep.entityType,
+          entityId: dep.entityId,
+        );
+        await _failTmpDependents(companyId, dep.entityId, discard: true);
+      } else {
+        await _markDead(
+          dep,
+          discard
+              ? 'References a discarded unsynced record'
+              : 'References a record that could not be saved',
+          null,
+        );
+        // Recurse into a dead create's OWN tmp dependents (deeper levels).
+        // The `!= parentTmpId` guard skips a same-entity update keyed to the
+        // parent's tmp id (already handled above), so we never re-query the
+        // same needle.
+        if (MutationKind.tryParse(dep.mutationKind) == MutationKind.create &&
+            dep.entityId.startsWith('tmp_') &&
+            dep.entityId != parentTmpId) {
+          await _failTmpDependents(companyId, dep.entityId, discard: discard);
+        }
+      }
+    }
   }
 
   /// Discard every `pending` outbox row for [companyId] — the "Discard"
@@ -190,6 +295,25 @@ class SyncRepository {
   Future<void> discardPendingFor(String companyId) async {
     final rows = await db.outboxDao.pendingRowsForCompany(companyId);
     for (final row in rows) {
+      await discardOutboxRow(row.id);
+    }
+  }
+
+  /// Discard every `pending` outbox row for one entity — the 409/404
+  /// conflict sheet's "discard my changes" path. Scoped to the conflicted
+  /// record: the parked row itself plus any queued follow-up mutations for
+  /// the same entity. (This used to route through [discardPendingFor],
+  /// which destroyed the *whole company's* pending queue — including
+  /// unrelated offline creates, which were also ghost-deleted locally.)
+  /// [entityType] is the outbox wire name (`OutboxRow.entityType`).
+  Future<void> discardPendingForEntity({
+    required String companyId,
+    required String entityType,
+    required String entityId,
+  }) async {
+    final rows = await db.outboxDao.pendingRowsForCompany(companyId);
+    for (final row in rows) {
+      if (row.entityType != entityType || row.entityId != entityId) continue;
       await discardOutboxRow(row.id);
     }
   }
@@ -315,20 +439,58 @@ class SyncRepository {
   /// Single-flight per company: a second call while a drain is already
   /// running for the same company returns the existing future instead of
   /// starting a parallel one.
+  /// Companies whose `drainOnce` kick was absorbed by the single-flight
+  /// guard while a pass was already running — each gets one trailing
+  /// re-drain when that pass completes (see the guard comment below).
+  final Set<String> _redrainRequested = <String>{};
+
   Future<int> drainOnce({required String companyId}) {
     final existing = _inFlight[companyId];
-    if (existing != null) return existing;
+    if (existing != null) {
+      // A kick landed mid-pass. The row that triggered it isn't in the
+      // running pass's `nextReady` snapshot, so returning the in-progress
+      // future alone would swallow it — on desktop (app stays resumed,
+      // connectivity stable) nothing else re-kicks for days and the
+      // mutation sits pending while the user believes they're synced.
+      // Flag a trailing re-drain instead. Deliberately a flag and not a
+      // blanket "re-check nextReady after every pass": rows skipped by the
+      // tmp_-dependency guard stay pending AND due, so a blanket re-check
+      // would spin on them.
+      _redrainRequested.add(companyId);
+      return existing;
+    }
     _cancelRequested = false;
     final future = _drainOnceImpl(companyId);
     _inFlight[companyId] = future;
     // Use `whenComplete` so the slot is cleared whether the drain succeeded
     // or threw. The `identical` guard protects against a hypothetical
-    // re-entrant overwrite (none today, but cheap insurance).
-    future.whenComplete(() {
-      if (identical(_inFlight[companyId], future)) {
-        _inFlight.remove(companyId);
-      }
-    });
+    // re-entrant overwrite (none today, but cheap insurance). The trailing
+    // `.catchError` silences THIS derived future only — `whenComplete`
+    // re-propagates the pass's error onto its own (unlistened) return
+    // future, which would otherwise surface as an unhandled async error;
+    // callers awaiting `drainOnce` still see the error on the original.
+    unawaited(
+      future
+          .whenComplete(() {
+            if (identical(_inFlight[companyId], future)) {
+              _inFlight.remove(companyId);
+            }
+            if (!_cancelRequested && _redrainRequested.remove(companyId)) {
+              // Best-effort: the app (or a test) may be tearing down by the
+              // time the trailing pass starts — a failure must not surface as
+              // an unhandled async error; the row stays pending for the next
+              // trigger. The `_cancelRequested` check keeps a cancel()-then-
+              // wipe sequence (logout) from racing a freshly kicked pass.
+              unawaited(
+                drainOnce(companyId: companyId).catchError((Object e) {
+                  _log.fine('trailing re-drain failed: $e');
+                  return 0;
+                }),
+              );
+            }
+          })
+          .catchError((Object _) => 0),
+    );
     return future;
   }
 
@@ -367,10 +529,67 @@ class SyncRepository {
       // park the edit as a bogus conflict. byId() returns the post-remap row.
       final row = await db.outboxDao.byId(snapshot.id);
       if (row == null) continue; // deleted / superseded mid-pass
+      // No longer pending? An earlier row in THIS pass may have turned this
+      // one terminal — e.g. a parent create's 422 cascaded `_failTmpDependents`
+      // and marked this dependent dead. Skip it; otherwise the tmp_-ref
+      // branch below would `scheduleRetry` it straight back to `pending`.
+      if (row.state != 'pending') continue;
+      if (_hasUnresolvedTempRef(row)) {
+        // The row still references a not-yet-created entity even after the
+        // byId re-read — its parent create didn't produce a real id (it
+        // failed earlier in this pass, is parked, or is dead). Dispatching
+        // anyway sends the tmp_ id to the server: a PUT/DELETE on
+        // `/<entity>/tmp_x` 404s and parks this row as a bogus year-long
+        // "conflict" (with a misleading resolution dialog), and a create
+        // carrying e.g. `client_id: tmp_x` dies on a 422. Leave it pending:
+        // when the parent create eventually lands, rewriteTempIdInPayloads
+        // heals the reference and the next drain sends it.
+        _log.info(
+          'Skipping outbox row ${row.id} (${row.entityType}/${row.entityId}):'
+          ' unresolved tmp_ reference awaiting its parent create',
+        );
+        // Vacate the nextReady window (a 50-row snapshot): a skipped row
+        // left due-and-pending forever would pin the window and starve
+        // every row queued behind it once skips accumulate. A short defer
+        // (attempts unchanged) keeps it cheap — when the parent create
+        // lands, rewriteTempIdInPayloads heals the reference and the row
+        // dispatches on a pass within the defer window.
+        await db.outboxDao.scheduleRetry(
+          id: row.id,
+          attempts: row.attempts,
+          nextAttemptAt:
+              _now().millisecondsSinceEpoch +
+              const Duration(minutes: 1).inMilliseconds,
+          error: 'Waiting for an unsynced referenced record to sync first',
+        );
+        continue;
+      }
       final dispatched = await _attempt(row);
       if (dispatched) successes++;
     }
     return successes;
+  }
+
+  /// Matches ids minted by `BaseEntityRepository.mintTempId()`
+  /// (`tmp_<uuid-v4>`). Strict on the full UUID shape so user-typed text
+  /// that merely starts with "tmp_" can never flag a payload.
+  static final RegExp _tempIdPattern = RegExp(
+    r'tmp_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
+  );
+
+  /// True when [row] still references a not-yet-created entity: a non-create
+  /// mutation aimed at a `tmp_` entityId, or any payload `tmp_` token other
+  /// than a create's own id (`toApiJson(preserveTempId: true)` legitimately
+  /// embeds the row's own tmp_ id in its create payload).
+  bool _hasUnresolvedTempRef(OutboxRow row) {
+    final isCreate =
+        MutationKind.tryParse(row.mutationKind) == MutationKind.create;
+    if (!isCreate && row.entityId.startsWith('tmp_')) return true;
+    for (final m in _tempIdPattern.allMatches(row.payload)) {
+      if (isCreate && m.group(0) == row.entityId) continue;
+      return true;
+    }
+    return false;
   }
 
   Future<bool> _attempt(OutboxRow row) async {
@@ -413,6 +632,48 @@ class SyncRepository {
           message: e.message,
         ),
       );
+      // A failed tmp_ CREATE strands every dependent that referenced it —
+      // their tmp ref can never be rewritten now (rewrite only fires on a
+      // create SUCCESS), so the drain's tmp_-dependency guard would defer
+      // them forever and "Sync first" could never settle. Mark them dead
+      // (kept, retryable once the parent is fixed); recursion covers deeper
+      // levels.
+      if (MutationKind.tryParse(row.mutationKind) == MutationKind.create &&
+          row.entityId.startsWith('tmp_')) {
+        await _failTmpDependents(row.companyId, row.entityId, discard: false);
+      }
+      return false;
+    } on NotFoundException catch (e) {
+      // 404 on a non-delete mutation: the entity was deleted server-side while
+      // we held this pending edit, so there's nothing left to update. (A 404 on
+      // a DELETE is swallowed upstream by the dispatcher as success.) Re-sending
+      // the same request would 404 forever, so park it (1-year safety valve,
+      // same as 409) and emit a 404-flavored ConflictEvent — the sheet offers
+      // discard-locally only (the only escape; "use my changes" would re-park).
+      // NOTE: must precede the ConflictException catch — NotFoundException is a
+      // subtype of it.
+      _log.info(
+        '404 on ${row.entityType}/${row.entityId}: deleted server-side, '
+        'parking as a conflict',
+      );
+      await db.outboxDao.scheduleRetry(
+        id: row.id,
+        attempts: row.attempts,
+        nextAttemptAt:
+            _now().millisecondsSinceEpoch +
+            const Duration(days: 365).inMilliseconds,
+        error: e.message,
+        statusCode: 404,
+      );
+      _events.add(
+        ConflictEvent(
+          entityType: handlers.type,
+          entityId: row.entityId,
+          message: e.message,
+          statusCode: 404,
+          outboxRowId: row.id,
+        ),
+      );
       return false;
     } on ConflictException catch (e) {
       _log.info('409 on ${row.entityType}/${row.entityId}: ${e.message}');
@@ -436,6 +697,8 @@ class SyncRepository {
           entityType: handlers.type,
           entityId: row.entityId,
           message: e.message,
+          statusCode: 409,
+          outboxRowId: row.id,
         ),
       );
       return false;

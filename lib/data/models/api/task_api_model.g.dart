@@ -32,6 +32,9 @@ _TaskApi _$TaskApiFromJson(Map<String, dynamic> json) => _TaskApi(
   documents: (json['documents'] as List<dynamic>?)
       ?.map((e) => DocumentApi.fromJson(e as Map<String, dynamic>))
       .toList(),
+  tags: json['tags'] == null
+      ? const <TagRefApi>[]
+      : const EmbeddedTagsConverter().fromJson(json['tags']),
 );
 
 Map<String, dynamic> _$TaskApiToJson(_TaskApi instance) => <String, dynamic>{
@@ -58,6 +61,7 @@ Map<String, dynamic> _$TaskApiToJson(_TaskApi instance) => <String, dynamic>{
   'is_running': instance.isRunning,
   'is_date_based': instance.isDateBased,
   'documents': instance.documents,
+  'tags': const EmbeddedTagsConverter().toJson(instance.tags),
 };
 
 _TaskListApi _$TaskListApiFromJson(Map<String, dynamic> json) => _TaskListApi(

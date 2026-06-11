@@ -73,7 +73,16 @@ String companySafeLocation(
 ) {
   final uri = Uri.tryParse(currentLocation);
   if (uri == null || uri.path.isEmpty) return '/clients';
-  for (final root in entityRoots) {
+  // Longest root first: `/settings/bank_accounts/transaction_rules` nests
+  // under `/settings/bank_accounts`, and matching the shorter root first
+  // would mis-strip the nested entity's own list (and its ids) to the
+  // parent's list root.
+  final roots = entityRoots.toList()
+    ..sort((a, b) => b.length.compareTo(a.length));
+  // A list root itself is always safe — without this, a nested root's own
+  // list would match its parent root's `<root>/` prefix and get stripped.
+  if (roots.contains(uri.path)) return currentLocation;
+  for (final root in roots) {
     final prefix = '$root/';
     if (!uri.path.startsWith(prefix)) continue;
     final firstSeg = uri.path.substring(prefix.length).split('/').first;
@@ -448,8 +457,16 @@ GoRouter buildRouter({
       // login or list page would just bounce the same way.
       final tooOld = isClientTooOld?.call() ?? false;
       final atTooOld = state.matchedLocation == '/too-old';
-      if (tooOld && !atTooOld) return '/too-old';
-      if (!tooOld && atTooOld) {
+      if (tooOld) {
+        // `/too-old` is terminal while the flag is up: the later gates
+        // (login, setup, biometric) know nothing about it and would bounce
+        // the user straight back off the update screen — a redirect loop
+        // for logged-out or biometric-locked users, which go_router renders
+        // as the generic route-error view. The screen carries its own
+        // sign-out escape hatch, so staying put is always safe.
+        return atTooOld ? null : '/too-old';
+      }
+      if (atTooOld) {
         return isAuthenticated() ? postLoginRoute() : '/login';
       }
       final loggedIn = isAuthenticated();
@@ -461,19 +478,12 @@ GoRouter buildRouter({
       final atAuthPage = loc == '/login' || loc == '/signup';
       if (!loggedIn && !atAuthPage) return '/login';
       if (loggedIn && atAuthPage) return postLoginRoute();
-      // Setup-wizard gate — when the active company hasn't been named yet,
-      // gate every authenticated route behind `/setup`. Sits *after* the
-      // login check (so logout-from-wizard still routes to `/login`) and
-      // *before* the biometric gate (a biometric-locked user must unlock
-      // before being asked to name the company). Matches admin-portal's
-      // non-dismissible `SettingsWizard` dialog and React's CompanyEdit
-      // modal — same trigger condition, full-screen presentation instead.
-      final setupNeeded = loggedIn && (isCompanySetupRequired?.call() ?? false);
-      final atSetup = state.matchedLocation == '/setup';
-      if (setupNeeded && !atSetup) return '/setup';
-      if (!setupNeeded && atSetup) return postLoginRoute();
       // Biometric gate — only when logged in. Sits *after* the login check
-      // so logout from the lock screen still routes the user to `/login`.
+      // (so logout from the lock screen still routes to `/login`) and
+      // *before* the setup gate: a biometric-locked user must unlock before
+      // being asked to name the company. With both flags up the reverse
+      // order looped forever (/setup → /lock → /setup — neither screen
+      // could mount, so neither flag could ever clear).
       //
       // We round-trip the intended destination on the `/lock` URL so the
       // unlock can resume the user's deep link rather than dumping them on
@@ -481,10 +491,15 @@ GoRouter buildRouter({
       // non-negotiable contract (CLAUDE.md).
       final lockRequired = isBiometricLockRequired?.call() ?? false;
       final atLock = state.matchedLocation == '/lock';
-      if (loggedIn && lockRequired && !atLock) {
-        return '/lock?from=${Uri.encodeQueryComponent(state.uri.toString())}';
+      if (loggedIn && lockRequired) {
+        if (!atLock) {
+          return '/lock?from=${Uri.encodeQueryComponent(state.uri.toString())}';
+        }
+        // Locked and at /lock: terminal — no later gate may bounce the user
+        // off the lock screen.
+        return null;
       }
-      if (loggedIn && !lockRequired && atLock) {
+      if (loggedIn && atLock) {
         final from = state.uri.queryParameters['from'];
         // Guard against `from` pointing back at `/lock` (defence-in-depth —
         // would only happen if the persister somehow saved a `/lock` deep
@@ -494,6 +509,15 @@ GoRouter buildRouter({
         }
         return postLoginRoute();
       }
+      // Setup-wizard gate — when the active company hasn't been named yet,
+      // gate every authenticated route behind `/setup`. Sits *after* the
+      // login and biometric checks (see above). Matches admin-portal's
+      // non-dismissible `SettingsWizard` dialog and React's CompanyEdit
+      // modal — same trigger condition, full-screen presentation instead.
+      final setupNeeded = loggedIn && (isCompanySetupRequired?.call() ?? false);
+      final atSetup = state.matchedLocation == '/setup';
+      if (setupNeeded && !atSetup) return '/setup';
+      if (!setupNeeded && atSetup) return postLoginRoute();
       // Module gate — a deep link or restored "where you left off" route that
       // points at an entity whose module is now disabled for the active
       // company. Bounce to the safe post-login route (dashboard / clients —

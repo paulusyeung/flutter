@@ -187,6 +187,7 @@ class ExpenseCategoryFilterKey extends MembershipFilterKey {
   /// Release the names-cache subscription when the key is replaced (e.g.
   /// company switch). `FilterKey` has no lifecycle hook today, so this
   /// lives until GC otherwise — same trade-off as Tasks `ProjectFilterKey`.
+  @override
   void dispose() {
     _namesSub?.cancel();
     _namesSub = null;
@@ -242,6 +243,7 @@ abstract class _RecordMembershipFilterKey extends MembershipFilterKey {
     });
   }
 
+  @override
   void dispose() {
     _namesSub?.cancel();
     _namesSub = null;

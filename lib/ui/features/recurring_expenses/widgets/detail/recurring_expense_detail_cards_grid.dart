@@ -17,6 +17,7 @@ import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/detail/custom_field_detail_rows.dart';
 import 'package:admin/ui/core/detail/entity_link_card.dart';
 import 'package:admin/ui/core/widgets/centered_form_column.dart';
+import 'package:admin/ui/core/widgets/copyable_value.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/recurring_expenses/widgets/recurring_expense_status_pill.dart';
 import 'package:admin/utils/formatting.dart';
@@ -212,9 +213,13 @@ bool _hasScheduleDetail(RecurringExpense e) =>
     e.recurringDates.any((r) => r.sendDate != null);
 
 class _Row extends StatelessWidget {
-  const _Row({required this.label, required this.value});
+  const _Row({required this.label, required this.value, this.copyValue});
   final String label;
   final Widget value;
+
+  /// When non-empty, the value gets a copy affordance (hover icon on
+  /// desktop/web, tap-to-copy on mobile) that copies this string.
+  final String? copyValue;
 
   @override
   Widget build(BuildContext context) {
@@ -222,6 +227,14 @@ class _Row extends StatelessWidget {
     // Tighten the label column on narrow phones so the value keeps a usable
     // width (a fixed 160px would eat ~half a 360px screen).
     final labelWidth = MediaQuery.sizeOf(context).width < 480 ? 100.0 : 160.0;
+    Widget styled = DefaultTextStyle.merge(
+      child: value,
+      style: TextStyle(fontSize: 13, color: tokens.ink),
+    );
+    final copy = copyValue;
+    if (copy != null && copy.isNotEmpty) {
+      styled = CopyableValue(value: copy, child: styled);
+    }
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -237,12 +250,7 @@ class _Row extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(
-            child: DefaultTextStyle.merge(
-              child: value,
-              style: TextStyle(fontSize: 13, color: tokens.ink),
-            ),
-          ),
+          Expanded(child: styled),
         ],
       ),
     );
@@ -288,7 +296,11 @@ class _SummaryCard extends StatelessWidget {
             value: RecurringExpenseStatusPill(statusId: e.calculatedStatusId),
           ),
           if (e.number.isNotEmpty)
-            _Row(label: context.tr('number'), value: Text(e.number)),
+            _Row(
+              label: context.tr('number'),
+              value: Text(e.number),
+              copyValue: e.number,
+            ),
           _Row(label: context.tr('date'), value: Text(dateText)),
           _Row(label: context.tr('amount'), value: Text(amountText)),
           // Net (amount minus tax) is only distinct from amount for inclusive

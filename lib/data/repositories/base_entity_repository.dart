@@ -11,6 +11,7 @@ import 'package:admin/domain/sync/mutation.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/billing_extra_filters.dart'
     show resolveRelativeFilterTokens;
+import 'package:admin/data/db/dao/base_entity_dao.dart';
 import 'package:admin/data/db/dao/id_remap_dao.dart';
 import 'package:admin/data/db/dao/outbox_dao.dart';
 import 'package:admin/data/db/dao/sync_state_dao.dart';
@@ -164,39 +165,63 @@ abstract class BaseEntityRepository<TDomain, TApi> {
     mutationKind: kind.wireName,
   );
 
-  /// Enqueue an `archive` mutation. The optimistic local state is set
-  /// when the user invokes the action — typically via a
-  /// `services.<entity>.archive(...)` call from a list-row popup or
-  /// detail-screen action. The dispatcher hits `DELETE /entity/{id}?action=archive`
-  /// on drain.
-  Future<void> archive({required String companyId, required String id}) =>
-      enqueueMutation(
+  /// Archive a row: flip the local Drift row optimistically (`archived_at`
+  /// now, `is_dirty=true`) AND enqueue the mutation, in one transaction — so
+  /// offline the row leaves the active list immediately instead of sitting
+  /// there with no feedback (users would otherwise re-tap → duplicate
+  /// mutations). The dispatcher hits `DELETE /entity/{id}?action=archive` on
+  /// drain and `applyUpdateResponse` reconciles the row. The optimistic flip
+  /// is gated on [localDao] (BaseEntityDao entities); bespoke-DAO entities
+  /// fall back to enqueue-only (see [localDao]). `is_dirty=true` keeps a
+  /// `/refresh` from clobbering the flip before sync.
+  Future<void> archive({required String companyId, required String id}) async {
+    await db.transaction(() async {
+      await localDao?.setArchived(
+        companyId: companyId,
+        id: id,
+        atEpochSeconds: _now().millisecondsSinceEpoch ~/ 1000,
+      );
+      await enqueueMutation(
         companyId: companyId,
         entityId: id,
         kind: MutationKind.archive,
         payload: {'id': id},
       );
+    });
+  }
 
-  /// Enqueue a `restore` mutation. Inverse of [archive] — un-archives a row.
-  Future<void> restore({required String companyId, required String id}) =>
-      enqueueMutation(
+  /// Restore a row: optimistically clear archived/deleted flags (the inverse
+  /// of both [archive] and [delete]) + enqueue, in one transaction. See
+  /// [archive].
+  Future<void> restore({required String companyId, required String id}) async {
+    await db.transaction(() async {
+      await localDao?.markRestored(companyId: companyId, id: id);
+      await enqueueMutation(
         companyId: companyId,
         entityId: id,
         kind: MutationKind.restore,
         payload: {'id': id},
       );
+    });
+  }
 
-  /// Enqueue a `delete` mutation. Password-gated for entities that opted
-  /// into it via the constructor's `requiresPasswordFor:` set — the outbox
-  /// row gets `requiresPassword=true` and the sync engine prompts via
-  /// `ConfirmPasswordSheet`.
-  Future<void> delete({required String companyId, required String id}) =>
-      enqueueMutation(
+  /// Delete a row: optimistically soft-delete the local row (`is_deleted=true`,
+  /// `is_dirty=true`) + enqueue, in one transaction (see [archive]).
+  /// Password-gated for entities that opted into it via the constructor's
+  /// `requiresPasswordFor:` set — the outbox row gets `requiresPassword=true`
+  /// and the sync engine prompts via `ConfirmPasswordSheet`. (Invoice Ninja
+  /// delete is a soft-delete; [purge] is the irreversible hard delete.)
+  Future<void> delete({required String companyId, required String id}) async {
+    await db.transaction(() async {
+      await localDao?.markDeletedDirty(companyId: companyId, id: id);
+      await enqueueMutation(
         companyId: companyId,
         entityId: id,
         kind: MutationKind.delete,
         payload: {'id': id},
       );
+    });
+  }
 
   /// Enqueue a `purge` mutation. Irreversible — the dispatcher hard-deletes
   /// the local row via `applyPurgeResponse` after the server confirms.
@@ -344,6 +369,29 @@ abstract class BaseEntityRepository<TDomain, TApi> {
     '$runtimeType does not support deleteLocalById — entity $entityTypeName '
     'is settings-only or has no offline create flow.',
   );
+
+  /// The entity's Drift DAO, used only by the generic [clearLocalDirty]
+  /// reconciliation below. Entities whose DAO extends [BaseEntityDao]
+  /// override this with their one-liner (`db.xDao`); the bespoke-DAO
+  /// entities (bundled / settings lists whose DAO extends `DatabaseAccessor`
+  /// directly — tax rates, gateways, payment terms, tokens, webhooks,
+  /// schedules, designs, task statuses, expense categories, payment links,
+  /// bank accounts/transactions, transaction rules) leave it null and fall
+  /// back to a no-op clear (they're refreshed wholesale and edited rarely;
+  /// reconciling their discards is a known follow-up). Additive — does not
+  /// replace the per-entity [deleteLocalById] override.
+  @protected
+  BaseEntityDao<dynamic, dynamic>? get localDao => null;
+
+  /// Clear the local record's `is_dirty` flag — the discard-reconciliation
+  /// hook (see `SyncRepository.discardOutboxRow`). No-op when the entity has
+  /// no DAO (`localDao == null`). The SyncRepository gates the call on "no
+  /// other active outbox row for this entity", so this never un-protects a
+  /// still-queued edit.
+  Future<void> clearLocalDirty({
+    required String companyId,
+    required String id,
+  }) async => localDao?.clearDirtyById(companyId: companyId, id: id);
 
   /// Translate the requested UI [EntityState]s into server query params for
   /// the list endpoint, e.g. `{'status': 'archived,deleted'}`.
@@ -525,7 +573,16 @@ abstract class BaseEntityRepository<TDomain, TApi> {
         resolvedExtra.containsKey('vendor_id') ||
         resolvedExtra.containsKey('bank_integration_ids');
 
-    final cursor = (ignoreCursor || hasParentScope)
+    // The cursor is a PAGE-1 delta probe only. The server applies it as a
+    // plain `updated_at >=` WHERE filter on top of offset paging (default
+    // order `id DESC` — see CLAUDE.md § Sync), so letting it leak into
+    // page >= 2 turns "browse the full list" into "browse only
+    // recently-changed rows": page 2 was mostly the same ~50 rows page 1
+    // already returned → near-empty → hasMore=false. That silently capped
+    // pagination, search, and even a forced full resync (whose page 1
+    // ignores the cursor but then ADVANCES it, so page 2 read what page 1
+    // just wrote) at roughly one page for any organically-grown account.
+    final cursor = (ignoreCursor || hasParentScope || page > 1)
         ? null
         : await _syncState.read(
             companyId: companyId,
@@ -559,15 +616,20 @@ abstract class BaseEntityRepository<TDomain, TApi> {
     await upsert({for (final a in apiRows) idOf(a): toCompanion(a)});
 
     // A parent-scoped fetch must not advance the shared cursor (see above):
-    // its `data.last` is a scoped high-water mark, not the entity's global one.
+    // its `data.last` is a scoped high-water mark, not the entity's global
+    // one. Neither may a page >= 2 fetch: under `id DESC` ordering deeper
+    // pages carry OLDER rows, so `writeCursor` (last-write-wins, no max
+    // guard) would walk the watermark backwards — and mid-sweep advances
+    // were what re-truncated full resyncs.
     if (!hasParentScope &&
+        page == 1 &&
         result.cursorUpdatedAt != null &&
         result.cursorId != null) {
       await advanceCursor(
         companyId: companyId,
         updatedAt: result.cursorUpdatedAt!,
         id: result.cursorId!,
-        wasFullSync: ignoreCursor && page == 1,
+        wasFullSync: ignoreCursor,
       );
     }
 

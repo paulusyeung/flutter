@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -21,9 +22,11 @@ Widget _host(Widget child) => MaterialApp(
 EntityDetailHeader _header({
   required String displayName,
   IconData? fallbackIcon,
+  String? number,
 }) => EntityDetailHeader(
   seedForAvatar: 'seed',
   displayName: displayName,
+  number: number,
   // Epoch-0 timestamps + null formatter render the subtitle as empty, so
   // the header needs no Formatter wiring for these avatar-focused checks.
   createdAt: DateTime.fromMillisecondsSinceEpoch(0),
@@ -63,5 +66,24 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('?'), findsOneWidget);
+  });
+
+  testWidgets('desktop: copyable #number renders inside the baseline row '
+      'with no layout error', (tester) async {
+    // The header number gets a CopyableValue (copies the bare number). On
+    // desktop that wraps the text in a Row + hover icon inside the header's
+    // baseline-aligned Row — guard against a baseline/layout regression.
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+    try {
+      await tester.pumpWidget(
+        _host(_header(displayName: 'John Lennon', number: '0009')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('#0009'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 }

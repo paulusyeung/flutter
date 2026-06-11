@@ -9,6 +9,7 @@ import 'package:admin/data/models/domain/user.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/edit/entity_edit_field.dart';
+import 'package:admin/ui/core/widgets/entity_tags_field.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/core/widgets/in_date_field.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
@@ -50,6 +51,11 @@ class ProjectEditDetailsSection extends StatelessWidget {
           _AssignedUserPicker(vm: vm),
           _DueDateField(vm: vm),
           ColorField(initial: vm.draft.color, onChanged: vm.setColor),
+          EntityTagsField(
+            entityType: 'project',
+            selectedIds: vm.draft.tagIds,
+            onChanged: vm.setTagIds,
+          ),
         ],
       ),
     );

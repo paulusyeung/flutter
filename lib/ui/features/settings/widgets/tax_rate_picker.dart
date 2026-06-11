@@ -104,8 +104,20 @@ class TaxRatePicker extends StatelessWidget {
               '${r.name} (${rateInputText(r.rate, useCommaAsDecimalPlace: useComma, blankZero: false)}%)',
           idOf: (r) => '${r.name}|${r.rate}',
           onChanged: (r) {
+            // Clear sentinel by scope (see SettingsDraftHost.isCascadeScope):
+            // company scope writes '' / 0 — the server's own cleared state —
+            // so the clear survives the rawSettings PUT merge (a typed null
+            // is omitted by toJson and resurrects from the raw snapshot);
+            // cascade scope writes null/null so the override pair is removed
+            // rather than left as a phantom 0%-tax override.
+            final cascade = host.isCascadeScope;
             host.updateSettings(
-              (s) => _writePair(s, slot, name: r?.name, rate: r?.rate),
+              (s) => _writePair(
+                s,
+                slot,
+                name: r?.name ?? (cascade ? null : ''),
+                rate: r?.rate ?? (cascade ? null : 0),
+              ),
             );
           },
           errorText: errorText,

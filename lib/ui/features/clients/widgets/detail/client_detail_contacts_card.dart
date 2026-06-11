@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/contact.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
-import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/core/widgets/copyable_value.dart';
 import 'package:admin/ui/core/widgets/detail_info_row.dart';
 import 'package:admin/ui/features/clients/widgets/client_portal.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
@@ -146,15 +145,19 @@ class _ContactRow extends StatelessWidget {
     final theme = Theme.of(context);
     final tokens = context.inTheme;
     final name = ('${contact.firstName} ${contact.lastName}').trim();
-    final title = name.isNotEmpty
+    final hasName = name.isNotEmpty;
+    final title = hasName
         ? name
         : (contact.email.isNotEmpty
               ? contact.email
               : context.tr('no_name_fallback'));
-    final subtitle = [
-      if (contact.email.isNotEmpty && contact.email != title) contact.email,
-      if (contact.phone.isNotEmpty) contact.phone,
-    ].join(' · ');
+    final titleStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: tokens.ink,
+      fontWeight: FontWeight.w500,
+    );
+    final subStyle = theme.textTheme.bodySmall?.copyWith(color: tokens.ink3);
+    // The email shows as a secondary line only when a name occupies the title.
+    final secondaryEmail = hasName ? contact.email : '';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: InSpacing.sm),
@@ -166,20 +169,26 @@ class _ContactRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  title,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: tokens.ink,
-                    fontWeight: FontWeight.w500,
+                // Title is copyable only when it's the email (no name).
+                if (hasName || contact.email.isEmpty)
+                  Text(title, style: titleStyle)
+                else
+                  CopyableValue(
+                    value: contact.email,
+                    child: Text(title, style: titleStyle),
                   ),
-                ),
-                if (subtitle.isNotEmpty) ...[
+                if (secondaryEmail.isNotEmpty) ...[
                   const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: tokens.ink3,
-                    ),
+                  CopyableValue(
+                    value: secondaryEmail,
+                    child: Text(secondaryEmail, style: subStyle),
+                  ),
+                ],
+                if (contact.phone.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  CopyableValue(
+                    value: contact.phone,
+                    child: Text(contact.phone, style: subStyle),
                   ),
                 ],
                 if (contact.link.isNotEmpty) ...[
@@ -203,7 +212,7 @@ class _ContactRow extends StatelessWidget {
                         style: _portalButtonStyle,
                         icon: const Icon(Icons.content_copy, size: 14),
                         label: Text(context.tr('copy_link')),
-                        onPressed: () => _copyPortal(
+                        onPressed: () => copyToClipboard(
                           context,
                           clientPortalUrl(
                             contactLink: contact.link,
@@ -249,9 +258,3 @@ final ButtonStyle _portalButtonStyle = TextButton.styleFrom(
   visualDensity: VisualDensity.compact,
   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
 );
-
-Future<void> _copyPortal(BuildContext context, String url) async {
-  await Clipboard.setData(ClipboardData(text: url));
-  if (!context.mounted) return;
-  Notify.success(context, context.tr('link_copied'));
-}

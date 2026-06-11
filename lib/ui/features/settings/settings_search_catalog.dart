@@ -180,6 +180,18 @@ const kSettingsSections = <SettingsSectionDef>[
     isBasic: true,
     enabledBy: [EnabledModule.tasks],
   ),
+  // Tags span tasks + projects; company-level + admin-managed (the server
+  // gates create/update to admins). The screen's toggle switches entity type.
+  SettingsSectionDef(
+    slug: 'tags',
+    titleKey: 'tags',
+    icon: Icons.local_offer_outlined,
+    route: '/settings/tags',
+    isBasic: true,
+    enabledBy: [EnabledModule.tasks, EnabledModule.projects],
+    clientEditable: false,
+    adminOnly: true,
+  ),
   SettingsSectionDef(
     slug: 'expense_settings',
     titleKey: 'expense_settings',

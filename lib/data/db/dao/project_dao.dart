@@ -28,6 +28,10 @@ class ProjectFieldIds {
   static const String customValue2 = 'custom_value2';
   static const String customValue3 = 'custom_value3';
   static const String customValue4 = 'custom_value4';
+
+  /// Local approximation of the server's `project_tag_ids|asc` sort — orders
+  /// by the denormalized, comma-joined tag names (`projects.tag_names`).
+  static const String tagIds = 'project_tag_ids';
 }
 
 @DriftAccessor(tables: [Projects])
@@ -138,6 +142,8 @@ class ProjectDao extends BaseEntityDao<$ProjectsTable, ProjectRow>
         return p.budgetedHours;
       case ProjectFieldIds.currentHours:
         return p.currentHours;
+      case ProjectFieldIds.tagIds:
+        return p.tagNames;
       case ProjectFieldIds.createdAt:
         return p.createdAt;
       case ProjectFieldIds.updatedAt:

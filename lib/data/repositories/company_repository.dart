@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:drift/drift.dart' show Value;
+import 'package:flutter/foundation.dart' show ValueListenable, ValueNotifier;
 import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/app_database.dart';
@@ -56,6 +57,26 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
   /// separator change is invisible until logout/restart. Repo stays free of a
   /// `Services` import; the cache invalidation is injected, like [onEnqueued].
   final void Function(String companyId)? onSettingsWritten;
+
+  /// Company ids whose canonical `GET /companies/{id}` succeeded this session.
+  /// The Account-Management tabs (Enabled Modules / Security / Overview) and
+  /// the Analytics page PUT the WHOLE company row, but the login envelope omits
+  /// ~29 server-only columns (SMTP / expense / task-invoicing / payment
+  /// conversion) so the cached row holds table defaults for them. They gate
+  /// their controls on this set so a toggle can't ship those defaults and
+  /// clobber the server's real values before [refresh] has backfilled them
+  /// (and stay disabled offline, where [refresh] can't succeed).
+  final ValueNotifier<Set<String>> _canonicalFetched = ValueNotifier(
+    const <String>{},
+  );
+
+  /// Listenable view of [isCanonicalFetched] — the gating widgets rebuild on it.
+  ValueListenable<Set<String>> get canonicalFetched => _canonicalFetched;
+
+  /// Whether the canonical company for [companyId] has been fetched this
+  /// session (see [_canonicalFetched]).
+  bool isCanonicalFetched(String companyId) =>
+      _canonicalFetched.value.contains(companyId);
 
   @override
   String get entityTypeName => 'company';
@@ -560,6 +581,11 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
         companyId: companyId,
         serverResponse: response.data,
       );
+      // Canonical row is now in Drift — release the Account-Management /
+      // Analytics control gate for this company (see [_canonicalFetched]).
+      if (!_canonicalFetched.value.contains(companyId)) {
+        _canonicalFetched.value = {..._canonicalFetched.value, companyId};
+      }
     } on UnauthorizedException catch (e, st) {
       // A background refresh can race a company-switch / logout. A stale-
       // credential 401 says nothing about the live session (ApiClient already
