@@ -302,8 +302,9 @@ class _GetBankAccountsApi implements BankAccountsApi {
   Future<BankAccountItemApi> get(String id) async {
     getCalls++;
     final a = _byId[id];
-    if (a == null)
+    if (a == null) {
       throw const NotFoundException('404 — bank account not found');
+    }
     return BankAccountItemApi(data: a);
   }
 
