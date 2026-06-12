@@ -149,7 +149,7 @@ const kSettingsSections = <SettingsSectionDef>[
   ),
   SettingsSectionDef(
     slug: 'online_payments',
-    titleKey: 'online_payments',
+    titleKey: 'payment_settings',
     icon: Icons.payments_outlined,
     route: '/settings/online_payments',
     isBasic: true,
@@ -280,7 +280,7 @@ const kSettingsSections = <SettingsSectionDef>[
   ),
   SettingsSectionDef(
     slug: 'e_invoice',
-    titleKey: 'e_invoice',
+    titleKey: 'e_invoicing',
     icon: Icons.electric_bolt_outlined,
     route: '/settings/e_invoice',
     isBasic: false,
@@ -337,14 +337,6 @@ const kSettingsSections = <SettingsSectionDef>[
     titleKey: 'user_management',
     icon: Icons.supervised_user_circle_outlined,
     route: '/settings/users',
-    isBasic: false,
-    clientEditable: false,
-  ),
-  SettingsSectionDef(
-    slug: 'integrations',
-    titleKey: 'integrations',
-    icon: Icons.extension_outlined,
-    route: '/settings/integrations',
     isBasic: false,
     clientEditable: false,
   ),
@@ -431,12 +423,16 @@ const kSettingsSearchCatalog = <String, List<String>>{
     'apply_license',
     // Enabled modules
     'enabled_modules',
-    // Integrations (hub tiles only; the GA / Matomo fields moved to the
-    // integrations/analytics route — see kSettingsSearchCatalog['integrations']).
+    // Integrations hub tiles + the Analytics screen's GA / Matomo fields, now
+    // reached via Account Management → Integrations → Analytics (the top-level
+    // Integrations section was removed to match React).
     'api_tokens',
     'api_webhooks',
     'api_docs',
     'analytics',
+    'google_analytics_tracking_id',
+    'matomo_id',
+    'matomo_url',
     'quickbooks',
     // Security
     'password_timeout',
@@ -588,14 +584,6 @@ const kSettingsSearchCatalog = <String, List<String>>{
     'disable_emails',
     'resend_email',
     'remove_user',
-  ],
-  'integrations': [
-    'api_tokens',
-    'api_webhooks',
-    'analytics',
-    'google_analytics_tracking_id',
-    'matomo_id',
-    'matomo_url',
   ],
   'system_logs': ['system_logs', ...kDebugPanelSearchKeys],
 };

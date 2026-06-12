@@ -4,7 +4,7 @@ import 'package:admin/ui/features/settings/views/advanced/e_invoice/e_invoice_bo
 import 'package:admin/ui/features/settings/views/advanced/e_invoice/e_invoice_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/cascade_settings_scaffold.dart';
 
-/// Settings → E-Invoice. Cascade-aware (company / group / client) — the
+/// Settings → E-Invoicing. Cascade-aware (company / group / client) — the
 /// scaffold swaps to the shared `ClientSettingsDraftViewModel` at non-company
 /// scope; per-page customization lives in [EInvoiceViewModel] (a one-line
 /// subclass of `SettingsDraftViewModel`).
@@ -19,7 +19,7 @@ class EInvoiceScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CascadeSettingsScaffold(
-      titleKey: 'e_invoice',
+      titleKey: 'e_invoicing',
       companyVmFactory: ({required repo, required companyId}) =>
           EInvoiceViewModel(repo: repo, companyId: companyId),
       body: const EInvoiceBody(),
