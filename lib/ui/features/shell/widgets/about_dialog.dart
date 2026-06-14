@@ -8,6 +8,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/app/version.dart';
 import 'package:admin/data/repositories/auth/auth_session.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/widgets/link_text.dart';
 import 'package:admin/ui/features/shell/widgets/health_check_dialog.dart';
 import 'package:admin/ui/features/shell/widgets/keyboard_shortcuts_dialog.dart';
@@ -32,6 +33,7 @@ Future<void> showAppLicensePage(BuildContext context, String version) {
 Future<void> showAppAboutDialog(BuildContext context) async {
   final services = context.read<Services>();
   final session = services.auth.session.value;
+  final company = session?.currentCompany;
   // Capture the caller's context for the Health Check chain so the
   // re-open survives popping the About dialog (the builder's `ctx`
   // unmounts on pop).
@@ -41,6 +43,9 @@ Future<void> showAppAboutDialog(BuildContext context) async {
     builder: (ctx) => _AboutDialog(
       serverVersion: services.serverVersion,
       userEmail: session?.userEmail,
+      isSelfHosted: session?.isSelfHosted,
+      isOwner: company?.isOwner ?? false,
+      isAdmin: company?.isAdmin ?? false,
       onShowHealthCheck: _canShowHealthCheck(session)
           ? () {
               Navigator.of(ctx).pop();
@@ -82,6 +87,9 @@ class _AboutDialog extends StatelessWidget {
   const _AboutDialog({
     required this.serverVersion,
     required this.userEmail,
+    required this.isSelfHosted,
+    required this.isOwner,
+    required this.isAdmin,
     required this.onShowHealthCheck,
     required this.onShowKeyboardShortcuts,
     required this.onShowDebugPanel,
@@ -89,6 +97,9 @@ class _AboutDialog extends StatelessWidget {
 
   final ValueListenable<String?> serverVersion;
   final String? userEmail;
+  final bool? isSelfHosted;
+  final bool isOwner;
+  final bool isAdmin;
   final VoidCallback? onShowHealthCheck;
   final VoidCallback? onShowKeyboardShortcuts;
   final VoidCallback onShowDebugPanel;
@@ -100,58 +111,108 @@ class _AboutDialog extends StatelessWidget {
     platformLetter: Env.platformLetter,
   );
 
+  /// `<Self-Hosted|Hosted> • <Owner|Admin>` identity line, mirroring
+  /// admin-portal's About subtitle. Owner outranks admin; with neither flag
+  /// it's just the hosting word. Null when logged out, so the line is omitted.
+  String? _identityLine(BuildContext context) {
+    final selfHosted = isSelfHosted;
+    if (selfHosted == null) return null;
+    final hosting = context.tr(selfHosted ? 'selfhosted' : 'hosted');
+    if (isOwner) return '$hosting • ${context.tr('owner')}';
+    if (isAdmin) return '$hosting • ${context.tr('admin')}';
+    return hosting;
+  }
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    final identity = _identityLine(context);
+    // Responsive sizing: on phones, shrink the dialog inset so it uses more of
+    // the screen, and cap the content to the available width (the fixed 400
+    // would otherwise be squeezed to ~280 by the default 40px side insets).
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isNarrow = screenWidth < Breakpoints.wide;
+    final horizontalInset = isNarrow ? 16.0 : 40.0;
+    final available = screenWidth - horizontalInset * 2;
+    final contentWidth = available < 400 ? available : 400.0;
     return AlertDialog(
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: horizontalInset,
+        vertical: 24,
+      ),
       title: Text(context.tr('about')),
       content: SizedBox(
-        width: 400,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Invoice Ninja',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: tokens.ink,
+        width: contentWidth,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Image.asset('assets/images/icon.png', width: 40, height: 40),
+                  SizedBox(width: InSpacing.lg(context)),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Invoice Ninja',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: tokens.ink,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        ValueListenableBuilder<String?>(
+                          valueListenable: serverVersion,
+                          builder: (context, server, _) => Text(
+                            _versionLabel(server),
+                            style: TextStyle(fontSize: 13, color: tokens.ink3),
+                          ),
+                        ),
+                        if (identity != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            identity,
+                            style: TextStyle(fontSize: 13, color: tokens.ink3),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 2),
-            ValueListenableBuilder<String?>(
-              valueListenable: serverVersion,
-              builder: (context, server, _) => Text(
-                _versionLabel(server),
-                style: TextStyle(fontSize: 13, color: tokens.ink3),
+              if (userEmail != null && userEmail!.isNotEmpty) ...[
+                SizedBox(height: InSpacing.md(context)),
+                Text(
+                  userEmail!,
+                  style: TextStyle(fontSize: 12, color: tokens.ink3),
+                ),
+              ],
+              SizedBox(height: InSpacing.md(context)),
+              LinkText(
+                label: context.tr('view_licenses'),
+                style: const TextStyle(fontSize: 12),
+                color: tokens.accent,
+                onTap: () => showAppLicensePage(
+                  context,
+                  _versionLabel(serverVersion.value),
+                ),
               ),
-            ),
-            if (userEmail != null && userEmail!.isNotEmpty) ...[
               SizedBox(height: InSpacing.md(context)),
               Text(
-                userEmail!,
-                style: TextStyle(fontSize: 12, color: tokens.ink3),
+                '© ${DateTime.now().year} Invoice Ninja',
+                style: TextStyle(fontSize: 11, color: tokens.ink4),
               ),
             ],
-            SizedBox(height: InSpacing.md(context)),
-            LinkText(
-              label: context.tr('view_licenses'),
-              style: const TextStyle(fontSize: 12),
-              color: tokens.accent,
-              onTap: () => showAppLicensePage(
-                context,
-                _versionLabel(serverVersion.value),
-              ),
-            ),
-            SizedBox(height: InSpacing.md(context)),
-            Text(
-              '© ${DateTime.now().year} Invoice Ninja',
-              style: TextStyle(fontSize: 11, color: tokens.ink4),
-            ),
-          ],
+          ),
         ),
       ),
+      actionsOverflowButtonSpacing: InSpacing.sm,
       actions: [
         if (onShowHealthCheck != null)
           OutlinedButton(

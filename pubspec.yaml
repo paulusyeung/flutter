@@ -22,6 +22,7 @@ flutter_icons:
 # upstreams widen their bounds or Flutter ships a newer stable. Full blocker map +
 # routine-bump recipe: docs/setup.md § Dependency updates. (verified 2026-06-02, Flutter 3.44.1)
 dependencies:
+  app_links: ^6.3.0
   collection: ^1.18.0
   connectivity_plus: ^7.1.1
   crop_your_image: ^2.0.0

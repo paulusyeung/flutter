@@ -35,6 +35,7 @@ _TaskApi _$TaskApiFromJson(Map<String, dynamic> json) => _TaskApi(
   tags: json['tags'] == null
       ? const <TagRefApi>[]
       : const EmbeddedTagsConverter().fromJson(json['tags']),
+  meta: const TaskMetaConverter().fromJson(json['meta']),
 );
 
 Map<String, dynamic> _$TaskApiToJson(_TaskApi instance) => <String, dynamic>{
@@ -62,7 +63,14 @@ Map<String, dynamic> _$TaskApiToJson(_TaskApi instance) => <String, dynamic>{
   'is_date_based': instance.isDateBased,
   'documents': instance.documents,
   'tags': const EmbeddedTagsConverter().toJson(instance.tags),
+  'meta': const TaskMetaConverter().toJson(instance.meta),
 };
+
+_TaskMetaApi _$TaskMetaApiFromJson(Map<String, dynamic> json) =>
+    _TaskMetaApi(calendarEventId: json['calendar_event_id'] as String? ?? '');
+
+Map<String, dynamic> _$TaskMetaApiToJson(_TaskMetaApi instance) =>
+    <String, dynamic>{'calendar_event_id': instance.calendarEventId};
 
 _TaskListApi _$TaskListApiFromJson(Map<String, dynamic> json) => _TaskListApi(
   data:

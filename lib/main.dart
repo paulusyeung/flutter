@@ -9,6 +9,7 @@ import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
+import 'package:admin/app/calendar_deep_links.dart';
 import 'package:admin/app/debug_capture_store.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/diagnostics_log.dart';
@@ -406,6 +407,9 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
     session: widget.services.auth.session,
   );
 
+  // Bridges native calendar-OAuth deep links into the router (no-op on web).
+  late final CalendarDeepLinks _calendarDeepLinks = CalendarDeepLinks(_router);
+
   late final PasswordCacheLifecycleObserver _passwordCacheObserver =
       PasswordCacheLifecycleObserver(widget.services.passwordCache);
 
@@ -428,6 +432,7 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
     // we never call methods on `_navPersister` directly.
     _navPersister;
     _navHistory;
+    _calendarDeepLinks;
     WidgetsBinding.instance.addObserver(_passwordCacheObserver);
     WidgetsBinding.instance.addObserver(_syncObserver);
     WidgetsBinding.instance.addObserver(_idleTimeout);
@@ -456,6 +461,7 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
     widget.services.refreshScheduler.dispose();
     _navPersister.dispose();
     _navHistory.dispose();
+    _calendarDeepLinks.dispose();
     super.dispose();
   }
 

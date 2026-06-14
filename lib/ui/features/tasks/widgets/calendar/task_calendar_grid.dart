@@ -3,7 +3,9 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/data/models/api/calendar_connection_api_model.dart';
 import 'package:admin/data/models/value/date.dart';
+import 'package:admin/ui/features/tasks/view_models/calendar_connection_view_model.dart';
 import 'package:admin/ui/features/tasks/view_models/task_calendar_view_model.dart';
 import 'package:admin/ui/features/tasks/widgets/calendar/task_calendar_day_cell.dart';
 import 'package:admin/utils/formatting.dart';
@@ -19,9 +21,14 @@ class TaskCalendarGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<TaskCalendarViewModel>();
+    final calVm = context.watch<CalendarConnectionViewModel>();
     final tokens = context.inTheme;
     final days = vm.gridDays;
     final byDay = vm.tasksByDayFiltered();
+    final showEvents = calVm.isConnected && !calVm.hideEvents;
+    final eventsByDay = showEvents
+        ? calVm.eventsByDay
+        : const <String, List<CalendarEvent>>{};
     final today = Date.today();
     final month = vm.month;
     final locale = formatter?.settings.locale;
@@ -62,6 +69,8 @@ class TaskCalendarGrid extends StatelessWidget {
                             child: TaskCalendarDayCell(
                               day: day,
                               tasks: byDay[day] ?? const [],
+                              events: eventsByDay[day.toIso()] ?? const [],
+                              formatter: formatter,
                               inMonth:
                                   day.month == month.month &&
                                   day.year == month.year,

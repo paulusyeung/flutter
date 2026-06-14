@@ -343,6 +343,7 @@ the honest default.
 | Task — daily view | ✅ | ❌ | ✅ |  | |
 | Task — weekly view | ✅ | ❌ | ✅ |  | |
 | Task — calendar view | ✅ | ❌ | ✅ |  | |
+| Task — connect Google/Microsoft calendar + convert event to task | ✅ | ❌ | 🟡 |  | |
 | Task — detail | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Task — edit | ✅ | ✅ | ✅ | ✅ | |
 | Task — create | ✅ | ✅ | ✅ | ✅ | 🟡 |

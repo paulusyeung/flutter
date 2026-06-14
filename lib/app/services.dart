@@ -30,6 +30,7 @@ import 'package:admin/data/repositories/product_repository.dart';
 import 'package:admin/data/repositories/project_repository.dart';
 import 'package:admin/data/repositories/credit_repository.dart';
 import 'package:admin/data/repositories/purchase_order_repository.dart';
+import 'package:admin/data/repositories/calendar_connection_repository.dart';
 import 'package:admin/data/repositories/quickbooks_repository.dart';
 import 'package:admin/data/repositories/recurring_invoice_repository.dart';
 import 'package:admin/data/repositories/quote_repository.dart';
@@ -227,6 +228,7 @@ class Services implements SidebarBadgeContext {
     required this.company,
     required this.companies,
     required this.quickbooks,
+    required this.calendarConnection,
     required this.dashboard,
     required this.reports,
     required this.statics,
@@ -437,6 +439,11 @@ class Services implements SidebarBadgeContext {
   /// the connect / disconnect side-effects (one_time_token + authorize URL,
   /// disconnect endpoint).
   final QuickbooksRepository quickbooks;
+
+  /// Calendar connection (Google / Microsoft). Stateless integration repo —
+  /// the connection lives on `user.settings` server-side and is read back via
+  /// `status()`; events/calendars are live provider reads, never in Drift.
+  final CalendarConnectionRepository calendarConnection;
 
   final DashboardRepository dashboard;
 
@@ -993,6 +1000,10 @@ class Services implements SidebarBadgeContext {
       apiClient: apiClient,
       auth: auth,
     );
+    final calendarConnectionRepo = CalendarConnectionRepository(
+      apiClient: apiClient,
+      auth: auth,
+    );
     final dashboardApi = DashboardApi(apiClient);
     final dashboardRepo = DashboardRepository(db: db, api: dashboardApi);
     final reportsApi = ReportsApi(apiClient);
@@ -1216,6 +1227,7 @@ class Services implements SidebarBadgeContext {
       company: companyRepo,
       companies: companiesApi,
       quickbooks: quickbooksRepo,
+      calendarConnection: calendarConnectionRepo,
       dashboard: dashboardRepo,
       reports: reportsRepo,
       statics: statics,

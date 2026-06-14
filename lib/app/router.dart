@@ -25,6 +25,7 @@ import 'package:admin/ui/features/shell/scaffold_with_nav.dart';
 import 'package:admin/ui/features/shell/widgets/in_sidebar.dart'
     show kInSidebarWidth, kInSidebarCollapsedWidth;
 import 'package:admin/ui/features/sync/views/outbox_screen.dart';
+import 'package:admin/ui/features/tasks/views/calendar_connection_complete_screen.dart';
 
 final _rootKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -560,6 +561,14 @@ GoRouter buildRouter({
       GoRoute(
         path: '/too-old',
         builder: (context, state) => const ClientTooOldScreen(),
+      ),
+      // Calendar OAuth return. Top-level (outside the shell) so it survives a
+      // full-page web reload before the shell/company context is ready; it
+      // reads the handoff from the URL, completes, and self-routes to the
+      // calendar. Native deep links are bridged here by `CalendarDeepLinks`.
+      GoRoute(
+        path: '/calendar_connection/complete',
+        builder: (context, state) => const CalendarConnectionCompleteScreen(),
       ),
       StatefulShellRoute.indexedStack(
         parentNavigatorKey: _rootKey,

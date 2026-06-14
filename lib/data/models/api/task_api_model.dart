@@ -46,10 +46,46 @@ abstract class TaskApi with _$TaskApi {
     @EmbeddedTagsConverter()
     @Default(<TagRefApi>[])
     List<TagRefApi> tags,
+    // Server emits `meta` as `''` when unset (see `TaskTransformer`) or
+    // `{calendar_event_id: ...}` when the task was converted from a calendar
+    // event. The tolerant [TaskMetaConverter] maps the empty-string form → null
+    // so json_serializable doesn't choke trying to decode a String as an object.
+    @TaskMetaConverter() TaskMetaApi? meta,
   }) = _TaskApi;
 
   factory TaskApi.fromJson(Map<String, dynamic> json) =>
       _$TaskApiFromJson(json);
+}
+
+/// `meta` block on a task. Today this only carries the calendar-event link
+/// the server uses to dedupe "convert event → task" (one task per user per
+/// event); the server's `TaskMeta` DataMapper stores only `calendar_event_id`.
+@freezed
+abstract class TaskMetaApi with _$TaskMetaApi {
+  const factory TaskMetaApi({
+    @JsonKey(name: 'calendar_event_id') @Default('') String calendarEventId,
+  }) = _TaskMetaApi;
+
+  factory TaskMetaApi.fromJson(Map<String, dynamic> json) =>
+      _$TaskMetaApiFromJson(json);
+}
+
+/// Tolerant converter for the task `meta` field. The server emits `''` for an
+/// unset meta and `{calendar_event_id: ...}` otherwise; anything that isn't a
+/// JSON object maps to `null`.
+class TaskMetaConverter implements JsonConverter<TaskMetaApi?, Object?> {
+  const TaskMetaConverter();
+
+  @override
+  TaskMetaApi? fromJson(Object? json) {
+    if (json is Map) {
+      return TaskMetaApi.fromJson(json.cast<String, dynamic>());
+    }
+    return null;
+  }
+
+  @override
+  Object? toJson(TaskMetaApi? object) => object?.toJson();
 }
 
 /// `GET /tasks` response envelope.

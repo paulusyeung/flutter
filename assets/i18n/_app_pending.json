@@ -1073,5 +1073,11 @@
   "client_limit": "Client Limit",
   "merge_vendor_warning": "Merge :from into the vendor you select below. This permanently deletes :from and moves its expenses, purchase orders and history to the surviving vendor.",
   "referral_signups": "Sign-ups",
-  "referral_program_hosted_only": "The referral program is only available on the hosted Invoice Ninja platform."
+  "referral_program_hosted_only": "The referral program is only available on the hosted Invoice Ninja platform.",
+  "connect_calendar": "Connect Calendar",
+  "disconnect_calendar_confirmation": "Disconnect your calendar? Events will no longer appear and you'll need to reconnect to convert them to tasks.",
+  "convert_to_task": "Convert to Task",
+  "show_events": "Show events",
+  "hide_events": "Hide events",
+  "calendar_connect_failed": "Couldn't connect your calendar. Please try again."
 }

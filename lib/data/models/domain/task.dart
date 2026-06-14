@@ -40,6 +40,9 @@ abstract class Task with _$Task {
     // Attached tag ids (hashed). Names/colors are resolved from the tag
     // cache for rendering; `toApiJson` sends the full set (server `sync()`s).
     @Default(<String>[]) List<String> tagIds,
+    // Set only when this task was converted from a calendar event — carries the
+    // event link the server uses to dedupe (one task per user per event).
+    TaskMeta? meta,
     @Default(false) bool isDirty,
   }) = _Task;
 
@@ -68,7 +71,17 @@ abstract class Task with _$Task {
       for (final t in a.tags)
         if (t.id.isNotEmpty) t.id,
     ],
+    meta: (a.meta?.calendarEventId.isNotEmpty ?? false)
+        ? TaskMeta(calendarEventId: a.meta!.calendarEventId)
+        : null,
   );
+}
+
+/// Domain mirror of the task `meta` block. Plain value type (no JSON) — the
+/// API DTO [TaskMetaApi] owns the wire shape; `toApiJson` re-emits it.
+@freezed
+abstract class TaskMeta with _$TaskMeta {
+  const factory TaskMeta({@Default('') String calendarEventId}) = _TaskMeta;
 }
 
 /// Derived state. None of these are persisted — they're computed from the
@@ -141,6 +154,10 @@ extension TaskPayload on Task {
       // Full-set replace: server `sync()`s the attached tags to exactly this
       // id set (empty clears). Bare ids — the server normalizes them.
       'tags': tagIds,
+      // Only sent when converting a calendar event → task. The server dedupes
+      // on this id (one task per user per event) and stores just it.
+      if (meta != null && meta!.calendarEventId.isNotEmpty)
+        'meta': <String, dynamic>{'calendar_event_id': meta!.calendarEventId},
     };
   }
 }

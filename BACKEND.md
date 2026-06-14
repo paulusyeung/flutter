@@ -737,3 +737,63 @@ returns `smtp_host` / `enable_applying_payments` / `auto_start_tasks` /
 `convert_expense_currency` in each company; **or** (b) `PUT /companies/{id}`
 with a body of `{"enabled_modules": <n>}` leaves `smtp_host` unchanged on the
 server. Either unblocks removing the client-side fetch-gate.
+
+---
+
+## Calendar connect — callback must reach native/Flutter clients — **R (server gap, blocks native calendar connect)**
+
+**Provenance** — 2026-06-14, porting React PR `invoiceninja/ui#3180`
+("Connect Google/Microsoft calendar → convert event to task") to the Flutter
+client.
+
+The OAuth handshake is server-mediated (Socialite) and ends with the
+authenticated, security-critical `POST /api/v1/calendar_connection/{provider}/complete`
+that relays a one-time `handoff` (the server asserts the completing user
+started the flow — `CalendarConnectionService::completeConnection`). To get
+the `handoff` to the front end, `CalendarConnectionController::callback`
+(`routes/web.php` → `app/Http/Controllers/CalendarConnectionController.php`)
+**always** redirects to `config('ninja.react_url')`:
+
+```
+{ninja.react_url}/#/calendar_connection/complete?calendar_connection=pending&provider=<p>&handoff=<h>
+```
+
+That target reaches the React SPA only. The Flutter clients need the handoff
+delivered to *them*:
+
+- **Native (macOS/iOS/Android)** — there is no full-page redirect to ride. The
+  app opens the system browser (Google blocks OAuth in embedded webviews) and
+  catches a **custom-scheme deep link**. The client already registers
+  `invoiceninja://calendar_connection/complete` (Info.plist + AndroidManifest)
+  and bridges it into its router (`lib/app/calendar_deep_links.dart`). The
+  server must redirect there for native callers.
+- **Web (Flutter)** — reuses the existing `react_url` redirect: Flutter web does
+  the same full-page redirect as React and lands on its
+  `/#/calendar_connection/complete` route, **provided `react_url` resolves to the
+  Flutter web app's origin**. No platform hint or extra server config needed.
+
+**The change (implemented; PR-ready against `invoiceninja/invoiceninja:v5-develop`).**
+Native clients declare themselves so the callback can deliver the handoff to the
+app; everything else keeps today's React behavior:
+
+1. `POST /api/v1/one_time_token` accepts an optional `platform` (validated
+   `in:flutter_native`). The Flutter client sends
+   `{"context":"calendar_<provider>","platform":"flutter_native"}` on **native
+   only** (web omits it). It's bound to the `state` cache in
+   `CalendarConnectionService::buildAuthorizationUrl`.
+2. The public `callback` reads the `state` cache non-destructively (`Cache::get`,
+   not `pull`) and picks the redirect: `flutter_native` → the allow-listed custom
+   scheme `config('ninja.calendar.native_redirect')` (default
+   `invoiceninja://calendar_connection/complete`); anything else (web / React /
+   absent) → `react_url`, unchanged.
+3. The target comes from config, never client input (no open-redirect); the
+   `state.user_id` binding in `completeConnection` is untouched, so a hijacked
+   scheme still yields a useless handoff.
+
+Only one env var is needed: `CALENDAR_NATIVE_REDIRECT` (defaults to the scheme
+above). The client side — scheme registration (Info.plist + AndroidManifest) and
+the deep-link bridge (`lib/app/calendar_deep_links.dart`) — is already in place.
+
+**Acceptance** — a `one_time_token` minted with `platform=flutter_native`
+produces a callback `302` to `invoiceninja://calendar_connection/complete?...handoff=...`;
+a request with no platform still redirects to `react_url`.

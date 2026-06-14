@@ -5,8 +5,10 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
+import 'package:admin/ui/features/tasks/view_models/calendar_connection_view_model.dart';
 import 'package:admin/ui/features/tasks/view_models/task_calendar_view_model.dart';
 import 'package:admin/ui/features/tasks/views/task_list_screen.dart';
+import 'package:admin/ui/features/tasks/widgets/calendar/calendar_connect_menu.dart';
 import 'package:admin/ui/features/tasks/widgets/calendar/task_calendar_grid.dart';
 import 'package:admin/ui/features/tasks/widgets/calendar/task_calendar_header.dart';
 import 'package:admin/ui/features/tasks/widgets/task_filter_bar.dart';
@@ -17,6 +19,11 @@ import 'package:admin/utils/formatting.dart';
 /// own [TaskCalendarViewModel], rebuilds it on company switch, and carries the
 /// shared [TasksViewToggle] in the AppBar. The `Formatter` is resolved once and
 /// passed down for the month label + weekday headers.
+///
+/// Also hosts the calendar-connection surface (a [CalendarConnectionViewModel]):
+/// the connect menu + live Google/Microsoft event chips overlaid on the grid.
+/// That VM is user-scoped (not company-scoped) so it survives a company switch;
+/// events reload whenever the visible month window or connection status changes.
 class TaskCalendarScreen extends StatefulWidget {
   const TaskCalendarScreen({super.key, this.focusDate});
 
@@ -32,7 +39,14 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen> {
   late final Services _services;
   late String _companyId;
   late TaskCalendarViewModel _vm;
+  late final CalendarConnectionViewModel _calVm;
   Formatter? _formatter;
+
+  // Guards against redundant event loads: the last window we fetched, and
+  // whether we've seen a connected state (to force a reload on the connect
+  // transition).
+  String? _loadedWindowKey;
+  bool _wasConnected = false;
 
   @override
   void initState() {
@@ -46,8 +60,48 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen> {
       firstDayOfWeek: _formatter?.settings.firstDayOfWeek ?? 0,
       focusMonth: widget.focusDate,
     );
+    _calVm = CalendarConnectionViewModel(repo: _services.calendarConnection);
+    _vm.addListener(_onTaskVmChanged);
+    _calVm.addListener(_onCalVmChanged);
     _services.auth.session.addListener(_onSessionChanged);
     _resolveFormatter();
+    _initCalendar();
+  }
+
+  bool get _calendarAvailable => CalendarConnectMenu.isAvailable(_services);
+
+  Future<void> _initCalendar() async {
+    if (!_calendarAvailable) return;
+    await _calVm.loadStatus();
+    if (!mounted) return;
+    _maybeLoadEvents();
+  }
+
+  // Reload events when the visible window changes (month / first-day-of-week).
+  void _onTaskVmChanged() => _maybeLoadEvents();
+
+  // Force a reload the moment we transition to connected (e.g. the native
+  // deep-link complete flow finished while this screen stayed mounted).
+  void _onCalVmChanged() {
+    if (_calVm.isConnected && !_wasConnected) {
+      _wasConnected = true;
+      _loadedWindowKey = null;
+      _maybeLoadEvents();
+    } else if (!_calVm.isConnected) {
+      _wasConnected = false;
+    }
+  }
+
+  void _maybeLoadEvents() {
+    if (!_calendarAvailable || !_calVm.isConnected) return;
+    final days = _vm.gridDays;
+    final key = '${days.first.toIso()}_${days.last.toIso()}';
+    if (key == _loadedWindowKey) return;
+    _loadedWindowKey = key;
+    _calVm.loadEvents(
+      from: days.first.toDateTime(),
+      to: days.last.toDateTime().add(const Duration(days: 1)),
+    );
   }
 
   Future<void> _resolveFormatter() async {
@@ -73,14 +127,23 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen> {
         firstDayOfWeek: _formatter?.settings.firstDayOfWeek ?? 0,
       );
     });
+    old.removeListener(_onTaskVmChanged);
     old.dispose();
+    _vm.addListener(_onTaskVmChanged);
+    // The connection is user-scoped, so it's unchanged — just reload events for
+    // the new VM's window.
+    _loadedWindowKey = null;
+    _maybeLoadEvents();
     _resolveFormatter();
   }
 
   @override
   void dispose() {
     _services.auth.session.removeListener(_onSessionChanged);
+    _vm.removeListener(_onTaskVmChanged);
+    _calVm.removeListener(_onCalVmChanged);
     _vm.dispose();
+    _calVm.dispose();
     super.dispose();
   }
 
@@ -93,8 +156,13 @@ class _TaskCalendarScreenState extends State<TaskCalendarScreen> {
         onPressed: () => goToCreateRoute(context, '/tasks/new'),
         child: const Icon(Icons.add),
       ),
-      body: ChangeNotifierProvider<TaskCalendarViewModel>.value(
-        value: _vm,
+      body: MultiProvider(
+        providers: [
+          ChangeNotifierProvider<TaskCalendarViewModel>.value(value: _vm),
+          ChangeNotifierProvider<CalendarConnectionViewModel>.value(
+            value: _calVm,
+          ),
+        ],
         child: Column(
           children: [
             TaskFilterBar(filters: _vm, companyId: _companyId),

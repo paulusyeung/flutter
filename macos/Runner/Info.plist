@@ -42,5 +42,16 @@
 	<string>public.app-category.business</string>
 	<key>io.flutter.embedded_views_preview</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.invoiceninja.calendar</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>invoiceninja</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

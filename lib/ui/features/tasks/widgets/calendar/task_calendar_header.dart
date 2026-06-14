@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/features/tasks/view_models/calendar_connection_view_model.dart';
 import 'package:admin/ui/features/tasks/view_models/task_calendar_view_model.dart';
+import 'package:admin/ui/features/tasks/widgets/calendar/calendar_connect_menu.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// Month navigation bar above the calendar grid: prev / next month, the month
@@ -20,6 +22,7 @@ class TaskCalendarHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<TaskCalendarViewModel>();
+    final calVm = context.watch<CalendarConnectionViewModel>();
     final tokens = context.inTheme;
     final locale = formatter?.settings.locale;
     final label = DateFormat(
@@ -51,6 +54,22 @@ class TaskCalendarHeader extends StatelessWidget {
           const SizedBox(width: 8),
           Text(label, style: Theme.of(context).textTheme.titleMedium),
           const Spacer(),
+          if (calVm.isConnected) ...[
+            IconButton(
+              tooltip: context.tr(
+                calVm.hideEvents ? 'show_events' : 'hide_events',
+              ),
+              icon: Icon(
+                calVm.hideEvents
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+              ),
+              onPressed: calVm.toggleHideEvents,
+            ),
+            const SizedBox(width: 4),
+          ],
+          const CalendarConnectMenu(),
+          const SizedBox(width: 8),
           OutlinedButton(
             style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
             onPressed: vm.goToToday,

@@ -20,7 +20,11 @@ mixin _$TaskApi {
  List<DocumentApi>? get documents;// Server sends `[{id, name, color}]`; our payload round-trip sends bare
 // ids. The tolerant converter handles both. Names carried only for the
 // `tag_names` sort column — the domain keeps just the ids.
-@JsonKey(name: 'tags')@EmbeddedTagsConverter() List<TagRefApi> get tags;
+@JsonKey(name: 'tags')@EmbeddedTagsConverter() List<TagRefApi> get tags;// Server emits `meta` as `''` when unset (see `TaskTransformer`) or
+// `{calendar_event_id: ...}` when the task was converted from a calendar
+// event. The tolerant [TaskMetaConverter] maps the empty-string form → null
+// so json_serializable doesn't choke trying to decode a String as an object.
+@TaskMetaConverter() TaskMetaApi? get meta;
 /// Create a copy of TaskApi
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -33,16 +37,16 @@ $TaskApiCopyWith<TaskApi> get copyWith => _$TaskApiCopyWithImpl<TaskApi>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TaskApi&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.assignedUserId, assignedUserId) || other.assignedUserId == assignedUserId)&&(identical(other.number, number) || other.number == number)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.rate, rate)&&(identical(other.invoiceId, invoiceId) || other.invoiceId == invoiceId)&&(identical(other.clientId, clientId) || other.clientId == clientId)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.statusId, statusId) || other.statusId == statusId)&&(identical(other.statusOrder, statusOrder) || other.statusOrder == statusOrder)&&(identical(other.timeLog, timeLog) || other.timeLog == timeLog)&&(identical(other.customValue1, customValue1) || other.customValue1 == customValue1)&&(identical(other.customValue2, customValue2) || other.customValue2 == customValue2)&&(identical(other.customValue3, customValue3) || other.customValue3 == customValue3)&&(identical(other.customValue4, customValue4) || other.customValue4 == customValue4)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.archivedAt, archivedAt) || other.archivedAt == archivedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.isRunning, isRunning) || other.isRunning == isRunning)&&(identical(other.isDateBased, isDateBased) || other.isDateBased == isDateBased)&&const DeepCollectionEquality().equals(other.documents, documents)&&const DeepCollectionEquality().equals(other.tags, tags));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TaskApi&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.assignedUserId, assignedUserId) || other.assignedUserId == assignedUserId)&&(identical(other.number, number) || other.number == number)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.rate, rate)&&(identical(other.invoiceId, invoiceId) || other.invoiceId == invoiceId)&&(identical(other.clientId, clientId) || other.clientId == clientId)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.statusId, statusId) || other.statusId == statusId)&&(identical(other.statusOrder, statusOrder) || other.statusOrder == statusOrder)&&(identical(other.timeLog, timeLog) || other.timeLog == timeLog)&&(identical(other.customValue1, customValue1) || other.customValue1 == customValue1)&&(identical(other.customValue2, customValue2) || other.customValue2 == customValue2)&&(identical(other.customValue3, customValue3) || other.customValue3 == customValue3)&&(identical(other.customValue4, customValue4) || other.customValue4 == customValue4)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.archivedAt, archivedAt) || other.archivedAt == archivedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.isRunning, isRunning) || other.isRunning == isRunning)&&(identical(other.isDateBased, isDateBased) || other.isDateBased == isDateBased)&&const DeepCollectionEquality().equals(other.documents, documents)&&const DeepCollectionEquality().equals(other.tags, tags)&&(identical(other.meta, meta) || other.meta == meta));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,userId,assignedUserId,number,description,const DeepCollectionEquality().hash(rate),invoiceId,clientId,projectId,statusId,statusOrder,timeLog,customValue1,customValue2,customValue3,customValue4,createdAt,updatedAt,archivedAt,isDeleted,isRunning,isDateBased,const DeepCollectionEquality().hash(documents),const DeepCollectionEquality().hash(tags)]);
+int get hashCode => Object.hashAll([runtimeType,id,userId,assignedUserId,number,description,const DeepCollectionEquality().hash(rate),invoiceId,clientId,projectId,statusId,statusOrder,timeLog,customValue1,customValue2,customValue3,customValue4,createdAt,updatedAt,archivedAt,isDeleted,isRunning,isDateBased,const DeepCollectionEquality().hash(documents),const DeepCollectionEquality().hash(tags),meta]);
 
 @override
 String toString() {
-  return 'TaskApi(id: $id, userId: $userId, assignedUserId: $assignedUserId, number: $number, description: $description, rate: $rate, invoiceId: $invoiceId, clientId: $clientId, projectId: $projectId, statusId: $statusId, statusOrder: $statusOrder, timeLog: $timeLog, customValue1: $customValue1, customValue2: $customValue2, customValue3: $customValue3, customValue4: $customValue4, createdAt: $createdAt, updatedAt: $updatedAt, archivedAt: $archivedAt, isDeleted: $isDeleted, isRunning: $isRunning, isDateBased: $isDateBased, documents: $documents, tags: $tags)';
+  return 'TaskApi(id: $id, userId: $userId, assignedUserId: $assignedUserId, number: $number, description: $description, rate: $rate, invoiceId: $invoiceId, clientId: $clientId, projectId: $projectId, statusId: $statusId, statusOrder: $statusOrder, timeLog: $timeLog, customValue1: $customValue1, customValue2: $customValue2, customValue3: $customValue3, customValue4: $customValue4, createdAt: $createdAt, updatedAt: $updatedAt, archivedAt: $archivedAt, isDeleted: $isDeleted, isRunning: $isRunning, isDateBased: $isDateBased, documents: $documents, tags: $tags, meta: $meta)';
 }
 
 
@@ -53,11 +57,11 @@ abstract mixin class $TaskApiCopyWith<$Res>  {
   factory $TaskApiCopyWith(TaskApi value, $Res Function(TaskApi) _then) = _$TaskApiCopyWithImpl;
 @useResult
 $Res call({
- String id,@JsonKey(name: 'user_id') String userId,@JsonKey(name: 'assigned_user_id') String assignedUserId, String number, String description,@JsonKey(name: 'rate') Object rate,@JsonKey(name: 'invoice_id') String invoiceId,@JsonKey(name: 'client_id') String clientId,@JsonKey(name: 'project_id') String projectId,@JsonKey(name: 'status_id') String statusId,@JsonKey(name: 'status_order') int? statusOrder,@JsonKey(name: 'time_log') String timeLog,@JsonKey(name: 'custom_value1') String customValue1,@JsonKey(name: 'custom_value2') String customValue2,@JsonKey(name: 'custom_value3') String customValue3,@JsonKey(name: 'custom_value4') String customValue4,@JsonKey(name: 'created_at') int createdAt,@JsonKey(name: 'updated_at') int updatedAt,@JsonKey(name: 'archived_at') int archivedAt,@JsonKey(name: 'is_deleted') bool isDeleted,@JsonKey(name: 'is_running') bool isRunning,@JsonKey(name: 'is_date_based') bool isDateBased, List<DocumentApi>? documents,@JsonKey(name: 'tags')@EmbeddedTagsConverter() List<TagRefApi> tags
+ String id,@JsonKey(name: 'user_id') String userId,@JsonKey(name: 'assigned_user_id') String assignedUserId, String number, String description,@JsonKey(name: 'rate') Object rate,@JsonKey(name: 'invoice_id') String invoiceId,@JsonKey(name: 'client_id') String clientId,@JsonKey(name: 'project_id') String projectId,@JsonKey(name: 'status_id') String statusId,@JsonKey(name: 'status_order') int? statusOrder,@JsonKey(name: 'time_log') String timeLog,@JsonKey(name: 'custom_value1') String customValue1,@JsonKey(name: 'custom_value2') String customValue2,@JsonKey(name: 'custom_value3') String customValue3,@JsonKey(name: 'custom_value4') String customValue4,@JsonKey(name: 'created_at') int createdAt,@JsonKey(name: 'updated_at') int updatedAt,@JsonKey(name: 'archived_at') int archivedAt,@JsonKey(name: 'is_deleted') bool isDeleted,@JsonKey(name: 'is_running') bool isRunning,@JsonKey(name: 'is_date_based') bool isDateBased, List<DocumentApi>? documents,@JsonKey(name: 'tags')@EmbeddedTagsConverter() List<TagRefApi> tags,@TaskMetaConverter() TaskMetaApi? meta
 });
 
 
-
+$TaskMetaApiCopyWith<$Res>? get meta;
 
 }
 /// @nodoc
@@ -70,7 +74,7 @@ class _$TaskApiCopyWithImpl<$Res>
 
 /// Create a copy of TaskApi
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? userId = null,Object? assignedUserId = null,Object? number = null,Object? description = null,Object? rate = null,Object? invoiceId = null,Object? clientId = null,Object? projectId = null,Object? statusId = null,Object? statusOrder = freezed,Object? timeLog = null,Object? customValue1 = null,Object? customValue2 = null,Object? customValue3 = null,Object? customValue4 = null,Object? createdAt = null,Object? updatedAt = null,Object? archivedAt = null,Object? isDeleted = null,Object? isRunning = null,Object? isDateBased = null,Object? documents = freezed,Object? tags = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? userId = null,Object? assignedUserId = null,Object? number = null,Object? description = null,Object? rate = null,Object? invoiceId = null,Object? clientId = null,Object? projectId = null,Object? statusId = null,Object? statusOrder = freezed,Object? timeLog = null,Object? customValue1 = null,Object? customValue2 = null,Object? customValue3 = null,Object? customValue4 = null,Object? createdAt = null,Object? updatedAt = null,Object? archivedAt = null,Object? isDeleted = null,Object? isRunning = null,Object? isDateBased = null,Object? documents = freezed,Object? tags = null,Object? meta = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
@@ -95,10 +99,23 @@ as bool,isRunning: null == isRunning ? _self.isRunning : isRunning // ignore: ca
 as bool,isDateBased: null == isDateBased ? _self.isDateBased : isDateBased // ignore: cast_nullable_to_non_nullable
 as bool,documents: freezed == documents ? _self.documents : documents // ignore: cast_nullable_to_non_nullable
 as List<DocumentApi>?,tags: null == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nullable
-as List<TagRefApi>,
+as List<TagRefApi>,meta: freezed == meta ? _self.meta : meta // ignore: cast_nullable_to_non_nullable
+as TaskMetaApi?,
   ));
 }
+/// Create a copy of TaskApi
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$TaskMetaApiCopyWith<$Res>? get meta {
+    if (_self.meta == null) {
+    return null;
+  }
 
+  return $TaskMetaApiCopyWith<$Res>(_self.meta!, (value) {
+    return _then(_self.copyWith(meta: value));
+  });
+}
 }
 
 
@@ -180,10 +197,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'user_id')  String userId, @JsonKey(name: 'assigned_user_id')  String assignedUserId,  String number,  String description, @JsonKey(name: 'rate')  Object rate, @JsonKey(name: 'invoice_id')  String invoiceId, @JsonKey(name: 'client_id')  String clientId, @JsonKey(name: 'project_id')  String projectId, @JsonKey(name: 'status_id')  String statusId, @JsonKey(name: 'status_order')  int? statusOrder, @JsonKey(name: 'time_log')  String timeLog, @JsonKey(name: 'custom_value1')  String customValue1, @JsonKey(name: 'custom_value2')  String customValue2, @JsonKey(name: 'custom_value3')  String customValue3, @JsonKey(name: 'custom_value4')  String customValue4, @JsonKey(name: 'created_at')  int createdAt, @JsonKey(name: 'updated_at')  int updatedAt, @JsonKey(name: 'archived_at')  int archivedAt, @JsonKey(name: 'is_deleted')  bool isDeleted, @JsonKey(name: 'is_running')  bool isRunning, @JsonKey(name: 'is_date_based')  bool isDateBased,  List<DocumentApi>? documents, @JsonKey(name: 'tags')@EmbeddedTagsConverter()  List<TagRefApi> tags)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'user_id')  String userId, @JsonKey(name: 'assigned_user_id')  String assignedUserId,  String number,  String description, @JsonKey(name: 'rate')  Object rate, @JsonKey(name: 'invoice_id')  String invoiceId, @JsonKey(name: 'client_id')  String clientId, @JsonKey(name: 'project_id')  String projectId, @JsonKey(name: 'status_id')  String statusId, @JsonKey(name: 'status_order')  int? statusOrder, @JsonKey(name: 'time_log')  String timeLog, @JsonKey(name: 'custom_value1')  String customValue1, @JsonKey(name: 'custom_value2')  String customValue2, @JsonKey(name: 'custom_value3')  String customValue3, @JsonKey(name: 'custom_value4')  String customValue4, @JsonKey(name: 'created_at')  int createdAt, @JsonKey(name: 'updated_at')  int updatedAt, @JsonKey(name: 'archived_at')  int archivedAt, @JsonKey(name: 'is_deleted')  bool isDeleted, @JsonKey(name: 'is_running')  bool isRunning, @JsonKey(name: 'is_date_based')  bool isDateBased,  List<DocumentApi>? documents, @JsonKey(name: 'tags')@EmbeddedTagsConverter()  List<TagRefApi> tags, @TaskMetaConverter()  TaskMetaApi? meta)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TaskApi() when $default != null:
-return $default(_that.id,_that.userId,_that.assignedUserId,_that.number,_that.description,_that.rate,_that.invoiceId,_that.clientId,_that.projectId,_that.statusId,_that.statusOrder,_that.timeLog,_that.customValue1,_that.customValue2,_that.customValue3,_that.customValue4,_that.createdAt,_that.updatedAt,_that.archivedAt,_that.isDeleted,_that.isRunning,_that.isDateBased,_that.documents,_that.tags);case _:
+return $default(_that.id,_that.userId,_that.assignedUserId,_that.number,_that.description,_that.rate,_that.invoiceId,_that.clientId,_that.projectId,_that.statusId,_that.statusOrder,_that.timeLog,_that.customValue1,_that.customValue2,_that.customValue3,_that.customValue4,_that.createdAt,_that.updatedAt,_that.archivedAt,_that.isDeleted,_that.isRunning,_that.isDateBased,_that.documents,_that.tags,_that.meta);case _:
   return orElse();
 
 }
@@ -201,10 +218,10 @@ return $default(_that.id,_that.userId,_that.assignedUserId,_that.number,_that.de
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'user_id')  String userId, @JsonKey(name: 'assigned_user_id')  String assignedUserId,  String number,  String description, @JsonKey(name: 'rate')  Object rate, @JsonKey(name: 'invoice_id')  String invoiceId, @JsonKey(name: 'client_id')  String clientId, @JsonKey(name: 'project_id')  String projectId, @JsonKey(name: 'status_id')  String statusId, @JsonKey(name: 'status_order')  int? statusOrder, @JsonKey(name: 'time_log')  String timeLog, @JsonKey(name: 'custom_value1')  String customValue1, @JsonKey(name: 'custom_value2')  String customValue2, @JsonKey(name: 'custom_value3')  String customValue3, @JsonKey(name: 'custom_value4')  String customValue4, @JsonKey(name: 'created_at')  int createdAt, @JsonKey(name: 'updated_at')  int updatedAt, @JsonKey(name: 'archived_at')  int archivedAt, @JsonKey(name: 'is_deleted')  bool isDeleted, @JsonKey(name: 'is_running')  bool isRunning, @JsonKey(name: 'is_date_based')  bool isDateBased,  List<DocumentApi>? documents, @JsonKey(name: 'tags')@EmbeddedTagsConverter()  List<TagRefApi> tags)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'user_id')  String userId, @JsonKey(name: 'assigned_user_id')  String assignedUserId,  String number,  String description, @JsonKey(name: 'rate')  Object rate, @JsonKey(name: 'invoice_id')  String invoiceId, @JsonKey(name: 'client_id')  String clientId, @JsonKey(name: 'project_id')  String projectId, @JsonKey(name: 'status_id')  String statusId, @JsonKey(name: 'status_order')  int? statusOrder, @JsonKey(name: 'time_log')  String timeLog, @JsonKey(name: 'custom_value1')  String customValue1, @JsonKey(name: 'custom_value2')  String customValue2, @JsonKey(name: 'custom_value3')  String customValue3, @JsonKey(name: 'custom_value4')  String customValue4, @JsonKey(name: 'created_at')  int createdAt, @JsonKey(name: 'updated_at')  int updatedAt, @JsonKey(name: 'archived_at')  int archivedAt, @JsonKey(name: 'is_deleted')  bool isDeleted, @JsonKey(name: 'is_running')  bool isRunning, @JsonKey(name: 'is_date_based')  bool isDateBased,  List<DocumentApi>? documents, @JsonKey(name: 'tags')@EmbeddedTagsConverter()  List<TagRefApi> tags, @TaskMetaConverter()  TaskMetaApi? meta)  $default,) {final _that = this;
 switch (_that) {
 case _TaskApi():
-return $default(_that.id,_that.userId,_that.assignedUserId,_that.number,_that.description,_that.rate,_that.invoiceId,_that.clientId,_that.projectId,_that.statusId,_that.statusOrder,_that.timeLog,_that.customValue1,_that.customValue2,_that.customValue3,_that.customValue4,_that.createdAt,_that.updatedAt,_that.archivedAt,_that.isDeleted,_that.isRunning,_that.isDateBased,_that.documents,_that.tags);case _:
+return $default(_that.id,_that.userId,_that.assignedUserId,_that.number,_that.description,_that.rate,_that.invoiceId,_that.clientId,_that.projectId,_that.statusId,_that.statusOrder,_that.timeLog,_that.customValue1,_that.customValue2,_that.customValue3,_that.customValue4,_that.createdAt,_that.updatedAt,_that.archivedAt,_that.isDeleted,_that.isRunning,_that.isDateBased,_that.documents,_that.tags,_that.meta);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -221,10 +238,10 @@ return $default(_that.id,_that.userId,_that.assignedUserId,_that.number,_that.de
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'user_id')  String userId, @JsonKey(name: 'assigned_user_id')  String assignedUserId,  String number,  String description, @JsonKey(name: 'rate')  Object rate, @JsonKey(name: 'invoice_id')  String invoiceId, @JsonKey(name: 'client_id')  String clientId, @JsonKey(name: 'project_id')  String projectId, @JsonKey(name: 'status_id')  String statusId, @JsonKey(name: 'status_order')  int? statusOrder, @JsonKey(name: 'time_log')  String timeLog, @JsonKey(name: 'custom_value1')  String customValue1, @JsonKey(name: 'custom_value2')  String customValue2, @JsonKey(name: 'custom_value3')  String customValue3, @JsonKey(name: 'custom_value4')  String customValue4, @JsonKey(name: 'created_at')  int createdAt, @JsonKey(name: 'updated_at')  int updatedAt, @JsonKey(name: 'archived_at')  int archivedAt, @JsonKey(name: 'is_deleted')  bool isDeleted, @JsonKey(name: 'is_running')  bool isRunning, @JsonKey(name: 'is_date_based')  bool isDateBased,  List<DocumentApi>? documents, @JsonKey(name: 'tags')@EmbeddedTagsConverter()  List<TagRefApi> tags)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'user_id')  String userId, @JsonKey(name: 'assigned_user_id')  String assignedUserId,  String number,  String description, @JsonKey(name: 'rate')  Object rate, @JsonKey(name: 'invoice_id')  String invoiceId, @JsonKey(name: 'client_id')  String clientId, @JsonKey(name: 'project_id')  String projectId, @JsonKey(name: 'status_id')  String statusId, @JsonKey(name: 'status_order')  int? statusOrder, @JsonKey(name: 'time_log')  String timeLog, @JsonKey(name: 'custom_value1')  String customValue1, @JsonKey(name: 'custom_value2')  String customValue2, @JsonKey(name: 'custom_value3')  String customValue3, @JsonKey(name: 'custom_value4')  String customValue4, @JsonKey(name: 'created_at')  int createdAt, @JsonKey(name: 'updated_at')  int updatedAt, @JsonKey(name: 'archived_at')  int archivedAt, @JsonKey(name: 'is_deleted')  bool isDeleted, @JsonKey(name: 'is_running')  bool isRunning, @JsonKey(name: 'is_date_based')  bool isDateBased,  List<DocumentApi>? documents, @JsonKey(name: 'tags')@EmbeddedTagsConverter()  List<TagRefApi> tags, @TaskMetaConverter()  TaskMetaApi? meta)?  $default,) {final _that = this;
 switch (_that) {
 case _TaskApi() when $default != null:
-return $default(_that.id,_that.userId,_that.assignedUserId,_that.number,_that.description,_that.rate,_that.invoiceId,_that.clientId,_that.projectId,_that.statusId,_that.statusOrder,_that.timeLog,_that.customValue1,_that.customValue2,_that.customValue3,_that.customValue4,_that.createdAt,_that.updatedAt,_that.archivedAt,_that.isDeleted,_that.isRunning,_that.isDateBased,_that.documents,_that.tags);case _:
+return $default(_that.id,_that.userId,_that.assignedUserId,_that.number,_that.description,_that.rate,_that.invoiceId,_that.clientId,_that.projectId,_that.statusId,_that.statusOrder,_that.timeLog,_that.customValue1,_that.customValue2,_that.customValue3,_that.customValue4,_that.createdAt,_that.updatedAt,_that.archivedAt,_that.isDeleted,_that.isRunning,_that.isDateBased,_that.documents,_that.tags,_that.meta);case _:
   return null;
 
 }
@@ -236,7 +253,7 @@ return $default(_that.id,_that.userId,_that.assignedUserId,_that.number,_that.de
 @JsonSerializable()
 
 class _TaskApi implements TaskApi {
-  const _TaskApi({this.id = '', @JsonKey(name: 'user_id') this.userId = '', @JsonKey(name: 'assigned_user_id') this.assignedUserId = '', this.number = '', this.description = '', @JsonKey(name: 'rate') this.rate = '0', @JsonKey(name: 'invoice_id') this.invoiceId = '', @JsonKey(name: 'client_id') this.clientId = '', @JsonKey(name: 'project_id') this.projectId = '', @JsonKey(name: 'status_id') this.statusId = '', @JsonKey(name: 'status_order') this.statusOrder, @JsonKey(name: 'time_log') this.timeLog = '', @JsonKey(name: 'custom_value1') this.customValue1 = '', @JsonKey(name: 'custom_value2') this.customValue2 = '', @JsonKey(name: 'custom_value3') this.customValue3 = '', @JsonKey(name: 'custom_value4') this.customValue4 = '', @JsonKey(name: 'created_at') this.createdAt = 0, @JsonKey(name: 'updated_at') this.updatedAt = 0, @JsonKey(name: 'archived_at') this.archivedAt = 0, @JsonKey(name: 'is_deleted') this.isDeleted = false, @JsonKey(name: 'is_running') this.isRunning = false, @JsonKey(name: 'is_date_based') this.isDateBased = false, final  List<DocumentApi>? documents, @JsonKey(name: 'tags')@EmbeddedTagsConverter() final  List<TagRefApi> tags = const <TagRefApi>[]}): _documents = documents,_tags = tags;
+  const _TaskApi({this.id = '', @JsonKey(name: 'user_id') this.userId = '', @JsonKey(name: 'assigned_user_id') this.assignedUserId = '', this.number = '', this.description = '', @JsonKey(name: 'rate') this.rate = '0', @JsonKey(name: 'invoice_id') this.invoiceId = '', @JsonKey(name: 'client_id') this.clientId = '', @JsonKey(name: 'project_id') this.projectId = '', @JsonKey(name: 'status_id') this.statusId = '', @JsonKey(name: 'status_order') this.statusOrder, @JsonKey(name: 'time_log') this.timeLog = '', @JsonKey(name: 'custom_value1') this.customValue1 = '', @JsonKey(name: 'custom_value2') this.customValue2 = '', @JsonKey(name: 'custom_value3') this.customValue3 = '', @JsonKey(name: 'custom_value4') this.customValue4 = '', @JsonKey(name: 'created_at') this.createdAt = 0, @JsonKey(name: 'updated_at') this.updatedAt = 0, @JsonKey(name: 'archived_at') this.archivedAt = 0, @JsonKey(name: 'is_deleted') this.isDeleted = false, @JsonKey(name: 'is_running') this.isRunning = false, @JsonKey(name: 'is_date_based') this.isDateBased = false, final  List<DocumentApi>? documents, @JsonKey(name: 'tags')@EmbeddedTagsConverter() final  List<TagRefApi> tags = const <TagRefApi>[], @TaskMetaConverter() this.meta}): _documents = documents,_tags = tags;
   factory _TaskApi.fromJson(Map<String, dynamic> json) => _$TaskApiFromJson(json);
 
 @override@JsonKey() final  String id;
@@ -287,6 +304,11 @@ class _TaskApi implements TaskApi {
   return EqualUnmodifiableListView(_tags);
 }
 
+// Server emits `meta` as `''` when unset (see `TaskTransformer`) or
+// `{calendar_event_id: ...}` when the task was converted from a calendar
+// event. The tolerant [TaskMetaConverter] maps the empty-string form → null
+// so json_serializable doesn't choke trying to decode a String as an object.
+@override@TaskMetaConverter() final  TaskMetaApi? meta;
 
 /// Create a copy of TaskApi
 /// with the given fields replaced by the non-null parameter values.
@@ -301,16 +323,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TaskApi&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.assignedUserId, assignedUserId) || other.assignedUserId == assignedUserId)&&(identical(other.number, number) || other.number == number)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.rate, rate)&&(identical(other.invoiceId, invoiceId) || other.invoiceId == invoiceId)&&(identical(other.clientId, clientId) || other.clientId == clientId)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.statusId, statusId) || other.statusId == statusId)&&(identical(other.statusOrder, statusOrder) || other.statusOrder == statusOrder)&&(identical(other.timeLog, timeLog) || other.timeLog == timeLog)&&(identical(other.customValue1, customValue1) || other.customValue1 == customValue1)&&(identical(other.customValue2, customValue2) || other.customValue2 == customValue2)&&(identical(other.customValue3, customValue3) || other.customValue3 == customValue3)&&(identical(other.customValue4, customValue4) || other.customValue4 == customValue4)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.archivedAt, archivedAt) || other.archivedAt == archivedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.isRunning, isRunning) || other.isRunning == isRunning)&&(identical(other.isDateBased, isDateBased) || other.isDateBased == isDateBased)&&const DeepCollectionEquality().equals(other._documents, _documents)&&const DeepCollectionEquality().equals(other._tags, _tags));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TaskApi&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.assignedUserId, assignedUserId) || other.assignedUserId == assignedUserId)&&(identical(other.number, number) || other.number == number)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.rate, rate)&&(identical(other.invoiceId, invoiceId) || other.invoiceId == invoiceId)&&(identical(other.clientId, clientId) || other.clientId == clientId)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.statusId, statusId) || other.statusId == statusId)&&(identical(other.statusOrder, statusOrder) || other.statusOrder == statusOrder)&&(identical(other.timeLog, timeLog) || other.timeLog == timeLog)&&(identical(other.customValue1, customValue1) || other.customValue1 == customValue1)&&(identical(other.customValue2, customValue2) || other.customValue2 == customValue2)&&(identical(other.customValue3, customValue3) || other.customValue3 == customValue3)&&(identical(other.customValue4, customValue4) || other.customValue4 == customValue4)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.archivedAt, archivedAt) || other.archivedAt == archivedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.isRunning, isRunning) || other.isRunning == isRunning)&&(identical(other.isDateBased, isDateBased) || other.isDateBased == isDateBased)&&const DeepCollectionEquality().equals(other._documents, _documents)&&const DeepCollectionEquality().equals(other._tags, _tags)&&(identical(other.meta, meta) || other.meta == meta));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,userId,assignedUserId,number,description,const DeepCollectionEquality().hash(rate),invoiceId,clientId,projectId,statusId,statusOrder,timeLog,customValue1,customValue2,customValue3,customValue4,createdAt,updatedAt,archivedAt,isDeleted,isRunning,isDateBased,const DeepCollectionEquality().hash(_documents),const DeepCollectionEquality().hash(_tags)]);
+int get hashCode => Object.hashAll([runtimeType,id,userId,assignedUserId,number,description,const DeepCollectionEquality().hash(rate),invoiceId,clientId,projectId,statusId,statusOrder,timeLog,customValue1,customValue2,customValue3,customValue4,createdAt,updatedAt,archivedAt,isDeleted,isRunning,isDateBased,const DeepCollectionEquality().hash(_documents),const DeepCollectionEquality().hash(_tags),meta]);
 
 @override
 String toString() {
-  return 'TaskApi(id: $id, userId: $userId, assignedUserId: $assignedUserId, number: $number, description: $description, rate: $rate, invoiceId: $invoiceId, clientId: $clientId, projectId: $projectId, statusId: $statusId, statusOrder: $statusOrder, timeLog: $timeLog, customValue1: $customValue1, customValue2: $customValue2, customValue3: $customValue3, customValue4: $customValue4, createdAt: $createdAt, updatedAt: $updatedAt, archivedAt: $archivedAt, isDeleted: $isDeleted, isRunning: $isRunning, isDateBased: $isDateBased, documents: $documents, tags: $tags)';
+  return 'TaskApi(id: $id, userId: $userId, assignedUserId: $assignedUserId, number: $number, description: $description, rate: $rate, invoiceId: $invoiceId, clientId: $clientId, projectId: $projectId, statusId: $statusId, statusOrder: $statusOrder, timeLog: $timeLog, customValue1: $customValue1, customValue2: $customValue2, customValue3: $customValue3, customValue4: $customValue4, createdAt: $createdAt, updatedAt: $updatedAt, archivedAt: $archivedAt, isDeleted: $isDeleted, isRunning: $isRunning, isDateBased: $isDateBased, documents: $documents, tags: $tags, meta: $meta)';
 }
 
 
@@ -321,11 +343,11 @@ abstract mixin class _$TaskApiCopyWith<$Res> implements $TaskApiCopyWith<$Res> {
   factory _$TaskApiCopyWith(_TaskApi value, $Res Function(_TaskApi) _then) = __$TaskApiCopyWithImpl;
 @override @useResult
 $Res call({
- String id,@JsonKey(name: 'user_id') String userId,@JsonKey(name: 'assigned_user_id') String assignedUserId, String number, String description,@JsonKey(name: 'rate') Object rate,@JsonKey(name: 'invoice_id') String invoiceId,@JsonKey(name: 'client_id') String clientId,@JsonKey(name: 'project_id') String projectId,@JsonKey(name: 'status_id') String statusId,@JsonKey(name: 'status_order') int? statusOrder,@JsonKey(name: 'time_log') String timeLog,@JsonKey(name: 'custom_value1') String customValue1,@JsonKey(name: 'custom_value2') String customValue2,@JsonKey(name: 'custom_value3') String customValue3,@JsonKey(name: 'custom_value4') String customValue4,@JsonKey(name: 'created_at') int createdAt,@JsonKey(name: 'updated_at') int updatedAt,@JsonKey(name: 'archived_at') int archivedAt,@JsonKey(name: 'is_deleted') bool isDeleted,@JsonKey(name: 'is_running') bool isRunning,@JsonKey(name: 'is_date_based') bool isDateBased, List<DocumentApi>? documents,@JsonKey(name: 'tags')@EmbeddedTagsConverter() List<TagRefApi> tags
+ String id,@JsonKey(name: 'user_id') String userId,@JsonKey(name: 'assigned_user_id') String assignedUserId, String number, String description,@JsonKey(name: 'rate') Object rate,@JsonKey(name: 'invoice_id') String invoiceId,@JsonKey(name: 'client_id') String clientId,@JsonKey(name: 'project_id') String projectId,@JsonKey(name: 'status_id') String statusId,@JsonKey(name: 'status_order') int? statusOrder,@JsonKey(name: 'time_log') String timeLog,@JsonKey(name: 'custom_value1') String customValue1,@JsonKey(name: 'custom_value2') String customValue2,@JsonKey(name: 'custom_value3') String customValue3,@JsonKey(name: 'custom_value4') String customValue4,@JsonKey(name: 'created_at') int createdAt,@JsonKey(name: 'updated_at') int updatedAt,@JsonKey(name: 'archived_at') int archivedAt,@JsonKey(name: 'is_deleted') bool isDeleted,@JsonKey(name: 'is_running') bool isRunning,@JsonKey(name: 'is_date_based') bool isDateBased, List<DocumentApi>? documents,@JsonKey(name: 'tags')@EmbeddedTagsConverter() List<TagRefApi> tags,@TaskMetaConverter() TaskMetaApi? meta
 });
 
 
-
+@override $TaskMetaApiCopyWith<$Res>? get meta;
 
 }
 /// @nodoc
@@ -338,7 +360,7 @@ class __$TaskApiCopyWithImpl<$Res>
 
 /// Create a copy of TaskApi
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? userId = null,Object? assignedUserId = null,Object? number = null,Object? description = null,Object? rate = null,Object? invoiceId = null,Object? clientId = null,Object? projectId = null,Object? statusId = null,Object? statusOrder = freezed,Object? timeLog = null,Object? customValue1 = null,Object? customValue2 = null,Object? customValue3 = null,Object? customValue4 = null,Object? createdAt = null,Object? updatedAt = null,Object? archivedAt = null,Object? isDeleted = null,Object? isRunning = null,Object? isDateBased = null,Object? documents = freezed,Object? tags = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? userId = null,Object? assignedUserId = null,Object? number = null,Object? description = null,Object? rate = null,Object? invoiceId = null,Object? clientId = null,Object? projectId = null,Object? statusId = null,Object? statusOrder = freezed,Object? timeLog = null,Object? customValue1 = null,Object? customValue2 = null,Object? customValue3 = null,Object? customValue4 = null,Object? createdAt = null,Object? updatedAt = null,Object? archivedAt = null,Object? isDeleted = null,Object? isRunning = null,Object? isDateBased = null,Object? documents = freezed,Object? tags = null,Object? meta = freezed,}) {
   return _then(_TaskApi(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
@@ -363,7 +385,283 @@ as bool,isRunning: null == isRunning ? _self.isRunning : isRunning // ignore: ca
 as bool,isDateBased: null == isDateBased ? _self.isDateBased : isDateBased // ignore: cast_nullable_to_non_nullable
 as bool,documents: freezed == documents ? _self._documents : documents // ignore: cast_nullable_to_non_nullable
 as List<DocumentApi>?,tags: null == tags ? _self._tags : tags // ignore: cast_nullable_to_non_nullable
-as List<TagRefApi>,
+as List<TagRefApi>,meta: freezed == meta ? _self.meta : meta // ignore: cast_nullable_to_non_nullable
+as TaskMetaApi?,
+  ));
+}
+
+/// Create a copy of TaskApi
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$TaskMetaApiCopyWith<$Res>? get meta {
+    if (_self.meta == null) {
+    return null;
+  }
+
+  return $TaskMetaApiCopyWith<$Res>(_self.meta!, (value) {
+    return _then(_self.copyWith(meta: value));
+  });
+}
+}
+
+
+/// @nodoc
+mixin _$TaskMetaApi {
+
+@JsonKey(name: 'calendar_event_id') String get calendarEventId;
+/// Create a copy of TaskMetaApi
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$TaskMetaApiCopyWith<TaskMetaApi> get copyWith => _$TaskMetaApiCopyWithImpl<TaskMetaApi>(this as TaskMetaApi, _$identity);
+
+  /// Serializes this TaskMetaApi to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TaskMetaApi&&(identical(other.calendarEventId, calendarEventId) || other.calendarEventId == calendarEventId));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,calendarEventId);
+
+@override
+String toString() {
+  return 'TaskMetaApi(calendarEventId: $calendarEventId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $TaskMetaApiCopyWith<$Res>  {
+  factory $TaskMetaApiCopyWith(TaskMetaApi value, $Res Function(TaskMetaApi) _then) = _$TaskMetaApiCopyWithImpl;
+@useResult
+$Res call({
+@JsonKey(name: 'calendar_event_id') String calendarEventId
+});
+
+
+
+
+}
+/// @nodoc
+class _$TaskMetaApiCopyWithImpl<$Res>
+    implements $TaskMetaApiCopyWith<$Res> {
+  _$TaskMetaApiCopyWithImpl(this._self, this._then);
+
+  final TaskMetaApi _self;
+  final $Res Function(TaskMetaApi) _then;
+
+/// Create a copy of TaskMetaApi
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? calendarEventId = null,}) {
+  return _then(_self.copyWith(
+calendarEventId: null == calendarEventId ? _self.calendarEventId : calendarEventId // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [TaskMetaApi].
+extension TaskMetaApiPatterns on TaskMetaApi {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _TaskMetaApi value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _TaskMetaApi() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _TaskMetaApi value)  $default,){
+final _that = this;
+switch (_that) {
+case _TaskMetaApi():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _TaskMetaApi value)?  $default,){
+final _that = this;
+switch (_that) {
+case _TaskMetaApi() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'calendar_event_id')  String calendarEventId)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _TaskMetaApi() when $default != null:
+return $default(_that.calendarEventId);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'calendar_event_id')  String calendarEventId)  $default,) {final _that = this;
+switch (_that) {
+case _TaskMetaApi():
+return $default(_that.calendarEventId);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'calendar_event_id')  String calendarEventId)?  $default,) {final _that = this;
+switch (_that) {
+case _TaskMetaApi() when $default != null:
+return $default(_that.calendarEventId);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _TaskMetaApi implements TaskMetaApi {
+  const _TaskMetaApi({@JsonKey(name: 'calendar_event_id') this.calendarEventId = ''});
+  factory _TaskMetaApi.fromJson(Map<String, dynamic> json) => _$TaskMetaApiFromJson(json);
+
+@override@JsonKey(name: 'calendar_event_id') final  String calendarEventId;
+
+/// Create a copy of TaskMetaApi
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$TaskMetaApiCopyWith<_TaskMetaApi> get copyWith => __$TaskMetaApiCopyWithImpl<_TaskMetaApi>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$TaskMetaApiToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TaskMetaApi&&(identical(other.calendarEventId, calendarEventId) || other.calendarEventId == calendarEventId));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,calendarEventId);
+
+@override
+String toString() {
+  return 'TaskMetaApi(calendarEventId: $calendarEventId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$TaskMetaApiCopyWith<$Res> implements $TaskMetaApiCopyWith<$Res> {
+  factory _$TaskMetaApiCopyWith(_TaskMetaApi value, $Res Function(_TaskMetaApi) _then) = __$TaskMetaApiCopyWithImpl;
+@override @useResult
+$Res call({
+@JsonKey(name: 'calendar_event_id') String calendarEventId
+});
+
+
+
+
+}
+/// @nodoc
+class __$TaskMetaApiCopyWithImpl<$Res>
+    implements _$TaskMetaApiCopyWith<$Res> {
+  __$TaskMetaApiCopyWithImpl(this._self, this._then);
+
+  final _TaskMetaApi _self;
+  final $Res Function(_TaskMetaApi) _then;
+
+/// Create a copy of TaskMetaApi
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? calendarEventId = null,}) {
+  return _then(_TaskMetaApi(
+calendarEventId: null == calendarEventId ? _self.calendarEventId : calendarEventId // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 
