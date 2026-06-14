@@ -105,7 +105,18 @@ class _HeaderCell<T> extends StatelessWidget {
             : AlignmentDirectional.centerStart,
         child: Padding(
           padding: const EdgeInsetsDirectional.symmetric(vertical: 2),
-          child: row,
+          // Scale the label down a hair if it would otherwise overflow its
+          // fixed column width — e.g. a long uppercased label whose width edges
+          // a sub-pixel past `column.width` in the bundled Inter Tight font.
+          // `scaleDown` only shrinks when needed (labels that fit are untouched)
+          // and, unlike the bare Row, never throws a RenderFlex overflow.
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: isEnd
+                ? AlignmentDirectional.centerEnd
+                : AlignmentDirectional.centerStart,
+            child: row,
+          ),
         ),
       ),
     );

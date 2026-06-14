@@ -9,6 +9,7 @@
 // `auth.currentCompanyId`.
 
 import 'package:decimal/decimal.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:admin/domain/billing/totals_calculator.dart';
@@ -33,7 +34,15 @@ void main() {
 
     // Mimic the logout that clears the session out from under a still-mounted
     // edit screen. After this `auth.session.value` is null.
-    await fixture.services.auth.logout();
+    //
+    // Driven through `tester.runAsync`: `logout()` nulls the session
+    // ValueNotifiers and then awaits real async teardown (secure-store deletes,
+    // the Drift wipe). Under the default fake-async test clock those awaited
+    // continuations are starved and the call hangs forever — see the
+    // documented hang in this suite. The real event loop runs them to
+    // completion exactly as production does, leaving the session null for the
+    // mount assertion below.
+    await tester.runAsync(() => fixture.services.auth.logout());
     expect(fixture.services.auth.currentCompanyId, isNull);
 
     // Fresh mount with a client selected → `_ensureStream` takes the
@@ -52,5 +61,16 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
+
+    // Tear the subscriber down inside the test. BillingEditTotals holds a Drift
+    // `clients.watch(...)` subscription, and Drift schedules a zero-duration
+    // timer to close the query stream on unsubscribe. Unmounting + pumping here
+    // lets that timer fire within the test's clock; left to the post-body tree
+    // teardown it stays pending and trips flutter_test's "A Timer is still
+    // pending" invariant.
+    await tester.pumpWidget(const SizedBox());
+    // Elapse the clock (a bare `pump()` doesn't advance it) so Drift's
+    // zero-duration close timer actually fires before the body returns.
+    await tester.pump(const Duration(milliseconds: 1));
   });
 }
