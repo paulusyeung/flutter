@@ -590,3 +590,5 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
     );
   }
 }
+
+//
