@@ -260,7 +260,7 @@ The four widgets in `lib/ui/core/widgets/` (`EmptyState`, `ErrorView`, `StatusPi
 
 ## Integration tests
 
-`integration_test/app_smoke_test.dart` boots the real `InvoiceNinjaApp` with in-memory Drift + `InMemoryTokenStorage` and a `MockClient`, guarding the DI graph, router, theme, and localization wiring. CI runs the full suite on macOS desktop plus `app_smoke_test.dart` on Chrome every PR.
+`integration_test/app_smoke_test.dart` boots the real `InvoiceNinjaApp` with in-memory Drift + `InMemoryTokenStorage` and a `MockClient`, guarding the DI graph, router, theme, and localization wiring. On CI (manual `workflow_dispatch`) only the `integration-web` job runs it — `app_smoke_test.dart` on headless Chrome. The macOS-desktop suite (incl. the live `demo/*` CRUD tests) is **local/manual only**: a headless hosted runner has no Metal device (`MTLCreateSystemDefaultDevice()` is nil) so the desktop app can't launch, so it runs via `tools/run_integration_local.sh`, not on CI.
 
 **Don't run integration tests locally unless the user explicitly asks** — they take over the foreground app and interrupt the developer's session. The on-request procedure (isolated worktree on a throwaway branch, the `flutter#135673` local-run workaround, widget-key and mocking conventions) is in `docs/integration-tests.md`.
 

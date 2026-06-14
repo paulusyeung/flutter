@@ -8,10 +8,9 @@ on:
 permissions:
   contents: read
 
-# Serialize manual dispatches on the same ref. cancel-in-progress is FALSE on
-# purpose: the macOS job's live demo suite creates/edits/deletes data on
-# demo.invoiceninja.com, and cancelling mid-run could abort between a create and
-# its cleanup-delete, orphaning records on the shared server. Queue instead.
+# Serialize manual dispatches on the same ref. cancel-in-progress is FALSE so
+# concurrent dispatches queue instead of cancelling — a newer dispatch won't
+# tear down the expensive 10x macOS build mid-flight.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: false
@@ -191,10 +190,13 @@ jobs:
       - name: Build Android APK (compile gate, --release)
         run: flutter build apk --release
 
-  # The only macOS runner (10x billed) — reserved for the work that genuinely
-  # needs macOS: the Apple builds and the macOS-desktop integration suite. Gated
-  # behind the cheap Linux checks so a lint slip or failing test never burns 10x
-  # minutes here (a failing gate skips this job — and its Apple build signal).
+  # The only macOS runner (10x billed) — the iOS + macOS release-build gate.
+  # The macOS-desktop integration suite is NOT run here: a headless hosted
+  # runner has no Metal device (MTLCreateSystemDefaultDevice() is nil), so the
+  # desktop app can't launch — it runs locally via tools/run_integration_local.sh
+  # (see docs/integration-tests.md). Gated behind the cheap Linux checks so a
+  # lint slip or failing test never burns 10x minutes here (a failing gate skips
+  # this job — and its Apple build signal).
   apple:
     runs-on: macos-26
     needs: [invariants, analyze, unit-tests]
@@ -235,87 +237,6 @@ jobs:
             DEVELOPMENT_TEAM= \
             PROVISIONING_PROFILE_SPECIFIER= \
             build
-
-      # TEMPORARY forensics (continue-on-error) — proves WHY the macOS-desktop
-      # app won't launch on a hosted GitHub runner, before we drop the suite from
-      # CI. Hosted macOS runners are headless and MTLCreateSystemDefaultDevice()
-      # can return nil (actions/runner-images#1779, flutter/flutter#118469), so a
-      # Flutter desktop app can't create its Metal renderer (Impeller OR Skia) and
-      # dies before the VM-service line → "The log reader stopped unexpectedly."
-      # The Swift Metal probe is decisive; the direct app-launch is the
-      # discriminator (renderer crash = GPU problem; clean launch = test-path
-      # issue). Removed in Stage 2 once the proof is captured.
-      - name: Forensics — why won't the macOS app launch?
-        continue-on-error: true
-        run: |
-          set -uo pipefail
-          echo "::group::Metal device probe (decisive)"
-          probe="$(mktemp -t metaldev).swift"
-          printf 'import Metal\nlet d = MTLCreateSystemDefaultDevice()\nprint("MTLCreateSystemDefaultDevice -> \\(d.map { $0.name } ?? "nil")")\nprint("MTLCopyAllDevices count -> \\(MTLCopyAllDevices().count)")\n' > "$probe"
-          xcrun swift "$probe" 2>&1 || echo "swift probe failed rc=$?"
-          rm -f "$probe"
-          echo "::endgroup::"
-          echo "::group::GPU / display / GUI session"
-          system_profiler SPDisplaysDataType 2>&1 | head -60 || true
-          ioreg -rc IOAccelerator 2>&1 | head -30 || true
-          launchctl print "gui/$(id -u)" 2>&1 | grep -iE 'WindowServer|Aqua|loginwindow' | head -5 || true
-          echo "::endgroup::"
-          echo "::group::Direct-launch the built Release app (discriminator)"
-          bin="$(find build -type f -path '*Release*Invoice Ninja.app/Contents/MacOS/Invoice Ninja' 2>/dev/null | head -1)"
-          [ -n "$bin" ] || bin="$(find "$HOME/Library/Developer/Xcode/DerivedData" -type f -path '*Release*Invoice Ninja.app/Contents/MacOS/Invoice Ninja' 2>/dev/null | head -1)"
-          echo "binary: ${bin:-<not found>}"
-          if [ -n "$bin" ] && [ -x "$bin" ]; then ( "$bin" & p=$!; sleep 12; kill "$p" 2>/dev/null || true ) 2>&1 | head -150; fi
-          echo "::endgroup::"
-          echo "::group::Unified log + crash reports"
-          log show --last 5m --predicate 'process == "Invoice Ninja"' --style compact 2>&1 | tail -100 || true
-          for d in "$HOME/Library/Logs/DiagnosticReports" "/Library/Logs/DiagnosticReports"; do for f in "$d"/*Invoice*; do [ -e "$f" ] || continue; echo "== $f =="; sed -n '1,80p' "$f"; done; done
-          echo "::endgroup::"
-
-      # Integration tests run against macOS desktop. They take over the
-      # foreground app, so they must NEVER be run on a developer's dev box —
-      # this is the only place they execute. See CLAUDE.md "Integration
-      # tests".
-      - name: Enable macOS desktop
-        if: false  # TEMP (Stage 1): desktop suite disabled while we capture launch forensics; deleted in Stage 2.
-        run: flutter config --enable-macos-desktop
-
-      # Integration tests, ONE FILE PER `flutter test` invocation
-      # (tools/run_integration_local.sh) — the flutter/flutter#135673 workaround:
-      # the bare `flutter test integration_test/ -d macos` only survives one app
-      # launch on desktop, so files 2+ die with "Error waiting for a debug
-      # connection." --include-demo also runs the live demo/* CRUD suite; those
-      # self-skip when demo.invoiceninja.com is unreachable, otherwise
-      # create/edit/delete ZZ-CLAUDE-IT-marked rows (cleaned up in teardown).
-      # Blocking: the script exits non-zero on any file FAIL/TIMEOUT.
-      #
-      # Ad-hoc signing: the macOS Runner target uses automatic signing (team
-      # NPC44Y2C98) and can't fetch a provisioning profile for
-      # com.invoiceninja.admin on CI. App Sandbox needs a *valid* signature, so
-      # sign ad-hoc (-) rather than disabling signing. Flutter forwards
-      # FLUTTER_XCODE_* to xcodebuild (build_macos.dart) — no Xcode changes.
-      - name: Integration tests (macOS, per-file, incl. live demo API)
-        if: false  # TEMP (Stage 1): skipped to keep the proof dispatch cheap on the 10x runner; deleted in Stage 2.
-        timeout-minutes: 50
-        env:
-          FLUTTER_XCODE_CODE_SIGN_STYLE: Manual
-          FLUTTER_XCODE_CODE_SIGN_IDENTITY: "-"
-          FLUTTER_XCODE_DEVELOPMENT_TEAM: ""
-          FLUTTER_XCODE_PROVISIONING_PROFILE_SPECIFIER: ""
-          INTEGRATION_FILE_TIMEOUT: "600"
-        run: bash tools/run_integration_local.sh --include-demo
-
-      # Pixel screenshots of live-suite failures (the test writes them here
-      # only when GITHUB_ACTIONS=true). Runs even when the step above failed
-      # so a red integration run still publishes its forensics; harmless
-      # no-op when everything passed.
-      - name: Upload integration failure screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: integration-failure-screenshots
-          path: build/integration-failures/
-          if-no-files-found: ignore
-          retention-days: 14
 
   # Web integration smoke. Cheap Ubuntu runner, headless Chrome, runs in
   # parallel with everything else. Only the mocked app_smoke_test.dart runs

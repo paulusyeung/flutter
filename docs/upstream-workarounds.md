@@ -100,7 +100,7 @@ These look workaround-shaped but are correct-forever (or inherent), not "waiting
 - `lib/utils/formatting.dart` `.999999` rounding nudge — corrects inherent binary-float accumulation, not a package bug.
 - clipboard-read-hang test technique (`test/ui/core/widgets/copyable_value_test.dart`) — `Clipboard.getData()` hangs under the widget-test fake-async zone; assert the `setData` channel call instead. A technique, nothing to revert.
 - Capped transitive dependencies / `intl: any` (the comment block at the top of `pubspec.yaml`) — version ceilings imposed by upstreams (freezed/pdf/qr_flutter/in_app_purchase/SDK pins), not workarounds. The routine-bump recipe lives in `docs/setup.md` § Dependency updates.
-- CI macOS integration suite `if: false` + Metal launch forensics (`.github/workflows/ci.yaml`) — internal CI staging for the headless-GPU runner gap; the earlier Metal-toolchain / Impeller-vs-Skia hardening was already removed. Tracked in the CI comments, not here.
+- CI macOS integration suite — **decided, not a pending workaround**: the macOS-desktop integration suite is intentionally NOT run on CI and the diagnostic forensics step was removed (2026-06-14). A headless hosted `macos-26` runner has no Metal device (`MTLCreateSystemDefaultDevice()` nil → the app can't launch; `actions/runner-images#1779`, `flutter/flutter#118469`), and the earlier Metal-toolchain-install / Impeller-vs-Skia hardening was tried and removed as insufficient. The suite runs locally only — see `docs/integration-tests.md`. (Don't re-add it to CI without a GPU-capable runner.)
 
 ## See also
 
