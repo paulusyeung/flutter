@@ -1,0 +1,79 @@
+name: Deploy to Snapcraft
+
+# Manual only — building + uploading a snap is a deliberate release action, not a
+# per-push gate. Publishes to the `edge` channel of the existing `invoiceninja`
+# snap; `grade: devel` in snap/snapcraft.yaml prevents an accidental stable push.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-snap:
+    name: Build and Publish Snap
+    # REQUIRED: the snap base is core22 == Ubuntu 22.04 (glibc 2.35). `flutter
+    # build linux` runs on the host here, so the host MUST be 22.04 — a binary
+    # compiled on ubuntu-24.04 links glibc symbols absent on core22 and would
+    # crash at launch. Do not bump this to ubuntu-latest without moving the
+    # Flutter build inside the snap (a core22 build container).
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+
+      # Pinned to match ci.yaml (no .flutter-version file in this repo).
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.1
+          cache: true
+
+      # Linux desktop toolchain + flutter_secure_storage's libsecret + sentry-native's libcurl.
+      # libcurl4-openssl-dev is load-bearing: sentry_flutter builds sentry-native, whose default
+      # Linux HTTP transport (curl) does find_package(CURL REQUIRED) — without it the link fails.
+      # No libssl/jsoncpp: sqlite3mc ships a prebuilt self-contained binary, and
+      # flutter_secure_storage_linux only needs libsecret-1.
+      - name: Install Linux build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev \
+            libsecret-1-dev libcurl4-openssl-dev \
+            execstack
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build Linux release
+        run: |
+          flutter config --enable-linux-desktop
+          flutter build linux --release
+
+      - name: Clear executable stack (strict confinement)
+        run: |
+          # sentry-native ships libsentry.so AND a crashpad_handler executable,
+          # both with an exec stack a strict snap rejects. Clear every bundled
+          # .so plus the crashpad_handler binary (no-op on files without one).
+          find build/linux/x64/release/bundle \
+            \( -name '*.so' -o -name 'crashpad_handler' \) \
+            -exec execstack --clear-execstack {} \; || true
+
+      # Builds snap/snapcraft.yaml inside an LXD core22 container (handles the
+      # snapcraft install + LXD setup); outputs the packed .snap path.
+      - name: Build snap
+        id: build
+        uses: snapcore/action-build@v1
+
+      # Credentials: repo secret SNAPCRAFT_STORE_CREDENTIALS, generated via
+      # `snapcraft export-login --snaps invoiceninja --acls ... --expires ...`.
+      - name: Publish to Snap Store (edge)
+        uses: snapcore/action-publish@v1
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+        with:
+          snap: ${{ steps.build.outputs.snap }}
+          release: edge

@@ -2,6 +2,8 @@
 
 Each desktop runner persists window size, position, and fullscreen across launches via the host OS's native preference store. No Dart or Flutter package involvement — the goal is one short native function per platform, idiomatic to that platform's APIs. **N/A on web** — the browser owns the window chrome; there is nothing to persist.
 
+> **Linux status:** a basic Linux desktop runner now ships (`linux/`, distributed as a Snap — see `docs/setup.md`), but it uses the **stock GTK-decorated window**. The window-state persistence and hidden-title-bar work described below are **not yet done for Linux** — the `linux/runner/my_application.cc` references in those sections are the plan, not the current state. The app degrades cleanly: `WindowCaptionStrip` early-returns `SizedBox.shrink()` off macOS and `NativeWindow._invoke` swallows `MissingPluginException`, so the standard title bar works with no native window code.
+
 **Contract** — every desktop runner does the same three things:
 1. Read saved state at window-construction time, before the window is shown.
 2. Write on every geometry change (move / resize) and on every fullscreen transition completion.

@@ -190,6 +190,48 @@ jobs:
       - name: Build Android APK (compile gate, --release)
         run: flutter build apk --release
 
+  # Linux desktop compile gate. Pinned to ubuntu-22.04 to match the snap's core22
+  # base (glibc 2.35), so the gate compiles against the same runtime the snap
+  # ships on (and a 24.04-only glibc symbol can't sneak in). Validates (a) the
+  # prebuilt sqlite3mc linux-x64 native asset is fetched + bundled (the "one
+  # unverified step" called out on unit-tests above) and (b) the C++ desktop
+  # plugins compile — flutter_secure_storage_linux needs libsecret-1-dev. The
+  # snap deploy (.github/workflows/snapcraft.yml) reuses this exact build.
+  build-linux:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      # Pinned — keep in lockstep with the analyze job.
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.1
+          cache: true
+
+      - name: Install Linux build deps
+        run: |
+          sudo apt-get update
+          # libcurl4-openssl-dev is load-bearing: sentry_flutter builds sentry-native, whose
+          # default Linux HTTP transport (curl) does find_package(CURL REQUIRED). Without it the
+          # link fails. Don't drop it. (libgtk-3-dev also provides gtk+-unix-print-3.0 for printing.)
+          sudo apt-get install -y \
+            clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev \
+            libsecret-1-dev libcurl4-openssl-dev
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build Linux (compile gate, --release)
+        run: |
+          flutter config --enable-linux-desktop
+          flutter build linux --release
+
   # The only macOS runner (10x billed) — the iOS + macOS release-build gate.
   # The macOS-desktop integration suite is NOT run here: a headless hosted
   # runner has no Metal device (MTLCreateSystemDefaultDevice() is nil), so the

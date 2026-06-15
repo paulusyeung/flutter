@@ -1,0 +1,58 @@
+name: invoiceninja
+# Display-only (the store orders releases by revision, not this string); bump per
+# release. Future improvement: adopt-info from pubspec.yaml via a craftctl
+# override-build, so this tracks the app version automatically.
+version: '5.1.1'
+summary: Create invoices, accept payments, track expenses & time tasks
+description: |
+  Create. Send. Get Paid.
+
+  Invoice Ninja is a leading platform for SMB's to invoice, accept payments, track expenses & time billable-tasks. Designed for freelancers and small to medium size businesses, Invoice Ninja is a suite of apps to help you get paid.
+
+  • Incredibly easy to use
+  Invoice Ninja was built to serve freelancers and business owners with a complete suite of invoicing & payment tools to advance your business.
+
+  • Invoicing & Payments
+  Every feature is geared towards accurate and secure invoicing and getting you paid. With Invoice Ninja you can send beautiful branded invoices with minimum of effort and maximum professionalism.
+
+  • Time Tracker & Projects
+  Create projects and individual tasks per project. When done, simply "Send task to invoice" and all details will be sent ready for your clients to pay!
+
+  • Track Vendors & Expenses
+  With Invoice Ninja, all your earnings, expenses, clients and vendors are stored and managed in one system. Categorize your vendors & re-invoice expenses to clients, or simply run expense reports.
+
+  All of these features combine to help you receive the money you deserve and reduce the amount of time you spend on repetitive invoicing tasks. Spend less time on paperwork and more time at your craft.
+confinement: strict
+base: core22
+# devel grade is a deliberate guardrail: a `devel` snap CANNOT be released to the
+# stable or candidate channels, so the pre-launch rebuild can never accidentally
+# replace the live app on stable. Flip to `stable` at launch.
+grade: devel
+
+apps:
+  invoiceninja:
+    # Must match BINARY_NAME in linux/CMakeLists.txt (the Flutter binary is named
+    # after the pubspec `name: admin`). snapd's command wrapper is still
+    # `invoiceninja` (the apps key), which is what the .desktop Exec points at.
+    command: admin
+    # Provides desktop/desktop-legacy/wayland/x11/gsettings/opengl + the GTK runtime.
+    extensions: [gnome]
+    plugs:
+      - network
+      - home
+      # libsecret/gnome-keyring access for flutter_secure_storage (the SQLCipher
+      # DB key). REQUIRED and NOT auto-connected: after install users must run
+      # `snap connect invoiceninja:password-manager-service` or the app can't open
+      # its encrypted database. See docs/setup.md.
+      - password-manager-service
+
+parts:
+  invoiceninja:
+    # The Linux bundle is compiled by the GitHub Action (flutter build linux)
+    # before snapcraft runs; this part only stages the prebuilt bundle, so there
+    # are no build-packages here — the Linux build deps live in the workflow.
+    source: build/linux/x64/release/bundle
+    plugin: dump
+    stage-packages:
+      # Runtime for flutter_secure_storage_linux (the plugin docs prescribe staging it).
+      - libsecret-1-0

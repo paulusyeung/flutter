@@ -14,10 +14,19 @@ git config core.hooksPath .githooks
 
 ## Platform targets
 
-- **Now**: iOS, macOS, **web**.
-- **Later**: Android, Windows, Linux.
+- **Now**: iOS, macOS, **web**, **Linux** (desktop, distributed as a Snap — see § Linux desktop / Snap).
+- **Later**: Android, Windows.
 
-When adding back Android/Windows/Linux, regenerate with `flutter create --platforms=android,windows,linux`. Notes: Android needs `<uses-permission android:name="android.permission.INTERNET" />`; Linux requires `libsecret-1-dev` for `flutter_secure_storage`; Windows uses DPAPI per-user.
+When adding back Android/Windows, regenerate with `flutter create --platforms=android,windows`. Notes: Android needs `<uses-permission android:name="android.permission.INTERNET" />`; Windows uses DPAPI per-user.
+
+## Linux desktop / Snap
+
+The Linux desktop runner lives in `linux/` (binary `admin`, application id `com.invoiceninja.admin`) and resolves to the same native (`_io`) code path as iOS/macOS — SQLCipher DB + `flutter_secure_storage` key. It's distributed as a Snap on the `edge` channel of the `invoiceninja` snap, published by the manually-triggered `.github/workflows/snapcraft.yml`; a `build-linux` gate in `ci.yaml` compile-checks Linux on every CI run. `snap/snapcraft.yaml` + `snap/gui/` hold the snap metadata, desktop entry, and 512px icon.
+
+- **Build deps** (on a 22.04 host — the snap base is core22): `clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev` (plus `execstack` in the deploy). No OpenSSL/jsoncpp — `sqlite3mc` ships a prebuilt self-contained binary and `flutter_secure_storage_linux` needs only libsecret.
+- **Keyring under strict confinement (load-bearing).** `flutter_secure_storage` holds the SQLCipher DB key and reaches gnome-keyring via the `password-manager-service` plug, which is **not auto-connected**. After `snap install invoiceninja --edge` users must run `snap connect invoiceninja:password-manager-service` once, or the app can't open its encrypted DB. Must be resolved (a store auto-connect request — Canonical generally declines these — or a libsecret-portal/per-snap-storage backend) before any `stable` release. `grade: devel` in `snapcraft.yaml` blocks accidental stable pushes until then.
+- **Build mechanism.** The workflow compiles `flutter build linux --release` on the 22.04 host (matching core22's glibc), clears the executable stack on `libsentry.so`/`crashpad_handler`, then packs + publishes via `snapcore/action-build` + `snapcore/action-publish`. Keep `runs-on: ubuntu-22.04` pinned — a binary built on a newer host links glibc symbols missing from core22 and crashes at launch. When 22.04 is retired, move the Flutter build inside the snap (a core22 build container).
+- **Store credentials.** Repo secret `SNAPCRAFT_STORE_CREDENTIALS`, generated with `snapcraft export-login --snaps invoiceninja --acls package_access,package_push,package_update,package_release --expires <date> exported.txt`. Expired credentials silently break publishing — track the date.
 
 ## Android release build
 
