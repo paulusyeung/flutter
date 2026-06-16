@@ -266,6 +266,12 @@ void main() {
         password: 'pw',
       );
 
+      // L9: the session identity name is populated from the login envelope
+      // (UserApi.first_name/last_name) — previously left blank until a User
+      // Details refresh, which also blanked restore()'s recovered names.
+      expect(repo.session.value!.userFirstName, 'Alice');
+      expect(repo.session.value!.userLastName, 'Owner');
+
       final row = await db.userDao.getByCompanyAndId(
         companyId: 'co_a',
         id: 'user_alice',

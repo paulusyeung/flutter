@@ -286,6 +286,58 @@ class SyncRepository {
     }
   }
 
+  /// A tag CREATE 422'd (typically a name colliding with a tag
+  /// archived/deleted on another device that our cache hadn't reconciled —
+  /// the local picker suppresses known collisions, see M1). Unlike a generic
+  /// failed parent, a dead tag must NOT kill every task/project that referenced
+  /// it: strip the dead tmp tag id from each dependent's full-set `tags`
+  /// payload and leave the row pending, so the parent save still drains with
+  /// its remaining tags (the server's `tags` is a full-replace, so dropping one
+  /// id is safe — matches React). The dependent's local row reconciles its
+  /// stale tag id on the parent's own update response. (M1)
+  Future<void> _stripFailedTagFromDependents(
+    String companyId,
+    String tagTmpId,
+  ) async {
+    final deps = await db.outboxDao.pendingRowsReferencing(
+      companyId: companyId,
+      needle: tagTmpId,
+    );
+    for (final dep in deps) {
+      Map<String, dynamic> payload;
+      try {
+        payload = jsonDecode(dep.payload) as Map<String, dynamic>;
+      } catch (_) {
+        continue; // unexpected shape — leave for the generic fail path
+      }
+      final tags = payload['tags'];
+      if (tags is! List) {
+        // No `tags` list to strip. The remaining rows referencing the dead tag
+        // are the tag's OWN follow-ups — an offline rename (update payload
+        // embeds the tmp id) or an archive/restore/delete keyed to it. The
+        // create is dead, so the tmp id will never resolve and these can never
+        // succeed; mark them dead (mirroring _failTmpDependents) instead of
+        // leaving them for the tmp-dependency guard to defer +1 min forever.
+        await _markDead(
+          dep,
+          'References a record that could not be saved',
+          null,
+        );
+        continue;
+      }
+      final cleaned = [
+        for (final t in tags)
+          if (t != tagTmpId) t,
+      ];
+      if (cleaned.length == tags.length) continue; // nothing to strip
+      payload['tags'] = cleaned;
+      await db.outboxDao.updatePayload(
+        id: dep.id,
+        payload: jsonEncode(payload),
+      );
+    }
+  }
+
   /// Discard every `pending` outbox row for [companyId] — the "Discard"
   /// branch of the confirm-before-switch / logout dialog and the 409
   /// "discard mine" path. Each row routes through [discardOutboxRow] so a
@@ -640,7 +692,14 @@ class SyncRepository {
       // levels.
       if (MutationKind.tryParse(row.mutationKind) == MutationKind.create &&
           row.entityId.startsWith('tmp_')) {
-        await _failTmpDependents(row.companyId, row.entityId, discard: false);
+        if (row.entityType == 'tag') {
+          // A failed tag create must not kill the task/project that referenced
+          // it — strip the dead tmp tag id from their payloads so they still
+          // save with their remaining tags, instead of marking them dead (M1).
+          await _stripFailedTagFromDependents(row.companyId, row.entityId);
+        } else {
+          await _failTmpDependents(row.companyId, row.entityId, discard: false);
+        }
       }
       return false;
     } on NotFoundException catch (e) {

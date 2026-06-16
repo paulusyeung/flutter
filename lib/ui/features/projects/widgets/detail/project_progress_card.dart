@@ -164,7 +164,6 @@ class _CardBody extends StatelessWidget {
         budgeted: budgeted,
         logged: logged,
         dueDate: project.dueDate,
-        now: now,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -413,14 +412,12 @@ class _StatusPillForStatus extends StatelessWidget {
     required this.budgeted,
     required this.logged,
     required this.dueDate,
-    required this.now,
   });
 
   final ProgressStatus status;
   final double budgeted;
   final double logged;
   final Date? dueDate;
-  final DateTime now;
 
   @override
   Widget build(BuildContext context) {
@@ -454,11 +451,10 @@ class _StatusPillForStatus extends StatelessWidget {
           final pct = ((logged / budgeted) * 100).round();
           label = '$pct%';
         } else if (due != null) {
-          final days = due
-              .toDateTime()
-              .add(const Duration(days: 1))
-              .difference(now)
-              .inDays;
+          // Date-space (UTC) day diff — mixing a date-only due date with the
+          // wall-clock `now` and `.inDays` flipped "past due" a day late
+          // (afternoon truncation) plus a DST shift (L4).
+          final days = due.differenceInDays(Date.today());
           if (days < 0) {
             label = context.tr('past_due');
             color = tokens.overdue;

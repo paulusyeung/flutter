@@ -31,14 +31,25 @@ class EntityTagsField extends StatelessWidget {
     final me = services.auth.session.value?.currentCompany;
     final isAdminOrOwner = (me?.isAdmin ?? false) || (me?.isOwner ?? false);
     return StreamBuilder<List<Tag>>(
-      stream: services.tags.watchAll(
+      // All lifecycle states in one stream: the active pool is derived for
+      // selection, and every name (incl. archived/deleted) feeds the picker's
+      // inline-create collision check — the server's UNIQUE rule reserves
+      // soft-deleted names too, so creating one 422s and kills the save (M1).
+      stream: services.tags.watchAllAnyState(
         companyId: companyId,
         entityType: entityType,
       ),
       builder: (context, snap) {
+        final all = snap.data ?? const <Tag>[];
+        final available = [
+          for (final t in all)
+            if (t.archivedAt == null && !t.isDeleted) t,
+        ];
+        final reservedNames = {for (final t in all) t.name.toLowerCase()};
         return TagPickerField(
           label: context.tr('tags'),
-          available: snap.data ?? const <Tag>[],
+          available: available,
+          reservedNames: reservedNames,
           selectedIds: selectedIds,
           enabled: enabled,
           onChanged: onChanged,

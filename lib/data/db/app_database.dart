@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/database_opener.dart';
+import 'package:admin/data/db/db_open_exception.dart';
 
 import 'package:admin/data/db/dao/bank_account_dao.dart';
 import 'package:admin/data/db/dao/bank_transaction_dao.dart';
@@ -285,6 +286,13 @@ Future<({AppDatabase db, bool wasReset})> openAppDatabase() async {
       return resetAndReopen();
     }
     return (db: db, wasReset: false);
+  } on KeyringUnavailableException {
+    // The OS secret store is unreachable, so we couldn't get the encryption
+    // key. Resetting can't help (destroying the DB file then reopening
+    // re-throws here on the next key fetch — the Linux snap crash-loop), and
+    // it would needlessly wipe the user's data over a transient/permission
+    // issue. Propagate so main() can show an actionable error screen.
+    rethrow;
   } catch (e, st) {
     _log.severe('Drift open failed; recovering by resetting local data', e, st);
     return resetAndReopen();

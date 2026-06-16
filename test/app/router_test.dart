@@ -204,6 +204,38 @@ void main() {
       // structural failure we treat as garbage.
       expect(companySafeLocation('http://', _testRoots), '/clients');
     });
+
+    test(
+      'strips a disabled-but-routed settings entity id (tax_rates) on switch',
+      () {
+        // Regression (H2): `tax_rate` / custom designs are `disabled: true`
+        // but have a wired, reachable edit/detail route. They MUST appear in
+        // `uiRoutePaths` so a stale `/settings/tax_rates/<id>` is stripped on a
+        // company switch — otherwise the edit screen (company captured once at
+        // mount) keeps reading from, and Save/Archive/Delete keeps writing to,
+        // the previous company's record.
+        final registry = EntityRegistry({
+          EntityType.client: _handler(EntityType.client, 'client', '/clients'),
+          EntityType.taxRate: _handler(
+            EntityType.taxRate,
+            'tax_rate',
+            '/settings/tax_rates',
+            section: SidebarSection.none,
+            disabled: true,
+          ),
+        });
+        final roots = registry.uiRoutePaths.toList();
+        expect(roots, contains('/settings/tax_rates'));
+        expect(
+          companySafeLocation('/settings/tax_rates/tr1/edit', roots),
+          '/settings/tax_rates',
+        );
+        expect(
+          companySafeLocation('/settings/tax_rates/tr1', roots),
+          '/settings/tax_rates',
+        );
+      },
+    );
   });
 
   group('isCompanySetupRequired', () {

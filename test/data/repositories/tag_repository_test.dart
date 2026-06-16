@@ -98,6 +98,58 @@ void main() {
         expect(projectTags.single.entityType, 'project');
       },
     );
+
+    test('archive optimistically flips local archived_at + is_dirty so it '
+        'leaves the active pool offline (M4)', () async {
+      final repo = TagRepository(db: db, api: _FakeTagsApi());
+      final created = await repo.create(
+        companyId: 'co',
+        draft: newTagDraft(name: 'Urgent', entityType: 'task'),
+      );
+      final id = created.entity.id;
+
+      await repo.archive(companyId: 'co', id: id);
+
+      final all = await repo
+          .watchAllAnyState(companyId: 'co', entityType: 'task')
+          .first;
+      final row = all.single;
+      expect(row.archivedAt, isNotNull, reason: 'optimistic archive flip');
+      expect(row.isDirty, isTrue, reason: 'dirty so a /refresh won\'t clobber');
+
+      // Not a silent no-op: it drops out of the active pool immediately.
+      final active = await repo
+          .watchAll(companyId: 'co', entityType: 'task')
+          .first;
+      expect(active, isEmpty);
+    });
+
+    test('watchAllAnyState surfaces archived names for the inline-create '
+        'collision check while the active pool hides them (M1)', () async {
+      final repo = TagRepository(db: db, api: _FakeTagsApi());
+      await repo.create(
+        companyId: 'co',
+        draft: newTagDraft(name: 'Active', entityType: 'task'),
+      );
+      final archived = await repo.create(
+        companyId: 'co',
+        draft: newTagDraft(name: 'Archived', entityType: 'task'),
+      );
+      await repo.archive(companyId: 'co', id: archived.entity.id);
+
+      final anyState = await repo
+          .watchAllAnyState(companyId: 'co', entityType: 'task')
+          .first;
+      expect(
+        anyState.map((t) => t.name).toSet(),
+        containsAll(<String>['Active', 'Archived']),
+        reason: 'collision check must see the archived name',
+      );
+      final active = await repo
+          .watchAll(companyId: 'co', entityType: 'task')
+          .first;
+      expect(active.map((t) => t.name), ['Active']);
+    });
   });
 
   group('Task tags wire round-trip', () {

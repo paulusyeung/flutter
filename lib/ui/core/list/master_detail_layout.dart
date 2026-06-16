@@ -160,6 +160,29 @@ const Set<String> _kEditDefaultsToSlide = <String>{
 bool editOpensFullWidth(String basePath) =>
     !_kEditDefaultsToSlide.contains(basePath);
 
+/// Where the pane's close/back chrome should navigate. An **edit** form
+/// returns to its read-only **detail** parent (`/x/:id`), preserving the pane
+/// mode (`?view=full`) so the close reads as an in-pane edit→view content swap
+/// with no geometry change. A **detail** (`/x/:id`) or **create** (`/x/new`)
+/// form returns to the bare **list** ([basePath]). Every master-detail entity
+/// has a detail screen (`buildEntityRouteBlock` asserts it), so an `/edit`
+/// route always has a real `/x/:id` parent. Pure for unit testing.
+String entityCloseTargetPath({
+  required String basePath,
+  required String currentPath, // GoRouterState uri.path (no query)
+  required bool isFullView, // current uri ?view == 'full'
+}) {
+  const editSuffix = '/edit';
+  if (currentPath.endsWith(editSuffix)) {
+    final detail = currentPath.substring(
+      0,
+      currentPath.length - editSuffix.length,
+    );
+    return isFullView ? '$detail?view=full' : detail;
+  }
+  return basePath;
+}
+
 class _MasterDetailLayoutState extends State<MasterDetailLayout>
     with TickerProviderStateMixin {
   final MasterDetailNavController _navController = MasterDetailNavController();
@@ -356,13 +379,23 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
     }
   }
 
-  /// User-initiated close. Confirms any unsaved edits *before* the
-  /// slide-out so the "Discard changes?" dialog appears over the
-  /// still-visible form — then runs the animation while the pane is
-  /// still mounted (URL hasn't changed yet) and navigates. If the user
-  /// navigated away mid-animation (e.g. clicked another row), skip the
-  /// final `go(basePath)` so we don't clobber their new destination.
-  Future<void> _closePaneAnimated() async {
+  /// User-initiated close. Confirms any unsaved edits *before* navigating
+  /// so the "Discard changes?" dialog appears over the still-visible form.
+  ///
+  /// [toParent] (the pane's X / Esc / back chrome): an edit form closes to
+  /// its read-only detail parent (preserving `?view`), every other route to
+  /// the bare list. Default `false` (the list-tile *deselect* gesture wired
+  /// through [MasterDetailNavController.closePane]) always collapses to the
+  /// list — clicking the open row again is "close the pane", not "view it".
+  ///
+  /// Closing **to the list** slides the pane out first (while it's still
+  /// mounted, URL unchanged), then navigates; if the user navigated away
+  /// mid-animation (e.g. clicked another row) we skip the final `go` so we
+  /// don't clobber their new destination. Closing **edit → detail** keeps the
+  /// pane docked and just swaps content (no slide-out) — an instant edit→view
+  /// swap like the J/K row nav; sliding out then back in would visibly jank.
+  Future<void> _closePaneAnimated({bool toParent = false}) async {
+    final fromUri = GoRouterState.of(context).uri;
     final fromLoc = GoRouterState.of(context).matchedLocation;
 
     // Only edit/create routes carry the `onExit` discard guard
@@ -370,10 +403,10 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
     // `GoRoute.onExit` guards). Run that same guard up-front so the
     // dialog shows over the form instead of after it has slid away. On
     // Discard `confirmIfDirty` resets the editor (its `onDiscard`), so
-    // the `go(basePath)` below re-enters `onExit` against a clean VM and
-    // doesn't double-prompt. Detail panes (`/:id`) have no guard, so we
-    // skip the check — closing them stays identical to today (no prompt,
-    // even when an unrelated editor in another branch is dirty).
+    // the `go` below re-enters `onExit` against a clean VM and doesn't
+    // double-prompt. Detail panes (`/:id`) have no guard, so we skip the
+    // check — closing them stays identical to today (no prompt, even when
+    // an unrelated editor in another branch is dirty).
     final isGuarded = fromLoc.endsWith('/edit') || fromLoc.endsWith('/new');
     if (isGuarded) {
       final guard = context.read<Services>().unsavedChangesGuard;
@@ -381,18 +414,31 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
       if (!mounted) return;
     }
 
-    final reduceMotion = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
-    if (!reduceMotion && _slide.status != AnimationStatus.dismissed) {
-      await _slide.reverse();
+    final target = toParent
+        ? entityCloseTargetPath(
+            basePath: widget.basePath,
+            currentPath: fromUri.path,
+            isFullView: fromUri.queryParameters['view'] == 'full',
+          )
+        : widget.basePath;
+    final closingToList = Uri.parse(target).path == widget.basePath;
+
+    if (closingToList) {
+      final reduceMotion =
+          MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+      if (!reduceMotion && _slide.status != AnimationStatus.dismissed) {
+        await _slide.reverse();
+      }
+      if (!mounted) return;
+      final nowLoc = GoRouterState.of(context).matchedLocation;
+      // User navigated somewhere else mid-animation (e.g. clicked a
+      // different row) — their navigation wins; don't clobber it.
+      if (nowLoc != fromLoc) return;
+      if (nowLoc == widget.basePath) return; // already where we'd go
     }
-    if (!mounted) return;
-    final nowLoc = GoRouterState.of(context).matchedLocation;
-    // User navigated somewhere else mid-animation (e.g. clicked a
-    // different row) — their navigation wins; don't clobber it by
-    // forcing back to the bare list.
-    if (nowLoc != fromLoc) return;
-    if (nowLoc == widget.basePath) return; // already where we'd go
-    GoRouter.of(context).go(widget.basePath);
+    // Edit → detail keeps the pane docked: navigate for an instant content
+    // swap (no slide-out). The geometry is unchanged because `?view` carries.
+    GoRouter.of(context).go(target);
   }
 
   @override
@@ -526,7 +572,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
                           isFullScreen: _isFullScreen,
                           isNarrow: false,
                           navController: _navController,
-                          onClose: _closePaneAnimated,
+                          onClose: () => _closePaneAnimated(toParent: true),
                           child: widget.rightPane!,
                         ),
                       ),
@@ -580,8 +626,9 @@ class _PaneRoot extends StatelessWidget {
   final Widget child;
 
   /// Optional close handler used by the X button and the Esc shortcut.
-  /// When null (full-screen mode), close falls back to a direct
-  /// `GoRouter.of(context).go(basePath)`. The slide-over passes its
+  /// When null (the narrow full-page pane), close falls back to a direct
+  /// `go` to the [entityCloseTargetPath] — an edit form to its detail
+  /// parent, everything else to the list. The slide-over passes its
   /// layout-state `_closePaneAnimated` so closing runs the slide-out
   /// animation before the URL changes.
   final VoidCallback? onClose;
@@ -591,7 +638,18 @@ class _PaneRoot extends StatelessWidget {
     if (handler != null) {
       handler();
     } else {
-      GoRouter.of(context).go(basePath);
+      // Narrow full-page pane: no slide animation, so navigate straight to
+      // the close target (edit → detail parent; detail/create → list). The
+      // edit route's `onExit` guard still fires on this `go`, so a dirty edit
+      // still prompts before navigating.
+      final uri = GoRouterState.of(context).uri;
+      GoRouter.of(context).go(
+        entityCloseTargetPath(
+          basePath: basePath,
+          currentPath: uri.path,
+          isFullView: uri.queryParameters['view'] == 'full',
+        ),
+      );
     }
   }
 

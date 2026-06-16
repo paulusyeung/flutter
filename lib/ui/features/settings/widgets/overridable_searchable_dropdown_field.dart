@@ -77,7 +77,15 @@ class OverridableSearchableDropdownField<T extends Object>
       initialValue: selected,
       displayString: displayString,
       idOf: idOf,
-      onChanged: (item) => onChanged(item == null ? null : idOf(item)),
+      // Scope-aware clear (H4), matching the picker widgets: at company scope
+      // write the empty-string sentinel — a typed null is omitted by
+      // CompanySettingsApi's includeIfNull:false toJson, so the stale
+      // rawSettings value would resurrect on save; '' survives the merge and
+      // actually clears the field. At group/client (cascade) scope a null
+      // removes the per-record override.
+      onChanged: (item) => onChanged(
+        item == null ? (host.isCascadeScope ? null : '') : idOf(item),
+      ),
       emptyHintKey: emptyHintKey,
       errorText: errorText,
     );

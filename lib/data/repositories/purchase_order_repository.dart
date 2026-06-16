@@ -118,7 +118,12 @@ class PurchaseOrderRepository
     // search / full resync at one page) nor advance it (deeper pages carry
     // older rows under `id DESC` — last-write-wins would walk the
     // watermark backwards).
-    final cursor = (ignoreCursor || hasVendorScope || page > 1)
+    // An active text search is a filtered VIEW: skip the cursor read (search
+    // across full history) and the advance below (a search-scoped data.last
+    // is not a valid global high-water mark).
+    final isSearchScoped = search != null && search.isNotEmpty;
+    final cursor =
+        (ignoreCursor || hasVendorScope || isSearchScoped || page > 1)
         ? null
         : await db.syncStateDao.read(
             companyId: companyId,
@@ -146,6 +151,7 @@ class PurchaseOrderRepository
       byId: {for (final a in apiRows) a.id: _apiToCompanion(a, companyId)},
     );
     if (!hasVendorScope &&
+        !isSearchScoped &&
         page == 1 &&
         result.cursorUpdatedAt != null &&
         result.cursorId != null) {

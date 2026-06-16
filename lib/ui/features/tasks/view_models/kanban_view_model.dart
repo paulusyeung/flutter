@@ -73,7 +73,11 @@ class KanbanViewModel extends ChangeNotifier with TaskFiltersMixin {
   void _onStatuses(List<TaskStatus> next) {
     _statuses = next;
     _isResolving = false;
-    notifyListeners();
+    // Guard against a Drift emission landing after dispose() (company switch /
+    // nav-away while the watch is in flight) — notifyListeners() on a disposed
+    // ChangeNotifier asserts in debug/test. Matches commitReorder's finally and
+    // the GenericDetailViewModel convention (L10).
+    if (!_disposed) notifyListeners();
   }
 
   void _onTasks(Map<String, List<Task>> next) {
@@ -83,7 +87,7 @@ class KanbanViewModel extends ChangeNotifier with TaskFiltersMixin {
     // build. If the persisted state differs from optimistic (e.g.
     // another device wrote concurrently), the user sees the truth.
     _optimisticByStatus = null;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
   }
 
   /// Tasks for [statusId] in the order the user last saw them. Prefers

@@ -191,7 +191,13 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>
     //    and full resync silently cap at one page) nor advance it (deeper
     //    pages carry older rows under `id DESC` — last-write-wins would walk
     //    the watermark backwards).
-    final cursor = (ignoreCursor || hasClientScope || page > 1)
+    // An active text search is a filtered VIEW (same rationale as
+    // `ensurePageLoadedTemplate`): skip the cursor read so the search looks
+    // across full history, and skip the advance below so a search-scoped
+    // `data.last` never corrupts the standalone list's delta sync.
+    final isSearchScoped = search != null && search.isNotEmpty;
+    final cursor =
+        (ignoreCursor || hasClientScope || isSearchScoped || page > 1)
         ? null
         : await db.syncStateDao.read(
             companyId: companyId,
@@ -229,6 +235,7 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>
     );
 
     if (!hasClientScope &&
+        !isSearchScoped &&
         page == 1 &&
         result.cursorUpdatedAt != null &&
         result.cursorId != null) {

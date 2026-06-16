@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/dialogs/discard_changes_dialog.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
@@ -380,42 +382,61 @@ class EntityEditScaffold<T> extends StatelessWidget {
                         ),
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        if (paneLeading != null) ...[
-                          paneLeading,
-                          const SizedBox(width: 4),
-                        ],
-                        // Title is NON-flex (capped + ellipsised) so the
-                        // actions `Expanded` below is the *only* flex child
-                        // and gets every remaining pixel — mirroring the
-                        // detail header. (A `Flexible` title here would
-                        // split the row 50/50 with the actions, stranding
-                        // them mid-row.)
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 280),
-                          child: Text(
-                            titleBuilder(context),
-                            style: Theme.of(context).textTheme.titleMedium,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        // Sole flex child → all remaining width. Align
-                        // right-aligns the shrink-wrapped, "More"-collapsing
-                        // OverflowView (Save is its plain `leading:` child).
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: actionsWidget ?? saveButton,
-                          ),
-                        ),
-                        if (paneActions != null) ...[
-                          const SizedBox(width: 8),
-                          paneActions,
-                        ],
-                      ],
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final wide = Breakpoints.isWide(constraints);
+                        // The bar reads this to render the spread bar (wide) or
+                        // the compact Save + `⋮` (narrow) — decided here from the
+                        // full header width, not the bar's reduced slot.
+                        final actions = ActionBarLayoutScope(
+                          wide: wide,
+                          child: actionsWidget ?? saveButton,
+                        );
+                        final title = Text(
+                          titleBuilder(context),
+                          style: Theme.of(context).textTheme.titleMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        );
+                        return Row(
+                          children: [
+                            if (paneLeading != null) ...[
+                              paneLeading,
+                              const SizedBox(width: 4),
+                            ],
+                            // Wide: title is NON-flex (capped + ellipsised) so
+                            // the actions `Expanded` is the *only* flex child and
+                            // the "More"-collapsing OverflowView gets every
+                            // remaining pixel. Narrow: the actions are a fixed
+                            // Save + `⋮` cluster, so the title flexes /
+                            // ellipsises instead and yields room — otherwise the
+                            // cluster would overflow a tight slot.
+                            if (wide) ...[
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 280,
+                                ),
+                                child: title,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: actions,
+                                ),
+                              ),
+                            ] else ...[
+                              Expanded(child: title),
+                              const SizedBox(width: 12),
+                              actions,
+                            ],
+                            if (paneActions != null) ...[
+                              const SizedBox(width: 8),
+                              paneActions,
+                            ],
+                          ],
+                        );
+                      },
                     ),
                   ),
                   Expanded(child: body),
@@ -425,27 +446,46 @@ class EntityEditScaffold<T> extends StatelessWidget {
             return Scaffold(
               appBar: AppBar(
                 titleSpacing: 16,
-                title: Row(
-                  children: [
-                    // Title NON-flex so the actions `Expanded` is the sole
-                    // flex child (mirrors the detail header — a `Flexible`
-                    // title would split the row 50/50).
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 280),
-                      child: Text(
-                        titleBuilder(context),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: actionsWidget ?? saveButton,
-                      ),
-                    ),
-                  ],
+                title: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final wide = Breakpoints.isWide(constraints);
+                    final actions = ActionBarLayoutScope(
+                      wide: wide,
+                      child: actionsWidget ?? saveButton,
+                    );
+                    final title = Text(
+                      titleBuilder(context),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    );
+                    // Wide: capped, non-flex title so the actions `Expanded`
+                    // gets every remaining pixel for the spread "More" bar.
+                    // Narrow: the actions are a fixed Save + `⋮` cluster, so the
+                    // title flexes / ellipsises and yields room instead.
+                    return Row(
+                      children: wide
+                          ? [
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 280,
+                                ),
+                                child: title,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: actions,
+                                ),
+                              ),
+                            ]
+                          : [
+                              Expanded(child: title),
+                              const SizedBox(width: 12),
+                              actions,
+                            ],
+                    );
+                  },
                 ),
               ),
               body: body,

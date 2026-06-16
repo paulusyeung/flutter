@@ -41,13 +41,33 @@ class _FakeServices implements Services {
       throw UnimplementedError(invocation.memberName.toString());
 }
 
-/// Plain full-width list stub.
+/// Plain full-width list stub. Carries a top-left "deselect" button (clear of
+/// the right-pinned pane) that fires the same `closePane` path a list tile uses
+/// when the already-open row is clicked — so a test can prove that gesture
+/// still collapses to the list, even from an edit route.
 class _Stub extends StatelessWidget {
   const _Stub(this.label);
   final String label;
   @override
-  Widget build(BuildContext context) =>
-      Scaffold(body: Center(child: Text(label)));
+  Widget build(BuildContext context) => Scaffold(
+    body: Stack(
+      children: [
+        Center(child: Text(label)),
+        Positioned(
+          top: 0,
+          left: 0,
+          child: TextButton(
+            key: const ValueKey('deselect'),
+            onPressed: () => MasterDetailNavScope.requestClose(
+              context,
+              basePath: '/products',
+            ),
+            child: const Text('deselect'),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 /// Pane body that renders the real pane chrome (the X / full-screen actions
@@ -58,9 +78,19 @@ class _PaneBody extends StatelessWidget {
   final String label;
   @override
   Widget build(BuildContext context) {
+    // Wide publishes the trailing actions row (X / full-screen); narrow
+    // publishes a leading back arrow. Render whichever is present so the test
+    // can tap the real chrome in either layout.
     final actions = MasterDetailPaneScope.paneActionsOf(context);
+    final leading = MasterDetailPaneScope.paneLeadingOf(context);
     return Scaffold(
-      body: Column(children: [if (actions != null) actions, Text(label)]),
+      body: Column(
+        children: [
+          if (leading != null) leading,
+          if (actions != null) actions,
+          Text(label),
+        ],
+      ),
     );
   }
 }
@@ -81,8 +111,9 @@ void main() {
     WidgetTester tester, {
     required UnsavedChangesGuard guard,
     required ValueNotifier<bool> editDirty,
+    Size size = const Size(1600, 900),
   }) async {
-    tester.view.physicalSize = const Size(1600, 900);
+    tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -199,8 +230,9 @@ void main() {
   );
 
   testWidgets(
-    'edit pane: Discard closes to the list with no second prompt (the up-front '
-    'discard resets the editor, so the onExit re-check stays silent)',
+    'edit pane: Discard closes to the detail view (not the list) with no '
+    'second prompt (the up-front discard resets the editor, so the onExit '
+    're-check stays silent)',
     (tester) async {
       final guard = UnsavedChangesGuard();
       final router = await pumpApp(
@@ -220,7 +252,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Discard changes?'), findsNothing); // no double prompt
-      expect(currentUri(router), '/products');
+      // Back from edit lands on the read-only detail, not the bare list.
+      expect(currentUri(router), '/products/1');
+      expect(find.text('DETAIL'), findsOneWidget);
       expect(find.text('EDIT'), findsNothing);
     },
   );
@@ -280,6 +314,54 @@ void main() {
 
       expect(find.text('Discard changes?'), findsNothing);
       expect(currentUri(router), '/products');
+      expect(find.text('DETAIL'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'edit pane (narrow): the back arrow closes to the detail view, not the list',
+    (tester) async {
+      final guard = UnsavedChangesGuard();
+      final router = await pumpApp(
+        tester,
+        guard: guard,
+        editDirty: ValueNotifier(false), // clean — no discard prompt
+        size: const Size(800, 900), // < Breakpoints.slideOver (1024) → narrow
+      );
+
+      router.go('/products/1/edit');
+      await tester.pumpAndSettle();
+      expect(find.text('EDIT'), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pumpAndSettle();
+
+      expect(currentUri(router), '/products/1');
+      expect(find.text('DETAIL'), findsOneWidget);
+      expect(find.text('EDIT'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'deselect (clicking the already-open row) still collapses to the list, '
+    'even while editing — not to the detail like the pane X does',
+    (tester) async {
+      final guard = UnsavedChangesGuard();
+      final router = await pumpApp(
+        tester,
+        guard: guard,
+        editDirty: ValueNotifier(false), // clean — no discard prompt
+      );
+
+      router.go('/products/1/edit');
+      await tester.pumpAndSettle();
+      expect(find.text('EDIT'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('deselect')));
+      await tester.pumpAndSettle();
+
+      expect(currentUri(router), '/products');
+      expect(find.text('EDIT'), findsNothing);
       expect(find.text('DETAIL'), findsNothing);
     },
   );

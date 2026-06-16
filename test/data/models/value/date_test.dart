@@ -30,4 +30,35 @@ void main() {
       expect(Date.tryParse('2026-07'), isNull);
     });
   });
+
+  // The Batch-5 DST fixes (dashboard previous-period, schedule "next run",
+  // recurring send-date preview, payment-schedule default, project days-
+  // remaining) all route their day math through these helpers instead of
+  // local-midnight + Duration(days:) / .inDays, which drifts a calendar day
+  // across a DST transition. These guard the UTC date-space contract.
+  group('addDays / differenceInDays (UTC date-space, DST-safe)', () {
+    test('addDays steps exact calendar days across DST boundaries', () {
+      // US fall-back: Nov 1 2026. +7 from Oct 25 must land on Nov 1.
+      expect(const Date(2026, 10, 25).addDays(7), const Date(2026, 11, 1));
+      // US spring-forward: Mar 8 2026.
+      expect(const Date(2026, 3, 7).addDays(1), const Date(2026, 3, 8));
+      // Backwards across the same boundary.
+      expect(const Date(2026, 11, 1).addDays(-7), const Date(2026, 10, 25));
+    });
+
+    test('differenceInDays counts exact calendar days across DST', () {
+      expect(
+        const Date(2026, 11, 1).differenceInDays(const Date(2026, 10, 25)),
+        7,
+      );
+      expect(
+        const Date(2026, 3, 8).differenceInDays(const Date(2026, 3, 7)),
+        1,
+      );
+      expect(
+        const Date(2026, 10, 25).differenceInDays(const Date(2026, 11, 1)),
+        -7,
+      );
+    });
+  });
 }

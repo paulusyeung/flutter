@@ -34,6 +34,24 @@ class TagDao extends DatabaseAccessor<AppDatabase>
     return q.watch().distinctRows();
   }
 
+  /// Watch every tag for [entityType] regardless of lifecycle (active,
+  /// archived, AND soft-deleted), in name order. Backs the inline-create
+  /// collision check: the server's UNIQUE(company_id, entity_type, name) has no
+  /// soft-delete predicate, so creating a name that collides with an archived
+  /// or deleted tag 422s — the picker must suppress "Create" for any such name,
+  /// not just names of the active pool (M1).
+  Stream<List<TagRow>> watchAllAnyState({
+    required String companyId,
+    required String entityType,
+  }) {
+    final q = select(tags)
+      ..where(
+        (t) => t.companyId.equals(companyId) & t.entityType.equals(entityType),
+      )
+      ..orderBy([(t) => OrderingTerm(expression: t.name.lower())]);
+    return q.watch().distinctRows();
+  }
+
   Stream<TagRow?> watchById({required String companyId, required String id}) {
     final q = select(tags)
       ..where((t) => t.companyId.equals(companyId) & t.id.equals(id))
@@ -89,5 +107,58 @@ class TagDao extends DatabaseAccessor<AppDatabase>
     return (delete(
       tags,
     )..where((t) => t.companyId.equals(companyId) & t.id.equals(id))).go();
+  }
+
+  /// Optimistic archive: stamp `archived_at` and mark the row dirty so the
+  /// active list drops it immediately offline and a `/refresh` won't clobber
+  /// the flip before sync. Mirrors `BaseEntityDao.setArchived` (M4).
+  Future<void> setArchived({
+    required String companyId,
+    required String id,
+    required int atEpochSeconds,
+  }) {
+    return (update(
+      tags,
+    )..where((t) => t.companyId.equals(companyId) & t.id.equals(id))).write(
+      TagsCompanion(
+        archivedAt: Value(atEpochSeconds),
+        isDirty: const Value(true),
+      ),
+    );
+  }
+
+  /// Optimistic restore: clear archived/deleted flags and mark the row dirty
+  /// (the inverse of [setArchived] and [markDeletedDirty]).
+  Future<void> markRestored({required String companyId, required String id}) {
+    return (update(
+      tags,
+    )..where((t) => t.companyId.equals(companyId) & t.id.equals(id))).write(
+      const TagsCompanion(
+        archivedAt: Value(null),
+        isDeleted: Value(false),
+        isDirty: Value(true),
+      ),
+    );
+  }
+
+  /// Optimistic delete: soft-delete the local row and mark it dirty.
+  Future<void> markDeletedDirty({
+    required String companyId,
+    required String id,
+  }) {
+    return (update(
+      tags,
+    )..where((t) => t.companyId.equals(companyId) & t.id.equals(id))).write(
+      const TagsCompanion(isDeleted: Value(true), isDirty: Value(true)),
+    );
+  }
+
+  /// Clear the local row's dirty flag — the discard-reconciliation hook
+  /// (mirrors `BaseEntityDao.clearDirtyById`) so a discarded optimistic
+  /// archive/restore/delete doesn't leave the tag stuck dirty + refresh-skipped.
+  Future<void> clearDirtyById({required String companyId, required String id}) {
+    return (update(tags)
+          ..where((t) => t.companyId.equals(companyId) & t.id.equals(id)))
+        .write(const TagsCompanion(isDirty: Value(false)));
   }
 }

@@ -47,6 +47,39 @@ class _FakeQuotesApi implements QuotesApi {
   Object? noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
 
+/// Records the cursor params each `list` call received and lets a test set the
+/// rows the next call returns — so a test can assert whether a fetch read /
+/// advanced the keyset cursor.
+class _CapturingQuotesApi implements QuotesApi {
+  List<QuoteApi> next = const [];
+  int? lastSinceUpdatedAt;
+  String? lastSinceId;
+  String? lastSearch;
+
+  @override
+  Future<({QuoteListApi data, int? cursorUpdatedAt, String? cursorId})> list({
+    required int page,
+    int perPage = 50,
+    String? search,
+    int? sinceUpdatedAt,
+    String? sinceId,
+    Map<String, String> filters = const {},
+  }) async {
+    lastSinceUpdatedAt = sinceUpdatedAt;
+    lastSinceId = sinceId;
+    lastSearch = search;
+    final rows = next;
+    return (
+      data: QuoteListApi(data: rows),
+      cursorUpdatedAt: rows.isNotEmpty ? rows.last.updatedAt : null,
+      cursorId: rows.isNotEmpty ? rows.last.id : null,
+    );
+  }
+
+  @override
+  Object? noSuchMethod(Invocation invocation) => throw UnimplementedError();
+}
+
 List<QuoteApi> _recordedDemoQuotes() {
   final raw = File('test/fixtures/quotes_demo_page1.json').readAsStringSync();
   final json = jsonDecode(raw) as Map<String, dynamic>;
@@ -116,6 +149,56 @@ void main() {
             'all active demo quotes must survive upsert + watchPage; '
             'a shortfall is the demo-suite "0 QuoteListTile" bug reproduced',
       );
+    });
+  });
+
+  group('QuoteRepository — search bypasses the keyset cursor (H1)', () {
+    test('a normal page-1 fetch advances the cursor; a search fetch neither '
+        'reads nor advances it', () async {
+      final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+      final api = _CapturingQuotesApi();
+      final repo = QuoteRepository(db: db, api: api);
+
+      // 1) Normal page-1 fetch: no prior cursor to read, but it ADVANCES the
+      //    cursor to data.last.
+      api.next = [QuoteApi(id: 'q-normal', number: 'Q-N', updatedAt: 1000)];
+      await repo.ensurePageLoaded(companyId: 'co', page: 1);
+      expect(api.lastSinceUpdatedAt, isNull);
+      final afterNormal = await db.syncStateDao.read(
+        companyId: 'co',
+        entityType: 'quote',
+      );
+      expect(afterNormal.updatedAt, 1000, reason: 'normal fetch advances');
+      expect(afterNormal.id, 'q-normal');
+
+      // 2) Search fetch (page 1, ignoreCursor:true — what the VM now passes for
+      //    a non-empty search). It must NOT send the since-cursor set in step 1
+      //    (search looks across full history), and must NOT advance the global
+      //    cursor to its search-scoped watermark (5000).
+      api.next = [QuoteApi(id: 'q-search', number: 'Q-S', updatedAt: 5000)];
+      await repo.ensurePageLoaded(
+        companyId: 'co',
+        page: 1,
+        search: 'acme',
+        ignoreCursor: true,
+      );
+      expect(api.lastSearch, 'acme');
+      expect(
+        api.lastSinceUpdatedAt,
+        isNull,
+        reason: 'search must look across full history, not the delta window',
+      );
+      final afterSearch = await db.syncStateDao.read(
+        companyId: 'co',
+        entityType: 'quote',
+      );
+      expect(
+        afterSearch.updatedAt,
+        1000,
+        reason: 'a search-scoped data.last must not corrupt the global cursor',
+      );
+      expect(afterSearch.id, 'q-normal');
     });
   });
 }

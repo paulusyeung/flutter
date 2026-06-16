@@ -33,9 +33,40 @@ class TaskDailyViewModel extends ChangeNotifier with TaskFiltersMixin {
   StreamSubscription<List<Task>>? _sub;
   List<Task> _tasks = const [];
   bool _disposed = false;
+  bool _isDuplicating = false;
+  Date? _duplicatingDay;
+  final Set<Date> _duplicatedDays = {};
 
   Date get day => _day;
   bool get isToday => _day == Date.today();
+
+  /// Whether "duplicate yesterday" is allowed for the focused day: it's today,
+  /// no duplicate run is in flight, and this day hasn't already been duplicated
+  /// this session. Gates the header button so a double-tap (or a re-tap after
+  /// the success toast) can't create a second full set of tasks (M2).
+  bool get isDuplicating => _isDuplicating;
+  bool get canDuplicateYesterday =>
+      isToday && !_isDuplicating && !_duplicatedDays.contains(_day);
+
+  /// Begin a duplicate-yesterday run; returns false (caller must abort) if one
+  /// is already running or the focused day was already duplicated.
+  bool beginDuplicate() {
+    if (_isDuplicating || _duplicatedDays.contains(_day)) return false;
+    _isDuplicating = true;
+    _duplicatingDay = _day;
+    if (!_disposed) notifyListeners();
+    return true;
+  }
+
+  /// End a duplicate-yesterday run; records the day as duplicated when [created]
+  /// so a later re-tap is a no-op even after the spinner/toast clears.
+  void endDuplicate({required bool created}) {
+    _isDuplicating = false;
+    final day = _duplicatingDay;
+    if (created && day != null) _duplicatedDays.add(day);
+    _duplicatingDay = null;
+    if (!_disposed) notifyListeners();
+  }
 
   Iterable<Task> get _filtered =>
       filtersActive ? _tasks.where(matchesFilters) : _tasks;

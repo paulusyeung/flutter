@@ -176,20 +176,14 @@ class DashboardApi {
   }
 
   int _windowDays(Date start, Date end) {
-    final s = DateTime(start.year, start.month, start.day);
-    final e = DateTime(end.year, end.month, end.day);
-    final days = e.difference(s).inDays + 1;
+    // Date-space math (UTC) — local-midnight + Duration drifts an hour across
+    // a DST transition and `.inDays` truncates to N-1, so the previous-period
+    // comparison window would be a day short twice a year (M5).
+    final days = end.differenceInDays(start) + 1;
     return days <= 0 ? 1 : days;
   }
 
-  Date _shiftBack(Date date, int days) {
-    final dt = DateTime(
-      date.year,
-      date.month,
-      date.day,
-    ).subtract(Duration(days: days));
-    return Date(dt.year, dt.month, dt.day);
-  }
+  Date _shiftBack(Date date, int days) => date.addDays(-days);
 
   /// Map a [DashboardDateRange] to the server's `date_range` string. Server
   /// accepts presets (`this_month`, etc.) or `custom`.

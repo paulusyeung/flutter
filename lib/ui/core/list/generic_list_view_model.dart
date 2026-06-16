@@ -763,7 +763,13 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
 
   Future<void> _applySearch(String value) async {
     _search = value;
-    await _resetAndReload(ignoreCursor: false);
+    // A non-empty search is a filtered VIEW: ignore the keyset cursor so the
+    // server searches across full history (not just the delta window) and the
+    // matches are pulled into Drift for the local watch. The repo also treats
+    // `search != null/isNotEmpty` as a view and refuses to ADVANCE the cursor,
+    // so this `ignoreCursor: true` can't corrupt the global delta watermark.
+    // Clearing the search (empty value) returns to the normal page-1 delta.
+    await _resetAndReload(ignoreCursor: value.isNotEmpty);
   }
 
   Future<void> setStates(Set<EntityState> next) async {

@@ -234,7 +234,14 @@ Map<String, Decimal> computeTaxBreakdown(
   if (input.customSurcharge4 != Decimal.zero && input.customTaxes4) {
     total = total + _round(input.customSurcharge4, precision);
   }
-  if (input.taxRate1 != Decimal.zero) {
+  // Invoice-level tax tiers require a tax NAME of length >= 2, matching the
+  // server (InvoiceSum: each tier applies only when strlen(tax_nameN) >= 2,
+  // with no rate-only escape hatch). Without this the breakdown shows — and
+  // stampTotalsForSave persists — a tax the server silently drops on sync, so
+  // the local total reads too high until a refresh. Line-item tax is NOT
+  // name-gated server-side (InvoiceItemSum), so the per-line rates above stay
+  // rate-only. (L6)
+  if (input.taxRate1 != Decimal.zero && input.taxName1.length >= 2) {
     final t = _taxAmount(
       total,
       input.taxRate1,
@@ -243,7 +250,7 @@ Map<String, Decimal> computeTaxBreakdown(
     );
     map.update(input.taxName1, (v) => v + t, ifAbsent: () => t);
   }
-  if (input.taxRate2 != Decimal.zero) {
+  if (input.taxRate2 != Decimal.zero && input.taxName2.length >= 2) {
     final t = _taxAmount(
       total,
       input.taxRate2,
@@ -252,7 +259,7 @@ Map<String, Decimal> computeTaxBreakdown(
     );
     map.update(input.taxName2, (v) => v + t, ifAbsent: () => t);
   }
-  if (input.taxRate3 != Decimal.zero) {
+  if (input.taxRate3 != Decimal.zero && input.taxName3.length >= 2) {
     final t = _taxAmount(
       total,
       input.taxRate3,
@@ -281,16 +288,20 @@ Decimal getItemTaxable(
 
   if (input.discount != Decimal.zero) {
     if (input.isAmountDiscount) {
-      final denom = invoiceTotal + input.discount;
-      if (denom != Decimal.zero && invoiceTotal != Decimal.zero) {
+      // Spread the amount discount with the SUBTOTAL (`invoiceTotal`, passed in
+      // as computeSubtotal) as the denominator — matching _calculateTotal (the
+      // grand total) and the server's calcTaxesWithAmountDiscount. The old
+      // `subtotal + discount` denom made the per-name breakdown rows fail to
+      // sum to the tax baked into the grand total by a few cents (L7).
+      if (invoiceTotal != Decimal.zero) {
         // Use a wide working scale (10) for the intermediate ratio.
         // Passing the currency `precision` (typically 2) here would
-        // truncate `lineTotal / denom` and silently skew the per-item
+        // truncate `lineTotal / invoiceTotal` and silently skew the per-item
         // tax breakdown — admin-portal's `double` math has no equivalent
         // precision loss, so the port must match that.
         lineTotal =
             lineTotal -
-            _safeDiv(lineTotal, denom, precision: 10) * input.discount;
+            _safeDiv(lineTotal, invoiceTotal, precision: 10) * input.discount;
       }
     } else {
       final factor = (Decimal.fromInt(100) - input.discount);
@@ -424,9 +435,17 @@ Decimal _calculateTotal(BillingTotalsInput input, int precision) {
     total = total + _round(input.customSurcharge4, precision);
   }
   if (!input.usesInclusiveTaxes) {
-    final t1 = _round(_mulRate(total, input.taxRate1), precision);
-    final t2 = _round(_mulRate(total, input.taxRate2), precision);
-    final t3 = _round(_mulRate(total, input.taxRate3), precision);
+    // Invoice-level tiers require tax_name length >= 2 (server parity — see
+    // computeTaxBreakdown); `itemTax` (per-line) is name-independent. (L6)
+    final t1 = input.taxName1.length >= 2
+        ? _round(_mulRate(total, input.taxRate1), precision)
+        : Decimal.zero;
+    final t2 = input.taxName2.length >= 2
+        ? _round(_mulRate(total, input.taxRate2), precision)
+        : Decimal.zero;
+    final t3 = input.taxName3.length >= 2
+        ? _round(_mulRate(total, input.taxRate3), precision)
+        : Decimal.zero;
     total = total + itemTax + t1 + t2 + t3;
   }
   if (input.customSurcharge1 != Decimal.zero && !input.customTaxes1) {

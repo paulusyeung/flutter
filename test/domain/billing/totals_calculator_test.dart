@@ -187,7 +187,8 @@ void main() {
       expect(result.total, d('112.00'));
     });
 
-    test('empty taxName with non-zero rate is omitted from breakdown', () {
+    test('empty taxName with non-zero rate is omitted from breakdown and '
+        'total (server requires tax_name length >= 2)', () {
       final result = computeTotals(
         input(
           lineItems: [item(cost: '100')],
@@ -196,13 +197,14 @@ void main() {
         ),
         2,
       );
-      // The legacy mixin still computes the tax against the rate even when
-      // the name is blank — it just merges into the breakdown under the
-      // empty-string key. The legacy test that omits unnamed taxes does
-      // so via `taxRate1 == 0` (omitted) and `taxName1 != 0`. We mirror
-      // the same behavior: the result's `taxBreakdown` map carries the
-      // unnamed key.
-      expect(result.taxBreakdown.containsKey(''), isTrue);
+      // The server (InvoiceSum) applies an invoice-level tier only when
+      // strlen(tax_nameN) >= 2 — a blank/1-char name means no tax, with no
+      // rate-only escape hatch. The local calc must match, or the displayed
+      // and offline-stamped total reads too high (by the dropped tax) until a
+      // refresh corrects it (L6). The legacy `double` mixin merged it under the
+      // '' key; we no longer do.
+      expect(result.taxBreakdown.containsKey(''), isFalse);
+      expect(result.total, d('100.00'));
     });
   });
 
@@ -315,23 +317,19 @@ void main() {
       expect(result.total, d('90.00'));
     });
 
-    test('amount discount distributes across line items in tax breakdown', () {
+    test('amount discount distributes across line items consistently in '
+        'breakdown and total', () {
       // Two items totalling 100. Invoice-level $20 amount discount.
       //
-      // Faithful port of admin-portal's behavior: the `breakdown` and the
-      // `total` use *different* per-line distribution formulas:
-      //   * `calculateTaxes` (breakdown): denom = subtotal + discount = 120
-      //     - Item 1: 60 − 60/120 × 20 = 50 → tax 5.00
-      //     - Item 2: 40 − 40/120 × 20 = 33.33 → tax 3.33
-      //     - Breakdown GST = 8.33
-      //   * `calculateTotal` (total): denom = subtotal = 100
-      //     - Item 1: 60 − 60/100 × 20 = 48 → tax 4.80
-      //     - Item 2: 40 − 40/100 × 20 = 32 → tax 3.20
-      //     - Embedded tax = 8.00, total = 100 − 20 + 8 = 88
-      //
-      // The 0.33 divergence between displayed breakdown and embedded tax is
-      // a legacy quirk the v1 admin-portal shipped with; preserved here so
-      // the UI matches the prior tool's numbers exactly.
+      // The breakdown and the total now use the SAME per-line distribution
+      // denominator — the subtotal (100), matching the server's
+      // calcTaxesWithAmountDiscount (L7). Previously the breakdown used
+      // subtotal + discount = 120 → GST 8.33, diverging from the total's
+      // embedded 8.00 by a few cents (the rows didn't sum to the displayed
+      // total). Now both are 8.00:
+      //   - Item 1: 60 − 60/100 × 20 = 48 → tax 4.80
+      //   - Item 2: 40 − 40/100 × 20 = 32 → tax 3.20
+      //   - Breakdown GST = 8.00; embedded tax = 8.00; total = 100 − 20 + 8 = 88
       final result = computeTotals(
         input(
           lineItems: [
@@ -343,7 +341,7 @@ void main() {
         ),
         2,
       );
-      expect(result.taxBreakdown['GST'], d('8.33'));
+      expect(result.taxBreakdown['GST'], d('8.00'));
       expect(result.total, d('88.00'));
     });
   });

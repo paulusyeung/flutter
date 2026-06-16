@@ -1083,21 +1083,29 @@ final Map<String, SettingsBinding> _bindings = <String, SettingsBinding>{
     read: (s) => s.enableQuoteReminder1?.toString(),
     write: (s, v) => s.copyWith(enableQuoteReminder1: _parseBool(v)),
   ),
+  // Reminder-days: an empty clear maps to 0 (the server's "unset" value, see
+  // CompanySettings), NOT null. A typed null is omitted by CompanySettingsApi's
+  // includeIfNull:false toJson, so at company scope the stale `rawSettings`
+  // value would resurrect on the next save; an explicit 0 survives the merge
+  // and actually clears the offset. 0 is also the server default at
+  // group/client scope, so it's harmless there (M3). (Counters default to
+  // 1/4, NOT 0 — never apply this blanket to those bindings.)
   'num_days_reminder1': (
     read: (s) => s.numDaysReminder1?.toString(),
-    write: (s, v) => s.copyWith(numDaysReminder1: int.tryParse(v ?? '')),
+    write: (s, v) => s.copyWith(numDaysReminder1: int.tryParse(v ?? '') ?? 0),
   ),
   'num_days_reminder2': (
     read: (s) => s.numDaysReminder2?.toString(),
-    write: (s, v) => s.copyWith(numDaysReminder2: int.tryParse(v ?? '')),
+    write: (s, v) => s.copyWith(numDaysReminder2: int.tryParse(v ?? '') ?? 0),
   ),
   'num_days_reminder3': (
     read: (s) => s.numDaysReminder3?.toString(),
-    write: (s, v) => s.copyWith(numDaysReminder3: int.tryParse(v ?? '')),
+    write: (s, v) => s.copyWith(numDaysReminder3: int.tryParse(v ?? '') ?? 0),
   ),
   'quote_num_days_reminder1': (
     read: (s) => s.quoteNumDaysReminder1?.toString(),
-    write: (s, v) => s.copyWith(quoteNumDaysReminder1: int.tryParse(v ?? '')),
+    write: (s, v) =>
+        s.copyWith(quoteNumDaysReminder1: int.tryParse(v ?? '') ?? 0),
   ),
   'schedule_reminder1': (
     read: (s) => s.scheduleReminder1,

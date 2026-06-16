@@ -68,13 +68,21 @@ class TaskDailyActions {
     String companyId,
     TaskDailyViewModel vm,
   ) async {
-    final sources = vm.tasksOnDay(vm.day.addDays(-1));
+    // Re-entry / re-tap guard (M2): a second tap before the first completes —
+    // or after the success toast, while the same source set still reads from
+    // yesterday — must not create a second full batch.
+    if (!vm.beginDuplicate()) return;
     var created = 0;
-    for (final src in sources) {
-      final draft = buildDuplicate(src);
-      if (draft == null) continue;
-      await services.tasks.create(companyId: companyId, draft: draft);
-      created++;
+    try {
+      final sources = vm.tasksOnDay(vm.day.addDays(-1));
+      for (final src in sources) {
+        final draft = buildDuplicate(src);
+        if (draft == null) continue;
+        await services.tasks.create(companyId: companyId, draft: draft);
+        created++;
+      }
+    } finally {
+      vm.endDuplicate(created: created > 0);
     }
     if (!context.mounted) return;
     if (created == 0) {

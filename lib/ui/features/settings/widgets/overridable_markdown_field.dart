@@ -64,7 +64,13 @@ class OverridableMarkdownField extends StatelessWidget {
       enabled: enabled,
       externalValueKey: Object.hash(apiKey, value, overridden),
       debounce: debounce ?? const Duration(milliseconds: 300),
-      onChanged: (v) => host.updateSettings((s) => writeFn(s, v)),
+      onChanged: (v) {
+        // See OverridableTextField: at cascade scope an empty edit removes the
+        // override (null) instead of persisting '', which the server treats as
+        // inherit and would silently diverge from the rendered PDF/email (L12).
+        final value = host.isCascadeScope && v.isEmpty ? null : v;
+        host.updateSettings((s) => writeFn(s, value));
+      },
     );
 
     final field = errorText == null

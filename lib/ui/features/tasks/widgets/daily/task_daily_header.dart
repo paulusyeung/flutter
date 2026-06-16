@@ -85,12 +85,16 @@ class TaskDailyHeader extends StatelessWidget {
             IconButton(
               tooltip: context.tr('duplicate_yesterday'),
               icon: const Icon(Icons.copy_outlined),
-              onPressed: () => TaskDailyActions.duplicateYesterday(
-                context,
-                services,
-                vm.companyId,
-                vm,
-              ),
+              // Disabled while a run is in flight or once this day was already
+              // duplicated, so a re-tap can't double-create the batch (M2).
+              onPressed: vm.canDuplicateYesterday
+                  ? () => TaskDailyActions.duplicateYesterday(
+                      context,
+                      services,
+                      vm.companyId,
+                      vm,
+                    )
+                  : null,
             ),
           const SizedBox(width: 8),
           if (wide)

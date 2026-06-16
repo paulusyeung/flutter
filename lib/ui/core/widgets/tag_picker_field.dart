@@ -25,6 +25,7 @@ class TagPickerField extends StatefulWidget {
     required this.selectedIds,
     required this.onChanged,
     this.onCreate,
+    this.reservedNames = const {},
     this.enabled = true,
   });
 
@@ -42,6 +43,14 @@ class TagPickerField extends StatefulWidget {
   /// selection) or null if creation was declined/failed. Null hides the
   /// "Create" affordance for non-admins.
   final Future<Tag?> Function(String name)? onCreate;
+
+  /// Lowercased names that already exist for this entity type across ALL
+  /// lifecycle states (active, archived, deleted) — beyond [available], which
+  /// is active-only. Inline-create is suppressed for any of these because the
+  /// server's UNIQUE(company_id, entity_type, name) reserves soft-deleted names
+  /// too, so creating a colliding name 422s and (offline) kills the parent save
+  /// (M1).
+  final Set<String> reservedNames;
 
   final bool enabled;
 
@@ -80,10 +89,13 @@ class _TagPickerFieldState extends State<TagPickerField> {
   bool _canCreate(String query) {
     final q = query.trim();
     if (widget.onCreate == null || q.isEmpty || _creating) return false;
-    // Suppress create when the name already exists (case-insensitive).
-    return !widget.available.any(
-      (t) => t.name.toLowerCase() == q.toLowerCase(),
-    );
+    final lower = q.toLowerCase();
+    // Suppress create when the name already exists (case-insensitive), checking
+    // BOTH the active pool AND reservedNames (archived/deleted tags the pool
+    // hides) — the server's UNIQUE rule ignores soft-deletes, so a collision
+    // there 422s the create and kills the parent save offline (M1).
+    if (widget.reservedNames.contains(lower)) return false;
+    return !widget.available.any((t) => t.name.toLowerCase() == lower);
   }
 
   Future<void> _handleCreate(String name) async {

@@ -134,6 +134,16 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
             companyId: row.companyId,
             serverResponse: dataOf(response),
           );
+        } else {
+          // The bulk action drained successfully but returned no entity (the
+          // server's re-query found zero rows for the id — e.g. it was purged
+          // elsewhere). The optimistic flip left the local row is_dirty=true;
+          // without reconciliation it stays dirty forever and every /refresh
+          // skips it (stale "unsynced" badge). Clear the flag. (L8)
+          await repo.clearLocalDirty(
+            companyId: row.companyId,
+            id: row.entityId,
+          );
         }
       case MutationKind.restore:
         final response = await api.bulkActionOne(
@@ -145,6 +155,13 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
           await repo.applyUpdateResponse(
             companyId: row.companyId,
             serverResponse: dataOf(response),
+          );
+        } else {
+          // See archive: clear the optimistic dirty flag when the bulk action
+          // returns no entity, so the row isn't refresh-skipped forever. (L8)
+          await repo.clearLocalDirty(
+            companyId: row.companyId,
+            id: row.entityId,
           );
         }
       case MutationKind.purge:

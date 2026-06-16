@@ -101,4 +101,30 @@ void main() {
       }
     });
   });
+
+  group('reminder-days clear sentinel (M3)', () {
+    test(
+      'an empty clear maps to 0 (server unset), not null — so a company '
+      'scope clear is not omitted by includeIfNull toJson and resurrected',
+      () {
+        const settings = CompanySettings();
+        for (final key in const <String>[
+          'num_days_reminder1',
+          'num_days_reminder2',
+          'num_days_reminder3',
+          'quote_num_days_reminder1',
+        ]) {
+          final b = settingsBindingOf(key);
+          final seeded = b.write(settings, '5');
+          expect(b.read(seeded), '5', reason: '$key lost its value');
+          final cleared = b.write(seeded, '');
+          expect(
+            b.read(cleared),
+            '0',
+            reason: '$key must clear to 0, not null (would resurrect on save)',
+          );
+        }
+      },
+    );
+  });
 }

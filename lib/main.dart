@@ -27,6 +27,7 @@ import 'package:admin/app/text_scale_controller.dart';
 import 'package:admin/app/theme.dart';
 import 'package:admin/app/version.dart';
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/db/db_open_exception.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/data/services/sync_lifecycle_observer.dart';
@@ -130,7 +131,18 @@ Future<void> _bootstrap() async {
   _diagnosticsLogRef = diag;
   mark('diagnostics');
 
-  final opened = await openAppDatabase();
+  final ({AppDatabase db, bool wasReset}) opened;
+  try {
+    opened = await openAppDatabase();
+  } on KeyringUnavailableException catch (e, st) {
+    // The OS secret store (keychain / keyring) is unreachable, so the
+    // encrypted DB can't be opened — e.g. a Linux snap whose
+    // `password-manager-service` plug isn't connected. Render an actionable
+    // screen instead of leaving a blank window that re-loops every launch.
+    diag?.recordError(e, st, context: 'openAppDatabase: keyring unavailable');
+    runApp(const _SecureStorageUnavailableApp());
+    return;
+  }
   mark('db-open (incl. secure-storage key)');
   final services = Services.build(db: opened.db, diagnosticsLog: diag);
   _debugCaptureStoreRef = services.debugCaptureStore;
@@ -240,6 +252,57 @@ Future<void> _bootstrap() async {
       initialLocation: initialLocation,
     ),
   );
+}
+
+/// Minimal full-screen error shown when the OS secret store (keychain /
+/// keyring) is unreachable and the encrypted DB can't be opened. `Services`
+/// and localization aren't available this early, so the copy is plain English.
+/// The actionable hint targets the common cause: a Linux snap whose
+/// `password-manager-service` plug hasn't been connected.
+class _SecureStorageUnavailableApp extends StatelessWidget {
+  const _SecureStorageUnavailableApp();
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.lock_outline, size: 48),
+                  SizedBox(height: 16),
+                  Text(
+                    'Secure storage unavailable',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                  ),
+                  SizedBox(height: 12),
+                  Text(
+                    'Invoice Ninja stores its data encrypted and could not reach '
+                    'your system keychain to unlock it.\n\n'
+                    'On Linux (snap), connect the keyring permission and '
+                    'relaunch:',
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 12),
+                  SelectableText(
+                    'snap connect invoiceninja:password-manager-service',
+                    style: TextStyle(fontFamily: 'monospace'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// Wire up the debug-only Claude-readable diagnostics log. Returns `null`
@@ -591,5 +654,3 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
     );
   }
 }
-
-//

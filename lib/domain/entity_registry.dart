@@ -274,7 +274,13 @@ class EntityRegistry {
   /// company's chrome.
   Iterable<String> get uiRoutePaths sync* {
     for (final h in _byType.values) {
-      if (h.disabled || h.routePath.isEmpty) continue;
+      // Include `disabled` entities that still have a wired route (tax_rates,
+      // custom designs): their edit/detail screens ARE reachable from settings
+      // and capture the active company once at mount, so companySafeLocation
+      // must strip a stale `/settings/<entity>/<id>` on a company switch — else
+      // the screen keeps reading from (and Save/Archive/Delete keeps writing
+      // to) the previous company's record. Only skip routeless entities.
+      if (h.routePath.isEmpty) continue;
       yield h.routePath;
     }
   }

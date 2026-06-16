@@ -52,6 +52,20 @@ class TagRepository extends BaseEntityRepository<Tag, TagApi> {
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }
 
+  /// Watch every tag for [entityType] regardless of lifecycle (active,
+  /// archived, soft-deleted). The picker derives both its active pool and the
+  /// inline-create collision set (incl. archived/deleted names the server's
+  /// UNIQUE rule still reserves) from this single stream — see [EntityTagsField]
+  /// and M1.
+  Stream<List<Tag>> watchAllAnyState({
+    required String companyId,
+    required String entityType,
+  }) {
+    return db.tagDao
+        .watchAllAnyState(companyId: companyId, entityType: entityType)
+        .map((rows) => rows.map(_fromRow).toList(growable: false));
+  }
+
   @override
   Stream<Tag?> watchByRealId({required String companyId, required String id}) =>
       db.tagDao
@@ -137,6 +151,59 @@ class TagRepository extends BaseEntityRepository<Tag, TagApi> {
     });
     return SaveResult(entity: tag, outboxRowId: rowId);
   }
+
+  // TagDao isn't a BaseEntityDao, so the base `localDao`-gated optimistic flip
+  // is a no-op for tags. Override archive/restore/delete (+ the discard hook)
+  // to flip local Drift state via TagDao so offline these don't silently do
+  // nothing while showing a success toast (M4).
+  @override
+  Future<void> archive({required String companyId, required String id}) async {
+    await db.transaction(() async {
+      await db.tagDao.setArchived(
+        companyId: companyId,
+        id: id,
+        atEpochSeconds: now().millisecondsSinceEpoch ~/ 1000,
+      );
+      await enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.archive,
+        payload: {'id': id},
+      );
+    });
+  }
+
+  @override
+  Future<void> restore({required String companyId, required String id}) async {
+    await db.transaction(() async {
+      await db.tagDao.markRestored(companyId: companyId, id: id);
+      await enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.restore,
+        payload: {'id': id},
+      );
+    });
+  }
+
+  @override
+  Future<void> delete({required String companyId, required String id}) async {
+    await db.transaction(() async {
+      await db.tagDao.markDeletedDirty(companyId: companyId, id: id);
+      await enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.delete,
+        payload: {'id': id},
+      );
+    });
+  }
+
+  @override
+  Future<void> clearLocalDirty({
+    required String companyId,
+    required String id,
+  }) => db.tagDao.clearDirtyById(companyId: companyId, id: id);
 
   @override
   Future<void> deleteLocalById({

@@ -114,11 +114,10 @@ class AuthSession {
   final String userEmail;
   final String userPhone;
 
-  /// User-level name fields. Populated from `/users/{id}` after Settings >
-  /// User Details edits land; the login envelope's `UserSummaryApi` doesn't
-  /// carry them, so on a fresh login these stay empty until the first
-  /// User Details refresh. The topbar / company picker fall back to email
-  /// when both are blank.
+  /// User-level name fields. Populated in `_persistAndActivate` from the login
+  /// envelope's `UserApi.first_name`/`last_name` (and recovered from Drift in
+  /// `restore()` when offline), plus refreshed after Settings > User Details
+  /// edits. The topbar / company picker fall back to email when both are blank.
   final String userFirstName;
   final String userLastName;
 

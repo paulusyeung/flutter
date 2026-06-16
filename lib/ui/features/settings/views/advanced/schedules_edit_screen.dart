@@ -997,7 +997,11 @@ class _PaymentScheduleSectionState extends State<_PaymentScheduleSection> {
             // Default new-row date: row 0 today, otherwise one day after
             // the last row's date so the strict-ordering rule is satisfied
             // out of the box.
-            final base = rows.isEmpty ? today : _addDays(rows.last.date, 1);
+            // Date.addDays is UTC date-space — a local-midnight + Duration on a
+            // fall-back DST day stays on the same calendar day, seeding a
+            // duplicate date that the strict-ordering save-gate then rejects
+            // (L3).
+            final base = rows.isEmpty ? today : rows.last.date.addDays(1);
             final next = List<ScheduleParamsRow>.from(rows)
               ..add(
                 ScheduleParamsRow(
@@ -1013,11 +1017,6 @@ class _PaymentScheduleSectionState extends State<_PaymentScheduleSection> {
       ],
     );
   }
-}
-
-Date _addDays(Date d, int days) {
-  final dt = DateTime(d.year, d.month, d.day).add(Duration(days: days));
-  return Date(dt.year, dt.month, dt.day);
 }
 
 class _PaymentScheduleRowTile extends StatefulWidget {

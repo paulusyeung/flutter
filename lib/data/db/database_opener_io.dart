@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/services.dart' show PlatformException;
+import 'package:admin/data/db/db_open_exception.dart';
 import 'package:admin/data/services/token_storage.dart' show kSecureStorage;
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as p;
@@ -34,14 +35,27 @@ Future<String> _getOrCreateDbKey() async {
   // Both call sites (auth tokens, this DB key) MUST use the same instance
   // so they land in the same keychain compartment.
   const secure = kSecureStorage;
-  final existing = await secure.read(key: _kDbEncryptionKeyName);
+  final String? existing;
+  try {
+    existing = await secure.read(key: _kDbEncryptionKeyName);
+  } on PlatformException catch (e, st) {
+    // The OS secret store is unreachable (e.g. a Linux snap whose
+    // `password-manager-service` plug isn't connected → libsecret/keyring
+    // locked). We can't derive the DB key. Surface a distinct, actionable
+    // failure instead of letting the raw exception propagate into the
+    // open orchestrator's reset path, which would destroy the DB file and
+    // re-throw here every launch (the Linux crash-loop). A genuine
+    // first-launch returns null here (not a throw), so key generation below
+    // still runs normally.
+    throw KeyringUnavailableException(e.message ?? e.code, st);
+  }
   if (existing != null && existing.length == 64) return existing;
   final rng = Random.secure();
   final bytes = List<int>.generate(32, (_) => rng.nextInt(256));
   final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   try {
     await secure.write(key: _kDbEncryptionKeyName, value: hex);
-  } on PlatformException catch (e) {
+  } on PlatformException catch (e, st) {
     // errSecDuplicateItem (-25299) on macOS: an orphan item exists under
     // the same account name but our read() couldn't see its value. Common
     // after dev-build code-signing churn (the previous build wrote the
@@ -56,7 +70,10 @@ Future<String> _getOrCreateDbKey() async {
       await secure.delete(key: _kDbEncryptionKeyName);
       await secure.write(key: _kDbEncryptionKeyName, value: hex);
     } else {
-      rethrow;
+      // Any other write failure means the secret store is unwritable (Linux
+      // keyring locked, etc.) — same actionable path as a failed read, not a
+      // raw rethrow into the DB-reset loop.
+      throw KeyringUnavailableException(e.message ?? e.code, st);
     }
   }
   return hex;

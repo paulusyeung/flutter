@@ -34,6 +34,7 @@ abstract class DraftStreamHost<T> extends SettingsDraftHost {
   String? _loadError;
   Map<String, List<String>> _fieldErrors = const {};
   StreamSubscription<T?>? _watchSub;
+  bool _disposed = false;
 
   // -- Hooks for subclasses --------------------------------------------------
 
@@ -135,6 +136,7 @@ abstract class DraftStreamHost<T> extends SettingsDraftHost {
     _watchSub = createWatch().listen(
       _onRowEmitted,
       onError: (Object e, StackTrace st) {
+        if (_disposed) return;
         _log.warning('watch stream errored', e, st);
         _loadError = e.toString();
         _initial = emptyValue;
@@ -147,6 +149,7 @@ abstract class DraftStreamHost<T> extends SettingsDraftHost {
   }
 
   void _onRowEmitted(T? row) {
+    if (_disposed) return;
     final next = row ?? emptyValue;
     if (!_loaded) {
       _initial = next;
@@ -166,6 +169,11 @@ abstract class DraftStreamHost<T> extends SettingsDraftHost {
 
   @override
   void dispose() {
+    // Set before super.dispose() so the guarded async callbacks below
+    // (watch emission / onError, and save()'s finally that can run after the
+    // host is disposed mid-`await performSave` on a company switch) short-
+    // circuit instead of calling notifyListeners() on a disposed notifier (L11).
+    _disposed = true;
     _watchSub?.cancel();
     super.dispose();
   }
@@ -212,7 +220,10 @@ abstract class DraftStreamHost<T> extends SettingsDraftHost {
       return null;
     } finally {
       _isSaving = false;
-      notifyListeners();
+      // The host may have been disposed during `await performSave` (a company
+      // switch through the settings host swaps the VM out). The save itself
+      // still completed correctly; just don't notify a disposed notifier (L11).
+      if (!_disposed) notifyListeners();
     }
   }
 }

@@ -90,10 +90,12 @@ Future<void> _pump(
 }
 
 void main() {
-  testWidgets('H1: bar collapses into "More" at a narrow width (no '
-      'RenderFlex overflow) and the Save button carries no Tooltip '
-      '(regression: a Tooltip/OverlayPortal measured in OverflowView\'s '
-      'layout callback corrupts the element tree)', (tester) async {
+  testWidgets('H1: at a narrow width the header shows Save + a compact ⋮ (no '
+      'RenderFlex overflow, even with a long title) and the Save button '
+      'carries no Tooltip (regression: a Tooltip/OverlayPortal measured in '
+      'OverflowView\'s layout callback corrupts the element tree)', (
+    tester,
+  ) async {
     final vm = _FakeVM(initialDraft: 'd', original: 'd');
     await _pump(
       tester,
@@ -112,10 +114,24 @@ void main() {
       ],
     );
 
-    // Bounded OverflowView collapses extras into "More" instead of
-    // RenderFlex-overflowing, and does not crash (the prior unbounded
-    // approach overflowed; the Tooltip-in-OverflowView approach crashed).
+    // The title yields room to the fixed Save + ⋮ cluster, so the header lays
+    // out without a RenderFlex overflow (the long title ellipsises instead).
     expect(tester.takeException(), isNull);
+    // Mobile matches the detail header: Save + a label-less vertical ⋮ holding
+    // every action — never the horizontal "More" button.
+    expect(find.byType(FilledButton), findsOneWidget);
+    expect(find.byIcon(Icons.more_vert), findsOneWidget);
+    expect(find.byIcon(Icons.more_horiz), findsNothing);
+    expect(find.text('More'), findsNothing);
+    // Save is a plain Row child here (not measured inside OverflowView), so it
+    // still carries no Tooltip ancestor.
+    expect(
+      find.ancestor(
+        of: find.byType(FilledButton),
+        matching: find.byType(Tooltip),
+      ),
+      findsNothing,
+    );
   });
 
   testWidgets(

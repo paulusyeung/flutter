@@ -130,16 +130,49 @@ class EntityActionItem<A> {
   }
 }
 
-/// The bare overflow-aware button cluster: visible buttons left-to-right,
-/// whatever doesn't fit collapses into a trailing "More" menu. Used by the
-/// edit-screen action bar (the Save button forwarded as [leading] + the
-/// edit-screen actions) and the list-screen multi-select AppBar, so both
-/// surfaces overflow identically. The caller owns outer sizing / alignment —
+/// Lets the edit-screen header tell its [EntityOverflowActionBar] whether to
+/// render the wide spread bar or the compact `⋮`, based on the **full header
+/// width**. The bar's own slot can't be trusted for this: in the wide layout it
+/// sits in the post-title `Expanded`, which under-reports the width once the
+/// title takes its share (between 600 and ~892 px the slot is < 600 even though
+/// the screen is plainly wide). Absent in detail / multi-select contexts, where
+/// the bar owns the full slot and falls back to its own [LayoutBuilder].
+class ActionBarLayoutScope extends InheritedWidget {
+  const ActionBarLayoutScope({
+    super.key,
+    required this.wide,
+    required super.child,
+  });
+
+  final bool wide;
+
+  static bool? maybeWideOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<ActionBarLayoutScope>()?.wide;
+
+  @override
+  bool updateShouldNotify(ActionBarLayoutScope oldWidget) =>
+      oldWidget.wide != wide;
+}
+
+/// The overflow-aware button cluster shared by the edit-screen action bar (the
+/// Save button forwarded as [leading] + the edit-screen actions) and the
+/// list-screen multi-select AppBar. The caller owns outer sizing / alignment —
 /// this widget just lays the cluster out at its natural width.
 ///
+/// **Width-aware when it has a pinned [leading]** (Save / Edit): wide → visible
+/// buttons spread left-to-right, the tail collapsing into a labeled "More"
+/// menu; narrow → the compact form, just [leading] + a single `⋮` holding every
+/// action — identical to the entity detail header's narrow cluster. The decision
+/// comes from an enclosing [ActionBarLayoutScope] when present (the edit header
+/// supplies it from its full width), otherwise from a local [LayoutBuilder]
+/// (detail-wide, where the bar owns the whole title slot).
+///
+/// With **no [leading]** (the multi-select bulk bar) it stays the spread bar at
+/// every width — a locked design (see `EntityListSelectionAppBar`).
+///
 /// (Entity *detail* headers use [EntityDetailActionsRow], which reuses this bar
-/// when wide — Edit forwarded as [leading] — and falls back to a compact `⋮`
-/// menu when narrow; see there.)
+/// when wide — Edit forwarded as [leading] — and renders its own compact `⋮`
+/// cluster when narrow; see there.)
 class EntityOverflowActionBar<A> extends StatelessWidget {
   const EntityOverflowActionBar({super.key, required this.items, this.leading});
 
@@ -164,7 +197,11 @@ class EntityOverflowActionBar<A> extends StatelessWidget {
       for (final item in items)
         if (item.isVisible) item,
     ];
-    return OverflowView.flexible(
+
+    // Wide: visible buttons left-to-right, the tail collapsing into a labeled
+    // "More" menu. `OverflowView` never RenderFlex-overflows in a tight slot
+    // (it collapses gracefully) — the property the edit-screen header relies on.
+    Widget spreadBar() => OverflowView.flexible(
       spacing: 8,
       children: [
         if (leading != null) leading!,
@@ -179,6 +216,33 @@ class EntityOverflowActionBar<A> extends StatelessWidget {
         final hidden = shown.sublist(shown.length - hiddenCount);
         return _MoreMenu<A>(items: hidden);
       },
+    );
+
+    // Narrow: the pinned [leading] (Save / Edit) + a single compact `⋮` holding
+    // every action — mirrors `EntityDetailActionsRow`'s narrow cluster. A plain
+    // Row, NOT measured inside `OverflowView`'s layout callback, so the `⋮`
+    // IconButton's Tooltip is safe here (the OverlayPortal hazard only bites
+    // OverflowView children).
+    Widget compactBar() => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        leading!,
+        if (shown.isNotEmpty) SizedBox(width: InSpacing.md(context)),
+        if (shown.isNotEmpty) _OverflowMenuButton<A>(items: shown),
+      ],
+    );
+
+    // No pinned leading (the multi-select bulk bar) → always the spread bar.
+    if (leading == null) return spreadBar();
+
+    // Prefer the edit header's full-width decision; fall back to local
+    // constraints in the detail-wide context (where the bar owns the whole
+    // title slot, so the slot width is accurate).
+    final scopeWide = ActionBarLayoutScope.maybeWideOf(context);
+    if (scopeWide != null) return scopeWide ? spreadBar() : compactBar();
+    return LayoutBuilder(
+      builder: (context, constraints) =>
+          Breakpoints.isWide(constraints) ? spreadBar() : compactBar(),
     );
   }
 }

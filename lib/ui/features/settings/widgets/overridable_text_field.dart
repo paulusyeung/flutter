@@ -138,7 +138,15 @@ class _OverridableTextFieldState extends State<OverridableTextField> {
               )
             : null,
       ),
-      onChanged: (v) => host.updateSettings((s) => _write(s, v)),
+      onChanged: (v) {
+        // At group/client (cascade) scope, clearing the text removes the
+        // override (write null) rather than persisting '' — the server treats a
+        // zero-length override as inherit, so '' would render the company
+        // default while the app still showed it as overridden-to-empty (L12).
+        // At company scope '' stays the correct clear sentinel.
+        final value = host.isCascadeScope && v.isEmpty ? null : v;
+        host.updateSettings((s) => _write(s, value));
+      },
       onSubmitted: scope == null ? null : (_) => scope.trySubmit(),
     );
     return OverridableField.bind(

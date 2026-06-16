@@ -395,7 +395,13 @@ class _WeeklyDurationCellState extends State<WeeklyDurationCell> {
         enabled: !widget.readOnly,
         textAlign: TextAlign.center,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        inputFormatters: [FilteringTextInputFormatter.allow(RegExp('[0-9:.]'))],
+        // Allow comma too: the display (weeklyHoursText → f.decimal) renders a
+        // comma in comma-decimal locales, and parseDurationInput normalizes
+        // ',' → '.', so without it a comma-locale user typing "1,5" gets the
+        // comma stripped to "15" and silently logs 15h instead of 1.5h (H3/L5).
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp('[0-9:.,]')),
+        ],
         style: const TextStyle(fontSize: 13, fontFeatures: _tabular),
         decoration: InputDecoration(
           isDense: true,

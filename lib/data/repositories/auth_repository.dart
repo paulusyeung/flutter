@@ -1384,6 +1384,12 @@ class AuthRepository {
       currentCompanyId: currentId,
       userId: firstUser.id,
       userEmail: firstUser.email,
+      // The envelope DOES carry these (UserApi.first_name/last_name); omitting
+      // them left the session identity name blank on every login/refresh, and
+      // re-blanked the names restore() had recovered from Drift on the next
+      // background refresh (L9).
+      userFirstName: firstUser.firstName,
+      userLastName: firstUser.lastName,
       userPhone: firstUser.phone,
       googleTwoFactorEnabled: firstUser.google2faSecret,
       verifiedPhoneNumber: firstUser.verifiedPhoneNumber,

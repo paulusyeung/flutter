@@ -98,6 +98,40 @@ void main() {
     expect(vm.day, Date(2026, 6, 9));
   });
 
+  test('duplicate-yesterday guard blocks a re-tap (M2)', () async {
+    // Focus on the real "today" so isToday (which reads Date.today()) holds.
+    final vm = _build(const [], day: Date.today());
+    await Future<void>.delayed(Duration.zero);
+    expect(vm.isToday, isTrue);
+    expect(vm.canDuplicateYesterday, isTrue);
+
+    // First begin wins and flips the in-flight flag; a concurrent begin (a
+    // double-tap before the first completes) is refused.
+    expect(vm.beginDuplicate(), isTrue);
+    expect(vm.isDuplicating, isTrue);
+    expect(vm.canDuplicateYesterday, isFalse);
+    expect(vm.beginDuplicate(), isFalse);
+
+    // A run that created tasks latches the day, so a re-tap after the toast
+    // is still refused — no second batch.
+    vm.endDuplicate(created: true);
+    expect(vm.isDuplicating, isFalse);
+    expect(vm.canDuplicateYesterday, isFalse);
+    expect(vm.beginDuplicate(), isFalse);
+  });
+
+  test(
+    'duplicate-yesterday with nothing created stays available (M2)',
+    () async {
+      final vm = _build(const [], day: Date.today());
+      await Future<void>.delayed(Duration.zero);
+      expect(vm.beginDuplicate(), isTrue);
+      vm.endDuplicate(created: false);
+      // Nothing was created, so the affordance stays available for a retry.
+      expect(vm.canDuplicateYesterday, isTrue);
+    },
+  );
+
   test('project filter narrows rows', () async {
     final vm = _build([
       _t(

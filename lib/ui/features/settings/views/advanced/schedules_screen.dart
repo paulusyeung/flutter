@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/schedule.dart';
+import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/models/domain/schedule_constants.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
@@ -331,10 +332,9 @@ String? _subtitleFor(BuildContext context, Schedule s, Formatter? formatter) {
 String? _relativeNextRun(BuildContext context, Schedule s) {
   final next = s.nextRun;
   if (next == null) return null;
-  final now = DateTime.now();
-  final today = DateTime(now.year, now.month, now.day);
-  final target = DateTime(next.year, next.month, next.day);
-  final days = target.difference(today).inDays;
+  // Date-space (UTC) day diff — local-midnight + `.inDays` is off by one
+  // across a spring-forward DST transition (L1).
+  final days = next.differenceInDays(Date.today());
   if (days == 0) return context.tr('today');
   if (days == 1) return context.tr('tomorrow');
   if (days == -1) return context.tr('yesterday');

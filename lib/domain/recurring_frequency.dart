@@ -59,14 +59,17 @@ Date? nextSendAfter(Date start, String frequencyId, int n) {
   final dt = start.toDateTime();
   DateTime next;
   switch (frequencyId) {
+    // Day-multiple steps use Date.addDays (UTC date-space) — local-midnight +
+    // Duration(days:) lands at 23:00 of the prior day across a fall-back DST
+    // transition, so the preview chip showed a send date one day early (L2).
     case kRecurringFrequencyDaily:
-      next = dt.add(Duration(days: n));
+      next = start.addDays(n).toDateTime();
     case kRecurringFrequencyWeekly:
-      next = dt.add(Duration(days: 7 * n));
+      next = start.addDays(7 * n).toDateTime();
     case kRecurringFrequencyTwoWeeks:
-      next = dt.add(Duration(days: 14 * n));
+      next = start.addDays(14 * n).toDateTime();
     case kRecurringFrequencyFourWeeks:
-      next = dt.add(Duration(days: 28 * n));
+      next = start.addDays(28 * n).toDateTime();
     case kRecurringFrequencyMonthly:
       next = _addMonths(dt, n);
     case kRecurringFrequencyTwoMonths:

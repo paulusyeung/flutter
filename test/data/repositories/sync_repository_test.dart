@@ -1303,6 +1303,163 @@ void main() {
       expect(dead.handledByCaller, isFalse);
     });
   });
+
+  group('tag-create 422 salvages dependents (M1)', () {
+    test('strips the dead tmp tag id from a dependent task and lets it save '
+        'instead of marking the parent dead', () async {
+      // The tag create (dispatched first) 422s — e.g. a name colliding with a
+      // tag archived/deleted on another device. The task update referencing
+      // the new tmp tag id must NOT be killed: the dead tmp id is stripped and
+      // the task drains with its remaining tags.
+      final disp = _ProgrammableDispatcher()
+        ..queueThrow(
+          const ValidationException('name has already been taken', {}),
+        )
+        ..queueSuccess();
+      final registry = EntityRegistry({
+        EntityType.tag: EntityHandlers(
+          type: EntityType.tag,
+          wireName: 'tag',
+          apiPath: '/api/v1/tags',
+          routePath: '/settings/tags',
+          icon: Icons.label,
+          dispatcher: disp,
+        ),
+        EntityType.task: EntityHandlers(
+          type: EntityType.task,
+          wireName: 'task',
+          apiPath: '/api/v1/tasks',
+          routePath: '/tasks',
+          icon: Icons.task,
+          dispatcher: disp,
+        ),
+      });
+      final engine = SyncRepository(
+        db: db,
+        registry: registry,
+        now: () => DateTime.fromMillisecondsSinceEpoch(1000),
+      );
+
+      final tagId = await db.outboxDao.enqueue(
+        OutboxCompanion.insert(
+          companyId: 'co',
+          entityType: 'tag',
+          entityId: 'tmp_tag1',
+          mutationKind: MutationKind.create.wireName,
+          payload: jsonEncode({'id': 'tmp_tag1', 'name': 'Urgent'}),
+          idempotencyKey: 'kt',
+          nextAttemptAt: 0,
+          createdAt: 0,
+        ),
+      );
+      final taskId = await db.outboxDao.enqueue(
+        OutboxCompanion.insert(
+          companyId: 'co',
+          entityType: 'task',
+          entityId: 'task1',
+          mutationKind: MutationKind.update.wireName,
+          payload: jsonEncode({
+            'id': 'task1',
+            'tags': ['tmp_tag1', 'keep'],
+          }),
+          idempotencyKey: 'kk',
+          nextAttemptAt: 0,
+          createdAt: 1,
+        ),
+      );
+
+      await engine.drainOnce(companyId: 'co');
+
+      // Tag create is dead (422)...
+      final tagRow = await db.outboxDao.byId(tagId);
+      expect(tagRow?.state, 'dead');
+      expect(tagRow?.lastStatusCode, 422);
+
+      // ...but the dependent task was dispatched (not killed) with the dead
+      // tag id stripped and 'keep' retained, then removed on success.
+      expect(disp.lastRow?.entityType, 'task');
+      final dispatched =
+          jsonDecode(disp.lastRow!.payload) as Map<String, dynamic>;
+      expect(dispatched['tags'], ['keep']);
+      final taskRow = await db.outboxDao.byId(taskId);
+      expect(taskRow, isNull, reason: 'task drained successfully, not dead');
+    });
+
+    test('marks the tag own follow-up rows dead (rename/archive) instead of '
+        'deferring them forever', () async {
+      // The tag create (dispatched first) 422s. The tag's OWN offline follow-up
+      // — here a rename (update) keyed to the same tmp id, carrying NO `tags`
+      // list — must be settled DEAD, not left pending. Pre-fix it was skipped
+      // by the strip loop and then deferred +1 min on every drain forever by
+      // the tmp-dependency guard (a non-create on a tmp_ entityId).
+      final disp = _ProgrammableDispatcher()
+        ..queueThrow(
+          const ValidationException('name has already been taken', {}),
+        );
+      final registry = EntityRegistry({
+        EntityType.tag: EntityHandlers(
+          type: EntityType.tag,
+          wireName: 'tag',
+          apiPath: '/api/v1/tags',
+          routePath: '/settings/tags',
+          icon: Icons.label,
+          dispatcher: disp,
+        ),
+      });
+      final engine = SyncRepository(
+        db: db,
+        registry: registry,
+        now: () => DateTime.fromMillisecondsSinceEpoch(1000),
+      );
+
+      final tagId = await db.outboxDao.enqueue(
+        OutboxCompanion.insert(
+          companyId: 'co',
+          entityType: 'tag',
+          entityId: 'tmp_tag1',
+          mutationKind: MutationKind.create.wireName,
+          payload: jsonEncode({'id': 'tmp_tag1', 'name': 'Urgent'}),
+          idempotencyKey: 'kt',
+          nextAttemptAt: 0,
+          createdAt: 0,
+        ),
+      );
+      // Offline rename of the same not-yet-synced tag (update embeds the tmp
+      // id; no `tags` key — see Tag.toApiJson).
+      final renameId = await db.outboxDao.enqueue(
+        OutboxCompanion.insert(
+          companyId: 'co',
+          entityType: 'tag',
+          entityId: 'tmp_tag1',
+          mutationKind: MutationKind.update.wireName,
+          payload: jsonEncode({'id': 'tmp_tag1', 'name': 'Renamed'}),
+          idempotencyKey: 'kr',
+          nextAttemptAt: 0,
+          createdAt: 1,
+        ),
+      );
+
+      await engine.drainOnce(companyId: 'co');
+
+      final tagRow = await db.outboxDao.byId(tagId);
+      expect(tagRow?.state, 'dead');
+      final renameRow = await db.outboxDao.byId(renameId);
+      expect(
+        renameRow?.state,
+        'dead',
+        reason:
+            'the tag own follow-up must be settled dead, not left pending '
+            '(which the tmp-dependency guard would defer forever)',
+      );
+      expect(
+        disp.dispatches,
+        1,
+        reason:
+            'only the create dispatches; the rename is marked dead before '
+            'the drain loop reaches it',
+      );
+    });
+  });
 }
 
 class _GatedDispatcher implements SyncDispatcher {

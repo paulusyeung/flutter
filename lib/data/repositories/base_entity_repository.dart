@@ -142,6 +142,13 @@ abstract class BaseEntityRepository<TDomain, TApi> {
   /// Generate a fresh `tmp_<uuid>` id for an offline-created entity.
   String mintTempId() => 'tmp_${uuid.v4()}';
 
+  /// The injected clock (defaults to `DateTime.now`). Exposed for subclasses
+  /// that override mutation methods for a bespoke DAO (e.g. [TagRepository]'s
+  /// optimistic archive/restore/delete) so they stay deterministic under the
+  /// test-injected `now`.
+  @protected
+  DateTime now() => _now();
+
   /// Drop any prior `pending` outbox row for this `(company, type, id, kind)`
   /// tuple. Call **inside** the same `db.transaction` that does the
   /// optimistic Drift write + [enqueueMutation], so the new row replaces the
@@ -582,7 +589,18 @@ abstract class BaseEntityRepository<TDomain, TApi> {
     // pagination, search, and even a forced full resync (whose page 1
     // ignores the cursor but then ADVANCES it, so page 2 read what page 1
     // just wrote) at roughly one page for any organically-grown account.
-    final cursor = (ignoreCursor || hasParentScope || page > 1)
+    // An active text search is a filtered VIEW too: the server applies the
+    // search term alongside the `updated_at >=` cursor, so a cursor'd search
+    // would only return matches changed since the last sync and silently miss
+    // older, not-recently-edited rows that aren't on the prefetched first
+    // page. Skip the cursor READ for a search (look across full history) AND
+    // the ADVANCE below — a search-scoped `data.last` is not a valid global
+    // high-water mark, and advancing it (especially with `wasFullSync: true`
+    // when the search reload passes `ignoreCursor: true`) would corrupt the
+    // standalone list's delta sync and re-truncate it.
+    final isSearchScoped = search != null && search.isNotEmpty;
+    final cursor =
+        (ignoreCursor || hasParentScope || isSearchScoped || page > 1)
         ? null
         : await _syncState.read(
             companyId: companyId,
@@ -622,6 +640,7 @@ abstract class BaseEntityRepository<TDomain, TApi> {
     // guard) would walk the watermark backwards — and mid-sweep advances
     // were what re-truncated full resyncs.
     if (!hasParentScope &&
+        !isSearchScoped &&
         page == 1 &&
         result.cursorUpdatedAt != null &&
         result.cursorId != null) {
