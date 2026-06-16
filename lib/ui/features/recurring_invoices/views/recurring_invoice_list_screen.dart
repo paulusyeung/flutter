@@ -199,7 +199,20 @@ class RecurringInvoiceListScreen extends StatelessWidget {
           singleSuccessKey: 'updated_prices',
           pluralSuccessKey: 'updated_prices',
           nothingKey: 'nothing_to_update',
-          prepare: showIncreasePricesDialog,
+          prepare: (ctx) {
+            final services = ctx.read<Services>();
+            final companyId =
+                services.auth.session.value?.currentCompanyId ?? '';
+            return showIncreasePricesDialog(
+              ctx,
+              useCommaAsDecimalPlace:
+                  services
+                      .formatterIfReady(companyId)
+                      ?.settings
+                      .useCommaAsDecimalPlace ??
+                  false,
+            );
+          },
         ),
       ],
     );

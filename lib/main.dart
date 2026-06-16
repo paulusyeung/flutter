@@ -422,6 +422,7 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
   late final IdleTimeoutController _idleTimeout = IdleTimeoutController(
     auth: widget.services.auth,
     company: widget.services.company,
+    sync: widget.services.sync,
   );
 
   @override

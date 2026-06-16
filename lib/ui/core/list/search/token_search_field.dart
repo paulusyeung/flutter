@@ -259,6 +259,19 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     return false;
   }
 
+  /// Commit the current input as a free-text search when it isn't a
+  /// `<key>:value` token. `_onTextChange` live-commits most terms as they're
+  /// typed, but suppresses the commit for a term that exactly matches a
+  /// filter-key name (`_isKeyPrefix`, e.g. `name` / `status` / `balance`) in
+  /// case the user is mid-typing a `name:` prefix. On an explicit "done"
+  /// gesture — Enter or tapping away — that suppression must resolve to a
+  /// search, not a silent no-op that leaves the list unfiltered.
+  void _commitPendingFreeText() {
+    final input = _controller.text.text.trim();
+    if (input.isEmpty || input.contains(':')) return;
+    if (widget.vm.search != input) widget.vm.setSearch(input);
+  }
+
   void _onVmChange() {
     // While the field has focus, the controller is the source of truth.
     // `vm.search` legitimately trails the controller during `setSearch`'s
@@ -530,12 +543,14 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
         key.addValue(widget.vm, value);
         return KeyEventResult.handled;
       }
-      // Free-text branch. `_onTextChange` already keeps `vm.search` in
-      // sync as the user types, so Enter just dismisses the overlay
-      // (the user signalled "I'm done picking; show me the results").
-      // We must NOT clear the input here: clearing would fire
-      // `_onTextChange` with empty text and wipe `vm.search` along with
-      // the field — turning Enter into a destructive "clear filter".
+      // Free-text branch. `_onTextChange` keeps `vm.search` in sync as the
+      // user types — except for a term that collides with a filter-key name
+      // (`_isKeyPrefix`), where the live commit is suppressed. On Enter the
+      // user signalled "I'm done picking; show me the results", so commit the
+      // pending term as a search. We must NOT clear the input here: clearing
+      // would fire `_onTextChange` with empty text and wipe `vm.search` along
+      // with the field — turning Enter into a destructive "clear filter".
+      _commitPendingFreeText();
       _hideOverlay();
       return KeyEventResult.handled;
     }
@@ -703,6 +718,11 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
       child: TapRegion(
         groupId: _tapGroup,
         onTapOutside: (_) {
+          // The overlay shares this TapRegion group, so this only fires on a
+          // genuine tap away (not when picking a suggestion). Commit any
+          // pending key-name free-text term before dismissing so tapping away
+          // filters the list, matching how every other term live-commits.
+          _commitPendingFreeText();
           _hideOverlay();
           _controller.focus.unfocus();
         },

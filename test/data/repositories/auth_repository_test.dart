@@ -690,6 +690,139 @@ void main() {
     });
 
     test(
+      'preserveLocalData keeps Drift + tokens (idle re-lock) but still clears '
+      'the in-memory session',
+      () async {
+        authService.queueLogin(_envelope());
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a',
+          password: 'b',
+        );
+        expect(await db.companiesDao.all(), isNotEmpty);
+        expect(await storage.read('invoiceninja.tokens.v1'), isNotNull);
+
+        await repo.logout(preserveLocalData: true);
+
+        // In-memory session cleared → the router redirects to /login.
+        expect(repo.session.value, isNull);
+        expect(repo.credentials.value, isNull);
+        // But the encrypted DB (incl. any queued outbox rows) and the on-disk
+        // tokens survive so a cold-start restore / re-login drains the unsynced
+        // work — the idle timeout must not silently destroy offline edits.
+        expect(
+          await db.companiesDao.all(),
+          isNotEmpty,
+          reason: 'preserveLocalData must not wipe Drift',
+        );
+        expect(
+          await storage.read('invoiceninja.tokens.v1'),
+          isNotNull,
+          reason: 'preserveLocalData must keep the tokens for restore',
+        );
+        expect(
+          await storage.read('invoiceninja.session_locked.v1'),
+          'true',
+          reason:
+              'preserve sets the re-lock flag so the next restore requires '
+              're-auth instead of silently re-entering',
+        );
+      },
+    );
+
+    test(
+      'restore after a preserveLocalData logout (biometric off) requires '
+      're-auth: session stays inactive (→ /login), DB + tokens survive',
+      () async {
+        authService.queueLogin(_envelope());
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a',
+          password: 'b',
+        );
+        await repo.logout(preserveLocalData: true);
+
+        // Cold start: fresh repo sharing the same storage + DB.
+        final repo2 = AuthRepository(
+          db: db,
+          authService: authService,
+          tokenStorage: storage,
+          passwordCache: PasswordCache(),
+        );
+        await repo2.restore();
+
+        // The lock flag + biometric-off means restore must NOT silently
+        // re-enter — the user lands on /login (no active session).
+        expect(repo2.isAuthenticated, isFalse);
+        expect(repo2.session.value, isNull);
+        // ...but the data is intact so a re-login drains the preserved outbox.
+        expect(await db.companiesDao.all(), isNotEmpty);
+        expect(await storage.read('invoiceninja.tokens.v1'), isNotNull);
+        expect(await storage.read('invoiceninja.session_locked.v1'), 'true');
+      },
+    );
+
+    test(
+      'restore after a preserveLocalData logout (biometric on) gates via the '
+      'biometric lock screen',
+      () async {
+        authService.queueLogin(_envelope());
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a',
+          password: 'b',
+        );
+        await repo.setBiometricEnabled(true);
+        await repo.logout(preserveLocalData: true);
+
+        final repo2 = AuthRepository(
+          db: db,
+          authService: authService,
+          tokenStorage: storage,
+          passwordCache: PasswordCache(),
+        );
+        await repo2.restore();
+
+        // Biometric users keep quick-unlock: session restores but is gated.
+        expect(repo2.isAuthenticated, isTrue);
+        expect(repo2.requiresBiometricUnlock.value, isTrue);
+      },
+    );
+
+    test(
+      'a fresh login after a preserveLocalData logout clears the re-lock flag',
+      () async {
+        authService.queueLogin(_envelope());
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a',
+          password: 'b',
+        );
+        await repo.logout(preserveLocalData: true);
+        expect(await storage.read('invoiceninja.session_locked.v1'), 'true');
+
+        authService.queueLogin(_envelope());
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a',
+          password: 'b',
+        );
+
+        expect(repo.isAuthenticated, isTrue);
+        expect(
+          await storage.read('invoiceninja.session_locked.v1'),
+          isNull,
+          reason: 'a successful sign-in is a re-auth — the gate clears',
+        );
+      },
+    );
+
+    test(
       'currentCompanyId mirrors the session and is null once logged out',
       () async {
         authService.queueLogin(_envelope(defaultCompanyId: 'co_a'));

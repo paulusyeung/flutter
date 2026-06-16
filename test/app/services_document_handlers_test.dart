@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:admin/app/services_document_handlers.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/document_api_model.dart';
+import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/documents_api.dart';
 import 'package:admin/domain/sync/mutation.dart';
 
@@ -184,6 +185,53 @@ void main() {
       },
     );
 
+    test(
+      'documentDelete treats a 404 as idempotent success — still applies the '
+      'local delete and does not rethrow (no bogus conflict)',
+      () async {
+        final fakeDocsApi = _RecordingDocumentsApi(throwNotFoundOnDelete: true);
+        final deletedCalls = <Map<String, dynamic>>[];
+
+        final handlers = documentMutationHandlers<String>(
+          documentsApi: fakeDocsApi,
+          upload:
+              ({
+                required entityId,
+                required source,
+                required idempotencyKey,
+              }) async => '',
+          applyChanged:
+              ({
+                required companyId,
+                required entityId,
+                required document,
+              }) async {},
+          applyDeleted:
+              ({
+                required companyId,
+                required entityId,
+                required documentId,
+              }) async {
+                deletedCalls.add({'documentId': documentId});
+              },
+        );
+
+        final handler = handlers[MutationKind.documentDelete]!;
+        final result = await handler(
+          row: _row(mutationKind: 'document_delete'),
+          payload: {'entity_id': 'e2', 'document_id': 'gone'},
+        );
+
+        // The document was already gone server-side; the delete's goal is met.
+        // applyDeleted must still prune the local documents[] entry, and the
+        // handler must NOT propagate NotFoundException (which would park the
+        // row as a 404 conflict mislabeling the parent entity).
+        expect(result, isNull);
+        expect(deletedCalls, hasLength(1));
+        expect(deletedCalls.single['documentId'], 'gone');
+      },
+    );
+
     test('documentVisibility calls setVisibility then applyChanged with the '
         'returned document — and skips applyChanged when the server returns '
         'null', () async {
@@ -264,11 +312,15 @@ OutboxRow _row({
 }
 
 class _RecordingDocumentsApi implements DocumentsApi {
-  _RecordingDocumentsApi({this.setVisibilityReturn});
+  _RecordingDocumentsApi({
+    this.setVisibilityReturn,
+    this.throwNotFoundOnDelete = false,
+  });
 
   final deleteCalls = <Map<String, dynamic>>[];
   final setVisibilityCalls = <Map<String, dynamic>>[];
   DocumentApi? setVisibilityReturn;
+  final bool throwNotFoundOnDelete;
 
   @override
   Future<void> delete({
@@ -281,6 +333,7 @@ class _RecordingDocumentsApi implements DocumentsApi {
       'idempotencyKey': idempotencyKey,
       'requiresPassword': requiresPassword,
     });
+    if (throwNotFoundOnDelete) throw const NotFoundException();
   }
 
   @override

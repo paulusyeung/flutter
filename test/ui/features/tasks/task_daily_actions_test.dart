@@ -77,4 +77,16 @@ void main() {
       isNull,
     );
   });
+
+  test('buildDuplicate drops the calendar-event link so the create is not '
+      'rejected as a duplicate for the same event', () {
+    final src = _t(
+      'a',
+      log: [_e(DateTime(2026, 6, 9, 9), DateTime(2026, 6, 9, 11))],
+    ).copyWith(meta: const TaskMeta(calendarEventId: 'evt-1'));
+    final dup = TaskDailyActions.buildDuplicate(src)!;
+    // A duplicate is a brand-new task, not the same calendar event — carrying
+    // meta.calendar_event_id would trigger the server's dedupe-guard 422.
+    expect(dup.meta, isNull);
+  });
 }

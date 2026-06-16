@@ -543,7 +543,14 @@ class AuthRepository {
 
   /// Called by [ApiClient] when a 401 lands. Wipes everything and flips
   /// [credentials] back to null so the redirect to `/login` fires.
-  Future<void> logout() async {
+  ///
+  /// [preserveLocalData] keeps the on-disk tokens + encrypted Drift database
+  /// intact while still clearing the in-memory session (so the router still
+  /// redirects to `/login`). Used by the idle session-timeout when the outbox
+  /// still holds unsynced rows: wiping would silently destroy the user's
+  /// offline edits, so instead the data survives to drain on the next login or
+  /// cold-start [restore]. Default `false` = full destructive logout.
+  Future<void> logout({bool preserveLocalData = false}) async {
     // Invalidate any refresh whose `/refresh` call is already in flight. Bump
     // BEFORE awaiting onBeforeLogout (which can take a while draining the
     // outbox) so a response landing during that await is rejected too — see
@@ -571,6 +578,21 @@ class AuthRepository {
     // re-fires onActiveCompanyChanged and re-runs the sidebar prefetch.
     _lastActivatedCompanyId = null;
     _passwordCache.clear();
+    if (preserveLocalData) {
+      // Idle-timeout re-lock with unsynced work pending: the in-memory session
+      // is already cleared above (so the router redirects to /login), but we
+      // KEEP the on-disk tokens + encrypted DB so the queued outbox rows
+      // survive to drain on the next login / cold-start restore. The data
+      // stays encrypted at rest, exactly as it would across a normal app quit.
+      //
+      // Persist a lock flag so the next restore() does NOT silently re-enter:
+      // it requires re-auth first (biometric if enabled, else a fresh sign-in)
+      // — otherwise keeping the tokens would defeat the session-timeout's
+      // security purpose on a shared/unattended device (esp. web, where
+      // biometric is never available). Cleared on successful re-entry.
+      await _secure.write(kAuthSessionLockedKey, 'true');
+      return;
+    }
     await _secure.delete(kAuthTokensKey);
     await _secure.delete(kAuthBaseUrlKey);
     await _secure.delete(kAuthIsHostedKey);
@@ -579,6 +601,8 @@ class AuthRepository {
     // disk would surface a lock prompt on next launch with no session behind
     // it. Clear it alongside the tokens.
     await _secure.delete(kAuthBiometricEnabledKey);
+    // A full logout supersedes any pending re-lock gate.
+    await _secure.delete(kAuthSessionLockedKey);
     await _db.wipe();
   }
 
@@ -605,6 +629,9 @@ class AuthRepository {
     if (_requiresBiometricUnlock.value) {
       _requiresBiometricUnlock.value = false;
     }
+    // A successful biometric unlock is a re-auth — clear any idle-timeout
+    // re-lock flag so a later cold start restores normally.
+    unawaited(_secure.delete(kAuthSessionLockedKey));
   }
 
   /// Pull a fresh server snapshot for the active session. Same wire call
@@ -637,6 +664,7 @@ class AuthRepository {
       _secure.read(kAuthIsHostedKey),
       _secure.read(kAuthCurrentCompanyIdKey),
       _secure.read(kAuthBiometricEnabledKey),
+      _secure.read(kAuthSessionLockedKey),
     ]);
     final tokensRaw = reads[0];
     final baseUrl = reads[1];
@@ -646,6 +674,16 @@ class AuthRepository {
     // Tolerate any value that isn't exactly `'true'` — a corrupt write
     // shouldn't lock the user out without their explicit opt-in.
     final biometricEnabled = reads[4] == 'true';
+    final sessionLocked = reads[5] == 'true';
+    // The idle session-timeout preserved this session's data but flagged it for
+    // re-auth. With biometric ON, fall through — the normal path below sets
+    // `_requiresBiometricUnlock` and the `/lock` screen gates entry. With
+    // biometric OFF (the default; the only state on web), there is no in-app
+    // unlock gate, so leave the session INACTIVE (router → `/login`) without
+    // wiping: the kept tokens + DB let the preserved outbox drain after a fresh
+    // sign-in, which clears the flag. Returning here also skips the stale-token
+    // wipe path below, so the unsynced work survives the cold start.
+    if (sessionLocked && !biometricEnabled) return;
     final tokensMap = (jsonDecode(tokensRaw) as Map<String, dynamic>).map(
       (k, v) => MapEntry(k, v.toString()),
     );
@@ -1277,6 +1315,12 @@ class AuthRepository {
     await _secure.write(kAuthBaseUrlKey, baseUrl);
     await _secure.write(kAuthIsHostedKey, isHosted ? 'true' : 'false');
     await _secure.write(kAuthCurrentCompanyIdKey, currentId);
+    // A fresh sign-in / token activation is a re-auth — clear any idle-timeout
+    // re-lock flag. (A no-op on a normal authenticated refresh, where it's
+    // already absent.) Biometric-OFF locked sessions only reach here via an
+    // explicit login; biometric-ON sessions stay gated by
+    // `_requiresBiometricUnlock` regardless, so clearing here is safe.
+    await _secure.delete(kAuthSessionLockedKey);
 
     // Preserve the user's biometric preference across `/refresh` calls.
     // Fresh logins see no value (logout cleared it) so this resolves to false;

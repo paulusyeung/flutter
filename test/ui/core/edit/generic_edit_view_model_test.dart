@@ -23,6 +23,22 @@ void main() {
       expect(vm.fieldErrors, isEmpty);
     });
 
+    test('finalize hooks run after ALL before-save hooks', () async {
+      final vm = _FakeEditVM(initialDraft: 'draft');
+      final order = <String>[];
+      vm.addBeforeSaveHook(() => order.add('before-1'));
+      // Registered BETWEEN the before-save hooks, yet must still run last —
+      // billing totals stamping (a finalize hook registered in a VM ctor) has
+      // to observe the draft AFTER the line-item flush hooks (registered later
+      // in a child widget's initState) have committed debounced edits.
+      vm.addFinalizeSaveHook(() => order.add('finalize'));
+      vm.addBeforeSaveHook(() => order.add('before-2'));
+
+      await vm.save();
+
+      expect(order, ['before-1', 'before-2', 'finalize']);
+    });
+
     test(
       '422 ValidationException populates fieldErrors, returns null',
       () async {

@@ -101,6 +101,17 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
   final Set<String> _selTasks = <String>{};
   final Set<String> _selExpenses = <String>{};
 
+  /// Resolved [Product]s for the current product selection, keyed by id. The
+  /// Products tab uses server-side search, so `_products` is replaced wholesale
+  /// on every filter change — a product selected under one search term would
+  /// vanish from `_products` (and the picker result + footer count) under the
+  /// next. This map retains the selection across filter changes so
+  /// [_selectedLineItems] materializes every picked product, not just those in
+  /// the current search window. Kept in lockstep with [_selProducts] at every
+  /// mutation site (toggle / select-all / clear). Tasks/Expenses don't need
+  /// this — they're preloaded once and filtered in-memory.
+  final Map<String, Product> _selectedProductsById = <String, Product>{};
+
   // Lookup name maps populated once at picker open via the lightweight
   // `watchActiveNames` streams (clients/projects/vendors) and the
   // `watchActive` stream (expense categories). Resolve in tens of ms for
@@ -439,17 +450,18 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
             toInvoiceCurrencyId: clientCurrencyId,
           )
         : null;
-    for (final p in _products) {
-      if (_selProducts.contains(p.id)) {
-        out.add(
-          lineItemFromProduct(
-            p,
-            enableProductQuantity: company?.enableProductQuantity ?? false,
-            defaultQuantity: company?.defaultQuantity ?? false,
-            conversionRate: productRate,
-          ),
-        );
-      }
+    // Iterate the retained selection map, NOT `_products` — a product picked
+    // under a previous search term is no longer in the current `_products`
+    // window but must still be materialized.
+    for (final p in _selectedProductsById.values) {
+      out.add(
+        lineItemFromProduct(
+          p,
+          enableProductQuantity: company?.enableProductQuantity ?? false,
+          defaultQuantity: company?.defaultQuantity ?? false,
+          conversionRate: productRate,
+        ),
+      );
     }
     for (final t in _tasks) {
       if (_selTasks.contains(t.id)) {
@@ -524,6 +536,9 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
       switch (_tabs[_tabCtl.index]) {
         case _TabKind.products:
           _selProducts.addAll(_products.map((p) => p.id));
+          for (final p in _products) {
+            _selectedProductsById[p.id] = p;
+          }
           break;
         case _TabKind.tasks:
           _selTasks.addAll(_filteredTasks.map((t) => t.id));
@@ -540,6 +555,7 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
       switch (_tabs[_tabCtl.index]) {
         case _TabKind.products:
           _selProducts.clear();
+          _selectedProductsById.clear();
           break;
         case _TabKind.tasks:
           _selTasks.clear();
@@ -693,7 +709,19 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
               widget.showStockQuantity && (_company?.trackInventory ?? false),
           maxListHeight: maxListHeight,
           onToggle: (id) => setState(() {
-            if (!_selProducts.add(id)) _selProducts.remove(id);
+            if (_selProducts.add(id)) {
+              // Newly selected — retain the resolved Product (it's in the
+              // current `_products` window, since the user just tapped it).
+              for (final p in _products) {
+                if (p.id == id) {
+                  _selectedProductsById[id] = p;
+                  break;
+                }
+              }
+            } else {
+              _selProducts.remove(id);
+              _selectedProductsById.remove(id);
+            }
           }),
           onSelectAll: _selectAllOnActiveTab,
           onClearAll: _clearActiveTab,

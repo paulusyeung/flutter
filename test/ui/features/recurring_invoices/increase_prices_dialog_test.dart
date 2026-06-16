@@ -9,19 +9,24 @@ import '../../../_localization_helper.dart';
 /// `-` is already blocked by the input formatter, so the remaining gap was 0 /
 /// empty, which previously could be submitted.
 void main() {
-  Widget host(void Function(String?) onResult) => MaterialApp(
-    localizationsDelegates: kTestLocalizationsDelegates,
-    supportedLocales: kTestSupportedLocales,
-    home: Scaffold(
-      body: Builder(
-        builder: (context) => ElevatedButton(
-          onPressed: () async =>
-              onResult(await showIncreasePricesDialog(context)),
-          child: const Text('open'),
+  Widget host(void Function(String?) onResult, {bool useComma = false}) =>
+      MaterialApp(
+        localizationsDelegates: kTestLocalizationsDelegates,
+        supportedLocales: kTestSupportedLocales,
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async => onResult(
+                await showIncreasePricesDialog(
+                  context,
+                  useCommaAsDecimalPlace: useComma,
+                ),
+              ),
+              child: const Text('open'),
+            ),
+          ),
         ),
-      ),
-    ),
-  );
+      );
 
   bool doneEnabled(WidgetTester tester) =>
       tester.widget<FilledButton>(find.byType(FilledButton)).onPressed != null;
@@ -56,5 +61,21 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(result, '12.5');
+  });
+
+  testWidgets('comma-locale: "5,5" returns "5.5", not "55"', (tester) async {
+    String? result = 'unset';
+    await tester.pumpWidget(host((r) => result = r, useComma: true));
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), '5,5');
+    await tester.pump();
+    expect(doneEnabled(tester), isTrue);
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+
+    // The comma is the decimal separator; sending "55" would be a 10× increase.
+    expect(result, '5.5');
   });
 }

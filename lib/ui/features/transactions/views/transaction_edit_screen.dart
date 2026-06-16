@@ -1,5 +1,6 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
@@ -9,6 +10,7 @@ import 'package:admin/data/models/domain/bank_transaction.dart';
 import 'package:admin/data/models/value/currency.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/edit/edit_action_filter.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
@@ -89,6 +91,11 @@ class _TransactionEditBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final services = context.read<Services>();
     final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    // Comma-locale users type `19,50`; without this their amount runs through
+    // `Decimal.tryParse`, which rejects the comma and silently saves 0.
+    final useComma =
+        services.formatterIfReady(companyId)?.settings.useCommaAsDecimalPlace ??
+        false;
     return SingleChildScrollView(
       padding: EdgeInsets.all(InSpacing.lg(context)),
       child: CenteredFormColumn(
@@ -121,16 +128,25 @@ class _TransactionEditBody extends StatelessWidget {
             TextFormField(
               initialValue: vm.draft.amount == Decimal.zero
                   ? ''
-                  : vm.draft.amount.toString(),
+                  : (useComma
+                        ? vm.draft.amount.toString().replaceAll('.', ',')
+                        : vm.draft.amount.toString()),
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
+              // Allow the comma so comma-locale users can type their decimal
+              // separator; `parseDecimal` interprets it via `useComma`.
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+              ],
               decoration: InputDecoration(
                 labelText: context.tr('amount'),
                 errorText: vm.fieldErrorFor('amount'),
               ),
               onChanged: (v) {
-                final parsed = Decimal.tryParse(v) ?? Decimal.zero;
+                final parsed =
+                    parseDecimal(v, useCommaAsDecimalPlace: useComma) ??
+                    Decimal.zero;
                 vm.setAmount(parsed);
               },
             ),

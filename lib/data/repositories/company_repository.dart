@@ -78,6 +78,18 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
   bool isCanonicalFetched(String companyId) =>
       _canonicalFetched.value.contains(companyId);
 
+  /// Drop [companyId] from the canonical-fetched set so the Account-Management
+  /// / Analytics controls re-lock. Called after a FULL-sync re-seed (force
+  /// resync, danger-zone refresh) wipes + re-inserts the companies row from the
+  /// login/refresh envelope, which omits the ~29 server-only columns — they
+  /// fall back to table defaults. Without re-locking, a toggle made before the
+  /// next [refresh] would PUT those defaults and clobber the server's real
+  /// SMTP / expense / task-invoicing / payment-conversion values.
+  void markCanonicalStale(String companyId) {
+    if (!_canonicalFetched.value.contains(companyId)) return;
+    _canonicalFetched.value = {..._canonicalFetched.value}..remove(companyId);
+  }
+
   @override
   String get entityTypeName => 'company';
 

@@ -380,34 +380,41 @@ class _BlockPropertiesForm extends StatelessWidget {
 /// null when the block has no specialized editor and the caller should
 /// fall back to the generic [_ContentEditor].
 Widget? _typeSpecificEditor(WysiwygDesignViewModel vm, DesignBlock block) {
+  // Key every editor on the block id so selecting a different block — even one
+  // of the SAME type — tears down and rebuilds the editor's FormField state.
+  // Some editors hold bare `TextFormField(initialValue:)` fields (table
+  // colors, info title) whose `initialValue` is ignored on rebuild; without a
+  // changing key the State is reused and they'd show (and on edit corrupt) the
+  // previously-selected block's values.
+  final key = ValueKey(block.id);
   switch (block.type) {
     case 'text':
     case 'public-notes':
     case 'terms':
     case 'footer':
-      return TextBlockProperties(vm: vm, block: block);
+      return TextBlockProperties(key: key, vm: vm, block: block);
     case 'client-info':
     case 'company-info':
     case 'client-shipping-info':
-      return InfoBlockProperties(vm: vm, block: block);
+      return InfoBlockProperties(key: key, vm: vm, block: block);
     case 'table':
     case 'tasks-table':
-      return TableBlockProperties(vm: vm, block: block);
+      return TableBlockProperties(key: key, vm: vm, block: block);
     case 'total':
-      return TotalBlockProperties(vm: vm, block: block);
+      return TotalBlockProperties(key: key, vm: vm, block: block);
     case 'image':
     case 'logo':
-      return ImageBlockProperties(vm: vm, block: block);
+      return ImageBlockProperties(key: key, vm: vm, block: block);
     case 'qrcode':
-      return QrcodeBlockProperties(vm: vm, block: block);
+      return QrcodeBlockProperties(key: key, vm: vm, block: block);
     case 'divider':
-      return DividerBlockProperties(vm: vm, block: block);
+      return DividerBlockProperties(key: key, vm: vm, block: block);
     case 'spacer':
-      return SpacerBlockProperties(vm: vm, block: block);
+      return SpacerBlockProperties(key: key, vm: vm, block: block);
     case 'signature':
-      return SignatureBlockProperties(vm: vm, block: block);
+      return SignatureBlockProperties(key: key, vm: vm, block: block);
     case 'invoice-details':
-      return InvoiceDetailsBlockProperties(vm: vm, block: block);
+      return InvoiceDetailsBlockProperties(key: key, vm: vm, block: block);
     default:
       return null;
   }

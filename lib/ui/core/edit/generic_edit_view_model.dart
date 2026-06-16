@@ -341,9 +341,27 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
     return () => _beforeSaveHooks.remove(hook);
   }
 
+  final List<void Function()> _finalizeSaveHooks = [];
+
+  /// Register a callback fired synchronously in [save] AFTER every
+  /// [addBeforeSaveHook] hook has run. Use this for work that must observe the
+  /// fully-flushed draft — e.g. billing totals stamping, which has to run after
+  /// the line-item table flushes its debounced cell edits, not before (a
+  /// before-save hook registered in a VM constructor would otherwise run ahead
+  /// of flush hooks registered later in a child widget's initState).
+  VoidCallback addFinalizeSaveHook(void Function() hook) {
+    _finalizeSaveHooks.add(hook);
+    return () => _finalizeSaveHooks.remove(hook);
+  }
+
   Future<T?> save() async {
     if (_isSaving) return null;
     for (final hook in List.of(_beforeSaveHooks)) {
+      hook();
+    }
+    // Finalize hooks run after all before-save hooks so they see the
+    // fully-flushed draft (e.g. totals stamped from the last cell keystroke).
+    for (final hook in List.of(_finalizeSaveHooks)) {
       hook();
     }
     _isSaving = true;

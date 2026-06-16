@@ -96,6 +96,23 @@ class TwoFactorViewModel extends ChangeNotifier {
     _fieldErrors = const {};
   }
 
+  bool _disposed = false;
+
+  /// Guards `notifyListeners()` against firing after the screen disposed this
+  /// VM mid-request — every action awaits a network round-trip, so a user who
+  /// leaves the User Details shell before it resolves would otherwise trip a
+  /// "used after dispose" assertion. Mirrors [CalendarConnectionViewModel].
+  void _notify() {
+    if (_disposed) return;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
   void setSmsCode(String value) {
     smsCode = value.trim();
   }
@@ -117,11 +134,11 @@ class TwoFactorViewModel extends ChangeNotifier {
         // The server texts the on-file number (looked up by email); there's no
         // reliable save-then-send here (the save drains async via the outbox).
         _setError(key: 'enter_phone_to_enable_two_factor');
-        notifyListeners();
+        _notify();
         return;
       }
       _step = TwoFactorStep.phoneEntry;
-      notifyListeners();
+      _notify();
       return;
     }
     await _loadQr();
@@ -133,12 +150,12 @@ class TwoFactorViewModel extends ChangeNotifier {
     if (_busy) return;
     if (phone.isEmpty) {
       _setError(key: 'enter_phone_number');
-      notifyListeners();
+      _notify();
       return;
     }
     _busy = true;
     _clearError();
-    notifyListeners();
+    _notify();
     try {
       await repo.sendSmsCode(email: email);
       _step = TwoFactorStep.smsVerify;
@@ -151,7 +168,7 @@ class TwoFactorViewModel extends ChangeNotifier {
       _setError(message: e.toString());
     } finally {
       _busy = false;
-      notifyListeners();
+      _notify();
     }
   }
 
@@ -160,12 +177,12 @@ class TwoFactorViewModel extends ChangeNotifier {
     if (_busy) return;
     if (smsCode.isEmpty) {
       _setError(key: 'enter_sms_code');
-      notifyListeners();
+      _notify();
       return;
     }
     _busy = true;
     _clearError();
-    notifyListeners();
+    _notify();
     try {
       await repo.verifySmsCode(code: smsCode, email: email, phone: phone);
       _verifiedPhone = true;
@@ -174,22 +191,22 @@ class TwoFactorViewModel extends ChangeNotifier {
       _fieldErrors = e.fieldErrors;
       _setError(message: e.message);
       _busy = false;
-      notifyListeners();
+      _notify();
     } on ApiException catch (e) {
       _setError(message: e.message);
       _busy = false;
-      notifyListeners();
+      _notify();
     } catch (e) {
       _setError(message: e.toString());
       _busy = false;
-      notifyListeners();
+      _notify();
     }
   }
 
   Future<void> _loadQr() async {
     _busy = true;
     _step = TwoFactorStep.qrLoading;
-    notifyListeners();
+    _notify();
     try {
       final setup = await repo.fetchSetup();
       qrCode = setup.qrCode;
@@ -203,7 +220,7 @@ class TwoFactorViewModel extends ChangeNotifier {
       _step = TwoFactorStep.idle;
     } finally {
       _busy = false;
-      notifyListeners();
+      _notify();
     }
   }
 
@@ -217,7 +234,7 @@ class TwoFactorViewModel extends ChangeNotifier {
     if (_busy) return;
     _busy = true;
     _clearError();
-    notifyListeners();
+    _notify();
     try {
       await repo.confirmEnable(
         secret: secret,
@@ -235,7 +252,7 @@ class TwoFactorViewModel extends ChangeNotifier {
       _setError(message: e.toString());
     } finally {
       _busy = false;
-      notifyListeners();
+      _notify();
     }
   }
 
@@ -250,7 +267,7 @@ class TwoFactorViewModel extends ChangeNotifier {
     _busy = true;
     _step = TwoFactorStep.disabling;
     _clearError();
-    notifyListeners();
+    _notify();
     try {
       await repo.disable();
       _enabled = false;
@@ -263,7 +280,7 @@ class TwoFactorViewModel extends ChangeNotifier {
     } finally {
       _step = TwoFactorStep.idle;
       _busy = false;
-      notifyListeners();
+      _notify();
     }
   }
 
@@ -287,7 +304,7 @@ class TwoFactorViewModel extends ChangeNotifier {
     _verifiedPhone = newVerifiedPhone;
     phone = newPhone;
     email = newEmail;
-    notifyListeners();
+    _notify();
   }
 
   /// Back out to the status screen. Cheap — drops the in-progress QR/secret
@@ -300,6 +317,6 @@ class TwoFactorViewModel extends ChangeNotifier {
     qrCode = '';
     secret = '';
     _clearError();
-    notifyListeners();
+    _notify();
   }
 }

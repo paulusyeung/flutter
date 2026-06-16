@@ -2,20 +2,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Prompt for the Increase Prices bulk action: asks for a percentage and
-/// returns it (raw numeric string) to the caller, which enqueues
+/// returns it (canonical dot-decimal string) to the caller, which enqueues
 /// `MutationKind.increasePrices` per selected recurring invoice. Returns null
 /// on cancel or invalid input.
-Future<String?> showIncreasePricesDialog(BuildContext context) {
+///
+/// [useCommaAsDecimalPlace] should be the active company's setting (resolved by
+/// the caller, which has `Services` in scope) so a comma-locale user typing
+/// `5,5` isn't sent as `55` — a 10× increase.
+Future<String?> showIncreasePricesDialog(
+  BuildContext context, {
+  bool useCommaAsDecimalPlace = false,
+}) {
   return showDialog<String>(
     context: context,
-    builder: (_) => const _IncreasePricesDialog(),
+    builder: (_) =>
+        _IncreasePricesDialog(useCommaAsDecimalPlace: useCommaAsDecimalPlace),
   );
 }
 
 class _IncreasePricesDialog extends StatefulWidget {
-  const _IncreasePricesDialog();
+  const _IncreasePricesDialog({required this.useCommaAsDecimalPlace});
+
+  final bool useCommaAsDecimalPlace;
 
   @override
   State<_IncreasePricesDialog> createState() => _IncreasePricesDialogState();
@@ -30,17 +41,26 @@ class _IncreasePricesDialogState extends State<_IncreasePricesDialog> {
     super.dispose();
   }
 
-  // A 0 / empty value is a no-op increase, and the input formatter already
-  // blocks a leading `-`, so a positive number is the only meaningful input.
-  // (The server enforces any sane upper bound.)
+  // A 0 / empty value is a no-op increase, and the input formatter blocks a
+  // leading `-`, so a positive number is the only meaningful input. (The
+  // server enforces any sane upper bound.)
+  double? get _parsed => parseDouble(
+    _controller.text.trim(),
+    useCommaAsDecimalPlace: widget.useCommaAsDecimalPlace,
+    zeroIsNull: true,
+  );
+
   bool get _valid {
-    final n = num.tryParse(_controller.text.trim());
+    final n = _parsed;
     return n != null && n > 0;
   }
 
   void _submit() {
-    if (!_valid) return;
-    Navigator.of(context).pop(_controller.text.trim());
+    final n = _parsed;
+    if (n == null || n <= 0) return;
+    // Send a canonical dot-decimal string regardless of locale — the API
+    // parses it with `num.tryParse`.
+    Navigator.of(context).pop(n.toString());
   }
 
   @override
@@ -54,7 +74,7 @@ class _IncreasePricesDialogState extends State<_IncreasePricesDialog> {
           autofocus: true,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
           ],
           textInputAction: TextInputAction.done,
           onChanged: (_) => setState(() {}),

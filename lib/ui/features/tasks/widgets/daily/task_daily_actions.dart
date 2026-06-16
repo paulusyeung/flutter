@@ -100,6 +100,10 @@ class TaskDailyActions {
       number: '',
       statusOrder: 0,
       invoiceId: '',
+      // A duplicate is a brand-new task, not the same calendar event — drop
+      // the calendar link so the server's calendar-event dedupe guard (which
+      // would 422 a second task for the same event) doesn't reject it.
+      meta: null,
       archivedAt: null,
       isDeleted: false,
       isDirty: false,

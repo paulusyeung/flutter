@@ -723,6 +723,12 @@ class Services implements SidebarBadgeContext {
   /// omitted — `auth.refresh(fullSync: true)` already re-bundles those.
   Future<List<String>> resyncAllEntities({required String companyId}) async {
     await auth.refresh(fullSync: true);
+    // The full refresh re-seeded the companies row from the envelope (omitting
+    // the server-only columns) and re-locked the Account-Management gate. Pull
+    // the canonical company back so those columns are restored and the gate
+    // re-opens — otherwise the Overview toggles stay disabled until the user
+    // navigates away and back. Best-effort: `company.refresh` swallows errors.
+    await company.refresh(companyId);
     final enabledModules =
         (await db.companiesDao.byId(companyId))?.enabledModules ?? 0;
     final failed = <String>[];
@@ -1101,6 +1107,11 @@ class Services implements SidebarBadgeContext {
     // applier to [entities.bundleAppliers]; this loop runs them in order.
     auth.onPersistBundles =
         ({required companyId, required company, required fullSync}) async {
+          // A full sync wipes + re-inserts the companies row from the envelope,
+          // which omits the ~29 server-only columns (they reset to defaults).
+          // Re-lock the Account-Management gate so a toggle can't PUT those
+          // defaults before the next canonical GET /companies backfills them.
+          if (fullSync) companyRepo.markCanonicalStale(companyId);
           for (final apply in entities.bundleAppliers) {
             await apply(
               companyId: companyId,
@@ -1151,7 +1162,16 @@ class Services implements SidebarBadgeContext {
     // signed out); (re)start it whenever a company becomes active (login,
     // restore, switch). The periodic timer is also paused/resumed on
     // app background/foreground by `SyncLifecycleObserver`.
-    final refreshScheduler = RefreshScheduler(auth: auth);
+    final refreshScheduler = RefreshScheduler(
+      auth: auth,
+      // Each tick, also drain the active company's outbox so rows parked on
+      // backoff after a transient failure retry while the app stays
+      // continuously online + foregrounded.
+      onTick: () {
+        final companyId = auth.session.value?.currentCompanyId;
+        if (companyId != null && companyId.isNotEmpty) kickDrain(companyId);
+      },
+    );
     final priorOnBeforeLogout = auth.onBeforeLogout;
     auth.onBeforeLogout = () async {
       settingsLevel.reset();

@@ -19,11 +19,22 @@ final _log = Logger('RefreshScheduler');
 /// [stop] / [triggerNow]. Owned by `Services`; [stop] is chained into
 /// `auth.onBeforeLogout` and [start] into `auth.onActiveCompanyChanged`.
 class RefreshScheduler {
-  RefreshScheduler({required AuthRepository auth, DateTime Function()? now})
-    : _auth = auth,
-      _now = now ?? DateTime.now;
+  RefreshScheduler({
+    required AuthRepository auth,
+    this.onTick,
+    DateTime Function()? now,
+  }) : _auth = auth,
+       _now = now ?? DateTime.now;
 
   final AuthRepository _auth;
+
+  /// Optional extra work run on every (gated) tick — wired to kick an outbox
+  /// drain. Without it, a row parked on exponential backoff after a transient
+  /// failure never retries while the device stays continuously online and
+  /// foregrounded: the other drain triggers (connectivity *transition*, app
+  /// resume, a new edit, company switch) don't fire in that steady state.
+  final void Function()? onTick;
+
   final DateTime Function() _now;
 
   Timer? _timer;
@@ -59,6 +70,10 @@ class RefreshScheduler {
     if (_inFlight != null) return; // single-flight
     final nowMs = _now().millisecondsSinceEpoch;
     if (nowMs - _lastRefreshMs < kMinRefreshGap.inMilliseconds) return;
+
+    // Retry any backoff-parked outbox rows. Fire-and-forget; `drainOnce` is
+    // itself single-flight per company, so an over-kick is a no-op.
+    onTick?.call();
 
     final future = _auth
         .refresh() // delta (fullSync:false) — cheap by design

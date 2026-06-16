@@ -227,6 +227,10 @@ class TaskActions {
           isDeleted: false,
           isDirty: false,
           invoiceId: '',
+          // A clone is a new task, not the same calendar event — drop the
+          // calendar link so the server's dedupe guard doesn't 422 a save the
+          // edit form has no field to fix.
+          meta: null,
           updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
           createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
         );

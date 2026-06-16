@@ -44,8 +44,12 @@ abstract class GenericBillingDocEditViewModel<T>
     // optimistic Drift write reflects the edit immediately — otherwise the
     // list tile + detail KPI strip (which read the stored `amount`/`balance`)
     // show the pre-edit total offline while the Overview tab recomputes live,
-    // and the two disagree until the server response lands.
-    addBeforeSaveHook(stampTotalsForSave);
+    // and the two disagree until the server response lands. Registered as a
+    // FINALIZE hook (not a before-save hook) so it runs AFTER the line-item
+    // table flushes its debounced cell edits — otherwise a type-then-Save
+    // within the 250 ms debounce would stamp totals from the pre-keystroke
+    // line items and the offline total would lag the edit.
+    addFinalizeSaveHook(stampTotalsForSave);
   }
 
   /// Decimal precision for currency rounding (typically 2; some currencies

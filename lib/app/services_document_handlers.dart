@@ -1,4 +1,5 @@
 import 'package:admin/data/models/api/document_api_model.dart';
+import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/documents_api.dart';
 import 'package:admin/data/services/upload_source.dart';
 import 'package:admin/domain/sync/base_entity_sync_dispatcher.dart';
@@ -59,11 +60,20 @@ documentMutationHandlers<TInner>({
     MutationKind.documentDelete: ({required row, required payload}) async {
       final documentId = payload['document_id'] as String;
       final entityId = payload['entity_id'] as String;
-      await documentsApi.delete(
-        id: documentId,
-        idempotencyKey: row.idempotencyKey,
-        requiresPassword: true,
-      );
+      try {
+        await documentsApi.delete(
+          id: documentId,
+          idempotencyKey: row.idempotencyKey,
+          requiresPassword: true,
+        );
+      } on NotFoundException {
+        // Already gone server-side (deleted from another device, or a retry
+        // after a lost-success response) — the delete's goal is achieved. Fall
+        // through to applyDeleted so the local documents[] entry is pruned and
+        // the outbox row drains as success, instead of parking as a 404
+        // conflict that mislabels the parent entity as "deleted on the server".
+        // Mirrors the generic delete/purge NotFoundException handling.
+      }
       await applyDeleted(
         companyId: row.companyId,
         entityId: entityId,

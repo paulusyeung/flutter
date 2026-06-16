@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/data/repositories/company_repository.dart';
+import 'package:admin/data/repositories/sync_repository.dart';
 
 /// Enforces the per-company **idle session timeout** (Account → Security →
 /// "Web Session Timeout", stored as `company.sessionTimeout` in ms; `0` =
@@ -22,6 +23,7 @@ class IdleTimeoutController with WidgetsBindingObserver {
   IdleTimeoutController({
     required this.auth,
     required this.company,
+    required this.sync,
     DateTime Function() now = DateTime.now,
   }) : _now = now {
     _lastActivity = _now();
@@ -31,6 +33,7 @@ class IdleTimeoutController with WidgetsBindingObserver {
 
   final AuthRepository auth;
   final CompanyRepository company;
+  final SyncRepository sync;
   final DateTime Function() _now;
 
   StreamSubscription<void>? _companySub;
@@ -99,11 +102,40 @@ class IdleTimeoutController with WidgetsBindingObserver {
     final idleMs = _now().difference(_lastActivity).inMilliseconds;
     if (idleMs < _timeoutMs) return;
     // Expired. Stop the ticker first so a slow logout can't double-fire,
-    // then log out (fire-and-forget — lifecycle/timer callbacks must never
-    // throw; the router redirects to /login when the session clears).
+    // then end the session (fire-and-forget — lifecycle/timer callbacks must
+    // never throw; the router redirects to /login when the session clears).
     _ticker?.cancel();
     _ticker = null;
-    unawaited(auth.logout());
+    unawaited(_expire());
+  }
+
+  /// End the session on timeout. If the outbox still holds unsynced rows, lock
+  /// the session WITHOUT wiping the local DB so the edits survive to the next
+  /// login — a destructive logout would silently drop the user's offline work
+  /// (CLAUDE.md: "never silently drops user data"). A clean timeout (nothing
+  /// pending, or everything drained) does the normal full logout.
+  Future<void> _expire() async {
+    final preserve = await shouldPreserveOnTimeout(
+      auth.session.value?.currentCompanyId,
+    );
+    await auth.logout(preserveLocalData: preserve);
+  }
+
+  /// Decide whether an idle timeout should PRESERVE local data (re-lock, keeping
+  /// the encrypted DB + outbox) rather than do a destructive full logout: true
+  /// when the active company still has unsynced outbox rows. This is a fast
+  /// local read only — no network drain on the security-lock path, so the lock
+  /// happens promptly; the preserved outbox drains after the next sign-in (which
+  /// also clears the re-lock gate). Errs toward preserving on any error — per
+  /// CLAUDE.md, never silently drop the user's offline edits.
+  @visibleForTesting
+  Future<bool> shouldPreserveOnTimeout(String? companyId) async {
+    if (companyId == null || companyId.isEmpty) return false;
+    try {
+      return await sync.pendingCountFor(companyId) > 0;
+    } catch (_) {
+      return true;
+    }
   }
 
   @override
