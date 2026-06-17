@@ -51,6 +51,7 @@ class EntityEditScaffold<T> extends StatelessWidget {
     this.saveParamFor,
     this.onAfterSaveAction,
     this.onAfterSaveActionOnCreate,
+    this.onSaveCleanup,
   });
 
   final GenericEditViewModel<T> vm;
@@ -127,6 +128,13 @@ class EntityEditScaffold<T> extends StatelessWidget {
   /// in. Ignored outside create mode (edit / skip-save use [onAfterSaveAction]).
   final Future<bool> Function(BuildContext context, T saved, Object action)?
   onAfterSaveActionOnCreate;
+
+  /// Prior-dead-outbox-row cleanup that normally rides inside [onSaved]. The
+  /// edit-mode AFTER-SAVE branch dispatches its action without calling
+  /// [onSaved] (the action owns navigation), so it invokes this directly after
+  /// a successful re-save — otherwise a prior 422's `dead` row lingers and the
+  /// entity re-hydrates a false SaveFailedBanner on the next open. Awaited.
+  final FutureOr<void> Function()? onSaveCleanup;
 
   Future<bool> _confirmDiscard(BuildContext context) async {
     if (!vm.isDirty) return true;
@@ -238,7 +246,11 @@ class EntityEditScaffold<T> extends StatelessWidget {
       return;
     }
     // Editing an existing record: real id — dispatch owns its own
-    // toast/navigation (clone → go to new, email → sheet, …).
+    // toast/navigation (clone → go to new, email → sheet, …). This branch
+    // skips onSaved, so run the prior-dead-row cleanup it would have done,
+    // otherwise a resolved 422 lingers as a false SaveFailedBanner on reopen.
+    await onSaveCleanup?.call();
+    if (!context.mounted) return;
     await onAfterSaveAction?.call(context, saved, action);
   }
 

@@ -88,12 +88,15 @@ class DashboardPresetRange extends DashboardDateRange {
   (Date start, Date end) _resolve(Date today, int firstMonthOfYear) {
     final now = DateTime(today.year, today.month, today.day);
     switch (preset) {
+      // Rolling windows use UTC date-space (Date.addDays) rather than
+      // local-midnight − N×24h: the latter drifts across a spring-forward DST
+      // day and resolves the start one calendar day early.
       case DashboardDatePreset.last7:
-        return _range(now.subtract(const Duration(days: 6)), now);
+        return (today.addDays(-6), today);
       case DashboardDatePreset.last30:
-        return _range(now.subtract(const Duration(days: 29)), now);
+        return (today.addDays(-29), today);
       case DashboardDatePreset.last365:
-        return _range(now.subtract(const Duration(days: 364)), now);
+        return (today.addDays(-364), today);
       case DashboardDatePreset.thisMonth:
         final start = DateTime(now.year, now.month, 1);
         final end = DateTime(now.year, now.month + 1, 0);

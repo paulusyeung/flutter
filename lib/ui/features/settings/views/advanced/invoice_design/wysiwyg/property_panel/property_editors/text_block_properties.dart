@@ -31,6 +31,7 @@ class _TextBlockPropertiesState extends State<TextBlockProperties> {
   // (`useDebouncedCallback(…, 300)`). Without this, every keystroke fires
   // notifyListeners → canvas rebuild → server-PDF preview render.
   Timer? _contentDebounce;
+  VoidCallback? _unregisterBeforeSave;
   static const _kContentDebounce = Duration(milliseconds: 300);
 
   @override
@@ -38,13 +39,17 @@ class _TextBlockPropertiesState extends State<TextBlockProperties> {
     super.initState();
     _content = TextEditingController();
     _sync();
+    // Save / ⌘S can fire within the 300 ms debounce window before the pending
+    // content write lands in the draft; flush it synchronously first (mirrors
+    // markdown_notes_section.dart). Otherwise the last-typed text is dropped.
+    _unregisterBeforeSave = widget.vm.addBeforeSaveHook(_flushContent);
   }
 
   void _sync() {
     if (_lastBlockId == widget.block.id) return;
     _lastBlockId = widget.block.id;
     _content.text = (widget.block.properties['content'] as String?) ?? '';
-    // A block-switch makes any pending debounced write meaningless.
+    // A same-block rebuild reseed makes any pending debounced write moot.
     _contentDebounce?.cancel();
   }
 
@@ -54,9 +59,40 @@ class _TextBlockPropertiesState extends State<TextBlockProperties> {
     _sync();
   }
 
+  /// Commit any pending debounced content edit immediately. Used by the
+  /// before-save hook, which runs synchronously from a Save/⌘S event handler
+  /// (safe to notify the VM there).
+  void _flushContent() {
+    if (_contentDebounce?.isActive ?? false) {
+      _contentDebounce!.cancel();
+      _write('content', _content.text);
+    }
+  }
+
   @override
   void dispose() {
-    _contentDebounce?.cancel();
+    _unregisterBeforeSave?.call();
+    // A block-switch tears down this State via the `ValueKey(block.id)` in the
+    // property panel, so a pending debounced edit would otherwise be lost.
+    // dispose() can run during the panel's build phase, so DON'T notify the VM
+    // synchronously here (markNeedsBuild-during-build); defer it past the frame.
+    if (_contentDebounce?.isActive ?? false) {
+      _contentDebounce!.cancel();
+      final vm = widget.vm;
+      final block = widget.block;
+      final pending = _content.text;
+      scheduleMicrotask(() {
+        vm.updateBlock(
+          block.copyWith(
+            properties: mergePropertyOrOmit(
+              block.properties,
+              'content',
+              pending,
+            ),
+          ),
+        );
+      });
+    }
     _content.dispose();
     super.dispose();
   }

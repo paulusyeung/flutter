@@ -23,8 +23,13 @@ import 'package:admin/data/models/domain/expense.dart';
 /// `convertedAmount` / `convertedNetAmount`. Without a conversion the rate is 1
 /// (a no-op), so same-currency expenses are unaffected.
 ///
-/// By-amount taxes (`calculate_tax_by_amount`) can't map to a line rate, so
-/// they're dropped and the full (converted) gross is billed as the cost.
+/// By-amount taxes (`calculate_tax_by_amount`) carry no line rate, so the rate
+/// is reconstructed from the stored `tax_amount*` relative to the net base
+/// (`tax_amount / net * 100`) and attached with the tax name — mirroring React's
+/// `calculatedTaxRate`. Applied against the net base this reproduces the same
+/// per-tier tax under both exclusive and (single-tier) inclusive invoices, so
+/// the invoice keeps its per-tax-name breakdown / tax reporting instead of
+/// folding the tax silently into `cost`. The line total is unchanged either way.
 LineItem expenseInvoiceLineItem(
   Expense expense, {
   required bool invoiceInclusive,
@@ -33,23 +38,33 @@ LineItem expenseInvoiceLineItem(
       expense.invoiceCurrencyId.isNotEmpty &&
       expense.foreignAmount > Decimal.zero;
   final fx = hasConversion ? expense.effectiveExchangeRate : Decimal.one;
-  final carryTax = !expense.calculateTaxByAmount;
-  final base = carryTax
-      ? (invoiceInclusive ? expense.grossAmount : expense.netAmount)
-      : expense.grossAmount;
+  final base = invoiceInclusive ? expense.grossAmount : expense.netAmount;
   final item = emptyLineItem().copyWith(
     expenseId: expense.id,
     notes: expense.publicNotes,
     quantity: Decimal.one,
     cost: base * fx,
   );
-  if (!carryTax) return item;
+
+  // In rate mode the stored rate is authoritative; in by-amount mode derive a
+  // rate from the stored tax amount against the net base.
+  final net = expense.netAmount;
+  Decimal rateFor(Decimal storedRate, Decimal storedAmount) {
+    if (!expense.calculateTaxByAmount) return storedRate;
+    if (net <= Decimal.zero || storedAmount == Decimal.zero) {
+      return Decimal.zero;
+    }
+    return (storedAmount * Decimal.fromInt(100) / net).toDecimal(
+      scaleOnInfinitePrecision: 10,
+    );
+  }
+
   return item.copyWith(
     taxName1: expense.taxName1,
-    taxRate1: expense.taxRate1,
+    taxRate1: rateFor(expense.taxRate1, expense.taxAmount1),
     taxName2: expense.taxName2,
-    taxRate2: expense.taxRate2,
+    taxRate2: rateFor(expense.taxRate2, expense.taxAmount2),
     taxName3: expense.taxName3,
-    taxRate3: expense.taxRate3,
+    taxRate3: rateFor(expense.taxRate3, expense.taxAmount3),
   );
 }

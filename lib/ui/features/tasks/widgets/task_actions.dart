@@ -123,7 +123,13 @@ class TaskActions {
           kind: TaskAction.newInvoice,
           icon: Icons.receipt_long_outlined,
           label: context.tr('new_invoice'),
-          enabled: !task.id.startsWith('tmp_'),
+          // Mirrors admin-portal/React: a running task would bill a live-timer
+          // snapshot, and an invoiced task would double-bill + lock; gate both.
+          // (No clientId requirement — the client is chosen on the new invoice.)
+          enabled:
+              !task.id.startsWith('tmp_') &&
+              !task.isInvoiced &&
+              !task.isRunning,
           onTap: () => onTap(TaskAction.newInvoice),
         ),
       if (me?.moduleEnabled(EntityType.invoice) ?? false)

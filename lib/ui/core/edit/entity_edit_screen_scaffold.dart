@@ -266,6 +266,18 @@ class _EntityEditScreenScaffoldState<T, VM extends GenericEditViewModel<T>>
     return row?.id;
   }
 
+  /// Delete a prior 422's `dead` outbox row after a successful re-save (its
+  /// payload is now stale) and clear the VM's failed-sync link. Shared by the
+  /// plain-Save `onSaved` path and the edit-mode after-save `onSaveCleanup`
+  /// path so both consume the dead row.
+  Future<void> _cleanupPriorDeadRow(Services services, VM vm) async {
+    final priorDeadId = await _resolveDeadRowId(services, vm);
+    if (priorDeadId != null) {
+      await services.db.outboxDao.deleteRow(priorDeadId);
+      vm.clearFailedSync();
+    }
+  }
+
   Future<void> _discardFailedSync(VM vm) async {
     final services = context.read<Services>();
     final rowId = await _resolveDeadRowId(services, vm);
@@ -348,15 +360,13 @@ class _EntityEditScreenScaffoldState<T, VM extends GenericEditViewModel<T>>
         // A fresh save queued a new outbox row; the prior dead row's
         // payload is stale. Delete it so the Outbox screen doesn't keep
         // showing the failure indefinitely.
-        final services = ctx.read<Services>();
-        final priorDeadId = await _resolveDeadRowId(services, vm);
-        if (priorDeadId != null) {
-          await services.db.outboxDao.deleteRow(priorDeadId);
-          vm.clearFailedSync();
-        }
+        await _cleanupPriorDeadRow(ctx.read<Services>(), vm);
         if (!ctx.mounted) return;
         await widget.onSaved(ctx, vm, saved);
       },
+      // The edit-mode after-save action path bypasses onSaved (the action owns
+      // navigation), so run the same dead-row cleanup there too.
+      onSaveCleanup: () => _cleanupPriorDeadRow(context.read<Services>(), vm),
     );
   }
 }

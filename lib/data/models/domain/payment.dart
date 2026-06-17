@@ -206,6 +206,13 @@ extension PaymentStatusExt on Payment {
 
   bool get hasUnappliedFunds => unapplied > Decimal.zero;
 
+  /// Whether this payment is allocated to at least one invoice. The refund
+  /// screen can only refund against invoice allocations (matching React), so
+  /// the Refund action is gated on this to avoid offering an action that
+  /// dead-ends for an unapplied / client-account payment.
+  bool get hasInvoiceAllocations =>
+      paymentables.any((pa) => pa.invoiceId.isNotEmpty);
+
   bool get canRefund =>
       refundable > Decimal.zero &&
       (statusId == kPaymentStatusCompleted ||

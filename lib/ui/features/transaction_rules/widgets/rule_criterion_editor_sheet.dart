@@ -53,13 +53,15 @@ class _RuleCriterionSheetState extends State<_RuleCriterionSheet> {
     kRuleOperatorIsEmpty,
   ];
 
+  // No `is_empty` here: the server's matchNumberOperator (ProcessBankRules)
+  // only handles =,<,<=,>,>= and returns false for anything else, so a numeric
+  // `is_empty` criterion silently never matches. Mirrors React's numberOperators.
   static const _numberOperators = <String>[
     kRuleOperatorEquals,
     kRuleOperatorLessThan,
     kRuleOperatorLessThanOrEqual,
     kRuleOperatorGreaterThan,
     kRuleOperatorGreaterThanOrEqual,
-    kRuleOperatorIsEmpty,
   ];
 
   @override

@@ -353,7 +353,16 @@ class _CreditLinkTabState extends State<_CreditLinkTab> {
           ),
           builder: (context, snapshot) {
             final payments = (snapshot.data ?? const <Payment>[])
-                .where((p) => !p.isDeleted && p.archivedAt == null)
+                // Exclude payments already linked to a bank transaction: the
+                // server (MatchBankTransactionRequest) silently drops the link
+                // for those, so offering them yields a no-op "linked" toast.
+                // Mirrors the sibling expense-link tab's transactionId filter.
+                .where(
+                  (p) =>
+                      !p.isDeleted &&
+                      p.archivedAt == null &&
+                      p.transactionId.isEmpty,
+                )
                 .toList(growable: false);
             return SearchableDropdownField<Payment>(
               label: context.tr('payment'),

@@ -314,6 +314,9 @@ class _LineItemPickerBodyState extends State<LineItemPickerBody>
                 .where(
                   (t) =>
                       !t.isInvoiced &&
+                      // Running tasks would bill a live-timer snapshot; React
+                      // (tasks hooks.tsx:651) excludes them from the picker too.
+                      !t.isRunning &&
                       !widget.excludedTaskIds.contains(t.id) &&
                       (t.clientId.isEmpty || t.clientId == widget.clientId),
                 )

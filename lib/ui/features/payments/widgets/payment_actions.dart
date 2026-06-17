@@ -70,7 +70,10 @@ class PaymentActions {
         kind: PaymentAction.refund,
         icon: Icons.replay_outlined,
         label: context.tr('refund_payment'),
-        enabled: payment.canRefund,
+        // Only offer Refund when there's an invoice allocation to refund
+        // against — the refund screen has no client-account-refund path
+        // (matches React), so an unapplied payment would dead-end.
+        enabled: payment.canRefund && payment.hasInvoiceAllocations,
         onTap: () => onTap(PaymentAction.refund),
       ),
       EntityActionItem(

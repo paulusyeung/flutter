@@ -144,5 +144,24 @@ void main() {
       expect(a, equals(b));
       expect(a.hashCode, b.hashCode);
     });
+
+    // H2: a tag-only change must register as a diff, otherwise setPayload's
+    // `if (payload == _payload) return;` swallows the tag filter on the
+    // Tasks/Projects reports and the report runs unfiltered.
+    test('tags participate in equality + hashCode', () {
+      expect(
+        const ReportPayload(tags: 'a,b'),
+        isNot(equals(const ReportPayload(tags: 'c,d'))),
+      );
+      expect(
+        const ReportPayload(tags: 'a,b'),
+        isNot(equals(const ReportPayload())),
+      );
+      expect(
+        const ReportPayload(tags: 'a,b').hashCode ==
+            const ReportPayload().hashCode,
+        isFalse,
+      );
+    });
   });
 }

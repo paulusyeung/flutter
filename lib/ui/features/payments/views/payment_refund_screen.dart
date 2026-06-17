@@ -256,6 +256,14 @@ class _PaymentRefundScreenState extends State<PaymentRefundScreen> {
     );
   }
 
+  /// The amount Full mode actually refunds: the sum of the per-invoice
+  /// allocations (`amount - refunded`), which equals the *applied* portion —
+  /// NOT `p.refundable` (which includes unapplied funds the server won't refund
+  /// through this allocation-only flow). Mirrors the Full-mode allocation loop.
+  Decimal _fullRefundAmount(Payment p) => p.paymentables
+      .where((pa) => pa.invoiceId.isNotEmpty)
+      .fold(Decimal.zero, (sum, pa) => sum + (pa.amount - pa.refunded));
+
   Widget _modeToggle(BuildContext context, Payment p) {
     final hasAllocations = p.paymentables.any((pa) => pa.invoiceId.isNotEmpty);
     return Column(
@@ -266,7 +274,7 @@ class _PaymentRefundScreenState extends State<PaymentRefundScreen> {
             ButtonSegment(
               value: true,
               label: Text(
-                '${context.tr('full_refund')} (${_money(p.refundable)})',
+                '${context.tr('full_refund')} (${_money(_fullRefundAmount(p))})',
               ),
               // Server rejects refund-without-allocations; gray out Full
               // mode when there are no paymentables to refund against.

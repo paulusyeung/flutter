@@ -247,6 +247,7 @@ class ReportPayload {
         vendors == other.vendors &&
         categories == other.categories &&
         projects == other.projects &&
+        tags == other.tags &&
         status == other.status &&
         activityTypeId == other.activityTypeId &&
         productKey == other.productKey &&
@@ -271,6 +272,7 @@ class ReportPayload {
     vendors,
     categories,
     projects,
+    tags,
     status,
     activityTypeId,
     productKey,

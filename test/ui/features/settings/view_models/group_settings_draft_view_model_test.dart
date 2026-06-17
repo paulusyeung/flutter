@@ -118,6 +118,35 @@ void main() {
     },
   );
 
+  test(
+    'reminder-days override can be unchecked back to inherit (M1)',
+    () async {
+      final repo = makeRepo();
+      // Company has a non-zero reminder offset; the group should be able to
+      // inherit it after removing a per-group override.
+      await seedCompany({'num_days_reminder1': 7});
+      await seedGroup(repo);
+      final vm = makeVm(repo);
+      await vm.load();
+      await waitLoaded(vm);
+
+      vm.setOverride(
+        apiKey: 'num_days_reminder1',
+        enabled: true,
+        cascadedValue: '5',
+      );
+      expect(vm.isOverridden('num_days_reminder1'), isTrue);
+      expect(vm.settings.numDaysReminder1, 5);
+
+      // Pre-fix the binding coerced the null clear to 0, so isOverridden
+      // stayed true (0 is a non-null override) and the checkbox snapped back.
+      vm.setOverride(apiKey: 'num_days_reminder1', enabled: false);
+      expect(vm.isOverridden('num_days_reminder1'), isFalse);
+      expect(vm.settings.numDaysReminder1, 7); // inherits the company offset
+      vm.dispose();
+    },
+  );
+
   test('save writes a sparse override blob back onto the group', () async {
     final repo = makeRepo();
     await seedCompany({'vat_number': 'CO-VAT'});

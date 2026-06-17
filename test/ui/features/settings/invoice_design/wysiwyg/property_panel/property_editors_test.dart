@@ -255,6 +255,35 @@ void main() {
       await tester.pump(const Duration(milliseconds: 250));
       expect(vm.blocks.single.properties['content'], 'hi');
     });
+
+    // M4: switching blocks (or leaving the screen) within the 300ms window
+    // must NOT lose the trailing content edit. The editor is keyed on the
+    // block id, so a switch disposes this State; dispose flushes the pending
+    // write instead of cancelling it silently.
+    testWidgets('block-switch within the debounce window flushes the edit', (
+      tester,
+    ) async {
+      final vm = WysiwygDesignViewModel(repo: repo, companyId: companyId);
+      vm.addBlock(_spec('text'));
+      final blockId = vm.blocks.single.id;
+      await tester.pumpWidget(
+        _wrap(TextBlockProperties(vm: vm, block: vm.blocks.single)),
+      );
+      await tester.pump();
+      await tester.enterText(find.byType(TextField).first, 'hi');
+      await tester.pump(const Duration(milliseconds: 100)); // still debouncing
+      expect(vm.blocks.single.properties['content'], isNot('hi'));
+
+      // Tear down the editor (simulates selecting another block).
+      await tester.pumpWidget(_wrap(const SizedBox()));
+      await tester.pump(); // drain the deferred flush microtask
+
+      expect(
+        vm.blocks.firstWhere((b) => b.id == blockId).properties['content'],
+        'hi',
+        reason: 'pending content flushed on teardown, not dropped',
+      );
+    });
   });
 
   group('Phase 8j — Total keepTogether switch', () {

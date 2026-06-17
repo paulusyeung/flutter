@@ -82,23 +82,78 @@ void main() {
       );
     });
 
-    test('by-amount tax → no line rate carried, bills the full gross', () {
-      final expense = Expense.fromApi(
-        const ExpenseApi(
-          amount: '100',
-          taxName1: 'GST',
-          taxAmount1: '8',
-          calculateTaxByAmount: true,
+    // L1: a by-amount expense must carry its tax as a derived line rate so the
+    // invoice keeps a per-tax-name breakdown — not fold it silently into cost.
+    Map<String, Decimal> breakdownFor(
+      Expense expense, {
+      required bool invoiceInclusive,
+    }) {
+      final item = expenseInvoiceLineItem(
+        expense,
+        invoiceInclusive: invoiceInclusive,
+      );
+      return computeTotals(
+        BillingTotalsInput(
+          lineItems: [item],
+          discount: Decimal.zero,
+          isAmountDiscount: true,
+          usesInclusiveTaxes: invoiceInclusive,
         ),
-      );
-      final item = expenseInvoiceLineItem(expense, invoiceInclusive: false);
-      expect(item.cost, Decimal.fromInt(108)); // gross = amount + taxAmountSum
-      expect(item.taxRate1, Decimal.zero);
-      expect(item.taxName1, '');
-      expect(
-        invoiceTotalFor(expense, invoiceInclusive: false),
-        Decimal.fromInt(108),
-      );
-    });
+        2,
+      ).taxBreakdown;
+    }
+
+    test(
+      'by-amount tax (exclusive invoice) → derived rate + tax breakdown',
+      () {
+        final expense = Expense.fromApi(
+          const ExpenseApi(
+            amount: '100',
+            taxName1: 'GST',
+            taxAmount1: '8',
+            calculateTaxByAmount: true,
+          ),
+        );
+        final item = expenseInvoiceLineItem(expense, invoiceInclusive: false);
+        expect(item.cost, Decimal.fromInt(100)); // net base, tax added on top
+        expect(item.taxName1, 'GST');
+        expect(item.taxRate1, Decimal.fromInt(8)); // 8 / 100 * 100
+        expect(
+          invoiceTotalFor(expense, invoiceInclusive: false),
+          Decimal.fromInt(108),
+        );
+        // The tax is attributed to its name, not dropped.
+        expect(
+          breakdownFor(expense, invoiceInclusive: false)['GST'],
+          Decimal.fromInt(8),
+        );
+      },
+    );
+
+    test(
+      'by-amount tax (inclusive invoice) → total stays gross, tax extracted',
+      () {
+        final expense = Expense.fromApi(
+          const ExpenseApi(
+            amount: '100',
+            taxName1: 'GST',
+            taxAmount1: '8',
+            calculateTaxByAmount: true,
+          ),
+        );
+        final item = expenseInvoiceLineItem(expense, invoiceInclusive: true);
+        expect(item.cost, Decimal.fromInt(108)); // gross base
+        expect(item.taxName1, 'GST');
+        expect(item.taxRate1, Decimal.fromInt(8));
+        expect(
+          invoiceTotalFor(expense, invoiceInclusive: true),
+          Decimal.fromInt(108),
+        );
+        expect(
+          breakdownFor(expense, invoiceInclusive: true)['GST'],
+          Decimal.fromInt(8),
+        );
+      },
+    );
   });
 }

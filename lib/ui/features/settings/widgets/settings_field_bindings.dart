@@ -1083,29 +1083,39 @@ final Map<String, SettingsBinding> _bindings = <String, SettingsBinding>{
     read: (s) => s.enableQuoteReminder1?.toString(),
     write: (s, v) => s.copyWith(enableQuoteReminder1: _parseBool(v)),
   ),
-  // Reminder-days: an empty clear maps to 0 (the server's "unset" value, see
-  // CompanySettings), NOT null. A typed null is omitted by CompanySettingsApi's
-  // includeIfNull:false toJson, so at company scope the stale `rawSettings`
-  // value would resurrect on the next save; an explicit 0 survives the merge
-  // and actually clears the offset. 0 is also the server default at
-  // group/client scope, so it's harmless there (M3). (Counters default to
-  // 1/4, NOT 0 — never apply this blanket to those bindings.)
+  // Reminder-days clear is scope-aware:
+  //  - Company scope passes an empty string '' (OverridableTextField.onChanged),
+  //    which must persist as an explicit 0: a typed null is omitted by
+  //    CompanySettingsApi's includeIfNull:false toJson, so the stale `rawSettings`
+  //    value would resurrect on the next save; an explicit 0 survives the merge
+  //    and actually clears the offset.
+  //  - Cascade scope (client/group) passes a literal null (setOverride clear /
+  //    empty-field clear), which must STAY null so the sparse override is dropped
+  //    and the entity inherits the company schedule. Coercing null->0 here pins
+  //    the client/group to "0 days" and makes the override un-uncheckable, since
+  //    the server's Client::getSetting treats an int 0 as a real override.
+  // Hence: '' -> 0 (sentinel), null -> null (inherit). (Counters default to
+  // 1/4, NOT 0 — never apply this to those bindings.)
   'num_days_reminder1': (
     read: (s) => s.numDaysReminder1?.toString(),
-    write: (s, v) => s.copyWith(numDaysReminder1: int.tryParse(v ?? '') ?? 0),
+    write: (s, v) =>
+        s.copyWith(numDaysReminder1: v == null ? null : (int.tryParse(v) ?? 0)),
   ),
   'num_days_reminder2': (
     read: (s) => s.numDaysReminder2?.toString(),
-    write: (s, v) => s.copyWith(numDaysReminder2: int.tryParse(v ?? '') ?? 0),
+    write: (s, v) =>
+        s.copyWith(numDaysReminder2: v == null ? null : (int.tryParse(v) ?? 0)),
   ),
   'num_days_reminder3': (
     read: (s) => s.numDaysReminder3?.toString(),
-    write: (s, v) => s.copyWith(numDaysReminder3: int.tryParse(v ?? '') ?? 0),
+    write: (s, v) =>
+        s.copyWith(numDaysReminder3: v == null ? null : (int.tryParse(v) ?? 0)),
   ),
   'quote_num_days_reminder1': (
     read: (s) => s.quoteNumDaysReminder1?.toString(),
-    write: (s, v) =>
-        s.copyWith(quoteNumDaysReminder1: int.tryParse(v ?? '') ?? 0),
+    write: (s, v) => s.copyWith(
+      quoteNumDaysReminder1: v == null ? null : (int.tryParse(v) ?? 0),
+    ),
   ),
   'schedule_reminder1': (
     read: (s) => s.scheduleReminder1,

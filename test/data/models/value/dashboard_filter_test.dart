@@ -29,6 +29,28 @@ void main() {
       expect(end, today);
     });
 
+    // M5: rolling windows must use UTC date-space, not local-midnight − N×24h,
+    // which drifts one day early when the window spans a spring-forward DST day.
+    // (Run under `TZ=America/New_York` to trip the old local-subtract path.)
+    test('rolling presets are DST-safe across a spring-forward window', () {
+      final today = const Date(2026, 3, 12); // window spans 2026-03-08 DST
+      final last7 = const DashboardPresetRange(
+        DashboardDatePreset.last7,
+      ).resolve(today: today);
+      expect(last7.$1, const Date(2026, 3, 6));
+      expect(last7.$2, today);
+
+      final last30 = const DashboardPresetRange(
+        DashboardDatePreset.last30,
+      ).resolve(today: today);
+      expect(last30.$1, const Date(2026, 2, 11));
+
+      final last365 = const DashboardPresetRange(
+        DashboardDatePreset.last365,
+      ).resolve(today: today);
+      expect(last365.$1, const Date(2025, 3, 13)); // 365 inclusive days
+    });
+
     test('preset thisQuarter snaps to the calendar quarter', () {
       final today = const Date(2026, 5, 11);
       final (start, end) = const DashboardPresetRange(
