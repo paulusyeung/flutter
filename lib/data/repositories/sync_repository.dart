@@ -586,18 +586,33 @@ class SyncRepository {
       // and marked this dependent dead. Skip it; otherwise the tmp_-ref
       // branch below would `scheduleRetry` it straight back to `pending`.
       if (row.state != 'pending') continue;
-      if (_hasUnresolvedTempRef(row)) {
-        // The row still references a not-yet-created entity even after the
-        // byId re-read — its parent create didn't produce a real id (it
-        // failed earlier in this pass, is parked, or is dead). Dispatching
-        // anyway sends the tmp_ id to the server: a PUT/DELETE on
-        // `/<entity>/tmp_x` 404s and parks this row as a bogus year-long
-        // "conflict" (with a misleading resolution dialog), and a create
-        // carrying e.g. `client_id: tmp_x` dies on a 422. Leave it pending:
-        // when the parent create eventually lands, rewriteTempIdInPayloads
-        // heals the reference and the next drain sends it.
+      var current = row;
+      if (_hasUnresolvedTempRef(current)) {
+        // Before deferring, try to heal: a referenced tmp_ entity may have
+        // ALREADY synced. rewriteTempIdInPayloads (the create-success healer)
+        // only rewrites rows that exist AT create-success time, so a row
+        // enqueued AFTER its dependency synced is never touched by it — e.g.
+        // an inline-created tag whose tiny create round-tripped and was
+        // deleted while the user was still filling the task form, then the
+        // task is saved carrying the now-dead tmp_ tag id. id_remap mappings
+        // are permanent, so resolve each tmp_ token there and rewrite the
+        // ones that map; only genuinely-unresolved tokens defer the row.
+        final healed = await _healResolvedTempRefs(current);
+        if (healed != null) current = healed;
+      }
+      if (_hasUnresolvedTempRef(current)) {
+        // Still references a not-yet-created entity — its parent create didn't
+        // produce a real id (it failed earlier in this pass, is parked, or is
+        // dead). Dispatching anyway sends the tmp_ id to the server: a
+        // PUT/DELETE on `/<entity>/tmp_x` 404s and parks this row as a bogus
+        // year-long "conflict" (with a misleading resolution dialog), and a
+        // create carrying e.g. `client_id: tmp_x` dies on a 422. Leave it
+        // pending: when the parent create eventually lands,
+        // rewriteTempIdInPayloads heals the reference and the next drain
+        // sends it.
         _log.info(
-          'Skipping outbox row ${row.id} (${row.entityType}/${row.entityId}):'
+          'Skipping outbox row ${current.id}'
+          ' (${current.entityType}/${current.entityId}):'
           ' unresolved tmp_ reference awaiting its parent create',
         );
         // Vacate the nextReady window (a 50-row snapshot): a skipped row
@@ -607,8 +622,8 @@ class SyncRepository {
         // lands, rewriteTempIdInPayloads heals the reference and the row
         // dispatches on a pass within the defer window.
         await db.outboxDao.scheduleRetry(
-          id: row.id,
-          attempts: row.attempts,
+          id: current.id,
+          attempts: current.attempts,
           nextAttemptAt:
               _now().millisecondsSinceEpoch +
               const Duration(minutes: 1).inMilliseconds,
@@ -616,10 +631,58 @@ class SyncRepository {
         );
         continue;
       }
-      final dispatched = await _attempt(row);
+      final dispatched = await _attempt(current);
       if (dispatched) successes++;
     }
     return successes;
+  }
+
+  /// Heal any `tmp_` tokens in [row] (entityId + payload) that ALREADY have an
+  /// `id_remap` mapping, rewriting them to the real id in the database.
+  /// Returns the re-read row when anything changed, else `null`.
+  ///
+  /// Covers the "referenced entity synced before this row was enqueued"
+  /// ordering that `rewriteTempIdInPayloads` (create-success-time only) can't:
+  /// e.g. an inline-created tag whose create round-tripped and was deleted
+  /// before the dependent task/project row existed. The tag's id_remap entry
+  /// outlives its outbox row, so we resolve through it here. Tokens with no
+  /// mapping yet are left in place (the row defers as before, then heals via
+  /// rewriteTempIdInPayloads when that create lands — the offline ordering).
+  Future<OutboxRow?> _healResolvedTempRefs(OutboxRow row) async {
+    final isCreate =
+        MutationKind.tryParse(row.mutationKind) == MutationKind.create;
+    final tokens = <String>{};
+    if (!isCreate && row.entityId.startsWith('tmp_')) tokens.add(row.entityId);
+    for (final m in _tempIdPattern.allMatches(row.payload)) {
+      final t = m.group(0)!;
+      if (isCreate && t == row.entityId) continue; // a create's own tmp id
+      tokens.add(t);
+    }
+    var changed = false;
+    for (final tempId in tokens) {
+      final realId = await db.idRemapDao.resolveAnyType(tempId);
+      if (realId == null) continue;
+      // tmp_ ids are globally unique, so this rewrites the token wherever it
+      // appears across the company's pending/dead rows (and re-arms the
+      // deferred row) — the same primitive the create-success path uses.
+      // NOTE: `entityType` here is the CARRIER row's type, which may differ
+      // from the token's owning entity (e.g. a `tmp_` tag id inside a `client`
+      // row's payload). That's fine ONLY because rewriteTempIdInPayloads
+      // matches purely by `(companyId, state, token)` and ignores entityType —
+      // the heal is intentionally type-agnostic. If that DAO query ever starts
+      // scoping by entityType, this call must pass the token's own type (or a
+      // wildcard). Covered by the cross-type case in sync_repository_test
+      // (a `tag` id_remap healed inside a `client` row).
+      await db.outboxDao.rewriteTempIdInPayloads(
+        companyId: row.companyId,
+        entityType: row.entityType,
+        tempId: tempId,
+        realId: realId,
+      );
+      changed = true;
+    }
+    if (!changed) return null;
+    return db.outboxDao.byId(row.id);
   }
 
   /// Matches ids minted by `BaseEntityRepository.mintTempId()`

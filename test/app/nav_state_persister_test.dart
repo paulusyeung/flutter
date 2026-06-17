@@ -126,6 +126,52 @@ void main() {
     },
   );
 
+  test('preserves a Tasks layout view mode (view=calendar) across a restart — '
+      'only the master-detail view=full pane flag is transient', () async {
+    final router = _FakeRouter();
+    final persister = NavStatePersister(
+      changes: router,
+      currentPath: () => router.path,
+      db: db,
+      debounce: const Duration(milliseconds: 10),
+    );
+    addTearDown(persister.dispose);
+
+    router.go('/tasks?view=calendar');
+    await Future<void>.delayed(const Duration(milliseconds: 25));
+    expect(
+      (await db.navStateDao.current())?.currentRoute,
+      '/tasks?view=calendar',
+      reason: 'leaving Tasks on a layout mode must resume that mode',
+    );
+  });
+
+  test(
+    'never persists /calendar_connection/complete — its one-time handoff token '
+    'must not be written to disk or replayed on the next cold start',
+    () async {
+      final router = _FakeRouter();
+      final persister = NavStatePersister(
+        changes: router,
+        currentPath: () => router.path,
+        db: db,
+        debounce: const Duration(milliseconds: 10),
+      );
+      addTearDown(persister.dispose);
+
+      router.go('/tasks'); // a real prior location
+      await Future<void>.delayed(const Duration(milliseconds: 25));
+      router.go('/calendar_connection/complete?provider=google&handoff=secret');
+      await Future<void>.delayed(const Duration(milliseconds: 25));
+
+      expect(
+        (await db.navStateDao.current())?.currentRoute,
+        '/tasks',
+        reason: 'the OAuth landing gate is skipped; the prior route stands',
+      );
+    },
+  );
+
   test('keeps non-transient query params (e.g. client_id)', () async {
     final router = _FakeRouter();
     final persister = NavStatePersister(

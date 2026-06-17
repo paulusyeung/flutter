@@ -652,6 +652,63 @@ void main() {
       },
     );
 
+    test(
+      'a tmp_ ref whose entity ALREADY synced (id_remap recorded, no pending '
+      'create) is healed from id_remap and dispatched, not deferred forever',
+      () async {
+        // The "parent synced before dependent enqueued" ordering: an inline-
+        // created tag whose tiny create round-tripped and was DELETED while
+        // the user was still filling the task form, so rewriteTempIdInPayloads
+        // (create-success-time only) never touched the task row that didn't
+        // exist yet. The id_remap entry survives the deleted outbox row.
+        final dispatcher = _ProgrammableDispatcher()..queueSuccess();
+        final engine = makeEngine(dispatcher);
+        await db.idRemapDao.remember(
+          entityType: 'tag',
+          tempId: tmpA,
+          realId: 'real_A',
+          now: 0,
+        );
+        // The task save carries the now-dead tmp tag id in its tags array.
+        final depId = await db.outboxDao.enqueue(
+          OutboxCompanion.insert(
+            companyId: 'co',
+            entityType: 'client',
+            entityId: 'real_task',
+            mutationKind: MutationKind.update.wireName,
+            payload: jsonEncode({
+              'id': 'real_task',
+              'tags': [tmpA],
+            }),
+            idempotencyKey: 'kheal',
+            nextAttemptAt: 0,
+            createdAt: 0,
+          ),
+        );
+
+        await engine.drainOnce(companyId: 'co');
+
+        expect(
+          dispatcher.dispatches,
+          1,
+          reason:
+              'the dependent heals from id_remap and dispatches, '
+              'instead of deferring +60s forever',
+        );
+        expect(dispatcher.lastRow?.payload, contains('real_A'));
+        expect(dispatcher.lastRow?.payload, isNot(contains('tmp_')));
+        expect(
+          await db.outboxDao.pendingCountForCompany('co'),
+          0,
+          reason:
+              'healed + dispatched → row deleted → pending settles to 0, '
+              'so logout/switch "Sync first" can complete',
+        );
+        // depId is consumed by the successful dispatch.
+        expect(await db.outboxDao.byId(depId), isNull);
+      },
+    );
+
     test('a failed tmp_ create (422) marks its dependents dead too, so they '
         'stop deferring forever and pendingCountFor can reach zero', () async {
       final events = <SyncEvent>[];

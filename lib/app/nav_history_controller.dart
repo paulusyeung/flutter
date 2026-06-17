@@ -88,6 +88,12 @@ class NavHistoryController extends ChangeNotifier {
     if (uri == '/login') return;
     if (uri == '/lock' || uri.startsWith('/lock?')) return;
     if (uri == '/setup') return;
+    // One-shot OAuth landing gate with a single-use handoff token — backing
+    // onto it would re-fire the consumed handoff (spurious "connect failed").
+    if (uri == '/calendar_connection/complete' ||
+        uri.startsWith('/calendar_connection/complete?')) {
+      return;
+    }
 
     // Already the cursor's location (e.g. a redirect that resolved back to
     // here, or a no-op rebuild) — nothing to record.

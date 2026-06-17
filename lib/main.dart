@@ -220,7 +220,17 @@ Future<void> _bootstrap() async {
   // Verified via diagnostics: the create `buildVm` ran once at startup (from
   // the restored `/invoices/new`) and never again on the click. Land on the
   // base list instead (`/invoices/new` → `/invoices`).
-  final restoredRaw = navState?.currentRoute;
+  final restoredRawRow = navState?.currentRoute;
+  // Defensive: a persisted `/calendar_connection/complete` (from a build
+  // before it joined the persister skip-list) carries a consumed one-time
+  // handoff token; restoring it would re-POST it → a spurious "connect
+  // failed". Drop it so we fall back to the default route.
+  final restoredRaw =
+      (restoredRawRow != null &&
+          (restoredRawRow == '/calendar_connection/complete' ||
+              restoredRawRow.startsWith('/calendar_connection/complete?')))
+      ? null
+      : restoredRawRow;
   final restoredUri = restoredRaw == null ? null : Uri.tryParse(restoredRaw);
   final restored =
       (restoredUri != null &&

@@ -4,16 +4,27 @@ import 'package:admin/data/models/value/date.dart';
 
 /// Calendar-day helpers shared by the task daily / weekly / monthly views.
 ///
-/// Tasks carry no stored date — a task's "day" is the LOCAL date of its
-/// earliest time-entry start (this is exactly the server's
-/// `calculated_start_date`, sent on the wire as `date`). [TimeEntry.start] is
-/// decoded as UTC, so every day computation here converts to local
-/// (`.toLocal()`) before extracting year/month/day — otherwise a task logged
-/// near midnight lands on the wrong calendar cell for users away from UTC.
+/// Tasks carry no stored date — a task's "day" is the date of its earliest
+/// time-entry start. [TimeEntry.start] is decoded as UTC, so every day
+/// computation converts to local (`.toLocal()`) before extracting
+/// year/month/day — otherwise a task logged near midnight lands on the wrong
+/// calendar cell for users away from UTC.
+///
+/// KNOWN LIMITATION (tracked): this buckets by the DEVICE timezone, whereas the
+/// server's `calculated_start_date` (sent on the wire as `date`) is the
+/// COMPANY-timezone date (`Carbon::createFromTimestamp(..)->addSeconds(company
+/// utc_offset)`), which is what the React web client buckets on. When the device
+/// timezone differs from the company timezone AND an entry's start falls near
+/// midnight, this app can place the task one calendar cell off from the server /
+/// web client. No data corruption — time_log timestamps round-trip correctly;
+/// only the read-only grid placement differs. A faithful fix carries the
+/// server `date` onto the model (needs a Drift column) or resolves the company
+/// offset via the `timezone` package — deferred as low-severity.
 
 extension TaskDay on Task {
-  /// Earliest time-entry start (UTC), or null when no entry has a start. This
-  /// is the instant the server reports as `calculated_start_date`.
+  /// Earliest time-entry start (UTC), or null when no entry has a start. The
+  /// server derives `calculated_start_date` from this same instant (but in the
+  /// company timezone — see the class-level KNOWN LIMITATION note).
   DateTime? get earliestStart {
     DateTime? earliest;
     for (final e in timeLog) {

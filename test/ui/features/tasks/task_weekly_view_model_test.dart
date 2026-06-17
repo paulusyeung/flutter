@@ -127,6 +127,48 @@ void main() {
     await ctrl.close();
   });
 
+  test(
+    'note-only edit on a multi-entry day preserves total hours through the '
+    'save (regression: was collapsing 2 entries → losing the 2nd\'s time)',
+    () async {
+      final ctrl = StreamController<List<Task>>();
+      final repo = _FakeRepo(ctrl);
+      final vm = _build(repo);
+      // Two stopped entries on Monday Jun 8 (1h + 1h = 2h).
+      ctrl.add([
+        _t(
+          'a',
+          log: [
+            _e(DateTime(2026, 6, 8, 9), DateTime(2026, 6, 8, 10)),
+            _e(DateTime(2026, 6, 8, 14), DateTime(2026, 6, 8, 15)),
+          ],
+        ),
+      ]);
+      await Future<void>.delayed(Duration.zero);
+
+      final mon = vm.weekDays[0];
+      expect(vm.secondsFor('a', mon), const Duration(hours: 2).inSeconds);
+
+      // A note-only edit (no duration) must NOT collapse the day to one entry.
+      vm.editCell('a', mon, description: 'standup');
+      await Future<void>.delayed(const Duration(milliseconds: 40));
+
+      expect(repo.savedTasks.length, 1);
+      final log = repo.savedTasks.single.timeLog;
+      expect(
+        _secondsOn(log, mon),
+        const Duration(hours: 2).inSeconds,
+        reason: 'a note-only edit must preserve every same-day entry\'s hours',
+      );
+      expect(
+        log.where((e) => e.start!.toLocal().day == 8).length,
+        2,
+        reason: 'both Monday entries survive a note-only edit',
+      );
+      await ctrl.close();
+    },
+  );
+
   test('a second window produces a second save', () async {
     final ctrl = StreamController<List<Task>>();
     final repo = _FakeRepo(ctrl);

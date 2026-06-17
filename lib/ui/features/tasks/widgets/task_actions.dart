@@ -17,6 +17,7 @@ import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
 import 'package:admin/ui/core/widgets/add_to_invoice_dialog.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/billing_shared/add_unbilled/unbilled_line_items.dart';
 import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
 
 /// Action set surfaced for a task. Mirrors `ProductAction` — only the
@@ -250,12 +251,11 @@ class TaskActions {
           Notify.error(context, context.tr('sync_first'));
           return;
         }
-        final seconds = task.billableDuration().inSeconds;
-        final hours = seconds == 0
-            ? Decimal.zero
-            : (Decimal.fromInt(seconds) / Decimal.fromInt(3600)).toDecimal(
-                scaleOnInfinitePrecision: 4,
-              );
+        // Same 3-dp conversion as the "Add unbilled items" / "Invoice project"
+        // path (taskBillableHours) so a task invoiced via this menu and via the
+        // bulk path produce identical quantities; an empty task seeds a 1-hour
+        // editable default rather than a $0 ghost line, matching that path.
+        final hours = taskBillableHours(task);
         // Apply the task → project → client → company rate cascade so a task
         // left at rate 0 invoices at the inherited rate, not $0.
         final rate = await _resolveRate(services, companyId, task);
@@ -292,12 +292,11 @@ class TaskActions {
           formatter: formatter,
         );
         if (target == null || !context.mounted) return;
-        final seconds = task.billableDuration().inSeconds;
-        final hours = seconds == 0
-            ? Decimal.zero
-            : (Decimal.fromInt(seconds) / Decimal.fromInt(3600)).toDecimal(
-                scaleOnInfinitePrecision: 4,
-              );
+        // Same 3-dp conversion as the "Add unbilled items" / "Invoice project"
+        // path (taskBillableHours) so a task invoiced via this menu and via the
+        // bulk path produce identical quantities; an empty task seeds a 1-hour
+        // editable default rather than a $0 ghost line, matching that path.
+        final hours = taskBillableHours(task);
         final rate = await _resolveRate(services, companyId, task);
         if (!context.mounted) return;
         final lineItem = emptyLineItem().copyWith(

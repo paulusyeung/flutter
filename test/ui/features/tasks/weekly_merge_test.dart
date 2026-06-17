@@ -102,5 +102,51 @@ void main() {
         isNull,
       );
     });
+
+    test('note-only edit on a multi-entry day preserves ALL entries and total '
+        'hours (no silent collapse / time loss)', () {
+      final logs = [
+        _e(DateTime(2026, 6, 10, 9), DateTime(2026, 6, 10, 10)), // 1h
+        _e(DateTime(2026, 6, 10, 14), DateTime(2026, 6, 10, 15)), // 1h
+        _e(DateTime(2026, 6, 11, 9), DateTime(2026, 6, 11, 10)), // other day
+      ];
+      final out = applyCellEditToLogs(
+        logs,
+        day,
+        CellEdit(description: 'standup'),
+        _now,
+      )!;
+      final onDay = out.where((e) => e.start!.toLocal().day == 10).toList();
+      expect(onDay.length, 2, reason: 'both same-day entries survive');
+      final totalSeconds = onDay.fold<int>(
+        0,
+        (sum, e) => sum + e.durationUpTo(_now).inSeconds,
+      );
+      expect(
+        totalSeconds,
+        const Duration(hours: 2).inSeconds,
+        reason: 'a note-only edit must not drop logged hours',
+      );
+      // The note lands on the first same-day entry (the one the cell shows).
+      expect(onDay.first.description, 'standup');
+      expect(onDay[1].description, '', reason: 'other entry note untouched');
+      // Other-day entry untouched.
+      expect(out.where((e) => e.start!.toLocal().day == 11).length, 1);
+    });
+
+    test('billable-only edit on a multi-entry day keeps both entries', () {
+      final logs = [
+        _e(DateTime(2026, 6, 10, 9), DateTime(2026, 6, 10, 10)),
+        _e(DateTime(2026, 6, 10, 14), DateTime(2026, 6, 10, 15)),
+      ];
+      final out = applyCellEditToLogs(
+        logs,
+        day,
+        CellEdit(billable: false),
+        _now,
+      )!;
+      expect(out.length, 2);
+      expect(out.first.billable, isFalse);
+    });
   });
 }

@@ -42,8 +42,12 @@ class _IncreasePricesDialogState extends State<_IncreasePricesDialog> {
   }
 
   // A 0 / empty value is a no-op increase, and the input formatter blocks a
-  // leading `-`, so a positive number is the only meaningful input. (The
-  // server enforces any sane upper bound.)
+  // leading `-`, so a positive number is the only meaningful input. The server
+  // caps the percentage at 100 (BulkRecurringInvoiceRequest: `max:100`), so we
+  // enforce the same ceiling here — otherwise each selected invoice's mutation
+  // 422s and goes dead in the outbox with only a generic "could not save".
+  static const _maxPercent = 100;
+
   double? get _parsed => parseDouble(
     _controller.text.trim(),
     useCommaAsDecimalPlace: widget.useCommaAsDecimalPlace,
@@ -52,12 +56,12 @@ class _IncreasePricesDialogState extends State<_IncreasePricesDialog> {
 
   bool get _valid {
     final n = _parsed;
-    return n != null && n > 0;
+    return n != null && n > 0 && n <= _maxPercent;
   }
 
   void _submit() {
     final n = _parsed;
-    if (n == null || n <= 0) return;
+    if (n == null || n <= 0 || n > _maxPercent) return;
     // Send a canonical dot-decimal string regardless of locale — the API
     // parses it with `num.tryParse`.
     Navigator.of(context).pop(n.toString());

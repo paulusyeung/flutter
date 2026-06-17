@@ -25,6 +25,7 @@ void main() {
   );
 
   const germany = '276'; // PEPPOL-network country
+  const france = '250'; // PEPPOL-network country (e-invoicing mandate)
   const usa = '840'; // neither PEPPOL nor Spain
   const spain = kEInvoiceCountryIdSpain; // '724' — not a PEPPOL country
 
@@ -32,6 +33,14 @@ void main() {
     test('shown with Enterprise access in a PEPPOL country', () {
       expect(
         visible(countryId: germany, hasEnterpriseAccess: true),
+        contains(kEInvoiceTypePEPPOL),
+      );
+    });
+
+    test('shown for France with Enterprise access (regression — was omitted '
+        'from kPeppolCountries, blocking French PEPPOL onboarding)', () {
+      expect(
+        visible(countryId: france, hasEnterpriseAccess: true),
         contains(kEInvoiceTypePEPPOL),
       );
     });

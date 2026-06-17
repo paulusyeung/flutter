@@ -41,9 +41,21 @@ int? durationStringToSeconds(String raw) {
   return parseDurationInput(raw)?.inSeconds;
 }
 
-/// Collapse every entry in [logs] whose start's LOCAL date is [day] into a
-/// single entry merging [edit], leaving entries on other days untouched.
-/// Returns the new log, or null if [edit] carries an unparseable duration.
+/// Apply a weekly-cell [edit] (one task × one [day]) to [logs], leaving
+/// entries on other days untouched. Returns the new log, or null if [edit]
+/// carries an unparseable duration.
+///
+/// Two modes, by whether the duration was touched:
+///
+/// - **Duration edit** ([edit.duration] != null): the cell's total duration was
+///   set, so every same-day entry is collapsed into a single entry of that
+///   duration (intended — the cell is one editable duration; React parity).
+/// - **Note / billable-only edit** ([edit.duration] == null): the cell shows the
+///   FIRST same-day entry's note/billable (see
+///   `TaskWeeklyViewModel.cellDescription`/`cellBillable`), so the change is
+///   overlaid onto that entry ONLY and every other same-day entry is kept as-is.
+///   Collapsing here (as a duration edit does) would silently delete the other
+///   same-day entries' logged hours — billable-time data loss into invoicing.
 ///
 /// Local↔UTC discipline (the load-bearing part): day membership and the
 /// synthesized 09:00 start are computed in local wall-clock, then stored as
@@ -55,6 +67,46 @@ List<TimeEntry>? applyCellEditToLogs(
   CellEdit edit,
   DateTime now,
 ) {
+  // ── Note / billable-only edit: don't collapse; overlay onto the first
+  // same-day entry and preserve every other entry (and its hours). ──────────
+  if (edit.duration == null) {
+    var applied = false;
+    final result = <TimeEntry>[];
+    for (final e in logs) {
+      if (!applied && timeEntryLocalDate(e) == day) {
+        applied = true;
+        final description = edit.description ?? e.description;
+        final billable = edit.billable ?? e.billable;
+        // Clearing the note on a zero-duration entry deletes it (mirrors the
+        // duration path's delete rule); a running/timed entry is preserved
+        // verbatim (copyWith keeps start/stop, so a note edit never freezes a
+        // running timer or alters logged time).
+        if (e.durationUpTo(now).inSeconds <= 0 && description.isEmpty) {
+          continue;
+        }
+        result.add(e.copyWith(description: description, billable: billable));
+      } else {
+        result.add(e);
+      }
+    }
+    if (applied) return result;
+    // No existing entry on this day → create one (local 09:00, zero duration)
+    // carrying the note, unless it would be empty (then it's a no-op).
+    final description = edit.description ?? '';
+    if (description.isEmpty) return logs;
+    final startUtc = DateTime(day.year, day.month, day.day, 9).toUtc();
+    return [
+      ...logs,
+      TimeEntry(
+        start: startUtc,
+        stop: startUtc,
+        description: description,
+        billable: edit.billable ?? true,
+      ),
+    ];
+  }
+
+  // ── Duration edit: collapse every same-day entry into one. ────────────────
   TimeEntry? existing;
   final remaining = <TimeEntry>[];
   for (final e in logs) {
@@ -67,16 +119,9 @@ List<TimeEntry>? applyCellEditToLogs(
     }
   }
 
-  final int seconds;
-  if (edit.duration != null) {
-    final parsed = durationStringToSeconds(edit.duration!);
-    if (parsed == null) return null;
-    seconds = parsed;
-  } else if (existing != null) {
-    seconds = existing.durationUpTo(now).inSeconds;
-  } else {
-    seconds = 0;
-  }
+  final parsed = durationStringToSeconds(edit.duration!);
+  if (parsed == null) return null;
+  final seconds = parsed;
 
   final description = edit.description ?? existing?.description ?? '';
   final billable = edit.billable ?? existing?.billable ?? true;

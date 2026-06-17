@@ -62,24 +62,32 @@ class NavStatePersister {
   ///   deep-link/restored route off a now-disabled module so the shell can
   ///   show a one-time notice; persisting it would replay that stale notice
   ///   (and pollute "resume where you left off") on the next cold start.
-  /// - `view`: the full-screen pane choice is deliberately *never*
-  ///   remembered across a restart — a cold launch always lands in the
-  ///   sidebar preview (the resolver's per-screen default). Stripping it
-  ///   here covers routes `companySafeLocation` passes through verbatim
-  ///   (e.g. `/foo/new?view=full`).
+  /// - `view=full`: the master-detail full-screen pane choice is deliberately
+  ///   *never* remembered across a restart — a cold launch always lands in the
+  ///   sidebar preview. Stripping it covers routes `companySafeLocation`
+  ///   passes through verbatim (e.g. `/foo/new?view=full`).
+  ///
+  /// NOTE: only `view=full` is transient. The Tasks screen reuses the same
+  /// `view=` key for its LAYOUT mode (`calendar`/`daily`/`weekly`/`kanban`),
+  /// which lives only in the URL and MUST persist — otherwise leaving Tasks on
+  /// the calendar and restarting silently dumps the user back on the plain
+  /// list. So a non-`full` `view` value is preserved.
   ///
   /// Every other query param (e.g. `client_id`) is preserved.
   static String _stripTransient(String uri) {
-    if (!uri.contains('module_off') && !uri.contains('view=')) return uri;
+    final hasModuleOff = uri.contains('module_off');
+    final hasFullView = uri.contains('view=full');
+    if (!hasModuleOff && !hasFullView) return uri;
     final parsed = Uri.tryParse(uri);
-    if (parsed == null ||
-        !(parsed.queryParameters.containsKey('module_off') ||
-            parsed.queryParameters.containsKey('view'))) {
-      return uri;
+    if (parsed == null) return uri;
+    final q = Map<String, String>.from(parsed.queryParameters);
+    var changed = false;
+    if (q.remove('module_off') != null) changed = true;
+    if (q['view'] == 'full') {
+      q.remove('view'); // only the pane flag, never a task layout mode
+      changed = true;
     }
-    final q = Map<String, String>.from(parsed.queryParameters)
-      ..remove('module_off')
-      ..remove('view');
+    if (!changed) return uri;
     // Uri.replace(queryParameters: null) keeps the original query, so when
     // nothing else remains fall back to the bare path.
     return q.isEmpty
@@ -99,6 +107,15 @@ class NavStatePersister {
     // name). The router decides whether to land here; we never want a
     // cold launch to deep-link directly to the wizard.
     if (uri == '/setup') return;
+    // /calendar_connection/complete is a one-shot OAuth landing gate carrying
+    // a single-use `handoff` token. Persisting it would (a) write that secret
+    // to disk (unencrypted on web) and (b) replay the already-consumed handoff
+    // on the next cold start — a spurious "connect failed" toast. Treat it
+    // like /lock and /setup.
+    if (uri == '/calendar_connection/complete' ||
+        uri.startsWith('/calendar_connection/complete?')) {
+      return;
+    }
     // Never resume into a transient create form (`/x/new`). Persisting it
     // would pre-mount the create screen on next launch; go_router then reuses
     // that mounted screen (without re-running its bootstrap) on the next

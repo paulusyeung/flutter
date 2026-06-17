@@ -42,7 +42,13 @@ class TaskDailyEntryRow extends StatelessWidget {
     final tokens = context.inTheme;
     final services = context.read<Services>();
     final military = formatter?.settings.enableMilitaryTime ?? true;
+    // Per-entry running state drives the duration label / time-range text only.
     final running = entry.isRunning;
+    // The toggle button reflects the TASK's running state, because
+    // TaskDailyActions.toggleTimer keys off task.isRunning (the last entry).
+    // Driving the button off the per-entry flag inverted it on a stopped row
+    // of a running task: a Play/"Start" button that actually stops the timer.
+    final taskRunning = task.isRunning;
     final secondaryStyle = TextStyle(fontSize: 12, color: tokens.ink3);
 
     final timeRange = running
@@ -119,9 +125,9 @@ class TaskDailyEntryRow extends StatelessWidget {
                   ),
             if (canToggle)
               IconButton(
-                tooltip: context.tr(running ? 'stop' : 'start'),
+                tooltip: context.tr(taskRunning ? 'stop' : 'start'),
                 icon: Icon(
-                  running
+                  taskRunning
                       ? Icons.stop_circle_outlined
                       : Icons.play_arrow_outlined,
                 ),

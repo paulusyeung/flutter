@@ -87,7 +87,15 @@ class CalendarConnectionViewModel extends ChangeNotifier {
     try {
       await repo.status(); // pushes to repo.connectionState → _onRepoConnection
     } catch (_) {
-      // Surface a disconnected state on failure so the menu stays actionable.
+      // Surface a disconnected state on failure so the menu stays actionable,
+      // but only when nothing is known yet (`??=`): a genuine connected value
+      // just pushed by `complete()` (with the user's email) must NOT be stomped
+      // by a transient status() failure on a fresh calendar-screen mount — that
+      // would flash the connection to "disconnected" until the next reload.
+      // The cross-user-leak case (a PREVIOUS user's stale value) is handled at
+      // the source: AuthRepository.logout() now nulls connectionState via the
+      // onSessionReset hook, so a new session starts here at null → this `??=`
+      // correctly writes the disconnected sentinel.
       repo.connectionState.value ??= const CalendarConnection(connected: false);
     } finally {
       _statusLoaded = true;

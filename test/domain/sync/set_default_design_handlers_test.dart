@@ -107,6 +107,30 @@ void main() {
     expect(companies.groupSettingsId, 'g1');
     expect(companies.clientId, isNull);
   });
+
+  test('a set/default failure (e.g. server 400 on an unknown design) is '
+      'swallowed so the outbox row is NOT failed — matching the company '
+      'scope path', () async {
+    final (:dispatcher, :companies) = build();
+    companies.errorToThrow = Exception('Design does not exist.');
+
+    // Must complete normally: the retro-apply is best-effort, so the dispatch
+    // succeeds and the (separate) settings save is unaffected. Before the fix,
+    // the bare await rethrew → row marked dead → misleading "sync failed".
+    await expectLater(
+      dispatcher.dispatch(
+        row: row(const {
+          'design_id': 'd_unknown',
+          'entity': 'credit',
+          'settings_level': 'client',
+          'client_id': 'c1',
+        }),
+        kind: MutationKind.setDefaultDesign,
+      ),
+      completes,
+    );
+    expect(companies.calls, 1, reason: 'the call was attempted');
+  });
 }
 
 class _RecordingCompaniesApi implements CompaniesApi {
@@ -117,6 +141,7 @@ class _RecordingCompaniesApi implements CompaniesApi {
   String? clientId;
   String? groupSettingsId;
   String? idempotencyKey;
+  Object? errorToThrow;
 
   @override
   Future<void> setDefaultDesign({
@@ -134,6 +159,7 @@ class _RecordingCompaniesApi implements CompaniesApi {
     this.idempotencyKey = idempotencyKey;
     this.clientId = clientId;
     this.groupSettingsId = groupSettingsId;
+    if (errorToThrow != null) throw errorToThrow!;
   }
 
   @override

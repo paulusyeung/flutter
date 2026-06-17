@@ -898,6 +898,52 @@ void main() {
       expect(repo.session.value, isNull);
       expect(await db.companiesDao.all(), isEmpty);
     });
+
+    test(
+      'onSessionReset fires even on the preserveLocalData re-lock path '
+      '(per-session state must reset for the next user without an app restart)',
+      () async {
+        authService.queueLogin(_envelope());
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a',
+          password: 'b',
+        );
+        var resets = 0;
+        repo.onSessionReset = () => resets++;
+
+        // Idle-timeout re-lock keeps the DB/tokens but must still clear
+        // in-memory per-session repo state (e.g. the calendar connection) —
+        // the hook is invoked BEFORE the preserveLocalData early return. A
+        // refactor that moved it after would silently re-introduce the
+        // cross-user leak on re-lock; this pins it.
+        await repo.logout(preserveLocalData: true);
+        expect(resets, 1);
+      },
+    );
+
+    test('logout invokes onSessionReset on the full path and completes even '
+        'if it throws', () async {
+      authService.queueLogin(_envelope());
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a',
+        password: 'b',
+      );
+      var called = false;
+      repo.onSessionReset = () {
+        called = true;
+        throw StateError('reset blew up');
+      };
+
+      await repo.logout(); // must not rethrow
+
+      expect(called, isTrue, reason: 'hook is invoked on a full logout');
+      expect(repo.session.value, isNull, reason: 'logout still completes');
+      expect(await db.companiesDao.all(), isEmpty);
+    });
   });
 
   group('logout vs in-flight refresh', () {

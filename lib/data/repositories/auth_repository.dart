@@ -62,6 +62,15 @@ class AuthRepository {
   /// must complete even if the hook throws.
   Future<void> Function()? onBeforeLogout;
 
+  /// Wired by DI to reset in-memory, app-lifetime, per-SESSION repo state that
+  /// survives logout (the `Services` bag — hence its repos — is built once at
+  /// boot). Invoked synchronously in [logout]'s in-memory clear block so a
+  /// second user on the same install never inherits the previous user's state
+  /// (e.g. the calendar connection's connected email — a cross-user leak).
+  /// Runs on both the full and `preserveLocalData` paths. Failures are
+  /// swallowed; logout must complete regardless.
+  void Function()? onSessionReset;
+
   /// Wired by DI to `SyncRepository.drainOnce`. Fires whenever the active
   /// company becomes non-null (login, restore, /refresh, addCompany) or
   /// switches ([switchCompany]) so any outbox rows pending for that company
@@ -578,6 +587,13 @@ class AuthRepository {
     // re-fires onActiveCompanyChanged and re-runs the sidebar prefetch.
     _lastActivatedCompanyId = null;
     _passwordCache.clear();
+    // Reset app-lifetime per-session repo state (e.g. the calendar connection)
+    // so the next user on this install starts unread. Synchronous + defensive.
+    try {
+      onSessionReset?.call();
+    } catch (e, st) {
+      _log.warning('onSessionReset failed', e, st);
+    }
     if (preserveLocalData) {
       // Idle-timeout re-lock with unsynced work pending: the in-memory session
       // is already cleared above (so the router redirects to /login), but we

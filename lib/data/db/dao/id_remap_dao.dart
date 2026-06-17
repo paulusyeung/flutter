@@ -38,6 +38,22 @@ class IdRemapDao extends DatabaseAccessor<AppDatabase> with _$IdRemapDaoMixin {
     return row?.realId;
   }
 
+  /// Resolve a `tmp_` id to its real id WITHOUT knowing the entity type.
+  /// `tmp_` ids are uuid-v4 (globally unique across entity types), so a bare
+  /// tempId lookup is unambiguous. Used by the sync drain to heal a payload
+  /// `tmp_` token whose owning entity already synced — the token may belong to
+  /// a different entity type than the row carrying it (e.g. a `tmp_` tag id
+  /// embedded in a task's `tags` array, whose tag create already round-tripped
+  /// and was deleted before the task row was even enqueued).
+  Future<String?> resolveAnyType(String tempId) async {
+    final row =
+        await (select(idRemap)
+              ..where((r) => r.tempId.equals(tempId))
+              ..limit(1))
+            .getSingleOrNull();
+    return row?.realId;
+  }
+
   /// Emits the real id whenever a remap row appears for
   /// `(entityType, tempId)`. Used by `ClientRepository.watch` so an open
   /// detail screen survives an in-flight tmp→real swap without going blank.

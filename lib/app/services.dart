@@ -1102,6 +1102,10 @@ class Services implements SidebarBadgeContext {
     // so it can be built without AuthRepository.
     auth.onBeforeLogout = sync.cancel;
     auth.onActiveCompanyChanged = kickDrain;
+    // Clear app-lifetime per-session repo state on logout so a second user on
+    // the same install never inherits it (e.g. the previous user's connected
+    // calendar email — cross-user leak).
+    auth.onSessionReset = calendarConnectionRepo.resetSessionState;
     // Fan-out the bundled per-entity arrays the /refresh envelope carries
     // alongside the company. Each [wireEntities] block contributes its own
     // applier to [entities.bundleAppliers]; this loop runs them in order.

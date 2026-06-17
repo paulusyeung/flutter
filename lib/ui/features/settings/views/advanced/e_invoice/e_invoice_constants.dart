@@ -162,7 +162,7 @@ Future<void> launchEInvoiceHelpUrl() async {
 
 /// Country ids (`company.settings.country_id`) supported by the PEPPOL
 /// network. Mirrors React `peppol-countries.ts` `PEPPOL_COUNTRIES` exactly
-/// (14 ids). Used as the allowlist for the onboarding card's country picker
+/// (15 ids). Used as the allowlist for the onboarding card's country picker
 /// and the Tax Identifiers add-dialog. Singapore (`702`) triggers the
 /// CorpPass-specific form (UEN + signer fields) and the gov-auth redirect —
 /// see `peppol_onboarding_card.dart`.
@@ -171,6 +171,7 @@ const List<String> kPeppolCountries = <String>[
   '40', // Austria
   '56', // Belgium
   '208', // Denmark
+  '250', // France
   '276', // Germany
   '352', // Iceland
   '372', // Ireland

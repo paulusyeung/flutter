@@ -15,6 +15,7 @@ the Flutter app) so they are explicitly **out of scope** here.
 - Web platform CORS — `Idempotency-Key` not allow-listed (**R**, blocks web writes).
 - Server-side `Idempotency-Key` dedupe — not implemented (**R**, retry-safety / duplicate creates).
 - Company write — partial login envelope + full-replace PUT force a client fetch-gate (**O**).
+- E-Invoice PEPPOL — Singapore "government" classification rejected by `StoreEntityRequest` (**O**, blocks SG government onboarding).
 
 **Provenance**
 - **2026-05-15** — empirical curl probe vs `demo.invoiceninja.com`.
@@ -797,3 +798,32 @@ the deep-link bridge (`lib/app/calendar_deep_links.dart`) — is already in plac
 **Acceptance** — a `one_time_token` minted with `platform=flutter_native`
 produces a callback `302` to `invoiceninja://calendar_connection/complete?...handoff=...`;
 a request with no platform still redirects to `react_url`.
+
+## E-Invoice PEPPOL — Singapore "government" classification rejected by `StoreEntityRequest` — **O (server gap, blocks SG government onboarding)**
+
+`POST /api/v1/einvoice/peppol/setup` is validated by
+`app/Http/Requests/EInvoice/Peppol/StoreEntityRequest.php`, whose rule is
+`'classification' => ['required', 'in:business,individual']`. For a Singapore
+company the onboarding UI offers **business** or **government** (CorpPass);
+React (`Onboarding.tsx`) and the Flutter client (`peppol_onboarding_card.dart`,
+`buildPeppolSetupPayload`) both send `classification: 'government'` for that
+choice — which is **not** in the `in:` list, so the setup `422`s on the
+`classification` field. The request already has SG-aware rules in the same
+method (`id_number` / `c5_signer_*` required-if-SG, `vat_number` not required
+when SG), so SG support is clearly intended; the `in:` list was simply never
+widened.
+
+**Required change** — widen the rule to accept `government` for SG, e.g.
+`'classification' => ['required', $this->isSingapore() ? 'in:business,government' : 'in:business,individual']`
+(or just add `government` to the list). This is a **shared** client/server gap
+(React sends the same value), not a Flutter rebuild regression — do **not**
+change either client to stop sending `government`.
+
+**Client side** — the Flutter SG `peppolSetupDirect` path currently surfaces a
+422 only as a generic `could_not_save` toast (no inline `classification`
+field error); once the server accepts `government` this is moot for the common
+case. Tracked as low-severity client polish.
+
+**Acceptance** — a Singapore company completing PEPPOL onboarding with the
+**Government** entity type returns `200` (legal entity created) instead of a
+`422` on `classification`.

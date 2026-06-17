@@ -47,6 +47,16 @@ void main() {
     await tester.enterText(find.byType(TextField), '5');
     await tester.pump();
     expect(doneEnabled(tester), isTrue, reason: 'positive percentage');
+
+    // The server caps percentage_increase at 100 (BulkRecurringInvoiceRequest);
+    // a client-side ceiling prevents N dead 422 outbox rows.
+    await tester.enterText(find.byType(TextField), '150');
+    await tester.pump();
+    expect(doneEnabled(tester), isFalse, reason: '>100 exceeds server max');
+
+    await tester.enterText(find.byType(TextField), '100');
+    await tester.pump();
+    expect(doneEnabled(tester), isTrue, reason: '100 is the inclusive max');
   });
 
   testWidgets('submitting returns the entered percentage', (tester) async {

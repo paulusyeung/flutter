@@ -33,6 +33,16 @@ class CalendarConnectionRepository {
   final ValueNotifier<CalendarConnection?> connectionState =
       ValueNotifier<CalendarConnection?>(null);
 
+  /// Clear the in-memory connection so a new session starts unread. Called from
+  /// [AuthRepository.logout] (wired in `Services`): the repo is an app-lifetime
+  /// singleton, so without this a second user logging in on the same install
+  /// would briefly see the previous user's connected calendar email — and a
+  /// failed `status()` read would keep it on screen indefinitely (cross-user
+  /// leak). The connection is per-user server-side; the next [status] repopulates.
+  void resetSessionState() {
+    connectionState.value = null;
+  }
+
   /// Providers the server supports for calendar connect.
   static const supportedProviders = <String>['google', 'microsoft'];
 
