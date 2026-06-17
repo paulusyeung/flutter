@@ -142,8 +142,12 @@ class _HealthCheckBody extends StatelessWidget {
         webPhp.startsWith('v8') &&
         (cliPhp.startsWith('v8') || !cliPhp.startsWith('v'));
 
-    // Account-level flags v2 doesn't track today (see plan §"Out of scope").
-    const isDocker = false;
+    // `is_docker` comes straight from the health_check response (the server
+    // reports it). Docker images ship pre-configured, so the old app hid the
+    // file-permission / open_basedir / config-cache / memory-limit warnings
+    // for them — mirror that here. `disableAutoUpdate` is an account-level flag
+    // v2 doesn't track; left a no-op (it only further-gated the file-perms row).
+    final isDocker = response.isDocker;
     const disableAutoUpdate = false;
 
     final tiles = <Widget>[
@@ -200,6 +204,12 @@ class _HealthCheckBody extends StatelessWidget {
           title: context.tr('invalid_file_permissions'),
           isValid: false,
           subtitle: response.filePermissions,
+          url: '$_kDocsUrl/self-host-installation/#file-permissions',
+        ),
+      if (!isDocker && !response.envWritable)
+        _HealthListTile(
+          title: context.tr('env_not_writable'),
+          isValid: false,
           url: '$_kDocsUrl/self-host-installation/#file-permissions',
         ),
       if (!response.execEnabled)

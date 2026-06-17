@@ -25,12 +25,13 @@ abstract class HealthCheckResponse with _$HealthCheckResponse {
     @JsonKey(name: 'exchange_rate_api_not_configured')
     @Default(false)
     bool exchangeRateApiNotConfigured,
-    @JsonKey(name: 'pending_migration') @Default(false) bool pendingMigration,
+    @JsonKey(name: 'pending_migrations') @Default(false) bool pendingMigration,
     @JsonKey(name: 'cache_enabled') @Default(false) bool cacheEnabled,
     @JsonKey(name: 'env_writable') @Default(false) bool envWritable,
     @JsonKey(name: 'open_basedir') @Default(false) bool openBasedir,
     @JsonKey(name: 'exec') @Default(false) bool execEnabled,
     @JsonKey(name: 'phantom_enabled') @Default(false) bool phantomEnabled,
+    @JsonKey(name: 'is_docker') @Default(false) bool isDocker,
     @JsonKey(name: 'jobs_pending') @Default(0) int pendingJobs,
   }) = _HealthCheckResponse;
 

@@ -27,12 +27,13 @@ _HealthCheckResponse _$HealthCheckResponseFromJson(Map<String, dynamic> json) =>
       trailingSlash: json['trailing_slash'] as bool? ?? false,
       exchangeRateApiNotConfigured:
           json['exchange_rate_api_not_configured'] as bool? ?? false,
-      pendingMigration: json['pending_migration'] as bool? ?? false,
+      pendingMigration: json['pending_migrations'] as bool? ?? false,
       cacheEnabled: json['cache_enabled'] as bool? ?? false,
       envWritable: json['env_writable'] as bool? ?? false,
       openBasedir: json['open_basedir'] as bool? ?? false,
       execEnabled: json['exec'] as bool? ?? false,
       phantomEnabled: json['phantom_enabled'] as bool? ?? false,
+      isDocker: json['is_docker'] as bool? ?? false,
       pendingJobs: (json['jobs_pending'] as num?)?.toInt() ?? 0,
     );
 
@@ -49,12 +50,13 @@ Map<String, dynamic> _$HealthCheckResponseToJson(
   'file_permissions': instance.filePermissions,
   'trailing_slash': instance.trailingSlash,
   'exchange_rate_api_not_configured': instance.exchangeRateApiNotConfigured,
-  'pending_migration': instance.pendingMigration,
+  'pending_migrations': instance.pendingMigration,
   'cache_enabled': instance.cacheEnabled,
   'env_writable': instance.envWritable,
   'open_basedir': instance.openBasedir,
   'exec': instance.execEnabled,
   'phantom_enabled': instance.phantomEnabled,
+  'is_docker': instance.isDocker,
   'jobs_pending': instance.pendingJobs,
 };
 
