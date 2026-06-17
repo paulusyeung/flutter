@@ -13,6 +13,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
+import 'package:admin/ui/core/sync/require_synced.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/notify_async.dart';
 import 'package:admin/ui/features/clients/widgets/client_portal.dart';
@@ -302,10 +303,7 @@ class ClientActions {
       case ClientAction.viewStatement:
         // A `tmp_` client lives only in the local outbox — the server doesn't
         // know it yet, so a statement POST would 404. Tell the user to sync.
-        if (client.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, client.id)) return;
         // `go` (not `push`) so the inner Navigator resolves the full route
         // chain — `/clients/:id` + `statement` — and lands both pages on
         // its stack. `push` from the bare list URL drops the missing `:id`
@@ -315,10 +313,7 @@ class ClientActions {
         // the screen by `ClientStatementViewModel`.
         context.go('/clients/${client.id}/statement');
       case ClientAction.clientPortal:
-        if (client.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, client.id)) return;
         // Open the primary contact's portal (falling back to the first),
         // with silent auto-login + client_hash — matches admin-portal /
         // React. The item is disabled in itemsFor when no link exists, so
@@ -343,6 +338,8 @@ class ClientActions {
           wireName: 'client',
           op: () =>
               services.clients.archive(companyId: companyId, id: client.id),
+          undoOp: () =>
+              services.clients.restore(companyId: companyId, id: client.id),
         );
       case ClientAction.restore:
         await StandardEntityActions.restore(
@@ -352,10 +349,7 @@ class ClientActions {
               services.clients.restore(companyId: companyId, id: client.id),
         );
       case ClientAction.settings:
-        if (client.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, client.id)) return;
         services.settingsLevel.setLevel(
           SettingsLevel.client,
           targetId: client.id,
@@ -367,10 +361,7 @@ class ClientActions {
         // agreement.
         context.go('/settings/localization');
       case ClientAction.assignGroup:
-        if (client.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, client.id)) return;
         // Best-effort cache warm — a user opening this action from a fresh
         // login may never have visited Group Settings, so the local Drift
         // table can be empty even when the server has groups. The dialog's
@@ -398,10 +389,7 @@ class ClientActions {
           }
         }
       case ClientAction.addComment:
-        if (client.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, client.id)) return;
         final text = await showAddCommentDialog(context);
         if (text == null || text.isEmpty || !context.mounted) return;
         await runMutationWithNotify(
@@ -418,21 +406,17 @@ class ClientActions {
         // yet. Block instead of enqueuing a delete that the dispatcher
         // would 404 once the create round-trips. Matches the gate on
         // viewStatement / settings / addComment.
-        if (client.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, client.id)) return;
         await StandardEntityActions.delete(
           context: context,
           wireName: 'client',
           op: () =>
               services.clients.delete(companyId: companyId, id: client.id),
+          undoOp: () =>
+              services.clients.restore(companyId: companyId, id: client.id),
         );
       case ClientAction.purge:
-        if (client.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, client.id)) return;
         final ok = await showPurgeClientDialog(
           context,
           displayName: client.displayName,
@@ -472,50 +456,35 @@ class ClientActions {
         );
         goEntityCreateFullWidth(context, '/clients', extra: draft);
       case ClientAction.newInvoice:
-        if (client.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, client.id)) return;
         goEntityCreateFullWidth(
           context,
           '/invoices',
           extra: emptyInvoice().copyWith(clientId: client.id),
         );
       case ClientAction.newRecurringInvoice:
-        if (client.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, client.id)) return;
         goEntityCreateFullWidth(
           context,
           '/recurring_invoices',
           extra: emptyRecurringInvoice().copyWith(clientId: client.id),
         );
       case ClientAction.newQuote:
-        if (client.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, client.id)) return;
         goEntityCreateFullWidth(
           context,
           '/quotes',
           extra: emptyQuote().copyWith(clientId: client.id),
         );
       case ClientAction.newCredit:
-        if (client.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, client.id)) return;
         goEntityCreateFullWidth(
           context,
           '/credits',
           extra: emptyCredit().copyWith(clientId: client.id),
         );
       case ClientAction.newPayment:
-        if (client.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, client.id)) return;
         // `/payments/new` defaults to the slide-over sidebar (see
         // `_kEditDefaultsToSlide` in `master_detail_layout.dart`); do not
         // force `?view=full` here. Stage the seed on `Services` (survives the
@@ -526,30 +495,21 @@ class ClientActions {
         );
         context.go('/payments/new');
       case ClientAction.newTask:
-        if (client.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, client.id)) return;
         goEntityCreateFullWidth(
           context,
           '/tasks',
           extra: emptyTask().copyWith(clientId: client.id),
         );
       case ClientAction.newExpense:
-        if (client.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, client.id)) return;
         goEntityCreateFullWidth(
           context,
           '/expenses',
           extra: emptyExpense().copyWith(clientId: client.id),
         );
       case ClientAction.merge:
-        if (client.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, client.id)) return;
         final survivor = await showMergeClientDialog(
           context,
           services: services,

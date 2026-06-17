@@ -20,6 +20,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
+import 'package:admin/ui/core/sync/require_synced.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/billing_shared/actions/add_comment_prompt.dart';
 import 'package:admin/ui/features/billing_shared/billing_cross_clone.dart';
@@ -325,13 +326,7 @@ class PurchaseOrderActions {
     PurchaseOrder po,
     PurchaseOrderAction action,
   ) async {
-    bool tmpGate() {
-      if (po.id.startsWith('tmp_')) {
-        Notify.error(context, context.tr('sync_first'));
-        return true;
-      }
-      return false;
-    }
+    bool tmpGate() => !requireSynced(context, po.id);
 
     switch (action) {
       case PurchaseOrderAction.edit:
@@ -520,6 +515,8 @@ class PurchaseOrderActions {
           wireName: 'purchase_order',
           op: () =>
               services.purchaseOrders.archive(companyId: companyId, id: po.id),
+          undoOp: () =>
+              services.purchaseOrders.restore(companyId: companyId, id: po.id),
         );
 
       case PurchaseOrderAction.restore:
@@ -538,6 +535,8 @@ class PurchaseOrderActions {
           wireName: 'purchase_order',
           op: () =>
               services.purchaseOrders.delete(companyId: companyId, id: po.id),
+          undoOp: () =>
+              services.purchaseOrders.restore(companyId: companyId, id: po.id),
         );
 
       case PurchaseOrderAction.runTemplate:

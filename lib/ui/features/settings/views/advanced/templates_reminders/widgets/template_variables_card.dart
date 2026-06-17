@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 
 /// Copyable variable chips displayed next to the body editor. Source lists
@@ -70,9 +71,7 @@ class TemplateVariablesCard extends StatelessWidget {
   void _copy(BuildContext context, String token) {
     Clipboard.setData(ClipboardData(text: token));
     final msg = context.tr('copied_to_clipboard').replaceFirst(':value', token);
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      SnackBar(content: Text(msg), duration: const Duration(seconds: 2)),
-    );
+    Notify.info(context, msg);
   }
 }
 

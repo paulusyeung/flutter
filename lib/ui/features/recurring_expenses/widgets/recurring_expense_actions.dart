@@ -10,6 +10,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
+import 'package:admin/ui/core/sync/require_synced.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 
 /// Action set surfaced for a recurring expense.
@@ -139,10 +140,7 @@ class RecurringExpenseActions {
       case RecurringExpenseAction.edit:
         goEntityEdit(context, '/recurring_expenses', recurringExpense.id);
       case RecurringExpenseAction.start:
-        if (recurringExpense.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, recurringExpense.id)) return;
         await services.recurringExpenses.start(
           companyId: companyId,
           id: recurringExpense.id,
@@ -151,10 +149,7 @@ class RecurringExpenseActions {
           Notify.success(context, context.tr('started_recurring_expense'));
         }
       case RecurringExpenseAction.stop:
-        if (recurringExpense.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, recurringExpense.id)) return;
         await services.recurringExpenses.stop(
           companyId: companyId,
           id: recurringExpense.id,
@@ -200,6 +195,10 @@ class RecurringExpenseActions {
             companyId: companyId,
             id: recurringExpense.id,
           ),
+          undoOp: () => services.recurringExpenses.restore(
+            companyId: companyId,
+            id: recurringExpense.id,
+          ),
         );
       case RecurringExpenseAction.restore:
         await StandardEntityActions.restore(
@@ -211,14 +210,15 @@ class RecurringExpenseActions {
           ),
         );
       case RecurringExpenseAction.delete:
-        if (recurringExpense.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, recurringExpense.id)) return;
         await StandardEntityActions.delete(
           context: context,
           wireName: 'recurring_expense',
           op: () => services.recurringExpenses.delete(
+            companyId: companyId,
+            id: recurringExpense.id,
+          ),
+          undoOp: () => services.recurringExpenses.restore(
             companyId: companyId,
             id: recurringExpense.id,
           ),

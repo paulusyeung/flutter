@@ -1,73 +1,13 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:admin/app/design_tokens.dart';
-import 'package:admin/app/theme.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 
-Future<void> _pump(
-  WidgetTester tester,
-  void Function(BuildContext) onPressed, {
-  Brightness brightness = Brightness.light,
-}) async {
-  await tester.pumpWidget(
-    MaterialApp(
-      theme: buildInTheme(
-        brightness == Brightness.dark ? InTheme.dark : InTheme.light,
-      ),
-      home: Scaffold(
-        body: Builder(
-          builder: (context) => Center(
-            child: ElevatedButton(
-              onPressed: () => onPressed(context),
-              child: const Text('go'),
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
+// The toast *rendering* behavior (stacking, close button, hover-pause, swipe,
+// layering) is covered by `toast_host_test.dart` driving the controller +
+// host directly; the `Notify.* → ToastController` routing is exercised
+// end-to-end by `settings_actions_test.dart` (forceResync → toast). This file
+// keeps the pure `formatNotifyError` unit tests.
 void main() {
-  group('Notify', () {
-    testWidgets('action button fires its callback', (tester) async {
-      var pressed = 0;
-      await _pump(
-        tester,
-        (c) => Notify.error(
-          c,
-          'Failed',
-          action: NotifyAction('Retry', () => pressed++),
-        ),
-      );
-      await tester.tap(find.text('go'));
-      // SnackBar slides in over ~250ms — pump past the animation so the
-      // action button is at its final position before we tap it.
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('RETRY'));
-      await tester.pumpAndSettle();
-      expect(pressed, 1);
-    });
-
-    testWidgets(
-      'showing a second toast replaces the first instead of queueing',
-      (tester) async {
-        await _pump(tester, (c) {
-          Notify.info(c, 'First');
-          Notify.info(c, 'Second');
-        });
-        await tester.tap(find.text('go'));
-        await tester.pumpAndSettle();
-        // The hideCurrentSnackBar call before the second show leaves only
-        // the second toast visible — the first is dropped, not queued.
-        expect(find.text('First'), findsNothing);
-        expect(find.text('Second'), findsOneWidget);
-      },
-    );
-  });
-
   group('formatNotifyError', () {
     test('strips Exception prefix', () {
       expect(formatNotifyError(Exception('boom')), 'boom');

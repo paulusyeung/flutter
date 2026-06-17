@@ -1,23 +1,32 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import 'package:admin/app/design_tokens.dart';
-import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/toast_controller.dart';
 
-/// App-wide toast / snackbar helper.
+// `NotifyAction` lives on the controller (so `ToastData` can hold one without
+// an import cycle) but is re-exported here: every call site `import`s this
+// file and constructs `NotifyAction`, so the surface is unchanged.
+// `ToastController` is re-exported too so callers of [Notify.capture] can name
+// the captured handle without a second import.
+export 'package:admin/ui/core/widgets/toast_controller.dart'
+    show NotifyAction, ToastController;
+
+/// App-wide toast / notification helper.
 ///
 /// Use [Notify.success], [Notify.error], [Notify.info], [Notify.warning] in
-/// place of `ScaffoldMessenger.of(context).showSnackBar(...)`. Each variant
-/// renders a card on `tokens.surface` with a colored left stripe and a
-/// matching leading icon, picked from the v2 status tokens so the toast
-/// reads as part of the same family as `StatusPill`.
+/// place of touching `ScaffoldMessenger` directly. Each variant renders a card
+/// on `tokens.surface` with a colored left stripe and matching leading icon,
+/// from the v2 status tokens so the toast reads as part of the same family as
+/// `StatusPill`.
 ///
-/// All variants float, round to [InRadii.r2], and dismiss any currently
-/// visible snackbar before showing — chatty flows (rapid save → save) feel
-/// responsive instead of queueing several seconds of stale messages.
-///
-/// Pass [messenger] when the [BuildContext] may be unmounted by the time the
-/// toast needs to fire (e.g. after popping the calling sheet). Capture it
-/// before the await: `final m = ScaffoldMessenger.maybeOf(context);`.
+/// Rendering is handled by the global [ToastHost] (mounted in `main.dart`),
+/// which reads the [ToastController] off `Services`. On wide windows toasts
+/// stack in the top-right corner (closeable, hover-to-pause); on narrow
+/// windows a single toast floats at the bottom (swipe to dismiss).
 class Notify {
   Notify._();
 
@@ -30,31 +39,38 @@ class Notify {
     ScaffoldMessengerState? messenger,
   }) => _show(
     context,
-    variant: _Variant.success,
+    variant: NotifyVariant.success,
     message: message,
     detail: detail,
     action: action,
-    messenger: messenger,
   );
 
   /// Red error notification. Pass either [detail] or [error]; if both are
   /// passed [detail] wins. [error] is run through a minimal formatter that
   /// strips common Dart exception prefixes so users don't see
   /// `Exception: ...` noise.
+  ///
+  /// Pass [retryOp] for a *transient* failure (network / 5xx) to offer a
+  /// "Retry" button that re-runs the failed operation. Never pass it for
+  /// validation / conflict / auth errors — see `isTransientError`.
   static void error(
     BuildContext context,
     String message, {
     String? detail,
     Object? error,
     NotifyAction? action,
+    Future<void> Function()? retryOp,
     ScaffoldMessengerState? messenger,
   }) => _show(
     context,
-    variant: _Variant.error,
+    variant: NotifyVariant.error,
     message: message,
     detail: detail ?? (error == null ? null : _formatError(error)),
-    action: action,
-    messenger: messenger,
+    action:
+        action ??
+        (retryOp == null
+            ? null
+            : NotifyAction(context.tr('retry'), () => unawaited(retryOp()))),
   );
 
   /// Amber warning — validation failures, soft limits.
@@ -66,11 +82,10 @@ class Notify {
     ScaffoldMessengerState? messenger,
   }) => _show(
     context,
-    variant: _Variant.warning,
+    variant: NotifyVariant.warning,
     message: message,
     detail: detail,
     action: action,
-    messenger: messenger,
   );
 
   /// Blue informational — "Copied", "Coming soon", neutral notices.
@@ -82,202 +97,61 @@ class Notify {
     ScaffoldMessengerState? messenger,
   }) => _show(
     context,
-    variant: _Variant.info,
+    variant: NotifyVariant.info,
     message: message,
     detail: detail,
     action: action,
-    messenger: messenger,
   );
 
+  /// Dismiss all currently-visible toasts — e.g. clear a "Processing…" notice
+  /// right before a blocking OS sheet (print / share) takes over.
+  static void clear(BuildContext context) => _toastsOf(context)?.clearAll();
+
+  /// Capture the toast queue *before* an `await` so a toast can be shown after
+  /// the gap without a stale `BuildContext` — the global-host replacement for
+  /// the old `ScaffoldMessenger.maybeOf(context)` capture pattern:
+  /// ```dart
+  /// final toasts = Notify.capture(context);   // before the await
+  /// await doWork();
+  /// toasts?.success(context.tr('done'));       // no context-after-await
+  /// ```
+  static ToastController? capture(BuildContext context) => _toastsOf(context);
+
+  // The `messenger:` parameter on the public methods is accepted for backward
+  // compatibility but no longer used: the toast host is global and outlives
+  // any context, so the old "capture a ScaffoldMessenger before the await so
+  // the toast survives an unmounted context" dance is unnecessary.
   static void _show(
     BuildContext context, {
-    required _Variant variant,
+    required NotifyVariant variant,
     required String message,
     String? detail,
     NotifyAction? action,
-    ScaffoldMessengerState? messenger,
   }) {
-    final m = messenger ?? ScaffoldMessenger.maybeOf(context);
-    if (m == null) return;
-    // On wide windows, pin the SnackBar to a fixed width so it centers
-    // horizontally instead of stretching edge-to-edge. The card itself
-    // can't enforce a max width here — SnackBar (floating) wraps content
-    // in `Row > Expanded`, which delivers a tight constraint that overrides
-    // any inner `ConstrainedBox`. `SnackBar.width` is the only knob that
-    // actually narrows the bar (and it requires floating, which we use).
-    final windowWidth = MediaQuery.maybeOf(context)?.size.width;
-    final useFixedWidth =
-        windowWidth != null && windowWidth >= Breakpoints.wide;
-    m.hideCurrentSnackBar();
-    m.showSnackBar(
-      SnackBar(
-        content: _NotifyCard(
-          variant: variant,
-          message: message,
-          detail: detail,
-          action: action,
-        ),
-        // The card brings its own background + padding, so blank the
-        // SnackBar shell out — otherwise the theme's dark `ink` background
-        // shows behind the rounded card.
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        padding: EdgeInsets.zero,
-        behavior: SnackBarBehavior.floating,
-        width: useFixedWidth ? 520 : null,
-        duration: variant.duration,
-      ),
+    final toasts = _toastsOf(context);
+    if (toasts == null) return; // no Services ancestor — silent no-op
+    toasts.show(
+      variant: variant,
+      message: message,
+      detail: detail,
+      action: action,
     );
   }
-}
 
-/// Action button rendered to the right of the toast text.
-class NotifyAction {
-  const NotifyAction(this.label, this.onPressed);
-  final String label;
-  final VoidCallback onPressed;
-}
-
-enum _Variant { success, error, warning, info }
-
-extension on _Variant {
-  Duration get duration {
-    switch (this) {
-      case _Variant.success:
-      case _Variant.info:
-        return const Duration(seconds: 3);
-      case _Variant.warning:
-        return const Duration(seconds: 5);
-      case _Variant.error:
-        return const Duration(seconds: 6);
+  static ToastController? _toastsOf(BuildContext context) {
+    // A directly-provided ToastController wins — lets lightweight harnesses
+    // (and tests) supply one without a full Services. Otherwise use the
+    // controller on Services, which the app and shell tests provide.
+    try {
+      return Provider.of<ToastController>(context, listen: false);
+    } catch (_) {
+      // No ToastController provider in scope — fall back to Services.
     }
-  }
-
-  IconData get icon {
-    switch (this) {
-      case _Variant.success:
-        return Icons.check_circle_outline;
-      case _Variant.error:
-        return Icons.error_outline;
-      case _Variant.warning:
-        return Icons.warning_amber_outlined;
-      case _Variant.info:
-        return Icons.info_outline;
+    try {
+      return context.read<Services>().toasts;
+    } catch (_) {
+      return null;
     }
-  }
-
-  Color accent(InTheme t) {
-    switch (this) {
-      case _Variant.success:
-        return t.paid;
-      case _Variant.error:
-        return t.overdue;
-      case _Variant.warning:
-        return t.sent;
-      case _Variant.info:
-        return t.partial;
-    }
-  }
-}
-
-class _NotifyCard extends StatelessWidget {
-  const _NotifyCard({
-    required this.variant,
-    required this.message,
-    this.detail,
-    this.action,
-  });
-
-  final _Variant variant;
-  final String message;
-  final String? detail;
-  final NotifyAction? action;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.inTheme;
-    final accent = variant.accent(t);
-    final textTheme = Theme.of(context).textTheme;
-    final titleStyle = textTheme.bodyMedium?.copyWith(
-      color: t.ink,
-      fontWeight: FontWeight.w600,
-    );
-    final detailStyle = textTheme.bodySmall?.copyWith(color: t.ink3);
-
-    return Material(
-      type: MaterialType.transparency,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: t.surface,
-          borderRadius: BorderRadius.circular(InRadii.r2),
-          border: Border.all(color: t.border),
-          boxShadow: t.shadow2,
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(InRadii.r2),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(width: 4, color: accent),
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: InSpacing.md(context),
-                    vertical: InSpacing.md(context),
-                  ),
-                  child: Icon(variant.icon, color: accent, size: 20),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      vertical: InSpacing.md(context),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(message, style: titleStyle),
-                        if (detail != null && detail!.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            detail!,
-                            style: detailStyle,
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-                if (action != null)
-                  Padding(
-                    padding: const EdgeInsets.only(
-                      right: InSpacing.sm,
-                      left: InSpacing.xs,
-                    ),
-                    child: TextButton(
-                      onPressed: () {
-                        ScaffoldMessenger.maybeOf(
-                          context,
-                        )?.hideCurrentSnackBar();
-                        action!.onPressed();
-                      },
-                      style: TextButton.styleFrom(
-                        foregroundColor: accent,
-                        textStyle: textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      child: Text(action!.label.toUpperCase()),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 

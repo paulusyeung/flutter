@@ -15,6 +15,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
+import 'package:admin/ui/core/sync/require_synced.dart';
 import 'package:admin/ui/core/widgets/add_to_invoice_dialog.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/billing_shared/add_unbilled/unbilled_line_items.dart';
@@ -195,22 +196,13 @@ class TaskActions {
       case TaskAction.start:
         // tmp ids haven't synced yet — server can't accept a time-log
         // change for an entity it doesn't know exists.
-        if (task.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, task.id)) return;
         await _startTimer(context, services, companyId, task);
       case TaskAction.stop:
-        if (task.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, task.id)) return;
         await _stopTimer(context, services, companyId, task);
       case TaskAction.resume:
-        if (task.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, task.id)) return;
         await _resumeTimer(context, services, companyId, task);
       case TaskAction.viewClient:
         if (task.clientId.isEmpty) return;
@@ -220,6 +212,8 @@ class TaskActions {
           context: context,
           wireName: 'task',
           op: () => services.tasks.archive(companyId: companyId, id: task.id),
+          undoOp: () =>
+              services.tasks.restore(companyId: companyId, id: task.id),
         );
       case TaskAction.restore:
         await StandardEntityActions.restore(
@@ -243,20 +237,16 @@ class TaskActions {
         );
         goEntityCreateFullWidth(context, '/tasks', extra: draft);
       case TaskAction.delete:
-        if (task.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, task.id)) return;
         await StandardEntityActions.delete(
           context: context,
           wireName: 'task',
           op: () => services.tasks.delete(companyId: companyId, id: task.id),
+          undoOp: () =>
+              services.tasks.restore(companyId: companyId, id: task.id),
         );
       case TaskAction.newInvoice:
-        if (task.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, task.id)) return;
         // Same 3-dp conversion as the "Add unbilled items" / "Invoice project"
         // path (taskBillableHours) so a task invoiced via this menu and via the
         // bulk path produce identical quantities; an empty task seeds a 1-hour
@@ -280,10 +270,7 @@ class TaskActions {
         );
         goEntityCreateFullWidth(context, '/invoices', extra: draft);
       case TaskAction.addToInvoice:
-        if (task.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, task.id)) return;
         if (task.clientId.isEmpty) {
           Notify.error(context, context.tr('please_select_a_client'));
           return;

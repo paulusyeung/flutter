@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/notify_async.dart';
 
 /// Standard repo-backed action dispatchers — archive / restore / delete /
@@ -16,14 +17,19 @@ import 'package:admin/ui/core/widgets/notify_async.dart';
 class StandardEntityActions {
   StandardEntityActions._();
 
+  /// Archive [op]; when [undoOp] (the matching restore) is supplied the
+  /// success toast offers an **Undo** that runs it. Archive ⇄ restore is a
+  /// clean reversal — the FIFO outbox nets the two mutations out.
   static Future<void> archive({
     required BuildContext context,
     required String wireName,
     required Future<void> Function() op,
+    Future<void> Function()? undoOp,
   }) => runMutationWithNotify(
     context,
     op,
     successMsg: context.tr('archived_$wireName'),
+    successAction: _undoAction(context, wireName, undoOp),
   );
 
   static Future<void> restore({
@@ -36,14 +42,18 @@ class StandardEntityActions {
     successMsg: context.tr('restored_$wireName'),
   );
 
+  /// Delete [op]; when [undoOp] (the matching restore) is supplied the success
+  /// toast offers an **Undo**. (Server delete is soft, so restore reverses it.)
   static Future<void> delete({
     required BuildContext context,
     required String wireName,
     required Future<void> Function() op,
+    Future<void> Function()? undoOp,
   }) => runMutationWithNotify(
     context,
     op,
     successMsg: context.tr('deleted_$wireName'),
+    successAction: _undoAction(context, wireName, undoOp),
   );
 
   static Future<void> purge({
@@ -55,4 +65,21 @@ class StandardEntityActions {
     op,
     successMsg: context.tr('purged_$wireName'),
   );
+
+  /// Build the Undo action for an archive/delete success toast. Tapping it runs
+  /// [undoOp] (the restore) with its own success/failure feedback. The label +
+  /// "restored" message are resolved eagerly so the callback never touches a
+  /// possibly-stale `context` for localization.
+  static NotifyAction? _undoAction(
+    BuildContext context,
+    String wireName,
+    Future<void> Function()? undoOp,
+  ) {
+    if (undoOp == null) return null;
+    final restoredMsg = context.tr('restored_$wireName');
+    return NotifyAction(
+      context.tr('undo'),
+      () => runMutationWithNotify(context, undoOp, successMsg: restoredMsg),
+    );
+  }
 }

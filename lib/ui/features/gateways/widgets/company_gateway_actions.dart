@@ -9,6 +9,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
+import 'package:admin/ui/core/sync/require_synced.dart';
 import 'package:admin/ui/core/widgets/confirm_password_sheet.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/notify_async.dart';
@@ -203,6 +204,10 @@ class CompanyGatewayActions {
             companyId: companyId,
             id: gateway.id,
           ),
+          undoOp: () => services.companyGateways.restore(
+            companyId: companyId,
+            id: gateway.id,
+          ),
         );
       case CompanyGatewayAction.restore:
         await StandardEntityActions.restore(
@@ -214,14 +219,15 @@ class CompanyGatewayActions {
           ),
         );
       case CompanyGatewayAction.delete:
-        if (gateway.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, gateway.id)) return;
         await StandardEntityActions.delete(
           context: context,
           wireName: 'company_gateway',
           op: () => services.companyGateways.delete(
+            companyId: companyId,
+            id: gateway.id,
+          ),
+          undoOp: () => services.companyGateways.restore(
             companyId: companyId,
             id: gateway.id,
           ),

@@ -10,9 +10,9 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
+import 'package:admin/ui/core/sync/require_synced.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
-import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/notify_async.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/billing_shared/activity/activity_list_card.dart';
@@ -68,10 +68,7 @@ class _ClientActivityTabBodyState extends State<ClientActivityTabBody> {
   }
 
   Future<void> _onAddComment() async {
-    if (widget.client.id.startsWith('tmp_')) {
-      Notify.error(context, context.tr('sync_first'));
-      return;
-    }
+    if (!requireSynced(context, widget.client.id)) return;
     final text = await showAddCommentDialog(context);
     if (text == null || text.isEmpty || !mounted) return;
     await runMutationWithNotify(

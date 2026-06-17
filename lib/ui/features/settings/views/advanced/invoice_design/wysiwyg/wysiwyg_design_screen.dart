@@ -603,7 +603,7 @@ class _TopBar extends StatelessWidget {
     BuildContext context,
     WysiwygDesignViewModel vm,
   ) async {
-    final messenger = ScaffoldMessenger.of(context);
+    final toasts = Notify.capture(context);
     final tr = context.tr;
     final json = _encodeDesignJson(vm);
     final bytes = Uint8List.fromList(utf8.encode(json));
@@ -619,9 +619,9 @@ class _TopBar extends StatelessWidget {
           await file.writeAsBytes(bytes);
         }
       }
-      messenger.showSnackBar(SnackBar(content: Text(tr('exported'))));
+      toasts?.success(tr('exported'));
     } catch (_) {
-      messenger.showSnackBar(SnackBar(content: Text(tr('an_error_occurred'))));
+      toasts?.error(tr('an_error_occurred'));
     }
   }
 

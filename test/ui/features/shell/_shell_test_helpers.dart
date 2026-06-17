@@ -12,6 +12,7 @@ import 'package:admin/data/services/connectivity_watcher.dart';
 import 'package:admin/data/services/token_storage.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/l10n/supported_locales.dart';
+import 'package:admin/ui/core/widgets/toast_host.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/foundation.dart';
@@ -178,7 +179,15 @@ Widget wrapWithShell(Services services, Widget child) {
     ],
     home: Provider<Services>.value(
       value: services,
-      child: Scaffold(body: child),
+      // Mirror the real app: the global toast host sits above the content as
+      // a later Stack sibling, so any widget that fires a `Notify.*` renders
+      // its toast here too.
+      child: Stack(
+        children: [
+          Scaffold(body: child),
+          Positioned.fill(child: ToastHost(controller: services.toasts)),
+        ],
+      ),
     ),
   );
 }

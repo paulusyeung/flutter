@@ -17,6 +17,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
+import 'package:admin/ui/core/sync/require_synced.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/billing_shared/actions/add_comment_prompt.dart';
 import 'package:admin/ui/features/billing_shared/billing_cross_clone.dart';
@@ -273,13 +274,7 @@ class CreditActions {
     Credit credit,
     CreditAction action,
   ) async {
-    bool tmpGate() {
-      if (credit.id.startsWith('tmp_')) {
-        Notify.error(context, context.tr('sync_first'));
-        return true;
-      }
-      return false;
-    }
+    bool tmpGate() => !requireSynced(context, credit.id);
 
     switch (action) {
       case CreditAction.edit:
@@ -431,6 +426,8 @@ class CreditActions {
           wireName: 'credit',
           op: () =>
               services.credits.archive(companyId: companyId, id: credit.id),
+          undoOp: () =>
+              services.credits.restore(companyId: companyId, id: credit.id),
         );
 
       case CreditAction.restore:
@@ -449,6 +446,8 @@ class CreditActions {
           wireName: 'credit',
           op: () =>
               services.credits.delete(companyId: companyId, id: credit.id),
+          undoOp: () =>
+              services.credits.restore(companyId: companyId, id: credit.id),
         );
 
       case CreditAction.runTemplate:

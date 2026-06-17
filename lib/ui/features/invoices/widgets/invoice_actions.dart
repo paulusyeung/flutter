@@ -19,6 +19,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
+import 'package:admin/ui/core/sync/require_synced.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/billing_shared/actions/add_comment_prompt.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/mark_paid_confirm_dialog.dart';
@@ -439,13 +440,7 @@ class InvoiceActions {
   ) async {
     // Most server-bound actions require a real id. tmp_ rows live only in
     // the outbox until the create round-trips.
-    bool tmpGate() {
-      if (invoice.id.startsWith('tmp_')) {
-        Notify.error(context, context.tr('sync_first'));
-        return true;
-      }
-      return false;
-    }
+    bool tmpGate() => !requireSynced(context, invoice.id);
 
     switch (action) {
       case InvoiceAction.edit:
@@ -727,6 +722,8 @@ class InvoiceActions {
           wireName: 'invoice',
           op: () =>
               services.invoices.archive(companyId: companyId, id: invoice.id),
+          undoOp: () =>
+              services.invoices.restore(companyId: companyId, id: invoice.id),
         );
 
       case InvoiceAction.restore:
@@ -745,6 +742,8 @@ class InvoiceActions {
           wireName: 'invoice',
           op: () =>
               services.invoices.delete(companyId: companyId, id: invoice.id),
+          undoOp: () =>
+              services.invoices.restore(companyId: companyId, id: invoice.id),
         );
 
       case InvoiceAction.cloneToQuote:

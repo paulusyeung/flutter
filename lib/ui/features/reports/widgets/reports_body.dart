@@ -28,6 +28,7 @@ import 'package:admin/domain/reports/report_schedule.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
 import 'package:admin/ui/features/dashboard/widgets/filters/date_range_picker_button.dart';
 import 'package:admin/ui/features/reports/view_models/reports_view_model.dart';
@@ -1391,38 +1392,31 @@ class _ExportButton extends StatelessWidget {
   }
 
   Future<void> _export(BuildContext context, ReportExportFormat f) async {
-    final messenger = ScaffoldMessenger.of(context);
+    final toasts = Notify.capture(context);
     final tr = context.tr;
     final result = await vm.runExport(f);
     if (result == null) {
       final err = vm.exportError;
       if (err != null && err.kind == ReportErrorKind.timeout) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(tr('report_timed_out')),
-            action: SnackBarAction(
-              label: tr('keep_waiting'),
-              onPressed: () async {
-                final retry = await vm.keepWaitingExport();
-                if (retry != null) {
-                  await _save(messenger, tr, retry, f);
-                }
-              },
-            ),
-          ),
+        toasts?.warning(
+          tr('report_timed_out'),
+          action: NotifyAction(tr('keep_waiting'), () async {
+            final retry = await vm.keepWaitingExport();
+            if (retry != null) {
+              await _save(toasts, tr, retry, f);
+            }
+          }),
         );
       } else if (err != null) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(err.message ?? tr('an_error_occurred'))),
-        );
+        toasts?.error(err.message ?? tr('an_error_occurred'));
       }
       return;
     }
-    await _save(messenger, tr, result, f);
+    await _save(toasts, tr, result, f);
   }
 
   Future<void> _save(
-    ScaffoldMessengerState messenger,
+    ToastController? toasts,
     String Function(String, [Map<String, String>?]) tr,
     ReportExportResult result,
     ReportExportFormat f,
@@ -1445,10 +1439,10 @@ class _ExportButton extends StatelessWidget {
             await file.writeAsBytes(result.bytes);
           }
         }
-        messenger.showSnackBar(SnackBar(content: Text(tr('exported'))));
+        toasts?.success(tr('exported'));
       }
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(tr('an_error_occurred'))));
+      toasts?.error(tr('an_error_occurred'));
     }
   }
 }
@@ -1476,15 +1470,13 @@ class _EmailButton extends StatelessWidget {
       icon: const Icon(Icons.email_outlined, size: 16),
       label: Text(context.tr('email')),
       onPressed: () async {
-        final messenger = ScaffoldMessenger.of(context);
+        final toasts = Notify.capture(context);
         final tr = context.tr;
         try {
           await vm.sendEmail();
-          messenger.showSnackBar(SnackBar(content: Text(tr('email_sent'))));
+          toasts?.success(tr('email_sent'));
         } catch (e) {
-          messenger.showSnackBar(
-            SnackBar(content: Text(tr('an_error_occurred'))),
-          );
+          toasts?.error(tr('an_error_occurred'));
         }
       },
     );

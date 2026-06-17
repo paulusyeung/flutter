@@ -13,6 +13,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
+import 'package:admin/ui/core/sync/require_synced.dart';
 import 'package:admin/ui/core/widgets/add_to_invoice_dialog.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
@@ -186,6 +187,8 @@ class ExpenseActions {
           wireName: 'expense',
           op: () =>
               services.expenses.archive(companyId: companyId, id: expense.id),
+          undoOp: () =>
+              services.expenses.restore(companyId: companyId, id: expense.id),
         );
       case ExpenseAction.restore:
         await StandardEntityActions.restore(
@@ -195,21 +198,17 @@ class ExpenseActions {
               services.expenses.restore(companyId: companyId, id: expense.id),
         );
       case ExpenseAction.delete:
-        if (expense.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, expense.id)) return;
         await StandardEntityActions.delete(
           context: context,
           wireName: 'expense',
           op: () =>
               services.expenses.delete(companyId: companyId, id: expense.id),
+          undoOp: () =>
+              services.expenses.restore(companyId: companyId, id: expense.id),
         );
       case ExpenseAction.invoiceExpense:
-        if (expense.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, expense.id)) return;
         if (expense.invoiceId.isNotEmpty) {
           Notify.error(context, context.tr('expense_already_invoiced'));
           return;
@@ -231,10 +230,7 @@ class ExpenseActions {
         );
         goEntityCreateFullWidth(context, '/invoices', extra: draft);
       case ExpenseAction.runTemplate:
-        if (expense.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, expense.id)) return;
         final templateId = await showRunTemplateDialog(context);
         if (templateId == null || !context.mounted) return;
         await services.expenses.runTemplate(
@@ -245,10 +241,7 @@ class ExpenseActions {
         if (!context.mounted) return;
         Notify.success(context, context.tr('template_queued'));
       case ExpenseAction.addToInvoice:
-        if (expense.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, expense.id)) return;
         if (expense.invoiceId.isNotEmpty) {
           Notify.error(context, context.tr('expense_already_invoiced'));
           return;

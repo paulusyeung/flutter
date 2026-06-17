@@ -583,8 +583,38 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
       if (!mounted || prepared == null) return;
     }
 
+    // Capture the eligible ids before applying — `applyBulkAction` clears the
+    // selection, and a possible Undo needs them.
+    final affectedIds = _vm.selectedItems
+        .where(bulk.eligible)
+        .map(_vm.idOf)
+        .toList();
+
     final result = await _vm.applyBulkAction(bulk, arg: prepared);
     if (!mounted) return;
+
+    // Offer Undo for reversible bulk verbs (archive / delete) when the entity
+    // exposes a `restore` bulk action — restore nets the archive/delete out in
+    // the FIFO outbox. Best-effort: a failed restore is swallowed (the watch
+    // stream is the source of truth); the rows reappearing is the feedback.
+    NotifyAction? undo;
+    if (result.ok > 0 &&
+        (bulk.id == 'archive' || bulk.id == 'delete') &&
+        affectedIds.isNotEmpty) {
+      final restoreApply = _vm.bulkActionById('restore')?.apply;
+      if (restoreApply != null) {
+        undo = NotifyAction(context.tr('undo'), () async {
+          for (final id in affectedIds) {
+            try {
+              await restoreApply(id);
+            } catch (_) {
+              // Best-effort — keep restoring the rest.
+            }
+          }
+        });
+      }
+    }
+
     Notify.success(
       context,
       formatBulkMessage(
@@ -594,6 +624,7 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
         nothingKey: action.nothingKey,
         result: result,
       ),
+      action: undo,
     );
   }
 

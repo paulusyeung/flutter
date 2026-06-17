@@ -16,6 +16,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
+import 'package:admin/ui/core/sync/require_synced.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/billing_shared/actions/add_comment_prompt.dart';
 import 'package:admin/ui/features/billing_shared/billing_cross_clone.dart';
@@ -275,13 +276,7 @@ class RecurringInvoiceActions {
     RecurringInvoice ri,
     RecurringInvoiceAction action,
   ) async {
-    bool tmpGate() {
-      if (ri.id.startsWith('tmp_')) {
-        Notify.error(context, context.tr('sync_first'));
-        return true;
-      }
-      return false;
-    }
+    bool tmpGate() => !requireSynced(context, ri.id);
 
     switch (action) {
       case RecurringInvoiceAction.edit:
@@ -432,6 +427,10 @@ class RecurringInvoiceActions {
             companyId: companyId,
             id: ri.id,
           ),
+          undoOp: () => services.recurringInvoices.restore(
+            companyId: companyId,
+            id: ri.id,
+          ),
         );
 
       case RecurringInvoiceAction.restore:
@@ -451,6 +450,10 @@ class RecurringInvoiceActions {
           context: context,
           wireName: 'recurring_invoice',
           op: () => services.recurringInvoices.delete(
+            companyId: companyId,
+            id: ri.id,
+          ),
+          undoOp: () => services.recurringInvoices.restore(
             companyId: companyId,
             id: ri.id,
           ),

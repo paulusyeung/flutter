@@ -109,7 +109,7 @@ class _UnappliedPaymentRow extends StatelessWidget {
   }
 
   Future<void> _apply(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
+    final toasts = Notify.capture(context);
     final tr = context.tr;
     final amount = payment.unapplied < invoice.balance
         ? payment.unapplied
@@ -128,7 +128,7 @@ class _UnappliedPaymentRow extends StatelessWidget {
           },
         ],
       );
-      messenger.showSnackBar(SnackBar(content: Text(tr('applied_payment'))));
+      toasts?.success(tr('applied_payment'));
     } catch (_) {
       if (context.mounted) {
         Notify.error(context, tr('an_error_occurred'));

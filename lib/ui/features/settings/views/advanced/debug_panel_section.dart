@@ -333,8 +333,9 @@ Future<void> _captureAndSave(
   if (controller.capturing) return;
 
   // Grab everything context-bound before the first await; nothing reads the
-  // BuildContext afterward, so the result toast goes through `messenger`.
-  final messenger = ScaffoldMessenger.of(context);
+  // BuildContext afterward, so the result toast goes through the captured
+  // toast queue.
+  final toasts = Notify.capture(context);
   final dpr = View.of(context).devicePixelRatio;
   final savedMsg = context.tr('exported');
   final errorMsg = context.tr('an_error_occurred');
@@ -376,7 +377,7 @@ Future<void> _captureAndSave(
   }
 
   if (bytes == null) {
-    messenger.showSnackBar(SnackBar(content: Text(errorMsg)));
+    toasts?.error(errorMsg);
     return;
   }
 
@@ -396,9 +397,9 @@ Future<void> _captureAndSave(
         await file.writeAsBytes(bytes);
       }
     }
-    messenger.showSnackBar(SnackBar(content: Text(savedMsg)));
+    toasts?.success(savedMsg);
   } catch (_) {
-    messenger.showSnackBar(SnackBar(content: Text(errorMsg)));
+    toasts?.error(errorMsg);
   }
 }
 

@@ -6,6 +6,7 @@ import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/data/models/domain/time_entry.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/sync/require_synced.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/tasks/view_models/task_daily_view_model.dart';
 import 'package:admin/ui/features/tasks/view_models/task_edit_view_model.dart';
@@ -23,10 +24,7 @@ class TaskDailyActions {
     String companyId,
     Task task,
   ) async {
-    if (task.id.startsWith('tmp_')) {
-      Notify.error(context, context.tr('sync_first'));
-      return;
-    }
+    if (!requireSynced(context, task.id)) return;
     final wasRunning = task.isRunning;
     if (wasRunning) {
       await services.tasks.stopRunningTimer(

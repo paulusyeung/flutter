@@ -8,6 +8,7 @@ import 'package:admin/data/models/value/country.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/widgets/form_save_scope.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
@@ -239,7 +240,7 @@ class _AddRow extends StatelessWidget {
 
   Future<void> _openCustomDialog(BuildContext context) async {
     // Capture before the async gap so we don't touch `context` after `await`.
-    final messenger = ScaffoldMessenger.of(context);
+    final toasts = Notify.capture(context);
     final duplicateMessage = context.tr('label_already_added');
     final controller = TextEditingController();
     try {
@@ -273,7 +274,7 @@ class _AddRow extends StatelessWidget {
       );
       if (key == null || key.isEmpty) return;
       if (!_addLabel(host, key)) {
-        messenger.showSnackBar(SnackBar(content: Text(duplicateMessage)));
+        toasts?.warning(duplicateMessage);
       }
     } finally {
       controller.dispose();
@@ -282,7 +283,7 @@ class _AddRow extends StatelessWidget {
 
   Future<void> _openCountryDialog(BuildContext context) async {
     // Capture before the async gap so we don't touch `context` after `await`.
-    final messenger = ScaffoldMessenger.of(context);
+    final toasts = Notify.capture(context);
     final duplicateMessage = context.tr('label_already_added');
     final countries = services.statics.countries.values.toList()
       ..sort((a, b) => a.name.compareTo(b.name));
@@ -292,7 +293,7 @@ class _AddRow extends StatelessWidget {
     );
     if (country == null) return;
     if (!_addLabel(host, '$_countryKeyPrefix${country.name}')) {
-      messenger.showSnackBar(SnackBar(content: Text(duplicateMessage)));
+      toasts?.warning(duplicateMessage);
     }
   }
 }

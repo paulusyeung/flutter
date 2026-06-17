@@ -13,6 +13,7 @@ import 'package:admin/data/services/live_design_service.dart';
 import 'package:admin/data/static/design_template_completions.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/dialogs/discard_changes_dialog.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/view_models/design_edit_view_model.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/widgets/design_code_field.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/widgets/design_live_preview_pane.dart';
@@ -211,9 +212,7 @@ class _DesignWorkspaceState extends State<_DesignWorkspace> {
         // the import dialog passes the raw text through without validating.
         final error = widget.vm.importFromJson(importJson);
         if (error != null) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(context.tr(error))));
+          Notify.error(context, context.tr(error));
         }
       });
     }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:admin/app/services.dart';
 import 'package:admin/data/repositories/sync_repository.dart';
+import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 
@@ -18,14 +19,26 @@ Future<void> runMutationWithNotify(
   BuildContext context,
   Future<void> Function() op, {
   required String successMsg,
+  NotifyAction? successAction,
 }) async {
   try {
     await op();
     if (!context.mounted) return;
-    Notify.success(context, successMsg);
+    Notify.success(context, successMsg, action: successAction);
   } catch (e) {
     if (!context.mounted) return;
-    Notify.error(context, context.tr('could_not_save'), error: e);
+    // Offer Retry only for transient failures (network / rate-limit / 5xx);
+    // re-running the op on a validation / conflict / auth error just re-fails.
+    // Retry re-enters this wrapper so a repeated failure shows feedback (and
+    // another Retry) rather than silently re-running the op.
+    Notify.error(
+      context,
+      context.tr('could_not_save'),
+      error: e,
+      retryOp: isTransientError(e)
+          ? () => runMutationWithNotify(context, op, successMsg: successMsg)
+          : null,
+    );
   }
 }
 

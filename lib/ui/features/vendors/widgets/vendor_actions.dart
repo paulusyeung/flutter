@@ -10,6 +10,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
+import 'package:admin/ui/core/sync/require_synced.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/notify_async.dart';
 import 'package:admin/ui/features/clients/widgets/detail/add_comment_dialog.dart';
@@ -183,6 +184,8 @@ class VendorActions {
           wireName: 'vendor',
           op: () =>
               services.vendors.archive(companyId: companyId, id: vendor.id),
+          undoOp: () =>
+              services.vendors.restore(companyId: companyId, id: vendor.id),
         );
       case VendorAction.restore:
         await StandardEntityActions.restore(
@@ -195,10 +198,7 @@ class VendorActions {
         // `tmp_` vendors only exist locally — the server has no row to
         // attach a comment to yet. Block instead of enqueuing a comment
         // that the dispatcher would 404 once the create round-trips.
-        if (vendor.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, vendor.id)) return;
         final text = await showAddCommentDialog(context);
         if (text == null || text.isEmpty || !context.mounted) return;
         await runMutationWithNotify(
@@ -230,40 +230,28 @@ class VendorActions {
         );
         goEntityCreateFullWidth(context, '/vendors', extra: draft);
       case VendorAction.newExpense:
-        if (vendor.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, vendor.id)) return;
         goEntityCreateFullWidth(
           context,
           '/expenses',
           extra: emptyExpense().copyWith(vendorId: vendor.id),
         );
       case VendorAction.newPurchaseOrder:
-        if (vendor.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, vendor.id)) return;
         goEntityCreateFullWidth(
           context,
           '/purchase_orders',
           extra: emptyPurchaseOrder().copyWith(vendorId: vendor.id),
         );
       case VendorAction.newRecurringExpense:
-        if (vendor.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, vendor.id)) return;
         goEntityCreateFullWidth(
           context,
           '/recurring_expenses',
           extra: emptyRecurringExpense().copyWith(vendorId: vendor.id),
         );
       case VendorAction.vendorPortal:
-        if (vendor.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, vendor.id)) return;
         // Open the primary contact's portal (falling back to the first). The
         // item is disabled in itemsFor when no link exists, so the empty-url
         // guard here is just defensive.
@@ -279,10 +267,7 @@ class VendorActions {
         if (portalUrl.isEmpty) return;
         await launchVendorPortal(context, portalUrl);
       case VendorAction.merge:
-        if (vendor.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, vendor.id)) return;
         final survivor = await showMergeVendorDialog(
           context,
           services: services,
@@ -308,15 +293,14 @@ class VendorActions {
           }
         }
       case VendorAction.delete:
-        if (vendor.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, vendor.id)) return;
         await StandardEntityActions.delete(
           context: context,
           wireName: 'vendor',
           op: () =>
               services.vendors.delete(companyId: companyId, id: vendor.id),
+          undoOp: () =>
+              services.vendors.restore(companyId: companyId, id: vendor.id),
         );
     }
   }

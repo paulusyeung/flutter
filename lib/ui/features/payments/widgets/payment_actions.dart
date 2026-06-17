@@ -8,6 +8,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
+import 'package:admin/ui/core/sync/require_synced.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 
 /// Action set surfaced for a payment. Apply intentionally lives inline on the
@@ -122,10 +123,7 @@ class PaymentActions {
       case PaymentAction.edit:
         goEntityEdit(context, '/payments', payment.id);
       case PaymentAction.refund:
-        if (payment.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, payment.id)) return;
         context.go('/payments/${payment.id}/refund');
       case PaymentAction.sendEmail:
         // Re-save with sendEmail=true so the server fires off a receipt. The
@@ -146,6 +144,8 @@ class PaymentActions {
           wireName: 'payment',
           op: () =>
               services.payments.archive(companyId: companyId, id: payment.id),
+          undoOp: () =>
+              services.payments.restore(companyId: companyId, id: payment.id),
         );
       case PaymentAction.restore:
         await StandardEntityActions.restore(
@@ -155,15 +155,14 @@ class PaymentActions {
               services.payments.restore(companyId: companyId, id: payment.id),
         );
       case PaymentAction.delete:
-        if (payment.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, payment.id)) return;
         await StandardEntityActions.delete(
           context: context,
           wireName: 'payment',
           op: () =>
               services.payments.delete(companyId: companyId, id: payment.id),
+          undoOp: () =>
+              services.payments.restore(companyId: companyId, id: payment.id),
         );
     }
   }

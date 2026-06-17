@@ -10,6 +10,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
+import 'package:admin/ui/core/sync/require_synced.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
 import 'package:admin/ui/features/products/widgets/tax_category_dialog.dart';
@@ -192,6 +193,8 @@ class ProductActions {
           wireName: 'product',
           op: () =>
               services.products.archive(companyId: companyId, id: product.id),
+          undoOp: () =>
+              services.products.restore(companyId: companyId, id: product.id),
         );
       case ProductAction.restore:
         await StandardEntityActions.restore(
@@ -207,21 +210,17 @@ class ProductActions {
           extra: cloneDraftFor(product),
         );
       case ProductAction.delete:
-        if (product.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, product.id)) return;
         await StandardEntityActions.delete(
           context: context,
           wireName: 'product',
           op: () =>
               services.products.delete(companyId: companyId, id: product.id),
+          undoOp: () =>
+              services.products.restore(companyId: companyId, id: product.id),
         );
       case ProductAction.newInvoice:
-        if (product.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, product.id)) return;
         // Stage a draft pre-seeded with a line item for this product. The
         // staged draft survives the cross-branch hop + create-screen reuse
         // (a route `extra:`/query seed does not).
@@ -233,10 +232,7 @@ class ProductActions {
           ),
         );
       case ProductAction.newQuote:
-        if (product.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, product.id)) return;
         goEntityCreateFullWidth(
           context,
           '/quotes',
@@ -245,10 +241,7 @@ class ProductActions {
           ),
         );
       case ProductAction.newPurchaseOrder:
-        if (product.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, product.id)) return;
         goEntityCreateFullWidth(
           context,
           '/purchase_orders',
@@ -257,10 +250,7 @@ class ProductActions {
           ),
         );
       case ProductAction.setTaxCategory:
-        if (product.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, product.id)) return;
         final categoryId = await showTaxCategoryDialog(
           context,
           current: product.taxId,

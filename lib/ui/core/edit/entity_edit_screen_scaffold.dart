@@ -11,6 +11,7 @@ import 'package:admin/ui/core/edit/entity_edit_scaffold.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/save_failed_banner.dart';
+import 'package:admin/ui/core/widgets/sync_first_banner.dart';
 
 /// Outer scaffold for every entity edit / create screen.
 ///
@@ -341,9 +342,14 @@ class _EntityEditScreenScaffoldState<T, VM extends GenericEditViewModel<T>>
       onAfterSaveActionOnCreate: widget.onAfterSaveActionOnCreate,
       titleBuilder: (ctx) => widget.titleBuilder(ctx, vm),
       bodyBuilder: (ctx) => widget.bodyBuilder(ctx, vm),
-      topBanner: SaveFailedBanner(
-        vm: vm,
-        onDiscard: () => _discardFailedSync(vm),
+      topBanner: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Persistent "this record hasn't synced" strip when editing an
+          // offline-created (`tmp_`) record — renders nothing otherwise.
+          SyncFirstBanner(entityId: widget.existingId),
+          SaveFailedBanner(vm: vm, onDiscard: () => _discardFailedSync(vm)),
+        ],
       ),
       resetToEmpty: () => widget.resetToEmpty(vm),
       onSaveRejected: () async {

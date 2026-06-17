@@ -4,6 +4,7 @@ import 'package:crop_your_image/crop_your_image.dart';
 import 'package:flutter/material.dart';
 
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 
 /// Full-screen logo crop step shown between picking an image and uploading
 /// it as the company logo (React parity: `LogoCropModal`; admin-portal used
@@ -64,9 +65,7 @@ class _LogoCropScreenState extends State<_LogoCropScreen> {
               Navigator.of(context).pop(croppedImage);
             case CropFailure():
               setState(() => _busy = false);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(context.tr('an_error_occurred'))),
-              );
+              Notify.error(context, context.tr('an_error_occurred'));
           }
         },
       ),

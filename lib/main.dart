@@ -33,6 +33,7 @@ import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/data/services/sync_lifecycle_observer.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/l10n/supported_locales.dart';
+import 'package:admin/ui/core/widgets/toast_host.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 
 /// Bootstrap entry point.
@@ -645,14 +646,31 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
                   // the storyboard → Flutter handoff has a gentle exit instead
                   // of a hard cut. Passthrough on every other platform.
                   child: NativeSplash.wrap(
-                    // Root capture boundary for the Debug Panel's screenshot
-                    // button: snapshotting this yields the full window at exactly
-                    // `physicalSize`. Inside `NativeSplash.wrap` so the iOS splash
-                    // overlay is excluded; below the textScaler MediaQuery so the
-                    // shot reflects the user's text scale.
-                    child: RepaintBoundary(
-                      key: widget.services.screenshotWindow.boundaryKey,
-                      child: child ?? const SizedBox.shrink(),
+                    // Global toast host (top layer) over the app. A later
+                    // sibling in this Stack paints ABOVE every route AND modal
+                    // dialog/sheet (they live inside `child` on the root
+                    // navigator's overlay), so toasts are never hidden behind a
+                    // password/conflict sheet. `Positioned.fill` gives the host
+                    // tight constraints; it lays out only a small corner column,
+                    // so taps outside a toast fall through to the app/barrier.
+                    // Excluded from the screenshot RepaintBoundary on purpose —
+                    // a transient toast shouldn't bleed into store captures.
+                    child: Stack(
+                      children: [
+                        // Root capture boundary for the Debug Panel's screenshot
+                        // button: snapshotting this yields the full window at
+                        // exactly `physicalSize`. Inside `NativeSplash.wrap` so
+                        // the iOS splash overlay is excluded; below the
+                        // textScaler MediaQuery so the shot reflects the user's
+                        // text scale.
+                        RepaintBoundary(
+                          key: widget.services.screenshotWindow.boundaryKey,
+                          child: child ?? const SizedBox.shrink(),
+                        ),
+                        Positioned.fill(
+                          child: ToastHost(controller: widget.services.toasts),
+                        ),
+                      ],
                     ),
                   ),
                 ),

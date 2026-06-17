@@ -3,11 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/bank_account.dart';
-import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
-import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/core/sync/require_synced.dart';
 
 /// Action set surfaced for a bank account. Mirrors the standard minimum
 /// surface — edit / archive / restore / delete — since bank accounts (bank
@@ -74,6 +73,10 @@ class BankAccountActions {
             companyId: companyId,
             id: account.id,
           ),
+          undoOp: () => services.bankAccounts.restore(
+            companyId: companyId,
+            id: account.id,
+          ),
         );
       case BankAccountAction.restore:
         await StandardEntityActions.restore(
@@ -85,14 +88,15 @@ class BankAccountActions {
           ),
         );
       case BankAccountAction.delete:
-        if (account.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, account.id)) return;
         await StandardEntityActions.delete(
           context: context,
           wireName: 'bank_account',
           op: () => services.bankAccounts.delete(
+            companyId: companyId,
+            id: account.id,
+          ),
+          undoOp: () => services.bankAccounts.restore(
             companyId: companyId,
             id: account.id,
           ),

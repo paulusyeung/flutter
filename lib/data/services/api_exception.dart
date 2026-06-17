@@ -104,3 +104,17 @@ class DemoModeException extends ApiException {
 class UploadCancelledException extends ApiException {
   const UploadCancelledException() : super('Upload cancelled');
 }
+
+/// Whether [error] is a *transient* failure worth offering the user a "Retry":
+/// network blips, rate limits, and 5xx server errors typically recover on a
+/// second attempt. Validation (422), conflict/404 (409), auth (401),
+/// password (412), plan (402), demo, and upload-cancelled do **not** — re-
+/// sending the same request just fails again, so callers must never surface a
+/// Retry for them. A non-[ApiException] throwable (timeout, unexpected I/O) is
+/// treated as transient: a retry is harmless and often succeeds.
+bool isTransientError(Object error) {
+  if (error is NetworkException || error is RateLimitedException) return true;
+  if (error is ServerException) return error.statusCode >= 500;
+  if (error is! ApiException) return true;
+  return false;
+}

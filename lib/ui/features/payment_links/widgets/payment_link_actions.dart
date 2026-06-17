@@ -3,11 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/payment_link.dart';
-import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
-import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/core/sync/require_synced.dart';
 
 /// Action set surfaced for a Payment Link. Standard minimum surface —
 /// edit / archive / restore / delete — mirroring
@@ -87,6 +86,10 @@ class PaymentLinkActions {
             companyId: companyId,
             id: paymentLink.id,
           ),
+          undoOp: () => services.paymentLinks.restore(
+            companyId: companyId,
+            id: paymentLink.id,
+          ),
         );
       case PaymentLinkAction.restore:
         await StandardEntityActions.restore(
@@ -98,14 +101,15 @@ class PaymentLinkActions {
           ),
         );
       case PaymentLinkAction.delete:
-        if (paymentLink.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, paymentLink.id)) return;
         await StandardEntityActions.delete(
           context: context,
           wireName: 'payment_link',
           op: () => services.paymentLinks.delete(
+            companyId: companyId,
+            id: paymentLink.id,
+          ),
+          undoOp: () => services.paymentLinks.restore(
             companyId: companyId,
             id: paymentLink.id,
           ),

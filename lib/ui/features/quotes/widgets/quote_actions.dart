@@ -16,6 +16,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
+import 'package:admin/ui/core/sync/require_synced.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/billing_shared/actions/add_comment_prompt.dart';
 import 'package:admin/ui/features/billing_shared/billing_cross_clone.dart';
@@ -304,13 +305,7 @@ class QuoteActions {
     Quote quote,
     QuoteAction action,
   ) async {
-    bool tmpGate() {
-      if (quote.id.startsWith('tmp_')) {
-        Notify.error(context, context.tr('sync_first'));
-        return true;
-      }
-      return false;
-    }
+    bool tmpGate() => !requireSynced(context, quote.id);
 
     switch (action) {
       case QuoteAction.edit:
@@ -475,6 +470,8 @@ class QuoteActions {
           context: context,
           wireName: 'quote',
           op: () => services.quotes.archive(companyId: companyId, id: quote.id),
+          undoOp: () =>
+              services.quotes.restore(companyId: companyId, id: quote.id),
         );
 
       case QuoteAction.restore:
@@ -491,6 +488,8 @@ class QuoteActions {
           context: context,
           wireName: 'quote',
           op: () => services.quotes.delete(companyId: companyId, id: quote.id),
+          undoOp: () =>
+              services.quotes.restore(companyId: companyId, id: quote.id),
         );
 
       case QuoteAction.runTemplate:

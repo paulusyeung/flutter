@@ -172,10 +172,13 @@ void main() {
 
       // Default failureKey = resync_failed; either the leading auth refresh
       // throws or every entity refresh is collected as failed — both report it.
-      expect(find.byType(SnackBar), findsOneWidget);
+      // The failure now surfaces via the global toast host (no more SnackBar).
       expect(find.text('Resync failed'), findsOneWidget);
       expect(fixture.services.auth.session.value?.currentCompanyId, 'c1');
 
+      // Cancel the toast's auto-dismiss timer before the body ends (flutter_test
+      // checks for pending timers before addTearDown runs).
+      fixture.services.toasts.clearAll();
       fixture.services.recentlyViewed.dispose();
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();

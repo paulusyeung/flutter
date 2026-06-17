@@ -55,6 +55,7 @@ class SettingsEntityOverflowMenu extends StatelessWidget {
               context: context,
               wireName: wireName,
               op: onArchive,
+              undoOp: onRestore,
             );
             if (context.mounted && context.canPop()) context.pop();
           case 'restore':
@@ -94,6 +95,7 @@ class SettingsEntityOverflowMenu extends StatelessWidget {
               context: context,
               wireName: wireName,
               op: onDelete,
+              undoOp: onRestore,
             );
             if (context.mounted && context.canPop()) context.pop();
         }

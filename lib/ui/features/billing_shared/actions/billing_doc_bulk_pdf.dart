@@ -30,11 +30,12 @@ Future<void> bulkPrintBillingDocs(
     final bytes = await fetch();
     if (!context.mounted) return;
     // Clear the "Processing" toast before the OS print sheet takes over.
-    ScaffoldMessenger.maybeOf(context)?.hideCurrentSnackBar();
+    Notify.clear(context);
     await Printing.layoutPdf(onLayout: (_) async => bytes);
   } catch (e) {
     if (!context.mounted) return;
-    // Notify.error hides any current snackbar (incl. the "Processing" one).
+    // Clear the "Processing" toast, then surface the failure.
+    Notify.clear(context);
     Notify.error(context, context.tr('error'), error: e);
   }
 }

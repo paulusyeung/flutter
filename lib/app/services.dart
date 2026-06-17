@@ -88,6 +88,7 @@ import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/domain/sync/sync_dispatcher.dart';
 import 'package:admin/ui/core/unsaved_changes/unsaved_changes_guard.dart';
+import 'package:admin/ui/core/widgets/toast_controller.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/app/accent_color_controller.dart';
@@ -577,6 +578,12 @@ class Services implements SidebarBadgeContext {
   /// Filled by `TokenSearchField.initState`, cleared in `dispose`; `null`
   /// when no list screen is mounted (e.g. Dashboard, Settings).
   final SearchFocusRegistry searchFocus = SearchFocusRegistry();
+
+  /// App-wide toast queue, rendered by the global `ToastHost` mounted in
+  /// `main.dart`. Context-free + always-alive so every `Notify.*` call lands
+  /// regardless of where it fired (e.g. from a sheet that then pops). Cleared
+  /// on logout. No DI deps, so it's field-initialized like [searchFocus].
+  final ToastController toasts = ToastController();
 
   /// Debug Panel screenshot tools: window sizing to App Store / Play Store
   /// pixel dimensions + hiding the native window buttons. Lives on `Services`
@@ -1180,6 +1187,7 @@ class Services implements SidebarBadgeContext {
     auth.onBeforeLogout = () async {
       settingsLevel.reset();
       refreshScheduler.stop();
+      services.toasts.clearAll();
       if (priorOnBeforeLogout != null) await priorOnBeforeLogout();
     };
     final priorOnActiveCompanyChanged = auth.onActiveCompanyChanged;

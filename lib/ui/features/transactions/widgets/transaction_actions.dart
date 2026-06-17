@@ -10,6 +10,7 @@ import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart'
     show MasterDetailNavScope;
+import 'package:admin/ui/core/sync/require_synced.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 
 /// Row + detail-screen actions for a bank transaction. Edit + the standard
@@ -142,6 +143,10 @@ class TransactionActions {
             companyId: companyId,
             id: transaction.id,
           ),
+          undoOp: () => services.bankTransactions.restore(
+            companyId: companyId,
+            id: transaction.id,
+          ),
         );
       case TransactionAction.restore:
         await StandardEntityActions.restore(
@@ -153,14 +158,15 @@ class TransactionActions {
           ),
         );
       case TransactionAction.delete:
-        if (transaction.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, transaction.id)) return;
         await StandardEntityActions.delete(
           context: context,
           wireName: 'transaction',
           op: () => services.bankTransactions.delete(
+            companyId: companyId,
+            id: transaction.id,
+          ),
+          undoOp: () => services.bankTransactions.restore(
             companyId: companyId,
             id: transaction.id,
           ),

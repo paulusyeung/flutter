@@ -10,6 +10,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
+import 'package:admin/ui/core/sync/require_synced.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/billing_shared/add_unbilled/unbilled_line_items.dart';
 import 'package:admin/ui/features/expenses/view_models/expense_edit_view_model.dart';
@@ -197,6 +198,8 @@ class ProjectActions {
           wireName: 'project',
           op: () =>
               services.projects.archive(companyId: companyId, id: project.id),
+          undoOp: () =>
+              services.projects.restore(companyId: companyId, id: project.id),
         );
       case ProjectAction.restore:
         await StandardEntityActions.restore(
@@ -220,21 +223,17 @@ class ProjectActions {
         );
         goEntityCreateFullWidth(context, '/projects', extra: draft);
       case ProjectAction.delete:
-        if (project.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, project.id)) return;
         await StandardEntityActions.delete(
           context: context,
           wireName: 'project',
           op: () =>
               services.projects.delete(companyId: companyId, id: project.id),
+          undoOp: () =>
+              services.projects.restore(companyId: companyId, id: project.id),
         );
       case ProjectAction.newInvoice:
-        if (project.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, project.id)) return;
         goEntityCreateFullWidth(
           context,
           '/invoices',
@@ -244,10 +243,7 @@ class ProjectActions {
           ),
         );
       case ProjectAction.newQuote:
-        if (project.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, project.id)) return;
         goEntityCreateFullWidth(
           context,
           '/quotes',
@@ -257,10 +253,7 @@ class ProjectActions {
           ),
         );
       case ProjectAction.newExpense:
-        if (project.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, project.id)) return;
         goEntityCreateFullWidth(
           context,
           '/expenses',
@@ -270,10 +263,7 @@ class ProjectActions {
           ),
         );
       case ProjectAction.invoiceProject:
-        if (project.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, project.id)) return;
         // Mirrors admin-portal's "Invoice Project": pending project expenses
         // first, then stopped + uninvoiced tasks with logged time. The pure
         // builder reuses the shared "Invoice Expense" / "Add unbilled"
@@ -320,10 +310,7 @@ class ProjectActions {
           ),
         );
       case ProjectAction.runTemplate:
-        if (project.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
+        if (!requireSynced(context, project.id)) return;
         final templateId = await showRunTemplateDialog(context);
         if (templateId == null || !context.mounted) return;
         await services.projects.runTemplate(
