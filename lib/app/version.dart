@@ -13,7 +13,7 @@ class AppVersion {
   AppVersion._();
 
   /// Sent as `X-CLIENT-VERSION` on every request.
-  static const String kClientVersion = '5.1.1';
+  static const String kClientVersion = '5.1.2';
 
   /// The minimum Invoice Ninja server version this client can talk to.
   ///
