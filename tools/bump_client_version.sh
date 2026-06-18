@@ -18,8 +18,9 @@ set -euo pipefail
 # Does NOT touch kMinServerVersion (bumped only when depending on a server change).
 #
 # Usage:
-#   tools/bump_client_version.sh <version>     # e.g. 5.1.1
-#   tools/bump_client_version.sh               # prints the current version
+#   tools/bump_client_version.sh             # auto-bump: patch +1 and build +1 (5.1.2+5 -> 5.1.3+6)
+#   tools/bump_client_version.sh <version>   # set an explicit version, e.g. 5.2.0 (build still +1)
+#   tools/bump_client_version.sh --current   # print the current version, no changes
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
@@ -32,11 +33,24 @@ if [[ -z "$current" ]]; then
   exit 1
 fi
 
-new_version="${1:-}"
-if [[ -z "$new_version" ]]; then
+arg="${1:-}"
+
+# --current / -c: just print the current version (the old no-arg behavior).
+if [[ "$arg" == "--current" || "$arg" == "-c" ]]; then
   echo "current kClientVersion: $current"
-  echo "usage: tools/bump_client_version.sh <version>   (e.g. 5.1.1)"
   exit 0
+fi
+
+if [[ -z "$arg" ]]; then
+  # No version given: auto-bump the patch (MAJOR.MINOR.PATCH -> MAJOR.MINOR.PATCH+1).
+  # The pubspec build number (+N) is bumped separately further below.
+  if [[ ! "$current" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+    echo "!! current kClientVersion '$current' is not MAJOR.MINOR.PATCH — pass an explicit version" >&2
+    exit 1
+  fi
+  new_version="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.$(( BASH_REMATCH[3] + 1 ))"
+else
+  new_version="$arg"
 fi
 
 if [[ ! "$new_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then

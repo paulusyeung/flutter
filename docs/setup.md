@@ -14,10 +14,12 @@ git config core.hooksPath .githooks
 
 ## Platform targets
 
-- **Now**: iOS, macOS, **web**, **Linux** (desktop, distributed as a Snap — see § Linux desktop / Snap).
-- **Later**: Android, Windows.
+- **Now**: iOS, macOS, **web**, **Linux** (desktop, distributed as a Snap — see § Linux desktop / Snap), **Windows** (desktop runner in `windows/`, binary `InvoiceNinja.exe`, app id `com.invoiceninja.admin`; DPAPI per-user for secure storage).
+- **Later**: Android.
 
-When adding back Android/Windows, regenerate with `flutter create --platforms=android,windows`. Notes: Android needs `<uses-permission android:name="android.permission.INTERNET" />`; Windows uses DPAPI per-user.
+When adding back Android, regenerate with `flutter create --platforms=android`. Note: Android needs `<uses-permission android:name="android.permission.INTERNET" />`.
+
+The Windows app icon is generated from the 1024px macOS source (`macos/AppIcon.icon/Assets/Image.png`) into a multi-size `windows/runner/resources/app_icon.ico` — regenerate after a logo change with `dart run tools/gen_windows_icon.dart`. The user-facing name lives in `windows/runner/main.cpp` (window title), `windows/CMakeLists.txt` (`BINARY_NAME`), and `windows/runner/Runner.rc` (version-info strings).
 
 ## Linux desktop / Snap
 

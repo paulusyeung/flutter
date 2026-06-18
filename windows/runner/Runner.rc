@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.invoiceninja" "\0"
-            VALUE "FileDescription", "admin" "\0"
+            VALUE "CompanyName", "Invoice Ninja" "\0"
+            VALUE "FileDescription", "Invoice Ninja" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "admin" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.invoiceninja. All rights reserved." "\0"
-            VALUE "OriginalFilename", "admin.exe" "\0"
-            VALUE "ProductName", "admin" "\0"
+            VALUE "InternalName", "InvoiceNinja" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Invoice Ninja. All rights reserved." "\0"
+            VALUE "OriginalFilename", "InvoiceNinja.exe" "\0"
+            VALUE "ProductName", "Invoice Ninja" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
