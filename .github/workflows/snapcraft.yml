@@ -49,9 +49,13 @@ jobs:
         run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Build Linux release
+        # IN_SENTRY_DSN is baked into the binary here (compile-time
+        # String.fromEnvironment); snap/snapcraft.yaml only dumps this prebuilt
+        # bundle, so the DSN cannot be injected later. Empty/unset secret is a
+        # safe no-op (Env.sentryDsn defaults to '' → Sentry stays disabled).
         run: |
           flutter config --enable-linux-desktop
-          flutter build linux --release
+          flutter build linux --release --dart-define=IN_SENTRY_DSN=${{ secrets.IN_SENTRY_DSN }}
 
       - name: Clear executable stack (strict confinement)
         run: |

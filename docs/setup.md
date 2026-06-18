@@ -96,3 +96,30 @@ To avoid retyping credentials on every fresh launch:
 2. Run with `flutter run --dart-define-from-file=dev.json`.
 
 The pre-fill happens in `LoginViewModel`'s constructor and is guarded by `!kReleaseMode`, so debug *and* profile builds prefill (handy for perf testing) while release builds tree-shake the branch — credentials cannot leak into a shipped binary even if you accidentally pass the file at build. Keys are `String.fromEnvironment` reads in `lib/app/env.dart` (`Env.devEmail`, `Env.devPassword`).
+
+## Release builds with Sentry
+
+Sentry crash/error reporting is already wired in the app — `sentry_flutter` in `pubspec.yaml`, `Env.sentryDsn` (`String.fromEnvironment('IN_SENTRY_DSN')` in `lib/app/env.dart`), and the init in `lib/main.dart`, which activates Sentry only when `!kIsWeb && !kDebugMode && Env.sentryDsn.isNotEmpty` (sends are further gated by the per-account `report_errors` opt-in via `sentryShouldSend`). The DSN is a **compile-time** value: it must be passed with `--dart-define=IN_SENTRY_DSN=…` at build time and cannot be injected into a prebuilt bundle.
+
+To make local release builds easy, put your DSN in `dev.json` (gitignored — see `dev.json.example`):
+
+```json
+{ "IN_DEV_EMAIL": "…", "IN_DEV_PASSWORD": "…", "IN_SENTRY_DSN": "https://…@…ingest.sentry.io/…" }
+```
+
+Then build with `tools/build_release.sh`:
+
+```sh
+tools/build_release.sh                  # interactive platform picker
+tools/build_release.sh macos
+tools/build_release.sh appbundle --codegen
+tools/build_release.sh ios -- --no-codesign
+IN_SENTRY_DSN=https://…  tools/build_release.sh macos   # env var overrides dev.json
+```
+
+- Targets: `macos | ios | appbundle | linux | web` (Android is **appbundle only**). `ios` builds the `ipa` (distributable, needs signing); `web` builds with `--wasm` but Sentry is excluded on web by the `!kIsWeb` gate, so the DSN is ignored there; `linux` only compiles on a Linux host (no cross-compile from macOS — CI handles it, below).
+- DSN resolution: `IN_SENTRY_DSN` env var → else the `IN_SENTRY_DSN` key in `dev.json` → else empty (Sentry stays disabled, with a warning — a safe no-op). The script reads **only** that key, never `IN_DEV_EMAIL`/`IN_DEV_PASSWORD`, so dev credentials never land in the release binary.
+- `--codegen` runs `dart run build_runner build --delete-conflicting-outputs` first (off by default — assumes generated files are current).
+- Adding the key to `dev.json` also means the **"Flutter (profile, dev creds)"** launch config (profile mode → `!kDebugMode`) exercises Sentry locally — a free way to test the wiring. The debug "Flutter (dev creds)" config still won't init Sentry (the `!kDebugMode` gate).
+
+**CI / Linux snap.** The published artifact (the Linux snap, the only CI publish pipeline) is handled separately by `.github/workflows/snapcraft.yml`, which injects the DSN from the `IN_SENTRY_DSN` GitHub Actions secret (`--dart-define=IN_SENTRY_DSN=${{ secrets.IN_SENTRY_DSN }}`). `tools/build_release.sh` is for **local** macOS/iOS/Android/web release builds. (Note: there is no Dart-symbol upload pipeline — Sentry symbolication relies on symbols baked into the binary; see § Android release build before adding `--split-debug-info`.)

@@ -35,10 +35,12 @@ class Env {
     defaultValue: true,
   );
 
-  /// Dev-only login pre-fill. Consumed by `LoginViewModel` under `kDebugMode`
-  /// so release builds never ship pre-filled credentials. Typical usage:
-  /// `flutter run --dart-define-from-file=dev.json` with a gitignored
-  /// `dev.json` (see `dev.json.example`).
+  /// Dev-only login pre-fill. Consumed by `LoginViewModel` under `!kReleaseMode`
+  /// (debug + profile builds), so release builds never ship pre-filled
+  /// credentials — the guard is dead-code-eliminated and these constants are
+  /// stripped from the release binary even if passed at build time (verified by
+  /// build-and-grep). Typical usage: `flutter run --dart-define-from-file=dev.json`
+  /// with a gitignored `dev.json` (see `dev.json.example`).
   static const String devEmail = String.fromEnvironment('IN_DEV_EMAIL');
   static const String devPassword = String.fromEnvironment('IN_DEV_PASSWORD');
 

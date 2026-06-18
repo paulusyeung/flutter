@@ -1,4 +1,5 @@
 {
   "IN_DEV_EMAIL": "you@example.com",
-  "IN_DEV_PASSWORD": "your-dev-password"
+  "IN_DEV_PASSWORD": "your-dev-password",
+  "IN_SENTRY_DSN": ""
 }
