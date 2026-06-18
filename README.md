@@ -1,19 +1,15 @@
-# Invoice Ninja
+# Invoice Ninja (Beta)
 
-Next-generation client app for [Invoice Ninja](https://github.com/invoiceninja/invoiceninja):
-a ground-up rebuild of the Redux-based
-[`admin-portal`](https://github.com/invoiceninja/admin-portal) with three goals:
+v2 client application for [Invoice Ninja](https://github.com/invoiceninja/invoiceninja).
 
-1. **Page-by-page data loading**: never `per_page=999999`.
-2. **True offline editing**: every change lands in a local mutation outbox and syncs when back online.
-3. **No Redux**: plain `ChangeNotifier` state. No bloc, no Riverpod.
+#### Desktop Apps
+- [Windows](https://apps.microsoft.com/detail/restricted/9NB3MBDBJCH7)
+- [macOS](https://testflight.apple.com/join/YY1BZ7uR)
+- [Linux] `sudo snap install invoiceninja --edge`
 
-Plus two non-negotiables carried over from v1: app restart restores exactly where the
-user left off (route, company, filters), and full multi-company support.
-
-#### Try it
-
-- **Live web demo:** <https://hillelcoren.github.io/admin/>, pre-authenticated against the demo server.
+#### Mobile Apps
+- [iOS](https://testflight.apple.com/join/YY1BZ7uR)
+- [Android](https://play.google.com/apps/testing/com.invoiceninja.admin)
 
 # Table of Contents
 

@@ -4,9 +4,14 @@
 //
 //   dart run tools/gen_windows_icon.dart
 //
-// The source is full-bleed square — the correct shape for a Windows icon. Do NOT
-// swap in assets/images/icon.png: it's circular (a mask is baked in) and only
-// 152px, which would look wrong and soft on Windows.
+// The source is a macOS "glass" alpha matte, NOT a finished raster: its RGB is
+// entirely black and the envelope shape lives only in the ALPHA channel (icon.json
+// sets glass:true — macOS fills the matte with the system material). Windows has no
+// such treatment, so resizing the matte straight through draws an all-dark icon with
+// no white anywhere. We therefore BAKE the alpha into real pixels — white where the
+// source is opaque (the envelope), black where transparent (linework + background) —
+// on a solid opaque black tile. Do NOT swap in assets/images/icon.png: it's circular
+// (a mask is baked in) and only 152px, which would look wrong and soft on Windows.
 //
 // Uses the `image` package's IcoEncoder.encodeImages, which writes one ICO
 // directory entry per supplied image (each keeps its own width/height) — unlike
@@ -26,10 +31,21 @@ void main() {
     stderr.writeln('Could not decode $_source');
     exit(1);
   }
+  // Bake the alpha matte into a white envelope on an opaque black tile, at full
+  // resolution, then downsample for clean anti-aliasing. In the source matte the
+  // envelope body is the TRANSPARENT negative space (alpha 0) and the surround +
+  // flap linework are opaque — so the gray value is the INVERTED alpha (255 - a):
+  // transparent envelope -> white, opaque surround -> black. Output is fully opaque
+  // (alpha 255) so the icon never lets the dark taskbar show through and wash out.
+  final baked = Image(width: src.width, height: src.height, numChannels: 4);
+  for (final p in src) {
+    final v = 255 - p.a.toInt();
+    baked.setPixelRgba(p.x, p.y, v, v, v, 255);
+  }
   final frames = [
     for (final size in _sizes)
       copyResize(
-        src,
+        baked,
         width: size,
         height: size,
         interpolation: Interpolation.average,
