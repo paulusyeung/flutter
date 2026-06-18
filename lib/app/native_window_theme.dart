@@ -3,13 +3,19 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-/// Pushes the active Flutter theme's outermost color and ink into the native
-/// macOS window chrome (titlebar background, traffic-light glyph color via
-/// `NSAppearance`, and the centered title NSTextField). Swift owns the
-/// `UserDefaults` mirror that prevents a cold-start flash on relaunch — every
-/// `apply` from here writes those keys on the native side.
+/// Pushes the active Flutter theme's resolved brightness — and, on macOS, its
+/// outermost background + ink colors — into the native desktop window chrome so
+/// the OS title bar follows the app's light/dark theme.
 ///
-/// macOS-only. On every other platform every method is a no-op.
+/// - macOS: Swift restyles the titlebar background, traffic-light glyph color
+///   (via `NSAppearance`) and the centered title NSTextField, and owns the
+///   `UserDefaults` mirror that prevents a cold-start flash on relaunch — every
+///   `apply` from here writes those keys on the native side.
+/// - Windows: the runner flips the standard caption between light and dark via
+///   `DWMWA_USE_IMMERSIVE_DARK_MODE`, reading only the `brightness` field; the
+///   `bgHex`/`titleHex` colors are ignored there (standard system styling).
+///
+/// macOS and Windows only. On every other platform every method is a no-op.
 class NativeWindowTheme {
   NativeWindowTheme._();
 
@@ -28,7 +34,7 @@ class NativeWindowTheme {
     required Color title,
     required Brightness brightness,
   }) async {
-    if (!_isMac) return;
+    if (!_isSupported) return;
     if (background == _lastBg &&
         title == _lastTitle &&
         brightness == _lastBrightness) {
@@ -52,9 +58,9 @@ class NativeWindowTheme {
     }
   }
 
-  bool get _isMac {
+  bool get _isSupported {
     if (kIsWeb) return false;
-    return Platform.isMacOS;
+    return Platform.isMacOS || Platform.isWindows;
   }
 
   static String _hex(Color c) {

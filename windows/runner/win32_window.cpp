@@ -53,6 +53,15 @@ void EnableFullDpiSupportIfAvailable(HWND hwnd) {
   FreeLibrary(user32_module);
 }
 
+// Flips |window|'s caption between the standard light and dark immersive
+// styling. A harmless no-op on Windows versions without dark-mode caption
+// support (DwmSetWindowAttribute just returns a failure HRESULT).
+void ApplyImmersiveDarkMode(HWND window, bool dark) {
+  BOOL value = dark ? TRUE : FALSE;
+  DwmSetWindowAttribute(window, DWMWA_USE_IMMERSIVE_DARK_MODE, &value,
+                        sizeof(value));
+}
+
 }  // namespace
 
 // Manages the Win32Window's window class registration.
@@ -214,7 +223,13 @@ Win32Window::MessageHandler(HWND hwnd,
       return 0;
 
     case WM_DWMCOLORIZATIONCOLORCHANGED:
-      UpdateTheme(hwnd);
+      // Once Flutter has pushed an explicit theme it owns the caption: reapply
+      // that rather than reverting to the OS value on an accent-color change.
+      if (flutter_pushed_theme_) {
+        ApplyImmersiveDarkMode(hwnd, pushed_dark_);
+      } else {
+        UpdateTheme(hwnd);
+      }
       return 0;
   }
 
@@ -281,8 +296,17 @@ void Win32Window::UpdateTheme(HWND const window) {
                                &light_mode_size);
 
   if (result == ERROR_SUCCESS) {
-    BOOL enable_dark_mode = light_mode == 0;
-    DwmSetWindowAttribute(window, DWMWA_USE_IMMERSIVE_DARK_MODE,
-                          &enable_dark_mode, sizeof(enable_dark_mode));
+    ApplyImmersiveDarkMode(window, light_mode == 0);
+  }
+}
+
+void Win32Window::SetThemeBrightness(bool dark) {
+  // Flutter is now the source of truth for the caption theme; remember the
+  // value so OS-driven theme messages reapply it instead of reading the
+  // registry (which tracks the OS theme, not the app's chosen theme).
+  flutter_pushed_theme_ = true;
+  pushed_dark_ = dark;
+  if (window_handle_ != nullptr) {
+    ApplyImmersiveDarkMode(window_handle_, dark);
   }
 }

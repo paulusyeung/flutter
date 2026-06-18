@@ -2,6 +2,9 @@
 
 #include <optional>
 
+#include <flutter/method_channel.h>
+#include <flutter/standard_method_codec.h>
+
 #include "flutter/generated_plugin_registrant.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
@@ -25,6 +28,37 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
+
+  // Mirror the macOS runner: let Flutter drive the native title-bar theme. Dart
+  // pushes the app's resolved brightness here whenever the theme changes, and we
+  // flip the standard light/dark caption styling to match — so the OS title bar
+  // follows the app's chosen theme rather than the OS theme. The bgHex/titleHex
+  // the channel also carries are macOS-only and ignored here.
+  theme_channel_ = std::make_unique<flutter::MethodChannel<>>(
+      flutter_controller_->engine()->messenger(),
+      "invoice_ninja/native_window_theme",
+      &flutter::StandardMethodCodec::GetInstance());
+  theme_channel_->SetMethodCallHandler(
+      [this](const auto& call, auto result) {
+        if (call.method_name() != "apply") {
+          result->NotImplemented();
+          return;
+        }
+        const auto* args = std::get_if<flutter::EncodableMap>(call.arguments());
+        if (args != nullptr) {
+          const auto it = args->find(flutter::EncodableValue("brightness"));
+          if (it != args->end()) {
+            if (const auto* brightness =
+                    std::get_if<std::string>(&it->second)) {
+              SetThemeBrightness(*brightness == "dark");
+              result->Success();
+              return;
+            }
+          }
+        }
+        result->Error("bad_args", "expected a 'brightness' string");
+      });
+
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
@@ -40,6 +74,9 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
+  // Tear the channel down before the engine/messenger it borrows from.
+  theme_channel_ = nullptr;
+
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
   }

@@ -71,6 +71,11 @@ class Win32Window {
   // Called when Destroy is called.
   virtual void OnDestroy();
 
+  // Applies an explicit light/dark caption styling pushed from Flutter and
+  // marks Flutter as the owner of the window theme, so subsequent OS-driven
+  // theme messages defer to this value instead of the system registry.
+  void SetThemeBrightness(bool dark);
+
  private:
   friend class WindowClassRegistrar;
 
@@ -97,6 +102,12 @@ class Win32Window {
 
   // window handle for hosted content.
   HWND child_content_ = nullptr;
+
+  // Set once Flutter pushes an explicit theme via the platform channel. From
+  // then on, OS-driven theme changes reapply |pushed_dark_| rather than reading
+  // the system registry, so the caption follows the app's chosen theme.
+  bool flutter_pushed_theme_ = false;
+  bool pushed_dark_ = false;
 };
 
 #endif  // RUNNER_WIN32_WINDOW_H_
