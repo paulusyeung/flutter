@@ -91,6 +91,7 @@ dev_dependencies:
   # the script's import is explicit. No lock change — stays 4.8.0.
   image: ^4.8.0
   json_serializable: ^6.14.0
+  msix: ^3.17.0
 
 dependency_overrides:
   # re_editor's transitive isolate_manager 4.x → isolate_contactor uses
